@@ -132,9 +132,9 @@ void colour_blowout_int(uint32_t *pred, uint32_t *pgrn, uint32_t *pblu)
 			max >>= LBD-15;
 		#endif
 
-		L = (Wr*red + Wg*grn + Wb*blu) >> LBD;   // Luminosity of the colour's grey point, 0.15
+		L = (Wr*red + Wg*grn + Wb*blu) >> LBD;   // Luminosity of the colour's grey point, 1.15
 
-		if (L < 32768) // if the grey point is no brighter than white
+		if (L <= 32768) // if the grey point is no brighter than white
 		{
 			// t represents the ratio on the line between the input colour
 			// and its corresponding grey point. t is between 0 and 1,

@@ -9,13 +9,13 @@ lut_t get_lut_lsrgb()
 	{
 		init = 0;
 
-		lsrgb_l.lut_size = ONE;
+		lsrgb_l.lut_size = ONE+1;
 	
 		lsrgb_l.lutint = calloc (lsrgb_l.lut_size, sizeof(int32_t));
 	
 		for (i=0; i<lsrgb_l.lut_size; i++)
 		{
-			linear = (double) i / (double) (lsrgb_l.lut_size-1);
+			linear = (double) i / ONEF;
 	
 			if (linear <= 0.0031308)
 				s = linear * 12.92;

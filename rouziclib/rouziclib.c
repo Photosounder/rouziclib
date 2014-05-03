@@ -15,6 +15,7 @@
 #include "graphics/blit.c"
 #include "graphics/drawline.c"
 #include "graphics/drawprimitives.c"
+#include "gui/drawelements.c"
 
 #include "geometry/intersection.c"
 #include "math/functions.c"

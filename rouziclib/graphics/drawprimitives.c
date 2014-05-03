@@ -191,3 +191,67 @@ void draw_roundrect_frame(lrgb_t *fb, int32_t w, int32_t h, double x1, double y1
 		}
 	}
 }
+
+// TODO optimise using fixed point arithmetic and look-up tables
+void draw_polar_glow(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrgb_t col, double colmul, double scale, double rad, double gradr, double gradth, double angle, int32_t islog, int32_t riserf, double erfrad, double pixoffset)
+{
+	int32_t ix, iy, g, ginv;
+	double ixf, iyf, r, th, gx, gy;
+
+	for (iy=0; iy<h; iy++)
+	{
+		iyf = (double) iy - cy;
+
+		for (ix=0; ix<w; ix++)
+		{
+			ixf = (double) ix - cx;
+			th = atan2(iyf, ixf);		// range is (-pi, pi]
+			r = sqrt(ixf*ixf + iyf*iyf);
+			gy = (rad - (r/scale)) / gradr;
+			if (islog)
+				if (gy > 0.)
+					gy = log(gy);
+				else
+					gy = 8.;
+
+			if (riserf)	// if it's an erf and not a gaussian
+				gy = (0.5*erf(gy + 0.5*erfrad) + 0.5) * (0.5*erf(-gy + 0.5*erfrad) + 0.5);
+			else
+				gy = gaussian(gy);
+			gx = gaussian(rangewrap(th-angle, -pi, pi) * gradth);
+			gx *= gy;
+			gx *= colmul;	// intensity of colour
+			gx += pixoffset;
+			if (gx < 0.)
+				gx = 0.;
+			g = 32768. * gx + 0.5;
+			ginv = 32768 - g;
+
+			fb[iy*w+ix].r = g * col.r + ginv * fb[iy*w+ix].r >> 15;
+			fb[iy*w+ix].g = g * col.g + ginv * fb[iy*w+ix].g >> 15;
+			fb[iy*w+ix].b = g * col.b + ginv * fb[iy*w+ix].b >> 15;
+			fb[iy*w+ix].a = ONEF;
+		}
+	}
+}
+
+// TODO optimise using fixed point arithmetic and look-up tables
+void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy)
+{
+	int32_t ix, iy, p;
+	double gx, gy;
+
+	for (iy=0; iy<h; iy++)
+	{
+		gy = gaussian((cy - (double) iy) / (gausrad*(double)h) + gausoffy);
+
+		for (ix=0; ix<w; ix++)
+		{
+			gx = gaussian((cx - (double) ix) / (gausrad*(double)h) + gausoffx);
+			gx *= gy;
+			p = 32768. * gx + 0.5;
+
+			fb[iy*w+ix] = blend_pixels(c0, c1, p, BLEND);
+		}
+	}
+}

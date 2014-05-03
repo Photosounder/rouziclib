@@ -5,6 +5,6 @@ typedef struct
 	double lut_range, lut_range_inv;
 	double mul, add;
 	double *lut;
-	int32_t *lutint;	// same as lut except in 0.15 fixed point format
-	uint8_t *lutb;		// for values from 0 to 255 (sRGB colours)
+	int32_t *lutint;	// same as lut except in fixed point format
+	uint8_t *lutb;		// for values from 0 to 255 (like sRGB colours)
 } lut_t;

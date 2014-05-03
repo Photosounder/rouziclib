@@ -39,6 +39,7 @@ extern "C" {
 #include "graphics/blit.h"
 #include "graphics/drawline.h"
 #include "graphics/drawprimitives.h"
+#include "gui/drawelements.h"
 
 #include "geometry/intersection.h"
 #include "math/functions.h"

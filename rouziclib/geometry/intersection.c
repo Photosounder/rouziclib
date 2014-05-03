@@ -10,8 +10,8 @@ void border_clip(double w, double h, double *x1, double *y1, double *x2, double 
 	double u;
 	double bx1, by1, bx2, by2;	// coordinates of the bounding box
 
-	bx1 = 0. - radius;	bx2 = w-1. + radius;
-	by1 = 0. - radius;	by2 = h-1. + radius;
+	bx1 = 0. - radius;	bx2 = w + radius;
+	by1 = 0. - radius;	by2 = h + radius;
 
 	if (*x1 < bx1)
 	{

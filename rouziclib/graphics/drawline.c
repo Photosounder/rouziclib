@@ -15,9 +15,9 @@ void draw_line_thin(lrgb_t *fb, int32_t w, int32_t h, double x1, double y1, doub
 	const double fpratio = (double) (1<<fp);
 
 	grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002
-	bradius = grad * sqrt(2.);	// bounding radius, the maximum radius necessary at each end of the line
+	bradius = grad * sqrt(2.);		// bounding radius, the maximum radius necessary at each end of the line
 
-	border_clip(w, h, &x1, &y1, &x2, &y2, grad);	// cut the part of the segment outside the screen
+	border_clip(w-1, h-1, &x1, &y1, &x2, &y2, grad);	// cut the part of the segment outside the screen
 
 	ratio = 32768. * intensity + 0.5;
 
