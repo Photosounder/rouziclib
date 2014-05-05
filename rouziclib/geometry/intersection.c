@@ -4,6 +4,19 @@ void line_line_intersection(double x1, double y1, double x2, double y2, double x
 	*y = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4));
 }
 
+double point_line_distance(double x1, double y1, double x2, double y2, double x3, double y3)	// nearest point on the line
+{
+	double u, xp, yp, dist;
+
+	u = hypot(x2-x1, y2-y1);
+	u = ((x3-x1)*(x2-x1) + (y3-y1)*(y2-y1)) / (u * u);
+
+	xp = x1 + u * (x2-x1);
+	yp = y1 + u * (y2-y1);
+
+	return hypot(xp-x3, yp-y3);
+}
+
 // Limits a line to the insides of a bounding box
 void border_clip(double w, double h, double *x1, double *y1, double *x2, double *y2, double radius)
 {

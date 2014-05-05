@@ -176,3 +176,35 @@ void draw_line_thin(lrgb_t *fb, int32_t w, int32_t h, double x1, double y1, doub
 		bendy += incy;
 	}
 }
+
+void draw_line_thin_short(lrgb_t *fb, int32_t w, int32_t h, double x1, double y1, double x2, double y2, double u1, double u2, double radius, lrgb_t colour, const int mode, double intensity)
+{
+	double x3, y3, x4, y4;
+
+	if (u2<=u1)
+		return;
+
+	if (u1!=0.)
+	{
+		x3 = x1 + u1 * (x2-x1);
+		y3 = y1 + u1 * (y2-y1);
+	}
+	else
+	{
+		x3 = x1;
+		y3 = y1;
+	}
+
+	if (u2!=1.)
+	{
+		x4 = x1 + u2 * (x2-x1);
+		y4 = y1 + u2 * (y2-y1);
+	}
+	else
+	{
+		x4 = x2;
+		y4 = y2;
+	}
+
+	draw_line_thin(fb, w, h, x3, y3, x4, y4, radius, colour, mode, intensity);
+}
