@@ -155,8 +155,7 @@ void draw_line_thin(lrgb_t *fb, int32_t w, int32_t h, double x1, double y1, doub
 				yrp = ((int64_t) ix * sinth >> fpi) + ((int64_t) iy * costh >> fpi);
 
 				p = fperfr(xrp-xr1) >> 15;
-				p *= fperfr(xr2-xrp) >> 15;
-				p >>= 15;
+				p -= fperfr(xrp-xr2) >> 15;
 				p *= fpgauss(yrp-yr1) >> 15;
 				p >>= 15;
 				p = p * ratio >> 15;
