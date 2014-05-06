@@ -4,7 +4,7 @@ rouziclib
 This is my library of code that is common to my different projects (mostly [Spiral](http://photosounder.com/spiral/) and [SplineEQ](http://photosounder.com/splineeq/))
 
 It includes some of the following:
-- Fast lookup table-based fixed-point arithmetic approximations for sqrt, hypot, log2, exp2, pow, cos, atan2 (both noting angles in [turns](http://en.wikipedia.org/wiki/Turn_(geometry)), not radians), the Gaussian function ([e^-x²](http://www.wolframalpha.com/input/?i=e%5E-x%C2%B2)) and the raised error function ([0.5+0.5erf(x)](http://www.wolframalpha.com/input/?i=0.5%2B0.5erf(x)))
+- Fast lookup table-based fixed-point arithmetic approximations for sqrt, hypot, log2, exp2, pow, cos, atan2 (both noting angles in [turns](http://en.wikipedia.org/wiki/Turn_(geometry)), not radians), the Gaussian function ([e^-xï¿½](http://www.wolframalpha.com/input/?i=e%5E-x%C2%B2)) and the raised error function ([0.5+0.5erf(x)](http://www.wolframalpha.com/input/?i=0.5%2B0.5erf(x)))
 - Functions to draw lines, circles, roundrects and gradients, all antialiased with Gaussian filtering
 - Functions to convert from sRGB to linear RGB for loading images and to convert from linear RGB to sRGB with optional Gaussian dithering for displaying
 - Geometric functions used for computing intersections between lines, shortest the distance of a point to a line or to limit a line to a bounding box
@@ -17,7 +17,7 @@ All graphical functions operate on pixels in a linear colour space. Please do no
 In the near future more code will be ported from my projects to rouziclib, in particular functions for displaying bitmap variable-width fonts, GUI elements, FFT and code that relies on specific APIs.
 
 How to use it
-- ------------
+-------------
 
 Unusually for a library, rouziclib's code relies on macros that are defined inside your project's code. This means that rouziclib isn't entirely independently compiled. So the way to make this work is to create two files in your project, a header file which directly includes the main header, but not before you add the macros you can optionally define, and a code file which includes the aforementioned header file you just created and then includes the library's rouziclib.c. Here's how it looks:
 
