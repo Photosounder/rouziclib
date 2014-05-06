@@ -9,6 +9,7 @@ It includes some of the following:
 - Functions to convert from sRGB to linear RGB for loading images and to convert from linear RGB to sRGB with optional Gaussian dithering for displaying
 - Geometric functions used for computing intersections between lines, shortest the distance of a point to a line or to limit a line to a bounding box
 - Blending modes like additive, subtractive, multiplicative blending and alpha blending
+- Blitting of a buffer onto another, like for displaying a sprite
 - An original Hue-Saturation-Luminance colour space with a Luminance that is about perceptually correct (unlike the 1931 CIE XYZ colour space which gets the weights of each colour blatantly wrong) which is used for HSL to RGB conversion and for bringing out of gamut colours (such as colours that have components brighter than 1.0) to the most appropriate representable colour
 - Various utility functions and macros
 
