@@ -6,7 +6,7 @@ void line_line_intersection(double x1, double y1, double x2, double y2, double x
 
 double point_line_distance(double x1, double y1, double x2, double y2, double x3, double y3)	// nearest point on the line
 {
-	double u, xp, yp, dist;
+	double u, xp, yp;
 
 	u = hypot(x2-x1, y2-y1);
 	u = ((x3-x1)*(x2-x1) + (y3-y1)*(y2-y1)) / (u * u);

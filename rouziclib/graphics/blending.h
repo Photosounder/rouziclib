@@ -4,6 +4,7 @@ enum
 	ADD,
 	SUB,
 	MUL,
+	MUL4,
 	BLEND,
 	ALPHABLEND,
 	ALPHABLENDFG,

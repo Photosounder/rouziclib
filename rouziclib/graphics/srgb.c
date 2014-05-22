@@ -114,6 +114,15 @@ void convert_lrgb_to_srgb(srgb_t *sfb, lrgb_t *fb, int32_t pixc, int mode)
 	{
 		for (i=0; i<pixc; i++)
 		{
+			#ifdef _DEBUG
+			if (fb[i].r>ONE)
+				fb[i].r = (rand()&1)<<LBD;	// reveals out of range pixels
+			if (fb[i].g>ONE)
+				fb[i].g = (rand()&1)<<LBD;
+			if (fb[i].b>ONE)
+				fb[i].b = (rand()&1)<<LBD;
+			#endif
+
 			dither = dither_l.lutint[id];
 			sfb[i].r = bytecheck_l.lutb[lsrgb_l.lutint[fb[i].r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
 			sfb[i].g = bytecheck_l.lutb[lsrgb_l.lutint[fb[i].g] + dither >> 5];

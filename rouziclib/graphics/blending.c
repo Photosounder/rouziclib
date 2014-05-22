@@ -36,6 +36,17 @@ lrgb_t blend_pixels(lrgb_t bg, lrgb_t fg, int32_t p, const int mode)
 			bg.b = (bg.b*fg.b >> LBD) * p + bg.b * pinv >> 15;
 			break;
 
+		case MUL4:	// multiply by a quarter intensity image (1.0 == sRGB value of 137)
+			pinv = 32768 - p;
+			r = (bg.r*fg.r >> (LBD-2)) * p + bg.r * pinv >> 15;	if (r>ONE) r = ONE;
+			g = (bg.g*fg.g >> (LBD-2)) * p + bg.g * pinv >> 15;	if (g>ONE) g = ONE;
+			b = (bg.b*fg.b >> (LBD-2)) * p + bg.b * pinv >> 15;	if (b>ONE) b = ONE;
+			
+			bg.r = r;
+			bg.g = g;
+			bg.b = b;
+			break;
+
 		case BLEND:	// blend
 			pinv = 32768 - p;
 
