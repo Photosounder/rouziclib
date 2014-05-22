@@ -243,11 +243,11 @@ void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double 
 
 	for (iy=0; iy<h; iy++)
 	{
-		gy = gaussian((cy - (double) iy) / (gausrad*(double)h) + gausoffy);
+		gy = gaussian((cy - (double) iy) / gausrad + gausoffy);
 
 		for (ix=0; ix<w; ix++)
 		{
-			gx = gaussian((cx - (double) ix) / (gausrad*(double)h) + gausoffx);
+			gx = gaussian((cx - (double) ix) / gausrad + gausoffx);
 			gx *= gy;
 			p = 32768. * gx + 0.5;
 
