@@ -44,6 +44,7 @@ extern "C" {
 #include "geometry/intersection.h"
 #include "math/functions.h"
 #include "math/rand.h"
+#include "math/dsp.h"
 
 
 
