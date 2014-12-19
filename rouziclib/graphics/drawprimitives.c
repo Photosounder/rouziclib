@@ -255,3 +255,47 @@ void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double 
 		}
 	}
 }
+
+void draw_point(lrgb_t *fb, int32_t w, int32_t h, double x, double y, double radius, lrgb_t colour, const int mode, double intensity)
+{
+	int32_t i, iy, ix, fbi, r, g, b, a;
+	double x3, y3, x4, y4, xp, yp, u;
+	double d12, d12s, d12si, d1p, d2p, d3p, dx12, dy12, dy13, dy12t13, vx12, vy12, grad;
+	int32_t alpha, p, pinv, ratio;		// 0.15
+	double bradius, bvx, bvy, x1l, y1l, x2l, y2l, x3l, y3l, x4l, y4l;
+	int32_t bstartx, bstarty, bendx, bendy, incx, incy, incc;
+	int bx0, by0, bx1, by1, dx, dy, sx, sy, err, e2;	// Bresenham routine variables
+
+	const int32_t fp=16, fpr = 29;
+	const double fpratio = (double) (1<<fp);
+	int32_t xf, yf, radiusf;
+
+	xf = roundaway(x * fpratio);
+	yf = roundaway(y * fpratio);
+
+	grad = sqrt(log(1. / (GAUSSLIMIT*intensity)));
+
+	alpha = 32768. * (double) colour.a / ONEF + 0.5;
+	ratio = 32768. * intensity + 0.5;
+
+	bradius = grad * radius;	// 2.36 for a radius of 1
+	radius = 1./radius;
+	radiusf = roundaway(radius * (double) (1<<29));
+
+	bstartx = (int32_t) ceil(x - bradius);	if (bstartx<0)	bstartx = 0;
+	bstarty = (int32_t) ceil(y - bradius);	if (bstarty<0)	bstarty = 0;
+	bendx = (int32_t) floor(x + bradius);	if (bendx >= w) bendx = w-1;
+	bendy = (int32_t) floor(y + bradius);	if (bendy >= h) bendy = h-1;
+
+	for (iy=bstarty; iy<=bendy; iy++)
+	for (ix=bstartx; ix<=bendx; ix++)
+	{
+		fbi = iy*w+ix;
+
+		p = fpgauss((int64_t) (xf - (ix<<fp)) * radiusf >> fpr) >> 15;	// 0.15
+		p *= fpgauss((int64_t) (yf - (iy<<fp)) * radiusf >> fpr) >> 15;
+		p = (p>>15) * ratio >> 15;
+
+		fb[fbi] = blend_pixels(fb[fbi], colour, p, mode);
+	}
+}

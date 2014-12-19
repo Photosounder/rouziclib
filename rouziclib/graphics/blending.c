@@ -102,6 +102,9 @@ lrgb_t blend_pixels(lrgb_t bg, lrgb_t fg, int32_t p, const int mode)
 			pinv = 32768 - p;
 			bg.a = fg.a * p + bg.a * pinv >> 15;
 			break;
+
+		default:
+			bg.g = rand() % (ONE-1);
 	}
 
 	return bg;

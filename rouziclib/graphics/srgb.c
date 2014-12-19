@@ -1,7 +1,22 @@
+double lsrgb(double linear)	// converts a [0.0, 1.0] linear value into a [0.0, 1.0] sRGB value
+{
+	if (linear <= 0.0031308)
+		return linear * 12.92;
+	else
+		return 1.055 * pow(linear, 1.0/2.4) - 0.055;
+}
+
+double slrgb(double s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] linear value
+{
+	if (s <= 0.04045)
+		return s / 12.92;
+	else
+		return pow((s + 0.055) / 1.055, 2.4);
+}
+
 lut_t get_lut_lsrgb()
 {
 	int32_t i;
-	double linear, s;
 	static int init=1;
 	static lut_t lsrgb_l;
 
@@ -14,16 +29,7 @@ lut_t get_lut_lsrgb()
 		lsrgb_l.lutint = calloc (lsrgb_l.lut_size, sizeof(int32_t));
 	
 		for (i=0; i<lsrgb_l.lut_size; i++)
-		{
-			linear = (double) i / ONEF;
-	
-			if (linear <= 0.0031308)
-				s = linear * 12.92;
-			else
-				s = 1.055 * pow(linear, 1.0/2.4) - 0.055;
-			
-			lsrgb_l.lutint[i] = s*8160. + 0.5;	// 8160 = 255 * 32 (8.5 fixed point format)
-		}
+			lsrgb_l.lutint[i] = lsrgb((double) i / ONEF) * 8160. + 0.5;	// 8160 = 255 * 32 (8.5 fixed point format)
 	}
 
 	return lsrgb_l;
@@ -44,12 +50,7 @@ lut_t get_lut_slrgb()
 		slrgb_l.lutint = calloc (slrgb_l.lut_size, sizeof(int32_t));
 	
 		for (i=0; i<slrgb_l.lut_size; i++)
-		{
-			if (i <= 10)
-				slrgb_l.lutint[i] = ONEF * ((double) i / 255.) / 12.92 + 0.5;
-			else
-				slrgb_l.lutint[i] = ONEF * pow((((double) i / 255.) + 0.055) / 1.055, 2.4) + 0.5;
-		}
+			slrgb_l.lutint[i] = slrgb(((double) i / 255.)) * ONEF + 0.5;
 	}
 
 	return slrgb_l;

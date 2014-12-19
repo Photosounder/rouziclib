@@ -4,6 +4,8 @@ enum
 	DITHER,
 };
 
+extern double lsrgb(double linear);
+extern double slrgb(double s);
 extern lut_t get_lut_lsrgb();
 extern lut_t get_lut_slrgb();
 extern lut_t dither_lut_init();
