@@ -25,7 +25,7 @@ void blit_sprite(lrgb_t *fb, int32_t fbw, int32_t fbh, lrgb_t *sprite, int32_t s
 		{
 			iy_fbw = (iy + offset_y) * fbw + offset_x;
 			iy_spw = iy * spw;
-			memcpy(&fb[iy_fbw], &sprite[iy_spw], (stop_x-start_x) * sizeof(lrgb_t));
+			memcpy(&fb[iy_fbw+start_x], &sprite[iy_spw+start_x], (stop_x-start_x) * sizeof(lrgb_t));
 		}
 		return;
 	}

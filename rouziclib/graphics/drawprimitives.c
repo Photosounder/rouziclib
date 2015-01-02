@@ -299,3 +299,38 @@ void draw_point(lrgb_t *fb, int32_t w, int32_t h, double x, double y, double rad
 		fb[fbi] = blend_pixels(fb[fbi], colour, p, mode);
 	}
 }
+
+void draw_point_on_row(lrgb_t *fb, int32_t w, int32_t h, double x, int32_t y, double radius, lrgb_t colour, int32_t mode, double intensity)
+{
+	int32_t ix, fbi, dp;
+	double grad = GAUSSRAD(intensity, radius);
+	int32_t p, ratio;	// 0.15
+	int32_t bstartx, bendx;
+
+	int32_t xf, ixf, radf;
+	const int32_t fp=16;
+	const double fpratio = (double) (1<<fp);
+
+	ratio = 32768. * intensity + 0.5;
+
+	radf = roundaway(1./radius * fpratio);
+
+	bstartx = (int32_t) ceil(x - grad);	if (bstartx<0)	bstartx = 0;
+	bendx = (int32_t) floor(x + grad);	if (bendx >= w) bendx = w-1;
+
+	xf = roundaway(x * fpratio);
+
+	for (ix=bstartx; ix<=bendx; ix++)
+	{
+		fbi = y*w+ix;
+		ixf = ix << fp;
+
+		dp = xf - ixf;
+		dp = (int64_t) dp * radf >> fp;
+
+		p = fpgauss(dp) >> 15;
+		p = p * ratio >> 15;
+
+		fb[fbi] = blend_pixels(fb[fbi], colour, p, mode);
+	}
+}

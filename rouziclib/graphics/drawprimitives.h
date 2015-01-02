@@ -11,3 +11,4 @@ extern void draw_roundrect_frame(lrgb_t *fb, int32_t w, int32_t h, double x1, do
 extern void draw_polar_glow(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrgb_t col, double colmul, double scale, double rad, double gradr, double gradth, double angle, int32_t islog, int32_t riserf, double erfrad, double pixoffset);
 extern void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy);
 extern void draw_point(lrgb_t *fb, int32_t w, int32_t h, double x, double y, double radius, lrgb_t colour, const int mode, double intensity);
+extern void draw_point_on_row(lrgb_t *fb, int32_t w, int32_t h, double x, int32_t y, double radius, lrgb_t colour, int32_t mode, double intensity);
