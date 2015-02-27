@@ -5,10 +5,29 @@
 #define ONEF	((double) ONE)
 
 #ifndef GAUSSLIMIT
-#define GAUSSLIMIT	0.0002	// limit of intensity for drawing lines in the [0, 1) range
+#define GAUSSLIMIT	0.0002	// limit of intensity for drawing lines in the [0, 1) range (0.0002 == 0.66/255 in sRGB)
 #endif
 // solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002 with a radius of 1
-#define GAUSSRAD(intensity, radius)	(sqrt(log(intensity / GAUSSLIMIT))*radius)
+//#define GAUSSRAD(intensity, radius)	(sqrt(log(intensity / GAUSSLIMIT))*radius)
+#define GAUSSRAD gaussrad	// this is much faster
+
+static double gaussrad(double intensity, double radius)
+{
+	static double last_intensity=0., last_radius=0., last_result=0.;
+
+	if (last_intensity==intensity && last_radius==radius)
+		return last_result;
+	else
+	{
+		last_intensity = intensity;
+		last_radius = radius;
+		if (intensity > GAUSSLIMIT)
+			last_result = (sqrt(log(intensity / GAUSSLIMIT))*radius);
+		else
+			last_result = 0.;
+		return last_result;
+	}
+}
 
 typedef struct
 {

@@ -236,10 +236,11 @@ void draw_polar_glow(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrg
 }
 
 // TODO optimise using fixed point arithmetic and look-up tables
-void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy)
+void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy, int mode)
 {
 	int32_t ix, iy, p;
 	double gx, gy;
+	lrgb_t gc;
 
 	for (iy=0; iy<h; iy++)
 	{
@@ -251,7 +252,8 @@ void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double 
 			gx *= gy;
 			p = 32768. * gx + 0.5;
 
-			fb[iy*w+ix] = blend_pixels(c0, c1, p, BLEND);
+			gc = blend_pixels(c0, c1, p, BLEND);
+			fb[iy*w+ix] = blend_pixels(fb[iy*w+ix], gc, 32768, mode);
 		}
 	}
 }

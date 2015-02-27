@@ -31,6 +31,18 @@ lrgb_t make_colour_srgb(int r, int g, int b, int a)
 	return c;
 }
 
+lrgb_t make_grey_lin(double v)
+{
+	lrgb_t c;
+
+	c.r = v * ONEF + 0.5;
+	c.g = c.r;
+	c.b = c.r;
+	c.a = ONE;
+
+	return c;
+}
+
 double Lab_L_to_linear(double t)
 {
 	const double stn=6./29;
@@ -43,6 +55,88 @@ double Lab_L_to_linear(double t)
 		return 3.*stn*stn*(t - 4./29.);
 }
 
+double linear_to_Lab_L(double t)
+{
+	const double thr = 6./29, thr3 = thr*thr*thr;
+
+	if (t > thr3)
+		t = fastpow(t, 1./3.);
+	else
+		t = t * 841./108. + 4./29.;
+
+	return 1.16 * t - 0.16;
+}
+
+double Lab_L_invert(double x)
+{
+	return Lab_L_to_linear(1. - linear_to_Lab_L(x));
+}
+
+void rgb_to_hsl(double r, double g, double b, double *H, double *S, double *L, int huemode)
+{
+	const double Wr=WEIGHT_R, Wg=WEIGHT_G, Wb=WEIGHT_B;        // these are the weights for each colour
+	double dl, dls;					// difference with L (grey) and saturated difference with grey
+	double satv[4], cmin, cmax, sratio;		// saturated colours
+	double t;
+	int i, c1, c2, c3;
+
+	*L = Wr*r + Wg*g + Wb*b;	// Luminosity
+
+	cmin = MINN(r, MINN(g, b));
+	cmax = MAXN(r, MAXN(g, b));
+
+	if (cmax == cmin)		// if the input is grey
+	{
+		*S = 0.;
+		*H = 0.;
+		return ;
+	}
+
+	*S = (*L-cmin) / *L;	// Saturation
+
+	// Fully saturate
+	satv[0] = (r - *L) / *S + *L;
+	satv[1] = (g - *L) / *S + *L;
+	satv[2] = (b - *L) / *S + *L;
+	satv[3] = satv[0];
+
+	// find the brightest colour (c1)
+	if (r==cmax)
+		c1 = 0;		// red
+	else if (g==cmax)
+		c1 = 1;		// green
+	else
+		c1 = 2;		// blue
+
+	// find the dimmest colour (c3)
+	if (r==cmin)
+		c3 = 0;		// red
+	else if (g==cmin)
+		c3 = 1;		// green
+	else
+		c3 = 2;		// blue
+
+	// find the middle colour c2, even though it might be equal to c1 or c3
+	c2 = 3 - c1 - c3;
+	t = 1. - 0.5*linear_to_Lab_L(satv[c2]/satv[c1]);
+
+	// if the colour is between blue and red
+	if (c3==1)
+	{
+		if (c1==0)
+			c1 = 3;		// give red a value of 3 instead of 0
+		if (c2==0)
+			c2 = 3;
+	}
+
+	*H = (double) c1 * t + (double) c2 * (1.-t);	// Hue
+
+	if (huemode==HUERAD)
+		*H *= (2.*pi) / 3.;
+	if (huemode==HUEDEG)
+		*H *= 360. / 3.;
+}
+
 void hsl_to_rgb(double H, double S, double L, double *r, double *g, double *b, int huemode, int secboost)
 {
 	const double Wr=WEIGHT_R, Wg=WEIGHT_G, Wb=WEIGHT_B;        // these are the weights for each colour
@@ -50,9 +144,9 @@ void hsl_to_rgb(double H, double S, double L, double *r, double *g, double *b, i
 
 	// hue
 	if (huemode==HUERAD)
-		H = 3.*H / (2.*pi);	// full circle is 3.0
+		H *= 3. / (2.*pi);	// full circle is 3.0
 	if (huemode==HUEDEG)
-		H = 3.*H / 360.;	// full circle is 3.0
+		H *= 3. / 360.;		// full circle is 3.0
 	t = fabs(rangelimit(rangewrap(H-0., -1., 2.), -1., 1.));	red = t <= 0.5 ? 1.0 : Lab_L_to_linear(2.*(1.-t));
 	t = fabs(rangelimit(rangewrap(H-1., -1., 2.), -1., 1.));	grn = t <= 0.5 ? 1.0 : Lab_L_to_linear(2.*(1.-t));
 	t = fabs(rangelimit(rangewrap(H-2., -1., 2.), -1., 1.));	blu = t <= 0.5 ? 1.0 : Lab_L_to_linear(2.*(1.-t));
@@ -77,6 +171,56 @@ void hsl_to_rgb(double H, double S, double L, double *r, double *g, double *b, i
 	*r = red;
 	*g = grn;
 	*b = blu;
+}
+
+lrgb_t make_colour_hsl(double H, double S, double L, int huemode, int secboost)
+{
+	double r, g, b;
+
+	hsl_to_rgb(H, S, L, &r, &g, &b, huemode, secboost);
+
+	colour_blowout_double(&r, &g, &b);
+
+	return make_colour_lin(r, g, b, 1.);
+}
+
+double get_rgb_channel(lrgb_t col, int ch)
+{
+	double l=0.;
+	const double ratio = 1./ONEF;
+
+	switch (ch)
+	{
+		case 0:		// red
+			l = col.r;
+			break;
+		case 1:		// green
+			l = col.g;
+			break;
+		case 2:		// blue
+			l = col.b;
+			break;
+		case 3:		// alpha
+			l = col.a;
+			break;
+	}
+
+	return l * ratio;
+}
+
+void lrgb_to_rgb(lrgb_t col, double *r, double *g, double *b)
+{
+	*r = get_rgb_channel(col, 0);
+	*g = get_rgb_channel(col, 1);
+	*b = get_rgb_channel(col, 2);
+}
+
+void lrgb_to_hsl(lrgb_t col, double *H, double *S, double *L, int huemode)
+{
+	double r, g, b;
+
+	lrgb_to_rgb(col, &r, &g, &b);
+	rgb_to_hsl(r, g, b, H, S, L, HUEDEG);
 }
 
 void colour_blowout_double(double *pred, double *pgrn, double *pblu)

@@ -25,10 +25,16 @@ extern "C" {
 
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <math.h>
 
 // Comment includes out as needed
 
 #include "fixedpoint/fp.h"
+#include "fastfloat/fastfloat.h"
 
 #include "general/structs.h"
 
