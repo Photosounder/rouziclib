@@ -136,6 +136,51 @@ static INLINE double fastsqrt(double x)
 	return es * expmul * ms;
 }
 
+static INLINE double fastatan2(double y, double x)	// as it is the caller must provide numbers large enough to be treated as integers
+{
+	double th;
+	int32_t xi, yi;
+	const double convratio = 2.*pi / 4294967296.;
+
+	xi = roundaway(x);
+	yi = roundaway(y);
+
+	th = fpatan2(yi, xi);
+	th *= convratio;
+
+	return th;
+}
+
+static INLINE double fastgaussian(double x)
+{
+	int32_t xi;
+	double y;
+	const double convratio = 1. / 1073741824.;
+
+	xi = roundaway(x*65536.);
+
+	y = fpgauss_d1i(xi);
+
+	y *= convratio;
+
+	return y;
+}
+
+static INLINE double fasterfr(double x)
+{
+	int32_t xi;
+	double y;
+	const double convratio = 1. / 1073741824.;
+
+	xi = roundaway(x*65536.);
+
+	y = fperfr_d1i(xi);
+
+	y *= convratio;
+
+	return y;
+}
+
 #ifdef __cplusplus
 }
 #endif

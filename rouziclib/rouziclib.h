@@ -33,10 +33,9 @@ extern "C" {
 
 // Comment includes out as needed
 
-#include "fixedpoint/fp.h"
-#include "fastfloat/fastfloat.h"
-
 #include "general/structs.h"
+
+#include "memory/circular_buffer.h"
 
 #include "graphics/graphics.h"
 #include "graphics/srgb.h"
@@ -51,6 +50,9 @@ extern "C" {
 #include "math/functions.h"
 #include "math/rand.h"
 #include "math/dsp.h"
+
+#include "fixedpoint/fp.h"
+#include "fastfloat/fastfloat.h"
 
 
 

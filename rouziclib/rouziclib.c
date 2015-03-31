@@ -9,6 +9,8 @@
 
 // C files
 	
+#include "memory/circular_buffer.c"
+
 #include "graphics/srgb.c"
 #include "graphics/colour.c"
 #include "graphics/blending.c"

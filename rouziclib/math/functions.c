@@ -46,9 +46,6 @@ double rangewrap(double x, double low, double high)
 
 	range = high-low;
 
-	if (range <= 0.)
-		return 0.;
-
 	while (x < low)
 		x += range;
 

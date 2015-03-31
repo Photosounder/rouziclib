@@ -205,7 +205,7 @@ void draw_polar_glow(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrg
 		for (ix=0; ix<w; ix++)
 		{
 			ixf = (double) ix - cx;
-			th = atan2(iyf, ixf);		// range is (-pi, pi]
+			th = fastatan2(iyf*65536., ixf*65536.);		// range is (-pi, pi]
 			r = sqrt(ixf*ixf + iyf*iyf);
 			gy = (rad - (r/scale)) / gradr;
 			if (islog)
@@ -215,10 +215,11 @@ void draw_polar_glow(lrgb_t *fb, int32_t w, int32_t h, double cx, double cy, lrg
 					gy = 8.;
 
 			if (riserf)	// if it's an erf and not a gaussian
-				gy = (0.5*erf(gy + 0.5*erfrad) + 0.5) * (0.5*erf(-gy + 0.5*erfrad) + 0.5);
+				gy = fasterfr(gy + 0.5*erfrad) * fasterfr(-gy + 0.5*erfrad);
+				//gy = (0.5*erf(gy + 0.5*erfrad) + 0.5) * (0.5*erf(-gy + 0.5*erfrad) + 0.5);
 			else
-				gy = gaussian(gy);
-			gx = gaussian(rangewrap(th-angle, -pi, pi) * gradth);
+				gy = fastgaussian(gy);
+			gx = fastgaussian(rangewrap(th-angle, -pi, pi) * gradth);
 			gx *= gy;
 			gx *= colmul;	// intensity of colour
 			gx += pixoffset;
@@ -244,11 +245,11 @@ void draw_gaussian_gradient(lrgb_t *fb, int32_t w, int32_t h, double cx, double 
 
 	for (iy=0; iy<h; iy++)
 	{
-		gy = gaussian((cy - (double) iy) / gausrad + gausoffy);
+		gy = fastgaussian((cy - (double) iy) / gausrad + gausoffy);
 
 		for (ix=0; ix<w; ix++)
 		{
-			gx = gaussian((cx - (double) ix) / gausrad + gausoffx);
+			gx = fastgaussian((cx - (double) ix) / gausrad + gausoffx);
 			gx *= gy;
 			p = 32768. * gx + 0.5;
 
