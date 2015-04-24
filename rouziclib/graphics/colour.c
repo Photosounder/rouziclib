@@ -228,7 +228,8 @@ void colour_blowout_double(double *pred, double *pgrn, double *pblu)
 	const double Wr=WEIGHT_R, Wg=WEIGHT_G, Wb=WEIGHT_B;         // these are the weights for each colour
 	double max, red, grn, blu, t, L;
 	
-	max = MAXN(MAXN(*pred, *pgrn), *pblu);    // max is the maximum value of the 3 colours
+	max = MAXN(*pred, *pgrn);
+	max = MAXN(max, *pblu);    // max is the maximum value of the 3 colours
 	
 	if (max > 1.)       // if the colour is out of gamut
 	{
@@ -262,7 +263,8 @@ void colour_blowout_int(uint32_t *pred, uint32_t *pgrn, uint32_t *pblu)
 	const uint32_t Wr=WEIGHT_R*32768.+0.5, Wg=WEIGHT_G*32768.+0.5, Wb=WEIGHT_B*32768.+0.5;        // these are the weights for each colour
 	uint32_t max, red, grn, blu, t, L;
 
-	max = MAXN(MAXN(*pred, *pgrn), *pblu);    // max is the maximum value of the 3 colours
+	max = MAXN(*pred, *pgrn);
+	max = MAXN(max, *pblu);    // max is the maximum value of the 3 colours
 	
 	if (max > ONE)       // if the colour is out of gamut
 	{

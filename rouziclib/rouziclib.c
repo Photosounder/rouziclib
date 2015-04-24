@@ -5,7 +5,7 @@
 
 #include <rouziclib/rouziclib.c>
 
-*/
+****************/
 
 // C files
 	
@@ -23,3 +23,4 @@
 #include "math/functions.c"
 #include "math/rand.c"
 #include "math/dsp.c"
+#include "math/fitting.c"

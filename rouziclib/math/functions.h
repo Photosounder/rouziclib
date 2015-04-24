@@ -13,6 +13,7 @@
 #endif
 
 extern int32_t fphypot(int32_t x, int32_t y);
+extern double distance_xy(double dx, double dy);
 extern double gaussian(double x);
 extern double erf(double x);
 

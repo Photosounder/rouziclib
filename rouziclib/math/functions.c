@@ -3,6 +3,11 @@ int32_t fphypot(int32_t x, int32_t y)
 	return isqrt((int64_t) x*x + (int64_t) y*y);
 }
 
+double distance_xy(double dx, double dy)
+{
+	return sqrt(dx*dx + dy*dy);
+}
+
 double gaussian(double x)	// gaussian(x) = e^-x²
 {
 	return exp(-x*x);

@@ -1,9 +1,3 @@
-#ifndef H_ROUZICLIB
-#define H_ROUZICLIB
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Make a .h file in your project containing an include to this file and 
  * add the optional defines you like in it, like this:
 
@@ -23,13 +17,20 @@ extern "C" {
 #endif
 #endif
 
-*/
+****************/
+
+#ifndef H_ROUZICLIB
+#define H_ROUZICLIB
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+
 
 // Comment includes out as needed
 
@@ -50,10 +51,10 @@ extern "C" {
 #include "math/functions.h"
 #include "math/rand.h"
 #include "math/dsp.h"
+#include "math/fitting.h"
 
 #include "fixedpoint/fp.h"
 #include "fastfloat/fastfloat.h"
-
 
 
 #ifdef __cplusplus
