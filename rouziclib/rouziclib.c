@@ -9,6 +9,8 @@
 
 // C files
 	
+#include "general/time.c"
+
 #include "memory/circular_buffer.c"
 
 #include "graphics/srgb.c"

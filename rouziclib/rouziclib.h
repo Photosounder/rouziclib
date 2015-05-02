@@ -35,6 +35,7 @@ extern "C" {
 // Comment includes out as needed
 
 #include "general/structs.h"
+#include "general/time.h"
 
 #include "memory/circular_buffer.h"
 
