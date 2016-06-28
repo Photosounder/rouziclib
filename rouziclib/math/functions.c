@@ -13,7 +13,7 @@ double gaussian(double x)	// gaussian(x) = e^-x²
 	return exp(-x*x);
 }
 
-double erf(double x)
+/*double erf(double x)
 {
 	// constants
 	double t, y;
@@ -35,7 +35,7 @@ double erf(double x)
 	y = 1. - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp(-x*x);
 
 	return sign*y;
-}
+}*/
 
 double roundaway(double x)	// round away from 0
 {
@@ -69,4 +69,37 @@ double rangelimit(double x, double min, double max)
 		x = max;
 
 	return x;
+}
+
+float rangelimitf(float x, float min, float max)
+{
+	if (x < min)
+		x = min;
+
+	if (x > max)
+		x = max;
+
+	return x;
+}
+
+int32_t rangelimit_i32(int32_t x, int32_t min, int32_t max)
+{
+	if (x < min)
+		x = min;
+
+	if (x > max)
+		x = max;
+
+	return x;
+}
+
+double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a double
+{
+	uint64_t xi = *((uint64_t *) &x);
+	double r;
+
+	xi += ulp;
+	r = *((double *) &xi);
+
+	return r;
 }

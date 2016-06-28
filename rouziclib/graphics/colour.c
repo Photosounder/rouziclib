@@ -10,6 +10,31 @@ lrgb_t make_colour_lin(double r, double g, double b, double a)
 	return c;
 }
 
+frgb_t make_colour_frgb(double r, double g, double b, double a)
+{
+	frgb_t c;
+
+	c.r = r;
+	c.g = g;
+	c.b = b;
+	c.a = a;
+
+	return c;
+}
+
+frgb_t make_colour_frgb_from_lrgb(lrgb_t cl)
+{
+	frgb_t c;
+	const float ratio = 1.f/ONEF;
+
+	c.r = (float) cl.r * ratio;
+	c.g = (float) cl.g * ratio;
+	c.b = (float) cl.b * ratio;
+	c.a = (float) cl.a * ratio;
+
+	return c;
+}
+
 lrgb_t make_colour_srgb(int r, int g, int b, int a)
 {
 	lrgb_t c;
@@ -72,13 +97,11 @@ double Lab_L_invert(double x)
 	return Lab_L_to_linear(1. - linear_to_Lab_L(x));
 }
 
-void rgb_to_hsl(double r, double g, double b, double *H, double *S, double *L, int huemode)
+void rgb_to_hsl_cw(double Wr, double Wg, double Wb, double r, double g, double b, double *H, double *S, double *L, int huemode)
 {
-	const double Wr=WEIGHT_R, Wg=WEIGHT_G, Wb=WEIGHT_B;        // these are the weights for each colour
-	double dl, dls;					// difference with L (grey) and saturated difference with grey
-	double satv[4], cmin, cmax, sratio;		// saturated colours
+	double satv[4], cmin, cmax;		// saturated colours
 	double t;
-	int i, c1, c2, c3;
+	int c1, c2, c3;
 
 	*L = Wr*r + Wg*g + Wb*b;	// Luminosity
 
@@ -137,9 +160,13 @@ void rgb_to_hsl(double r, double g, double b, double *H, double *S, double *L, i
 		*H *= 360. / 3.;
 }
 
-void hsl_to_rgb(double H, double S, double L, double *r, double *g, double *b, int huemode, int secboost)
+void rgb_to_hsl(double r, double g, double b, double *H, double *S, double *L, int huemode)
 {
-	const double Wr=WEIGHT_R, Wg=WEIGHT_G, Wb=WEIGHT_B;        // these are the weights for each colour
+	rgb_to_hsl_cw(WEIGHT_R, WEIGHT_G, WEIGHT_B, r, g, b, H, S, L, huemode);
+}
+
+void hsl_to_rgb_cw(double Wr, double Wg, double Wb, double H, double S, double L, double *r, double *g, double *b, int huemode, int secboost)
+{
 	double red, grn, blu, t, Y;
 
 	// hue
@@ -173,15 +200,33 @@ void hsl_to_rgb(double H, double S, double L, double *r, double *g, double *b, i
 	*b = blu;
 }
 
-lrgb_t make_colour_hsl(double H, double S, double L, int huemode, int secboost)
+void hsl_to_rgb(double H, double S, double L, double *r, double *g, double *b, int huemode, int secboost)
+{
+	hsl_to_rgb_cw(WEIGHT_R, WEIGHT_G, WEIGHT_B, H, S, L, r, g, b, huemode, secboost);
+}
+
+frgb_t hsl_to_frgb(double H, double S, double L, int huemode, int secboost)
 {
 	double r, g, b;
 
 	hsl_to_rgb(H, S, L, &r, &g, &b, huemode, secboost);
+	return make_colour_frgb(r, g, b, 1.);
+}
 
-	colour_blowout_double(&r, &g, &b);
+lrgb_t make_colour_hsl_cw(double Wr, double Wg, double Wb, double H, double S, double L, int huemode, int secboost)
+{
+	double r, g, b;
+
+	hsl_to_rgb_cw(Wr, Wg, Wb, H, S, L, &r, &g, &b, huemode, secboost);
+
+	colour_blowout_double_cw(Wr, Wg, Wb, &r, &g, &b);
 
 	return make_colour_lin(r, g, b, 1.);
+}
+
+lrgb_t make_colour_hsl(double H, double S, double L, int huemode, int secboost)
+{
+	return make_colour_hsl_cw(WEIGHT_R, WEIGHT_G, WEIGHT_B, H, S, L, huemode, secboost);
 }
 
 double get_rgb_channel(lrgb_t col, int ch)
@@ -223,9 +268,59 @@ void lrgb_to_hsl(lrgb_t col, double *H, double *S, double *L, int huemode)
 	rgb_to_hsl(r, g, b, H, S, L, HUEDEG);
 }
 
-void colour_blowout_double(double *pred, double *pgrn, double *pblu)
+typedef struct
 {
-	const double Wr=WEIGHT_R, Wg=WEIGHT_G, Wb=WEIGHT_B;         // these are the weights for each colour
+	double r, g, b, a;	// in 1.LBD format (as it goes up to a fp value of 1.0)
+} drgb_t;			// linear RGB format
+
+void colour_blowout_double_cw_(double Wr, double Wg, double Wb, double *pred, double *pgrn, double *pblu)
+{
+	int i;
+	double max, L, limL, dL, d;
+	double whiteL = 1. / (linear_to_Lab_L(Wr) + linear_to_Lab_L(Wg) + linear_to_Lab_L(Wb));
+	drgb_t in, lim;
+	
+	max = MAXN(*pred, *pgrn);
+	max = MAXN(max, *pblu);    // max is the maximum value of the 3 colours
+
+	if (max > 2.)
+		max = max;
+	
+	if (max > 1.)       // if the colour is out of gamut
+	{
+		in.r = *pred;	in.g = *pgrn;	in.b = *pblu;
+		lim.r = MINN(in.r, 1.);
+		lim.g = MINN(in.g, 1.);
+		lim.b = MINN(in.b, 1.);
+
+		L = linear_to_Lab_L(in.r*Wr) + linear_to_Lab_L(in.g*Wg) + linear_to_Lab_L(in.b*Wb);
+		L *= whiteL;
+
+		for (i=0; i<10; i++)
+		{
+			limL = linear_to_Lab_L(lim.r*Wr) + linear_to_Lab_L(lim.g*Wg) + linear_to_Lab_L(lim.b*Wb);
+			limL *= whiteL;
+			
+			dL = L - limL;
+			d = Lab_L_to_linear(dL);
+	
+			lim.r += d;
+			lim.g += d;
+			lim.b += d;
+	
+			lim.r = MINN(lim.r, 1.);
+			lim.g = MINN(lim.g, 1.);
+			lim.b = MINN(lim.b, 1.);
+		}
+
+		*pred = lim.r;
+		*pgrn = lim.g;
+		*pblu = lim.b;
+	}	
+}
+
+void colour_blowout_double_cw(double Wr, double Wg, double Wb, double *pred, double *pgrn, double *pblu)
+{
 	double max, red, grn, blu, t, L;
 	
 	max = MAXN(*pred, *pgrn);
@@ -258,9 +353,15 @@ void colour_blowout_double(double *pred, double *pgrn, double *pblu)
 	}	
 }
 
-void colour_blowout_int(uint32_t *pred, uint32_t *pgrn, uint32_t *pblu)
+void colour_blowout_double(double *pred, double *pgrn, double *pblu)
 {
-	const uint32_t Wr=WEIGHT_R*32768.+0.5, Wg=WEIGHT_G*32768.+0.5, Wb=WEIGHT_B*32768.+0.5;        // these are the weights for each colour
+	const double Wr=WEIGHT_R, Wg=WEIGHT_G, Wb=WEIGHT_B;         // these are the weights for each colour
+
+	colour_blowout_double_cw(Wr, Wg, Wb, pred, pgrn, pblu);
+}
+
+void colour_blowout_int_cw(uint32_t Wr, uint32_t Wg, uint32_t Wb, uint32_t *pred, uint32_t *pgrn, uint32_t *pblu)
+{
 	uint32_t max, red, grn, blu, t, L;
 
 	max = MAXN(*pred, *pgrn);
@@ -312,4 +413,29 @@ void colour_blowout_int(uint32_t *pred, uint32_t *pgrn, uint32_t *pblu)
 			*pred = *pgrn = *pblu = ONE;
 		}
 	}
+}
+
+void colour_blowout_int(uint32_t *pred, uint32_t *pgrn, uint32_t *pblu)
+{
+	const uint32_t Wr=WEIGHT_R*32768.+0.5, Wg=WEIGHT_G*32768.+0.5, Wb=WEIGHT_B*32768.+0.5;        // these are the weights for each colour
+
+	colour_blowout_int_cw(Wr, Wg, Wb, pred, pgrn, pblu);
+}
+
+void rangelimit_frgb(frgb_t *c)
+{
+	c->r = rangelimitf(c->r, 0., 1.);
+	c->g = rangelimitf(c->g, 0., 1.);
+	c->b = rangelimitf(c->b, 0., 1.);
+}
+
+lrgb_t get_colour_seq(double x, xyz_t freq, xyz_t phase)
+{
+	xyz_t c;
+
+	c = add_xyz(mul_xyz(freq, set_xyz(x)), phase);
+	c = add_xyz(set_xyz(0.5), mul_xyz(set_xyz(0.5), sin_xyz(mul_xyz(c, set_xyz(2.*pi)))));
+	c = func1_xyz(c, Lab_L_to_linear);
+
+	return make_colour_lin(c.x, c.y, c.z, 1.);
 }
