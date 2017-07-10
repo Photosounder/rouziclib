@@ -31,7 +31,16 @@ rl.h
 extern "C" {
 #endif
 
-#define LBD 13	// this is an optional macro that rouziclib will then use for your project instead of the default of LBD==15
+// these are examples of optional macros that rouziclib will then use for your project
+#define COL_FRGB	// this macro makes the internal format for colour be floating-point instead of fixed-point
+#define RL_SDL		// this includes SDL-using code as well as the necessary SDL files
+#define RL_OPENCL	// same for OpenCL
+
+// this defines a wrapper for fprintf_rl, so you project can use a custom fprintf-type function that can for instance output to a file
+#define fprintf_rl fprintf_wrapper
+#include <stdio.h>
+#include <stdarg.h>
+extern void fprintf_wrapper (FILE *stream, const char* format, ...);
 
 #include <rouziclib/rouziclib.h>
 
@@ -45,7 +54,21 @@ rl.c
 ```C
 #include "rl.h"
 
+// this creates that custom printing function that all calls to fprintf_rl in rouziclib will use
+#include <stdarg.h>
+void fprintf_wrapper (FILE *stream, const char* format, ...)
+{
+	va_list args;
+
+	va_start (args, format);
+
+	vfprintf (stream, format, args);	// printf to original stream
+	fflush (stream);
+
+	va_end (args);
+}
+
 #include <rouziclib/rouziclib.c>
 ```
 
-I realise that this is kind of weird, but it's pretty simple and handy.
+I realise that this is a bit unusual, but it's pretty simple and very handy. You can for instance include rouziclib in a simple command-line C program without having to worry about dependencies as none will be included, and in another project add dependencies as you need by adding the necessary macros, so without having the recompile anything separately (as you would have to were you to use two versions of a same library compiled with different dependencies) you can have in separate projects a rouziclib with no dependencies or a rouziclib that uses SDL, DevIL, OpenCV, OpenCL, CLFFT, FFMPEG and LibRAW.
