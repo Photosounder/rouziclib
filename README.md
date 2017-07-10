@@ -12,11 +12,12 @@ It includes some of the following:
 - Blending modes like additive, subtractive, multiplicative blending and alpha blending
 - Blitting of a buffer onto another, like for displaying a sprite
 - An original Hue-Saturation-Luminance colour space with a Luminance that is about perceptually correct (unlike the 1931 CIE XYZ colour space which gets the weights of each colour blatantly wrong) which is used for HSL to RGB conversion and for bringing out of gamut colours (such as colours that have components brighter than 1.0) to the most appropriate representable colour
+- Vector font generation, vector text rendering and a built-in minimalistic vector font that is always available
+- Vector procedural zoomable interface elements that for instance allow you to have a fully functional button just by calling a function with all the necessary information provided as parameters (without anything stored in memory) and simply getting the return value, with no need for storage for each instance of a control, no unique IDs or anything
 - Various utility functions and macros
+- Code for working with [SDL](https://www.libsdl.org/), OpenGL, [OpenCL](https://www.khronos.org/opencl/), [clFFT](https://github.com/clMathLibraries/clFFT), [DevIL](http://openil.sourceforge.net/), [OpenCV](http://opencv.org/), [FFMPEG](https://www.ffmpeg.org/), [LibRAW](https://www.libraw.org/) and [MPFR](http://www.mpfr.org/).
 
 All graphical functions operate on pixels in a linear colour space. Please do not use these functions directly in a gamma-compressed colour space, instead use an intermediary linear framebuffer which you can then convert to an sRGB framebuffer using the function `convert_lrgb_to_srgb`.
-
-In the near future more code will be ported from my projects to rouziclib, in particular functions for displaying bitmap variable-width fonts, GUI elements, FFT and code that relies on specific APIs.
 
 How to use it
 -------------
@@ -71,4 +72,4 @@ void fprintf_wrapper (FILE *stream, const char* format, ...)
 #include <rouziclib/rouziclib.c>
 ```
 
-I realise that this is a bit unusual, but it's pretty simple and very handy. You can for instance include rouziclib in a simple command-line C program without having to worry about dependencies as none will be included, and in another project add dependencies as you need by adding the necessary macros, so without having the recompile anything separately (as you would have to were you to use two versions of a same library compiled with different dependencies) you can have in separate projects a rouziclib with no dependencies or a rouziclib that uses SDL, DevIL, OpenCV, OpenCL, CLFFT, FFMPEG and LibRAW.
+I realise that this is a bit unusual, but it's pretty simple and very handy. You can for instance include rouziclib in a simple command-line C program without having to worry about dependencies as none will be included, and in another project add dependencies as you need by adding the necessary macros, so without having the recompile anything separately (as you would have to were you to use two versions of a same library compiled with different dependencies) you can have in separate projects a rouziclib with no dependencies or a rouziclib that uses SDL, DevIL, OpenCV, OpenCL, clFFT, FFMPEG and LibRAW.
