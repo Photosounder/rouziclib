@@ -10,7 +10,7 @@ int dir_count(char *path, int *subdir_count, int *subfile_count)
 	if (dirp == NULL)
 		return -1;
 
-	while (entry = readdir(dirp))
+	while ((entry = readdir(dirp)))
 	{
 		if (entry->d_type == DT_DIR)
 			(*subdir_count)++;
@@ -41,9 +41,12 @@ void load_dir(char *path, fs_dir_t *dir)
 
 	dirp = opendir(path);
 	if (dirp == NULL)
-		return -1;
+		return ;
 
-	while (entry = readdir(dirp))
+	dir->path = calloc(strlen(path)+1, sizeof(char));
+	strcpy(dir->path, path);
+
+	while ((entry = readdir(dirp)))
 	{
 		if (entry->d_type == DT_DIR && i_dir < dir->subdir_count)
 		{

@@ -401,7 +401,7 @@ int32_t fperfr_d1i(int32_t x)	// 0.5erf(x)+0.5 function in the [-4 , 4] range, i
 
 	if (x >= 4<<16)
 		return 1<<outfmt;
-	if (x <= -4<<16)
+	if (x <= -(4<<16))
 		return 0;
 
 	x += 4<<16;
@@ -424,7 +424,7 @@ int32_t fperfr_d0(int32_t x)	// 0.5erf(x)+0.5 function in the [-4 , 4] range, in
 
 	if (x >= 4<<16)
 		return 1<<outfmt;
-	if (x <= -4<<16)
+	if (x <= -(4<<16))
 		return 0;
 
 	x += 4<<16;

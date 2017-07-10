@@ -1,19 +1,12 @@
-typedef struct
-{
-	uint32_t codepoint;
-	vobj_t *obj;
-	double bl, br;	// bounds to the left and right
-	double width;
-	char *glyphdata;
-	int point_count, line_count;
-} letter_t;
+// in vector_type/vector_type_struct.h:
+// letter_t, vector_font_t
 
-typedef struct
-{
-	letter_t *l;
-	int letter_count, alloc_count;
-	int16_t *codepoint_letter_lut;
-} vector_font_t;
+#define ALIG_LEFT	0
+#define ALIG_CENTRE	1
+#define ALIG_RIGHT	2
+#define PROPORTIONAL	0
+#define MONOSPACE	4
+#define MONODIGITS	8
 
 // TODO put that into font struct
 #define LETTERSPACING	1.5	// spacing between each letter
@@ -24,6 +17,10 @@ typedef struct
 #include "draw.h"
 #include "stats.h"
 #include "fit.h"
+#include "cjk.h"
 
+extern int get_letter_index(vector_font_t *font, uint32_t c);
 extern letter_t *get_letter(vector_font_t *font, uint32_t c);
-extern letter_t *get_uppercase_letter(vector_font_t *font, uint32_t c);
+extern vobj_t *get_letter_obj(vector_font_t *font, uint32_t c);
+extern char *get_letter_glyphdata(vector_font_t *font, uint32_t c);
+extern letter_t *get_dominant_letter(vector_font_t *font, uint32_t c, int *lowerscale);

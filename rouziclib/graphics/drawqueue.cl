@@ -1,8 +1,11 @@
 // cp drawqueue.cl drawqueue.cl.c && gcc -E -P drawqueue.cl.c > dq.cl && ttc dq.cl && mv dq.cl.h drawqueue.cl.h && rm drawqueue.cl.c dq.cl
 
 #include "drawqueue_enums.h"
+#include "gaussian.cl"
 #include "blending.cl"
 #include "drawline.cl"
+#include "drawrect.cl"
+#include "drawcircle.cl"
 #include "blit.cl"
 #include "srgb.cl"
 
@@ -17,10 +20,23 @@ float4 drawgradienttest(float4 pv)
 	return pv;
 }
 
-kernel void draw_queue_kernel(global float *df, global int *poslist, global int *entrylist, write_only image2d_t srgb, const int sector_w, const int sector_size, const int randseed)
+float4 draw_plain_fill_add(global float *le, float4 pv)
+{
+	float4 col;
+
+	col.s0 = le[0];
+	col.s1 = le[1];
+	col.s2 = le[2];
+	col.s3 = 1.;
+
+	pv += col;
+
+	return pv;
+}
+
+float4 draw_queue(global float *df, global int *poslist, global int *entrylist, global uchar *data_cl, const int sector_w, const int sector_size)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const int fbi = p.y * get_global_size(0) + p.x;
 	const int sec = (p.y >> sector_size) * sector_w + (p.x >> sector_size);	// sector index
 	global int *di = (global int *) df;	// main queue pointer
 	int i, eli, entry_count, qi;
@@ -31,7 +47,7 @@ kernel void draw_queue_kernel(global float *df, global int *poslist, global int 
 	eli = poslist[sec];		// entry list index
 
 	if (eli < 0)			// if the index is -1
-		return ; 		// that means there's nothing to do
+		return pv; 		// that means there's nothing to do
 
 	entry_count = entrylist[eli];
 
@@ -52,26 +68,30 @@ kernel void draw_queue_kernel(global float *df, global int *poslist, global int 
 				pv = blend_pixel(br[brlvl], pv, di[qi+1]);
 				break;
 
-			case DQT_LINE_THIN_ADD:
-				pv = draw_line_thin_add(&df[qi+1], pv);
-				break;
-
-			case DQT_POINT_ADD:
-				pv = draw_point_add(&df[qi+1], pv);
-				break;
-
-			case DQT_BLIT_SPRITE:
-				pv = blit_sprite(&df[qi+1], pv);
-				break;
-
-			case DQT_TEST1:
-				pv = drawgradienttest(pv);
-				break;
+			case DQT_LINE_THIN_ADD:		pv = draw_line_thin_add(&df[qi+1], pv);			break;
+			case DQT_POINT_ADD:		pv = draw_point_add(&df[qi+1], pv);			break;
+			case DQT_RECT_FULL:		pv = draw_rect_full_add(&df[qi+1], pv);			break;
+			case DQT_PLAIN_FILL:		pv = draw_plain_fill_add(&df[qi+1], pv);		break;
+			case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);		break;
+			case DQT_BLIT_SPRITE:		pv = blit_sprite(&df[qi+1], data_cl, pv);		break;
+			case DQT_BLIT_PHOTO:		pv = blit_photo(&df[qi+1], data_cl, pv);		break;
+			case DQT_TEST1:			pv = drawgradienttest(pv);				break;
 				
 			default:
 				break;
 		}
 	}
+
+	return pv;
+}
+
+kernel void draw_queue_srgb_kernel(global float *df, global int *poslist, global int *entrylist, global uchar *data_cl, write_only image2d_t srgb, const int sector_w, const int sector_size, const int randseed)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const int fbi = p.y * get_global_size(0) + p.x;
+	float4 pv;		// pixel value (linear)
+
+	pv = draw_queue(df, poslist, entrylist, data_cl, sector_w, sector_size);
 
 	if (pv.s0==0.f)
 	if (pv.s1==0.f)

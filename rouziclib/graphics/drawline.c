@@ -1,10 +1,10 @@
-void draw_line_thin_lrgb(raster_t fb, double x1, double y1, double x2, double y2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_lrgb(raster_t fb, xy_t p1, xy_t p2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t i, iy, ix, fbi;
-	double x3, y3, x4, y4;
+	xy_t p3, p4, p1l, p2l, p3l, p4l;
 	double d12, d12s, d12si, dx12, dy12, vx12, vy12, grad;
 	int32_t p, ratio;		// 0.15
-	double iradius, bradius, bvx, bvy, x1l, y1l, x2l, y2l, x3l, y3l, x4l, y4l;
+	double iradius, bradius, bvx, bvy;
 	int32_t bstartx, bstarty, bendx, bendy, incx, incy, incc;
 	int bx0, by0, bx1, by1, dx, dy, sx, sy, err, e2;	// Bresenham routine variables
 
@@ -17,35 +17,35 @@ void draw_line_thin_lrgb(raster_t fb, double x1, double y1, double x2, double y2
 	grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002
 	bradius = grad * sqrt(2.);		// bounding radius, the maximum radius necessary at each end of the line
 
-	border_clip(fb.w-1, fb.h-1, &x1, &y1, &x2, &y2, grad);	// cut the part of the segment outside the screen
+	border_clip(fb.w-1, fb.h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen
 
 	ratio = 32768. * intensity + 0.5;
 
-	dx12 = x2-x1;
-	dy12 = y2-y1;
+	dx12 = p2.x-p1.x;
+	dy12 = p2.y-p1.y;
 	d12 = hypot(dx12, dy12); if (d12==0.) return;
 	d12s = d12 * d12;
 	d12si = 1./d12s;
 	vx12 = dx12/d12;
 	vy12 = dy12/d12;
 
-	x3 = x1 - bradius * vx12;
-	y3 = y1 - bradius * vy12;
-	x4 = x2 + bradius * vx12;
-	y4 = y2 + bradius * vy12;
+	p3.x = p1.x - bradius * vx12;
+	p3.y = p1.y - bradius * vy12;
+	p4.x = p2.x + bradius * vx12;
+	p4.y = p2.y + bradius * vy12;
 	bvx = -vy12;
 	bvy = vx12;
-	x1l = x1 - bvx * grad;
-	y1l = y1 - bvy * grad;
-	x2l = x2 - bvx * grad;
-	y2l = y2 - bvy * grad;
+	p1l.x = p1.x - bvx * grad;
+	p1l.y = p1.y - bvy * grad;
+	p2l.x = p2.x - bvx * grad;
+	p2l.y = p2.y - bvy * grad;
 
 	iradius = 1./radius;
 
-	x1f = roundaway(x1 * fpratio);
-	y1f = roundaway(y1 * fpratio);
-	x2f = roundaway(x2 * fpratio);
-	y2f = roundaway(y2 * fpratio);
+	x1f = roundaway(p1.x * fpratio);
+	y1f = roundaway(p1.y * fpratio);
+	x2f = roundaway(p2.x * fpratio);
+	y2f = roundaway(p2.y * fpratio);
 
 	th = fpatan2_d2(y2f-y1f, x2f-x1f);
 	costh = iradius * fpcos_d2(-th);			// iradius is double, can be above 1.0, not sure how that doesn't overflow
@@ -55,80 +55,80 @@ void draw_line_thin_lrgb(raster_t fb, double x1, double y1, double x2, double y2
 	xr2 = ((int64_t) x2f * costh >> 30) - ((int64_t) y2f * sinth >> 30);
 
 	incx = 949;
-	if (dx12 >= fabs(dy12))	// start line left side of x1
+	if (dx12 >= fabs(dy12))	// start line left side of p1.x
 	{
-		x3l = x3;
-		y3l = y3 - 1.;
+		p3l.x = p3.x;
+		p3l.y = p3.y - 1.;
 		incx = 0;
 		incy = 1;
 	}
-	if (dy12 >= fabs(dx12))	// start line up side of x1
+	if (dy12 >= fabs(dx12))	// start line up side of p1.x
 	{
-		x3l = x3 + 1.;
-		y3l = y3;
+		p3l.x = p3.x + 1.;
+		p3l.y = p3.y;
 		incx = -1;
 		incy = 0;
 	}
-	if (-dx12 >= fabs(dy12))	// start line right side of x1
+	if (-dx12 >= fabs(dy12))	// start line right side of p1.x
 	{
-		x3l = x3;
-		y3l = y3 + 1.;
+		p3l.x = p3.x;
+		p3l.y = p3.y + 1.;
 		incx = 0;
 		incy = -1;
 	}
-	if (-dy12 >= fabs(dx12))	// start line down side of x1
+	if (-dy12 >= fabs(dx12))	// start line down side of p1.x
 	{
-		x3l = x3 - 1.;
-		y3l = y3;
+		p3l.x = p3.x - 1.;
+		p3l.y = p3.y;
 		incx = 1;
 		incy = 0;
 	}
 	if (incx==949)		// if the coordinates are invalid (like a NaN)
 		return ;	// return
 
-	line_line_intersection(x1l, y1l, x2l, y2l, x3, y3, x3l, y3l, &x3l, &y3l);
+	p3l = line_line_intersection(p1l, p2l, p3, p3l);
 
-	x4l = x4 - x3 + x3l;
-	y4l = y4 - y3 + y3l;
+	p4l.x = p4.x - p3.x + p3l.x;
+	p4l.y = p4.y - p3.y + p3l.y;
 
 	if (incx+incy == 1)
 	{
-		bstartx = (int32_t) floor (x3l);
-		bstarty = (int32_t) floor (y3l);
-		bendx = (int32_t) floor (x4l);
-		bendy = (int32_t) floor (y4l);
+		bstartx = (int32_t) floor (p3l.x);
+		bstarty = (int32_t) floor (p3l.y);
+		bendx = (int32_t) floor (p4l.x);
+		bendy = (int32_t) floor (p4l.y);
 
 		if (incx==1)
-			incc = (int32_t) ceil (x3*2-x3l) - bstartx;
+			incc = (int32_t) ceil (p3.x*2-p3l.x) - bstartx;
 		else
-			incc = (int32_t) ceil (y3*2-y3l) - bstarty;
+			incc = (int32_t) ceil (p3.y*2-p3l.y) - bstarty;
 	}
 	else
 	{
-		bstartx = (int32_t) ceil (x3l);
-		bstarty = (int32_t) ceil (y3l);
-		bendx = (int32_t) ceil (x4l);
-		bendy = (int32_t) ceil (y4l);
+		bstartx = (int32_t) ceil (p3l.x);
+		bstarty = (int32_t) ceil (p3l.y);
+		bendx = (int32_t) ceil (p4l.x);
+		bendy = (int32_t) ceil (p4l.y);
 
 		if (incx==-1)
-			incc = bstartx - (int32_t) floor (x3*2-x3l);
+			incc = bstartx - (int32_t) floor (p3.x*2-p3l.x);
 		else
-			incc = bstarty - (int32_t) floor (y3*2-y3l);
+			incc = bstarty - (int32_t) floor (p3.y*2-p3l.y);
 	}
 
 	incc = fastabs(incc) + 1;
 
 	// check for >45 degree angles
-	if (dx12 >= fabs(dy12))	// start line left side of x1
+	if (dx12 >= fabs(dy12))	// start line left side of p1.x
 		if (bendx-bstartx < fastabs(bendy-bstarty))
 			bendy = fastabs(bendx-bstartx) * sign(bendy-bstarty) + bstarty;
-	if (dy12 >= fabs(dx12))	// start line up side of x1
+	if (dy12 >= fabs(dx12))	// start line up side of p1.x
 		if (bendy-bstarty < fastabs(bendx-bstartx))
 			bendx = fastabs(bendy-bstarty) * sign(bendx-bstartx) + bstartx;
-	if (-dx12 >= fabs(dy12))	// start line right side of x1
+	if (-dx12 >= fabs(dy12))	// start line right side of p1.x
 		if (-bendx+bstartx < fastabs(bendy-bstarty))
 			bendy = fastabs(bendx-bstartx) * sign(bendy-bstarty) + bstarty;
-	if (-dy12 >= fabs(dx12))	// start line down side of x1
+	if (-dy12 >= fabs(dx12))	// start line down side of p1.x
 		if (-bendy+bstarty < fastabs(bendx-bstartx))
 			bendx = fastabs(bendy-bstarty) * sign(bendx-bstartx) + bstartx;
 
@@ -177,13 +177,13 @@ void draw_line_thin_lrgb(raster_t fb, double x1, double y1, double x2, double y2
 	}
 }
 
-void draw_line_thin_frgb(raster_t fb, double x1, double y1, double x2, double y2, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_line_thin_frgb(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	int32_t i, iy, ix, fbi;
-	double x3, y3, x4, y4;
+	xy_t p3, p4, p1l, p2l, p3l, p4l;
 	double d12, d12s, d12si, dx12, dy12, vx12, vy12, grad;
 	float ixf, iyf, p, ratio=intensity;
-	double iradius, bradius, bvx, bvy, x1l, y1l, x2l, y2l, x3l, y3l, x4l, y4l;
+	double iradius, bradius, bvx, bvy;
 	int32_t bstartx, bstarty, bendx, bendy, incx, incy, incc;
 	int bx0, by0, bx1, by1, dx, dy, sx, sy, err, e2;	// Bresenham routine variables
 	float xr1, yr1, xr2, xrp, yrp;
@@ -193,111 +193,111 @@ void draw_line_thin_frgb(raster_t fb, double x1, double y1, double x2, double y2
 	grad = GAUSSRAD_HQ * radius;			// erfr and gaussian can go up to x = ±4
 	bradius = grad * sqrt(2.);		// bounding radius, the maximum radius necessary at each end of the line
 
-	border_clip(fb.w-1, fb.h-1, &x1, &y1, &x2, &y2, grad);	// cut the part of the segment outside the screen
+	border_clip(fb.w-1, fb.h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen
 
-	dx12 = x2-x1;
-	dy12 = y2-y1;
+	dx12 = p2.x-p1.x;
+	dy12 = p2.y-p1.y;
 	d12 = hypot(dx12, dy12); if (d12==0.) return;
 	d12s = d12 * d12;
 	d12si = 1./d12s;
 	vx12 = dx12/d12;
 	vy12 = dy12/d12;
 
-	x3 = x1 - bradius * vx12;
-	y3 = y1 - bradius * vy12;
-	x4 = x2 + bradius * vx12;
-	y4 = y2 + bradius * vy12;
+	p3.x = p1.x - bradius * vx12;
+	p3.y = p1.y - bradius * vy12;
+	p4.x = p2.x + bradius * vx12;
+	p4.y = p2.y + bradius * vy12;
 	bvx = -vy12;
 	bvy = vx12;
-	x1l = x1 - bvx * grad;
-	y1l = y1 - bvy * grad;
-	x2l = x2 - bvx * grad;
-	y2l = y2 - bvy * grad;
+	p1l.x = p1.x - bvx * grad;
+	p1l.y = p1.y - bvy * grad;
+	p2l.x = p2.x - bvx * grad;
+	p2l.y = p2.y - bvy * grad;
 
 	iradius = 1./radius;
 
-	th = atan2(y2-y1, x2-x1);
+	th = atan2(p2.y-p1.y, p2.x-p1.x);
 	costh = iradius * cos(-th);
 	sinth = iradius * sin(-th);
-	xr1 = x1 * costh - y1 * sinth;
-	yr1 = x1 * sinth + y1 * costh;
-	xr2 = x2 * costh - y2 * sinth;
+	xr1 = p1.x * costh - p1.y * sinth;
+	yr1 = p1.x * sinth + p1.y * costh;
+	xr2 = p2.x * costh - p2.y * sinth;
 
 	incx = 949;
-	if (dx12 >= fabs(dy12))	// start line left side of x1
+	if (dx12 >= fabs(dy12))	// start line left side of p1.x
 	{
-		x3l = x3;
-		y3l = y3 - 1.;
+		p3l.x = p3.x;
+		p3l.y = p3.y - 1.;
 		incx = 0;
 		incy = 1;
 	}
-	if (dy12 >= fabs(dx12))	// start line up side of x1
+	if (dy12 >= fabs(dx12))	// start line up side of p1.x
 	{
-		x3l = x3 + 1.;
-		y3l = y3;
+		p3l.x = p3.x + 1.;
+		p3l.y = p3.y;
 		incx = -1;
 		incy = 0;
 	}
-	if (-dx12 >= fabs(dy12))	// start line right side of x1
+	if (-dx12 >= fabs(dy12))	// start line right side of p1.x
 	{
-		x3l = x3;
-		y3l = y3 + 1.;
+		p3l.x = p3.x;
+		p3l.y = p3.y + 1.;
 		incx = 0;
 		incy = -1;
 	}
-	if (-dy12 >= fabs(dx12))	// start line down side of x1
+	if (-dy12 >= fabs(dx12))	// start line down side of p1.x
 	{
-		x3l = x3 - 1.;
-		y3l = y3;
+		p3l.x = p3.x - 1.;
+		p3l.y = p3.y;
 		incx = 1;
 		incy = 0;
 	}
 	if (incx==949)		// if the coordinates are invalid (like a NaN)
 		return ;	// return
 
-	line_line_intersection(x1l, y1l, x2l, y2l, x3, y3, x3l, y3l, &x3l, &y3l);
+	p3l = line_line_intersection(p1l, p2l, p3, p3l);
 
-	x4l = x4 - x3 + x3l;
-	y4l = y4 - y3 + y3l;
+	p4l.x = p4.x - p3.x + p3l.x;
+	p4l.y = p4.y - p3.y + p3l.y;
 
 	if (incx+incy == 1)
 	{
-		bstartx = (int32_t) floor (x3l);
-		bstarty = (int32_t) floor (y3l);
-		bendx = (int32_t) floor (x4l);
-		bendy = (int32_t) floor (y4l);
+		bstartx = (int32_t) floor (p3l.x);
+		bstarty = (int32_t) floor (p3l.y);
+		bendx = (int32_t) floor (p4l.x);
+		bendy = (int32_t) floor (p4l.y);
 
 		if (incx==1)
-			incc = (int32_t) ceil (x3*2-x3l) - bstartx;
+			incc = (int32_t) ceil (p3.x*2-p3l.x) - bstartx;
 		else
-			incc = (int32_t) ceil (y3*2-y3l) - bstarty;
+			incc = (int32_t) ceil (p3.y*2-p3l.y) - bstarty;
 	}
 	else
 	{
-		bstartx = (int32_t) ceil (x3l);
-		bstarty = (int32_t) ceil (y3l);
-		bendx = (int32_t) ceil (x4l);
-		bendy = (int32_t) ceil (y4l);
+		bstartx = (int32_t) ceil (p3l.x);
+		bstarty = (int32_t) ceil (p3l.y);
+		bendx = (int32_t) ceil (p4l.x);
+		bendy = (int32_t) ceil (p4l.y);
 
 		if (incx==-1)
-			incc = bstartx - (int32_t) floor (x3*2-x3l);
+			incc = bstartx - (int32_t) floor (p3.x*2-p3l.x);
 		else
-			incc = bstarty - (int32_t) floor (y3*2-y3l);
+			incc = bstarty - (int32_t) floor (p3.y*2-p3l.y);
 	}
 
 	incc = fastabs(incc) + 1;
 
 	// check for >45 degree angles
-	if (dx12 >= fabs(dy12))	// start line left side of x1
+	if (dx12 >= fabs(dy12))	// start line left side of p1.x
 		if (bendx-bstartx < fastabs(bendy-bstarty))
 			bendy = fastabs(bendx-bstartx) * sign(bendy-bstarty) + bstarty;
-	if (dy12 >= fabs(dx12))	// start line up side of x1
+	if (dy12 >= fabs(dx12))	// start line up side of p1.x
 		if (bendy-bstarty < fastabs(bendx-bstartx))
 			bendx = fastabs(bendy-bstarty) * sign(bendx-bstartx) + bstartx;
-	if (-dx12 >= fabs(dy12))	// start line right side of x1
+	if (-dx12 >= fabs(dy12))	// start line right side of p1.x
 		if (-bendx+bstartx < fastabs(bendy-bstarty))
 			bendy = fastabs(bendx-bstartx) * sign(bendy-bstarty) + bstarty;
-	if (-dy12 >= fabs(dx12))	// start line down side of x1
+	if (-dy12 >= fabs(dx12))	// start line down side of p1.x
 		if (-bendy+bstarty < fastabs(bendx-bstartx))
 			bendx = fastabs(bendy-bstarty) * sign(bendx-bstartx) + bstartx;
 
@@ -346,30 +346,107 @@ void draw_line_thin_frgb(raster_t fb, double x1, double y1, double x2, double y2
 	}
 }
 
-#ifdef RL_OPENCL
-void draw_line_thin_cl(raster_t fb, double x1, double y1, double x2, double y2, double radius, frgb_t colour, const int bf, double intensity, int quality)
+void draw_line_thin_cl(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
-	double grad, iradius, th;
+#ifdef RL_OPENCL
+	double grad;
 	cl_float r1x, r1y, r2x, costh, sinth;
 	int32_t i, ix, iy;
-	int32_t end, *di = fb.drawq_data;
-	float *df = fb.drawq_data;
-	const int dqtype = DQT_LINE_THIN_ADD;
-	const int entry_size = drawq_entry_size(dqtype);
-	xyi_t bb0, bb1;
+	float *df;
+	recti_t bb;
+	rect_t box;
 	xy_t l1, l2, b1, b2;
+	xyi_t bb_dim;
 	
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 
-	border_clip(fb.w-1, fb.h-1, &x1, &y1, &x2, &y2, grad);	// cut the part of the segment outside the screen
-	if (x1==x2 && y1==y2)					// if there's no line to display
+	if (fastabs(p2.x-p1.x)+fastabs(p2.y-p1.y) > 1e6)	// cut out lines that are in the millions of pixels
+		border_clip(fb.w-1, fb.h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen
+	if (p1.x==p2.x && p1.y==p2.y)			// if there's no line to display
 		return ;
 
 	// calculate the bounding box for a first rectangular estimate of the sectors needed
-	bb0.x = ceil (MINN(x1, x2) - grad);	bb0.x = MAXN(bb0.x, 0);
-	bb0.y = ceil (MINN(y1, y2) - grad);	bb0.y = MAXN(bb0.y, 0);
-	bb1.x = floor(MAXN(x1, x2) + grad);	bb1.x = MINN(bb1.x, fb.w-1);
-	bb1.y = floor(MAXN(y1, y2) + grad);	bb1.y = MINN(bb1.y, fb.h-1);
+	box = sort_rect(rect(p1, p2));
+
+	bb.p0.x = ceil (box.p0.x - grad);	bb.p0.x = MAXN(bb.p0.x, 0);
+	bb.p0.y = ceil (box.p0.y - grad);	bb.p0.y = MAXN(bb.p0.y, 0);
+	bb.p1.x = floor(box.p1.x + grad);	bb.p1.x = MINN(bb.p1.x, fb.w-1);
+	bb.p1.y = floor(box.p1.y + grad);	bb.p1.y = MINN(bb.p1.y, fb.h-1);
+
+	bb = rshift_recti(bb, fb.sector_size);
+
+	// store the drawing parameters in the main drawing queue
+	df = drawq_add_to_main_queue(fb, DQT_LINE_THIN_ADD);
+	if (df==NULL)
+		return;
+	df[0] = p1.x;
+	df[1] = p1.y;
+	df[2] = p2.x;
+	df[3] = p2.y;
+	df[4] = 1./radius;
+	df[5] = colour.r * intensity;
+	df[6] = colour.g * intensity;
+	df[7] = colour.b * intensity;
+
+	bb_dim = get_recti_dim(bb);
+	if (bb_dim.x <= 0 || bb_dim.y <= 0)
+		return ;
+
+	if (bb_dim.x * bb_dim.y < 9)	// if there's less than 9 possible sectors then just do them all anyway, very few sectors will turn out to be superfluous
+		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
+			for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
+				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+	else
+	for (iy=bb.p0.y; iy<=bb.p1.y; iy++) // find the affected sectors
+	{
+		b1.y = iy << fb.sector_size;
+		b2.y = b1.y + (1<<fb.sector_size) - 1;
+		b1.y -= grad;
+		b2.y += grad;
+
+		for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
+		{
+			// test if sector is actually needed
+			b1.x = ix << fb.sector_size;
+			b2.x = b1.x + (1<<fb.sector_size) - 1;
+			b1.x -= grad;
+			b2.x += grad;
+
+			l1 = xy(p1.x, p1.y);
+			l2 = xy(p2.x, p2.y);
+
+			line_rect_clip(&l1, &l2, rect(b1, b2));	// TODO optimise this
+
+			// if sector is needed
+			if (l1.x!=l2.x || l1.y!=l2.y)
+				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+		}
+	}
+#endif
+}
+
+/*void draw_line_thin_cl(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
+{
+#ifdef RL_OPENCL
+	double grad, iradius, th;
+	cl_float r1x, r1y, r2x, costh, sinth;
+	int32_t i, ix, iy;
+	float *df;
+	xyi_t bb0, bb1;
+	xy_t l1, l2, b1, b2;
+if(gv[1]==1.) return;
+	
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+
+	border_clip(fb.w-1, fb.h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen
+	if (p1.x==p2.x && p1.y==p2.y)			// if there's no line to display
+		return ;
+
+	// calculate the bounding box for a first rectangular estimate of the sectors needed
+	bb0.x = ceil (MINN(p1.x, p2.x) - grad);	bb0.x = MAXN(bb0.x, 0);
+	bb0.y = ceil (MINN(p1.y, p2.y) - grad);	bb0.y = MAXN(bb0.y, 0);
+	bb1.x = floor(MAXN(p1.x, p2.x) + grad);	bb1.x = MINN(bb1.x, fb.w-1);
+	bb1.y = floor(MAXN(p1.y, p2.y) + grad);	bb1.y = MINN(bb1.y, fb.h-1);
 
 	bb0.x >>= fb.sector_size;
 	bb0.y >>= fb.sector_size;
@@ -378,40 +455,30 @@ void draw_line_thin_cl(raster_t fb, double x1, double y1, double x2, double y2, 
 
 	// calculate the drawing parameters
 	iradius = 1./radius;
-	th = atan2(y2-y1, x2-x1);	// TODO optimise atan2, cos and sin
+	th = atan2(p2.y-p1.y, p2.x-p1.x);	// TODO optimise atan2, cos and sin
 	costh = cos(-th) * iradius;
 	sinth = sin(-th) * iradius;
-	r1x = x1 * costh - y1 * sinth;
-	r1y = x1 * sinth + y1 * costh;
-	r2x = x2 * costh - y2 * sinth;
+	r1x = p1.x * costh - p1.y * sinth;
+	r1y = p1.x * sinth + p1.y * costh;
+	r2x = p2.x * costh - p2.y * sinth;
 	colour.r *= intensity;
 	colour.g *= intensity;
 	colour.b *= intensity;
 
 	// store the drawing parameters in the main drawing queue
-	end = di[DQ_END];
-	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
-	{
-		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
-		return ;
-	}
-
-	di[end] = dqtype;
-	end++;
-
-	df[end + 0] = r1x;
-	df[end + 1] = r1y;
-	df[end + 2] = r2x;
-	df[end + 3] = costh;
-	df[end + 4] = sinth;
-	df[end + 5] = colour.r;
-	df[end + 6] = colour.g;
-	df[end + 7] = colour.b;
-
-	di[DQ_END] += entry_size + 1;
-
-	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
-	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+if (gv[1]!=1.){
+	df = drawq_add_to_main_queue(fb, DQT_LINE_THIN_ADD);
+	if (df==NULL)
+		return;
+	df[0] = r1x;
+	df[1] = r1y;
+	df[2] = r2x;
+	df[3] = costh;
+	df[4] = sinth;
+	df[5] = colour.r;
+	df[6] = colour.g;
+	df[7] = colour.b;
+}
 
 	// find the affected sectors
 	for (iy=bb0.y; iy<=bb1.y; iy++)
@@ -429,70 +496,63 @@ void draw_line_thin_cl(raster_t fb, double x1, double y1, double x2, double y2, 
 			b1.x -= grad;
 			b2.x += grad;
 
-			l1 = xy(x1, y1);
-			l2 = xy(x2, y2);
+			l1 = xy(p1.x, p1.y);
+			l2 = xy(p2.x, p2.y);
 
-			line_rect_clip(&l1, &l2, b1, b2);	// TODO optimise this
+			line_rect_clip(&l1, &l2, rect(b1, b2));	// TODO optimise this
 
 			// if sector is needed
 			if (l1.x!=l2.x || l1.y!=l2.y)
 			{
+if (gv[1]!=1.){
 				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+}
 			}
 		}
 	}
-}
 #endif
+}*/
 
-void draw_line_thin(raster_t fb, double x1, double y1, double x2, double y2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin(raster_t fb, xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
+	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 0);	// adjusts the focus
+
 	if (fb.use_cl)
-			draw_line_thin_cl(fb, x1, y1, x2, y2, radius, make_colour_frgb_from_lrgb(colour), 0, intensity, 0);
+		draw_line_thin_cl(fb, p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
 	else if (fb.use_frgb)
-		draw_line_thin_frgb(fb, x1, y1, x2, y2, radius, make_colour_frgb_from_lrgb(colour), get_blend_fl_equivalent(bf), intensity);
+		draw_line_thin_frgb(fb, p1, p2, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
-		draw_line_thin_lrgb(fb, x1, y1, x2, y2, radius, colour, bf, intensity);
+		draw_line_thin_lrgb(fb, p1, p2, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_line_thin_xy(raster_t fb, xy_t p1, xy_t p2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_rectclip(raster_t fb, xy_t p1, xy_t p2, xy_t b1, xy_t b2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
-	draw_line_thin(fb, p1.x, p1.y, p2.x, p2.y, radius, colour, bf, intensity);
+	line_rect_clip(&p1, &p2, rect(b1, b2));
+	draw_line_thin(fb, p1, p2, radius, colour, bf, intensity);
 }
 
-void draw_line_thin_rectclip(raster_t fb, xy_t p1, xy_t p2, xy_t b1, xy_t b2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_short(raster_t fb, xy_t p1, xy_t p2, double u1, double u2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
-	line_rect_clip(&p1, &p2, b1, b2);
-	draw_line_thin_xy(fb, p1, p2, radius, colour, bf, intensity);
-}
-
-void draw_line_thin_short(raster_t fb, double x1, double y1, double x2, double y2, double u1, double u2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
-{
-	double x3, y3, x4, y4;
+	xy_t p3, p4;
 
 	if (u2<=u1)
 		return;
 
 	if (u1!=0.)
 	{
-		x3 = x1 + u1 * (x2-x1);
-		y3 = y1 + u1 * (y2-y1);
+		p3.x = p1.x + u1 * (p2.x-p1.x);
+		p3.y = p1.y + u1 * (p2.y-p1.y);
 	}
 	else
-	{
-		x3 = x1;
-		y3 = y1;
-	}
+		p3 = p1;
 
 	if (u2!=1.)
 	{
-		x4 = x1 + u2 * (x2-x1);
-		y4 = y1 + u2 * (y2-y1);
+		p4.x = p1.x + u2 * (p2.x-p1.x);
+		p4.y = p1.y + u2 * (p2.y-p1.y);
 	}
 	else
-	{
-		x4 = x2;
-		y4 = y2;
-	}
+		p4 = p2;
 
-	draw_line_thin(fb, x3, y3, x4, y4, radius, colour, bf, intensity);
+	draw_line_thin(fb, p3, p4, radius, colour, bf, intensity);
 }

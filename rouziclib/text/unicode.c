@@ -30,6 +30,16 @@ int utf8_char_size(uint8_t *c)
 	return -1;			// if c[0] is a first byte but the other bytes don't match
 }
 
+int codepoint_utf8_size(uint32_t c)
+{
+	if (c < 0x0080) return 1;
+	if (c < 0x0800) return 2;
+	if (c < 0x10000) return 3;
+	if (c < 0x110000) return 4;
+
+	return 0;
+}
+
 uint32_t utf8_to_unicode32(uint8_t *c, int32_t *index)
 {
 	uint32_t v;
@@ -48,18 +58,18 @@ uint32_t utf8_to_unicode32(uint8_t *c, int32_t *index)
 			break;
 		case 2:
 			v = c[0] & m5;
-			v = v << 6 | c[1] & m6;
+			v = v << 6 | (c[1] & m6);
 			break;
 		case 3:
-			v = c[0] & m5;
-			v = v << 6 | c[1] & m6;
-			v = v << 6 | c[2] & m6;
+			v = c[0] & m4;
+			v = v << 6 | (c[1] & m6);
+			v = v << 6 | (c[2] & m6);
 			break;
 		case 4:
-			v = c[0] & m5;
-			v = v << 6 | c[1] & m6;
-			v = v << 6 | c[2] & m6;
-			v = v << 6 | c[3] & m6;
+			v = c[0] & m3;
+			v = v << 6 | (c[1] & m6);
+			v = v << 6 | (c[2] & m6);
+			v = v << 6 | (c[3] & m6);
 			break;
 		case 0:				// not a first UTF-8 byte
 		case -1:			// corrupt UTF-8 letter
@@ -73,7 +83,7 @@ uint32_t utf8_to_unicode32(uint8_t *c, int32_t *index)
 
 uint8_t *sprint_unicode(uint8_t *str, uint32_t c)	// str must be able to hold new 5 bytes and will be null-terminated by this function
 {
-	const uint8_t m6 = 63, m5 = 31, m4 = 15, m3 = 7;
+	const uint8_t m6 = 63;
 	const uint8_t	c10x	= 0x80,
 	      		c110x	= 0xC0,
 	      		c1110x	= 0xE0,
@@ -115,4 +125,33 @@ uint8_t *sprint_unicode(uint8_t *str, uint32_t c)	// str must be able to hold ne
 		str[0] = '\0';		// Unicode character doesn't map to UTF-8
 
 	return str;
+}
+
+int find_prev_utf8_char(uint8_t *str, int pos)
+{
+	if (pos > 0)
+	{
+		do
+		{
+			pos--;
+		}
+		while (utf8_char_size(&str[pos])==0 && pos > 0);
+	}
+
+	return pos;
+}
+
+int find_next_utf8_char(uint8_t *str, int pos)
+{
+	int il;
+
+	if (pos < strlen(str))
+	{
+		il = utf8_char_size(&str[pos]);
+		if (il==-1 || il==0)	// corrupt letter or non-first byte
+			il = 1;
+		pos += il;
+	}
+
+	return pos;
 }

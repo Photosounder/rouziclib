@@ -1,14 +1,4 @@
-float gaussian(float x)
-{
-	return native_exp(-x*x);
-}
-
-float erfr(float x)
-{
-	return 0.5f + 0.5f * erf(x);
-}
-
-float4 draw_line_thin_add(global float *le, float4 pv)
+/*float4 draw_line_thin_add(global float *le, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
@@ -42,6 +32,56 @@ float4 draw_line_thin_add(global float *le, float4 pv)
 			pv += v * col;
 		}
 	}
+
+	return pv;
+}*/
+
+float4 draw_line_thin_add(global float *le, float4 pv)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const float2 pf = convert_float2(p);
+	const float gl = 4.f;	// gaussian drawing limit
+	float v, iradius;
+	float2 p1, p2, d12, d12t1p, p4;
+	float4 col;
+	float line_len, d12s, u, d1p, d2p, d3p;
+
+	p1.x = le[0];
+	p1.y = le[1];
+	p2.x = le[2];
+	p2.y = le[3];
+	iradius = le[4];
+	col.s0 = le[5];
+	col.s1 = le[6];
+	col.s2 = le[7];
+	col.s3 = 1.f;
+
+	d12 = p2-p1;
+	d12s = d12.x*d12.x + d12.y*d12.y;	// square of the distance
+	if (d12s==0.f)
+		return pv;
+	line_len = native_sqrt(d12s);
+	
+	d12t1p = (pf-p1) * d12;
+	u = (d12t1p.x + d12t1p.y) / d12s;
+	p4 = p1 + u * d12;
+
+	d1p = u * line_len;
+	d2p = d1p - line_len;
+	d3p = fast_distance(p4, pf);
+	d1p *= iradius;
+	d2p *= iradius;
+	d3p *= iradius;
+
+	if (d1p <= -gl)
+		return pv;
+
+	if (d2p >= gl)
+		return pv;
+
+	v = erfr(d1p) - erfr(d2p);
+	v *= gaussian(d3p);
+	pv += v * col;
 
 	return pv;
 }

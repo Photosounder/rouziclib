@@ -113,3 +113,23 @@ char *sprint_fractional_12(char *string, double v)
 
 	return string;
 }
+
+char *sprint_compile_date(char *string, const char *location)
+{
+	sprintf(string, "Compiled on %s at %s", __DATE__, __TIME__);
+	if (location)
+		sprintf(&string[strlen(string)], " in %s", location);
+
+	return string;
+}
+
+void print_valfmt(char *str, int str_size, double v, const int valfmt)
+{
+	switch (valfmt)
+	{
+		case VALFMT_DEFAULT:	snprintf(str, str_size, "%.2f", v);		break;
+		case VALFMT_3F:		snprintf(str, str_size, "%.3f", v);		break;
+		case VALFMT_PCT_2F:	snprintf(str, str_size, "%.2f%%", v*100.);	break;
+		default:		snprintf(str, str_size, "%g", v);
+	}
+}

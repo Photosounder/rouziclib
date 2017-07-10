@@ -13,7 +13,7 @@ const char *uccat_desc[] = {"Lu (Letter, Uppercase)", "Ll (Letter, Lowercase)", 
 const char *bidicat_desc[] = {"L (Left-to-Right)", "LRE (Left-to-Right Embedding)", "LRO (Left-to-Right Override)", "R (Right-to-Left)", "AL (Right-to-Left Arabic)", "RLE (Right-to-Left Embedding)", "RLO (Right-to-Left Override)", "PDF (Pop Directional Format)", "EN (European Number)", "ES (European Number Separator)", "ET (European Number Terminator)", "AN (Arabic Number)", "CS (Common Number Separator)", "NSM (Non-Spacing Mark)", "BN (Boundary Neutral)", "B (Paragraph Separator)", "S (Segment Separator)", "WS (Whitespace)", "ON (Other Neutrals)"};
 const char *decomp_desc[] = {"font (A font variant (e.g. a blackletter form))", "noBreak (A no-break version of a space or hyphen)", "initial (An initial presentation form (Arabic))", "medial (A medial presentation form (Arabic))", "final (A final presentation form (Arabic))", "isolated (An isolated presentation form (Arabic))", "circle (An encircled form)", "super (A superscript form)", "sub (A subscript form)", "vertical (A vertical layout presentation form)", "wide (A wide (or zenkaku) compatibility character)", "narrow (A narrow (or hankaku) compatibility character)", "small (A small variant form (CNS compatibility))", "square (A CJK squared font variant)", "fraction (A vulgar fraction form)", "compat (Otherwise unspecified compatibility character)", "Canonical mapping"};
 
-char *get_ucd_cat(int cattype, int cat)
+const char *get_ucd_cat(int cattype, int cat)
 {
 	char *desc;
 

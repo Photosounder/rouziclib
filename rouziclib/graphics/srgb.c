@@ -66,7 +66,7 @@ lut_t get_lut_lsrgb_fl()
 	static int init=1;
 	static lut_t lsrgb_fl_l;
 
-	const lut_size = 10305;
+	const int lut_size = 10305;
 	const int top_mantissa_bits = 11;
 	const int offset_power=5;
 	const float offset = 1.f / (float) (1<<offset_power);
@@ -318,8 +318,8 @@ void convert_frgb_to_lrgb(raster_t *fb)
 	if (fb->l==NULL)
 		fb->l = calloc (fb->w*fb->h, sizeof(lrgb_t));
 
-	pf = fb->f;
-	pl = fb->l;
+	pf = (float *) fb->f;
+	pl = (uint16_t *) fb->l;
 
 	for (i=0; i<pixc; i++)
 	{
@@ -339,8 +339,8 @@ void convert_frgb_to_lrgb_ratio(raster_t *fb, const float ratio)
 	if (fb->l==NULL)
 		fb->l = calloc (fb->w*fb->h, sizeof(lrgb_t));
 
-	pf = fb->f;
-	pl = fb->l;
+	pf = (float *) fb->f;
+	pl = (uint16_t *) fb->l;
 
 	for (i=0; i<pixc; i++)
 	{

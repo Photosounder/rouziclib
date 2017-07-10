@@ -30,6 +30,9 @@ extern void blit_layout(raster_t r0, raster_t r1);
 extern void blit_scale_lrgb(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale_cl(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp);
+extern void blit_in_rect(raster_t r0, raster_t r1, rect_t r, int keep_aspect_ratio, int interp);
+extern void blit_scale_photo_cl(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp, xy_t pc, double distortion, double gain);
+extern void blit_photo_in_rect(raster_t r0, raster_t r1, rect_t r, int keep_aspect_ratio, int interp, xy_t pc, double distortion, double gain);
 
 extern double blit_scale_func_linear(double x, double unit_inv, interp_param_t p);
 extern double blit_scale_func_modlin(double x, double unit_inv, interp_param_t p);

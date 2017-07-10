@@ -3,14 +3,40 @@ int32_t fphypot(int32_t x, int32_t y)
 	return isqrt((int64_t) x*x + (int64_t) y*y);
 }
 
-double distance_xy(double dx, double dy)
+double sq(double x)
 {
-	return sqrt(dx*dx + dy*dy);
+	return x*x;
 }
 
 double gaussian(double x)	// gaussian(x) = e^-x²
 {
 	return exp(-x*x);
+}
+
+double sinc(double x, double fc)		// fc is the cutoff frequency as a multiple of the Nyquist frequency
+{
+	double a;
+
+	if (x==0.)
+		return 1.;
+
+	a = pi*x * fc;
+	return sin(a)/(a);
+}
+
+double blackman(double x, double range)		// spans [-range , +range]
+{
+	double a;
+
+	a = x / range;
+	ffabs(&a);
+
+	if (a >= 1.)
+		return 0.;
+
+	a = 2.*pi * (a*0.5 + 0.5);
+
+	return 0.42 - 0.5*cos(a) + 0.08*cos(2.*a);
 }
 
 /*double erf(double x)
@@ -93,6 +119,34 @@ int32_t rangelimit_i32(int32_t x, int32_t min, int32_t max)
 	return x;
 }
 
+void swap_double(double *a, double *b)
+{
+	double c = *a;
+
+	*a = *b;
+	*b = c;
+}
+
+void swap_i32(int32_t *a, int32_t *b)
+{
+	int32_t c = *a;
+
+	*a = *b;
+	*b = c;
+}
+
+void minmax_double(double *a, double *b)
+{
+	if (*a > *b)
+		swap_double(a, b);
+}
+
+void minmax_i32(int32_t *a, int32_t *b)
+{
+	if (*a > *b)
+		swap_i32(a, b);
+}
+
 double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a double
 {
 	uint64_t xi = *((uint64_t *) &x);
@@ -102,4 +156,30 @@ double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a 
 	r = *((double *) &xi);
 
 	return r;
+}
+
+double normalised_notation_split(double number, double *m)	// splits number into m * 10^n
+{
+	int logv, neg=0;
+	double vm, vexp;
+
+	if (number < 0.)
+	{
+		neg = 1;
+		number = -number;
+	}
+
+	logv = log10(number);			// 16 million -> 7
+	if (number < 1.)
+		logv--;
+
+	vexp = pow(10., (double) logv);		// 16 million -> 10,000,000.
+	vm = number / vexp;			// 16 million -> 1.6
+	if (neg)
+		vm = -vm;
+
+	if (m)
+		*m = vm;
+
+	return vexp;
 }

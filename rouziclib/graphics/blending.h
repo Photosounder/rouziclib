@@ -1,5 +1,5 @@
-typedef void (*blend_func_t)(lrgb_t *, lrgb_t, int32_t);
-typedef void (*blend_func_fl_t)(frgb_t *, frgb_t, float);
+// in graphics/blending_struct.h:
+// blend_func_t, blend_func_fl_t
 
 extern void blend_solid		(lrgb_t *bg, lrgb_t fg, int32_t p);
 extern void blend_add		(lrgb_t *bg, lrgb_t fg, int32_t p);

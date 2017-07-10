@@ -1,24 +1,5 @@
-#ifdef _WIN32
-#include "libraries\dirent.h"
-#define DIR_CHAR '\\'
-#else
-#include <dirent.h>
-#define DIR_CHAR '/'
-#endif
-
-typedef struct fs_file_n
-{
-	char *name;
-	struct fs_dir_n *parent;
-} fs_file_t;
-
-typedef struct fs_dir_n
-{
-	char *name;
-	int subdir_count, subfile_count;
-	struct fs_dir_n *subdir, *parent;
-	struct fs_file_n *subfile;
-} fs_dir_t;
+// in fileio/dir_struct.h:
+// DIR_CHAR, fs_file_t, fs_dir_t
 
 extern int dir_count(char *path, int *subdir_count, int *subfile_count);
 extern void load_dir(char *path, fs_dir_t *dir);

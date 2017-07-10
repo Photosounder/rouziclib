@@ -30,14 +30,18 @@ int string_get_field(char *string, char *delim, int n, char *field)	// copies th
 	if (end==NULL)						// if it was the last field
 		strcpy(field, string);				// copy all that is left
 	else							// otherwise
-		snprintf(field, 1+end-string, "%s", string);	// only copy what's in the field
+	{
+		snprintf(field, end-string, "%s", string);	// only copy what's in the field
+		field[end-string] = 0;
+	}
 
 	return 1;
 }
 
 char *string_parse_fractional_12(char *string, double *v)
 {
-	int i, n=0, ret=1, count=0, d[3], neg=0;
+	int i, n=0, ret=1, count=0, neg=0;
+	double divisor=1., digit;
 	char *p = string;
 
 	*v = 0.;
@@ -50,32 +54,47 @@ char *string_parse_fractional_12(char *string, double *v)
 		p++;
 	}
 
-	for (i=0; i<3 && ret==1; i++)
+	for (i=0; i<20 && ret==1; i++)
 	{
 		n=0;
-		ret = sscanf(p, "%d%n", &d[i], &n);
+		ret = sscanf(p, "%lf%n", &digit, &n);
 		p = &p[n];
 		if (ret==1)
+		{
 			count++;
+			*v += digit / divisor;
+			divisor *= 12.;
+		}
 
 		n=0;
 		sscanf(p, ";%n", &n);
 		p = &p[n];
 
-		if (p[0]==' ' || p[0]=='\t')
+		if (p[0]==' ' || p[0]=='\t')	// detect whitespace so that the next sscanf avoids reading the numbers after the whitespace
 			ret = 0;
 	}
 
 	if (count==0)
 		return string;
 
-	for (i=count-1; i>=0; i--)
-		*v = *v/12. + (double) d[i];
-
 	if (neg)
 		*v = -*v;
 
 	return p;
+}
+
+double doztof(char *string)
+{
+	double v;
+
+	string_parse_fractional_12(string, &v);
+
+	return v;
+}
+
+xy_t doztof_xy(char *str_x, char *str_y)
+{
+	return xy(doztof(str_x), doztof(str_y));
 }
 
 char *remove_after_char(char *string, char c)

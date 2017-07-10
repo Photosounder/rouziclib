@@ -20,7 +20,7 @@ void drawq_alloc(raster_t *fb, int size)
 
 	clFinish(fb->clctx.command_queue);	// wait for end of queue
 
-	fb->drawq_size = size * 9;
+	fb->drawq_size = size * 100;
 	fb->list_alloc_size = size * 100;
 	fb->max_sector_count = 16000;
 
@@ -30,8 +30,8 @@ void drawq_alloc(raster_t *fb, int size)
 
 ss_calc:
 	ss = (double) (1<<fb->sector_size);
-	fb->sectors = ceil((double) fb->w / ss) * ceil((double) fb->h / ss);
-	fb->sector_w = ceil((double) fb->w / ss);
+	fb->sectors = ceil((double) fb->maxw / ss) * ceil((double) fb->maxh / ss);
+	fb->sector_w = ceil((double) fb->maxw / ss);
 	if (fb->sectors >= fb->max_sector_count)
 	{
 		fb->sector_size++;
@@ -91,7 +91,7 @@ void drawq_run(raster_t *fb)
 		ret = build_cl_program(&fb->clctx, &program, clsrc_draw_queue);
 		CL_ERR_NORET("build_cl_program (in drawq_run)", ret);
 
-		ret = create_cl_kernel(&fb->clctx, program, &kernel, "draw_queue_kernel");
+		ret = create_cl_kernel(&fb->clctx, program, &kernel, "draw_queue_srgb_kernel");
 		CL_ERR_NORET("create_cl_kernel (in drawq_run)", ret);
 	}
 	if (kernel==NULL)
@@ -128,13 +128,14 @@ void drawq_run(raster_t *fb)
 	randseed %= ((1<<i) - fb->w*fb->h);	// seed + fbi will fit inside i bits to speed up the PRNG
 
 	// Run the kernel
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &fb->drawq_data_cl);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->drawq_data_cl)", ret);
+	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &fb->drawq_data_cl);	//CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->drawq_data_cl)", ret);
 	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), &fb->sector_pos_cl);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_pos_cl)", ret);
 	ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), &fb->entry_list_cl);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->entry_list_cl)", ret);
-	ret = clSetKernelArg(kernel, 3, sizeof(cl_mem), &fb->cl_srgb);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->cl_srgb)", ret);
-	ret = clSetKernelArg(kernel, 4, sizeof(cl_int), &fb->sector_w);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_w)", ret);
-	ret = clSetKernelArg(kernel, 5, sizeof(cl_int), &fb->sector_size);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_size)", ret);
-	ret = clSetKernelArg(kernel, 6, sizeof(cl_int), &randseed);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for randseed)", ret);
+	ret = clSetKernelArg(kernel, 3, sizeof(cl_mem), &fb->data_cl);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->data_cl)", ret);
+	ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), &fb->cl_srgb);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->cl_srgb)", ret);
+	ret = clSetKernelArg(kernel, 5, sizeof(cl_int), &fb->sector_w);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_w)", ret);
+	ret = clSetKernelArg(kernel, 6, sizeof(cl_int), &fb->sector_size);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_size)", ret);
+	ret = clSetKernelArg(kernel, 7, sizeof(cl_int), &randseed);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for randseed)", ret);
 
 	global_work_offset[0] = 0;
 	global_work_offset[1] = 0;
@@ -161,9 +162,37 @@ int32_t drawq_entry_size(const int32_t type)
 		case DQT_BRACKET_CLOSE:		return 1;
 		case DQT_LINE_THIN_ADD:		return 8;
 		case DQT_POINT_ADD:		return 6;
+		case DQT_RECT_FULL:		return 8;
+		case DQT_PLAIN_FILL:		return 3;
+		case DQT_CIRCLE_FULL:		return 7;
 		case DQT_BLIT_SPRITE:		return 8;
+		case DQT_BLIT_PHOTO:		return 13;
 		default:			return 0;
 	}
+}
+
+void *drawq_add_to_main_queue(raster_t fb, const int dqtype)
+{
+	int32_t end, *di = fb.drawq_data;
+	int entry_size = drawq_entry_size(dqtype);
+
+	// store the drawing parameters in the main drawing queue
+	end = di[DQ_END];
+	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
+	{
+		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
+		return di;
+	}
+
+	di[end] = dqtype;
+	end++;
+
+	di[DQ_END] += entry_size + 1;
+
+	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
+	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+
+	return &di[end];
 }
 
 void drawq_add_sector_id(raster_t fb, int32_t sector_id)
@@ -208,10 +237,14 @@ void drawq_compile_lists(raster_t *fb)		// makes entry_list and sector_pos
 		for (j=1; j <= end_j; j++)			// go through each sector for this entry
 		{
 			sector = fb->sector_list[i+j];
-			secpos = fb->sector_pos[sector];
-			count = &fb->entry_list[secpos];		// count of entry references for this sector
-			(*count)++;
-			fb->entry_list[secpos + *count] = main_i;	// store the position of this entry in the main queue
+
+			if (sector >= 0)			// negative sector id indicates a removed sector
+			{
+				secpos = fb->sector_pos[sector];
+				count = &fb->entry_list[secpos];		// count of entry references for this sector
+				(*count)++;
+				fb->entry_list[secpos + *count] = main_i;	// store the position of this entry in the main queue
+			}
 		}
 
 		i += end_j;
@@ -224,33 +257,13 @@ void drawq_compile_lists(raster_t *fb)		// makes entry_list and sector_pos
 void drawq_bracket_open(raster_t fb)
 {
 	int32_t ix, iy;
-	int32_t end, *di = fb.drawq_data;
-	float *df = fb.drawq_data;
-	const int dqtype = DQT_BRACKET_OPEN;
-	const int entry_size = drawq_entry_size(dqtype);
 	xyi_t bb0, bb1;
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
 	
 	// store the drawing parameters in the main drawing queue
-	end = di[DQ_END];
-	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
-	{
-		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
-		return ;
-	}
-
-	di[end] = dqtype;
-	end++;
-
-	// enter parameters
-	//di[end + 0] = ;
-
-	di[DQ_END] += entry_size + 1;
-
-	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
-	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+	drawq_add_to_main_queue(fb, DQT_BRACKET_OPEN);
 
 	// go through the affected sectors
 	for (iy=bb0.y; iy<=bb1.y; iy++)
@@ -261,33 +274,15 @@ void drawq_bracket_open(raster_t fb)
 void drawq_bracket_close(raster_t fb, int32_t blending_mode)
 {
 	int32_t ix, iy;
-	int32_t end, *di = fb.drawq_data;
-	float *df = fb.drawq_data;
-	const int dqtype = DQT_BRACKET_CLOSE;
-	const int entry_size = drawq_entry_size(dqtype);
+	int32_t *di;
 	xyi_t bb0, bb1;
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
 	
 	// store the drawing parameters in the main drawing queue
-	end = di[DQ_END];
-	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
-	{
-		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
-		return ;
-	}
-
-	di[end] = dqtype;
-	end++;
-
-	// enter parameters
-	di[end + 0] = blending_mode;
-
-	di[DQ_END] += entry_size + 1;
-
-	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
-	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+	di = drawq_add_to_main_queue(fb, DQT_BRACKET_CLOSE);
+	di[0] = blending_mode;
 
 	// go through the affected sectors
 	for (iy=bb0.y; iy<=bb1.y; iy++)
@@ -298,33 +293,13 @@ void drawq_bracket_close(raster_t fb, int32_t blending_mode)
 void drawq_test1(raster_t fb)		// BRDF test
 {
 	int32_t ix, iy;
-	int32_t end, *di = fb.drawq_data;
-	float *df = fb.drawq_data;
-	const int dqtype = DQT_TEST1;
-	const int entry_size = drawq_entry_size(dqtype);
 	xyi_t bb0, bb1;
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
 	
 	// store the drawing parameters in the main drawing queue
-	end = di[DQ_END];
-	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
-	{
-		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
-		return ;
-	}
-
-	di[end] = dqtype;
-	end++;
-
-	// enter parameters
-	//di[end + 0] = ;
-
-	di[DQ_END] += entry_size + 1;
-
-	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
-	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+	drawq_add_to_main_queue(fb, DQT_TEST1);
 
 	// go through the affected sectors
 	for (iy=bb0.y; iy<=bb1.y; iy++)

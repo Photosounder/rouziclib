@@ -249,13 +249,13 @@ cl_int init_raster_cl(raster_t *fb, const clctx_t *clctx)		// inits the linear C
 		fb->clctx = *clctx;		// copy the original cl context
 	}
 
-	fb->clbuf = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, fb->w*fb->h*4*sizeof(float), fb->f, &ret);
+	/*fb->clbuf = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, fb->w*fb->h*4*sizeof(float), fb->f, &ret);
 	CL_ERR_RET("clCreateBuffer (in init_fb_cl, for fb->clbuf)", ret);
 
-	fb->clbuf_da = get_clmem_device_address(&fb->clctx, fb->clbuf);
+	fb->clbuf_da = get_clmem_device_address(&fb->clctx, fb->clbuf);*/
 }
 
-uint64_t get_clmem_device_address(clctx_t *clctx, cl_mem buf)
+/*uint64_t get_clmem_device_address(clctx_t *clctx, cl_mem buf)
 {
 	const char kernel_source[] =
 "kernel void get_global_ptr_address(global void *ptr, global ulong *devaddr)		\n"
@@ -304,6 +304,48 @@ uint64_t get_clmem_device_address(clctx_t *clctx, cl_mem buf)
 	clFinish(clctx->command_queue);
 
 	return devaddr;
+}*/
+
+void make_gl_tex(raster_t *fb)
+{
+	cl_int ret=0;
+
+	// create an OpenGL 2D texture normally
+	glEnable(GL_TEXTURE_2D);
+	glGenTextures(1, &fb->gltex);						// generate the texture ID
+	glBindTexture(GL_TEXTURE_2D, fb->gltex);				// binding the texture
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	// regular sampler params
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);	// need to set GL_NEAREST
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0); 		 // set the base and max mipmap levels
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fb->maxw, fb->maxh, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);		// specify texture dimensions, format etc
+
+	fb->cl_srgb = clCreateFromGLTexture(fb->clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb->gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
+	CL_ERR_NORET("clCreateFromGLTexture (in make_gl_tex, for fb->cl_srgb)", ret);
+}
+
+cl_int init_fb_cl(raster_t *fb)
+{
+	cl_int ret;
+	
+	if (fb->clctx.command_queue)
+	{
+		clReleaseMemObject(fb->data_cl);
+		deinit_clctx(&fb->clctx);
+	}
+
+	ret = init_cl_context(&fb->clctx, 1);
+	CL_ERR_RET("init_cl_context", ret);
+
+	make_gl_tex(fb);
+
+	drawq_alloc(fb, 60000);
+
+	fb->data_alloc_table_as = 500 * 1024*1024;
+	fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, fb->data_alloc_table_as, NULL, &ret);
+	CL_ERR_RET("clCreateBuffer (in init_fb_cl, for fb->data_cl)", ret);
 }
 
 #endif

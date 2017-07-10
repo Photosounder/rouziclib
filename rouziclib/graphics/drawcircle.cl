@@ -1,0 +1,27 @@
+float4 draw_circle_full_add(global float *le, float4 pv)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const float2 pf = convert_float2(p);
+	float4 col;
+	float2 pc;
+	float circrad, rad, dc, dn, df;
+
+	pc.x = le[0];
+	pc.y = le[1];
+	circrad = le[2];
+	rad = le[3];
+	col.s0 = le[4];
+	col.s1 = le[5];
+	col.s2 = le[6];
+	col.s3 = 1.;
+
+	dc = fast_distance(pf, pc);
+	dn = (circrad - dc) * rad;
+	df = -(circrad + dc) * rad;
+
+	pv += (erfr(dn) - erfr(df)) * col;
+	//pv += erfr(dn) * col;
+	//pv += (gaussian(dn) + gaussian(df)) * col;
+
+	return pv;
+}

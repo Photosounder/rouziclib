@@ -13,13 +13,19 @@
 #endif
 
 extern int32_t fphypot(int32_t x, int32_t y);
-extern double distance_xy(double dx, double dy);
+extern double sq(double x);
 extern double gaussian(double x);
-//extern double erf(double x);
+extern double sinc(double x, double fc);
+extern double blackman(double x, double range);
 
 extern double roundaway(double x);
 extern double rangewrap(double x, double low, double high);
 extern double rangelimit(double x, double min, double max);
 extern float rangelimitf(float x, float min, float max);
 extern int32_t rangelimit_i32(int32_t x, int32_t min, int32_t max);
+extern void swap_double(double *a, double *b);
+extern void swap_i32(int32_t *a, int32_t *b);
+extern void minmax_double(double *a, double *b);
+extern void minmax_i32(int32_t *a, int32_t *b);
 extern double double_add_ulp(double x, int ulp);
+extern double normalised_notation_split(double number, double *m);

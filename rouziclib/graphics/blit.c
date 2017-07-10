@@ -326,75 +326,131 @@ void blit_scale_lrgb(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp
 	}
 }
 
-#ifdef RL_OPENCL
 void blit_scale_cl(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp)
 {
+#ifdef RL_OPENCL
 	double grad;
 	int32_t ix, iy;
-	int32_t end, *di = fb.drawq_data;
-	float *df = fb.drawq_data;
-	const int dqtype = DQT_BLIT_SPRITE;
-	const int entry_size = drawq_entry_size(dqtype);
+	int32_t *di;
+	float *df;
 	xyi_t bb0, bb1;
 
 	grad = 1.;	// 1 for triangular filtering
 	
 /*	if (pos.x + grad < 0.)			return ;
 	if (pos.y + grad < 0.)			return ;
-	if (pos.x - grad > (double) (fb.w-1))	return ;
-	if (pos.y - grad > (double) (fb.h-1))	return ;
+	if (pos.x - grad > (double) (r0.w-1))	return ;
+	if (pos.y - grad > (double) (r0.h-1))	return ;
 
 	// calculate the bounding box
 	bb0.x = MAXN(ceil(x - grad), 0);
 	bb0.y = MAXN(ceil(y - grad), 0);
-	bb1.x = MINN(floor(x + grad), fb.w-1);
-	bb1.y = MINN(floor(y + grad), fb.h-1);*/
+	bb1.x = MINN(floor(x + grad), r0.w-1);
+	bb1.y = MINN(floor(y + grad), r0.h-1);*/
 bb0 = xyi(0, 0);
 bb1.x = MINN(r0.w-1, r0.w-1);
 bb1.y = MINN(r0.h-1, r0.h-1);
 
-	bb0.x >>= fb.sector_size;
-	bb0.y >>= fb.sector_size;
-	bb1.x >>= fb.sector_size;
-	bb1.y >>= fb.sector_size;
+	bb0.x >>= r0.sector_size;
+	bb0.y >>= r0.sector_size;
+	bb1.x >>= r0.sector_size;
+	bb1.y >>= r0.sector_size;
 
 	// store the drawing parameters in the main drawing queue
-	end = di[DQ_END];
-	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
-	{
-		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
-		return ;
-	}
-
-	di[end] = dqtype;
-	end++;
-
-	// enter drawing parameters
-	di[end + 0] = r1.clbuf_da;
-	di[end + 1] = r1.clbuf_da >> 32;
-	di[end + 2] = r1.w;
-	di[end + 3] = r1.h;
-	df[end + 4] = 1./pscale.x;
-	df[end + 5] = 1./pscale.y;
-	df[end + 6] = -pos.x;
-	df[end + 7] = -pos.y;
-
-	di[DQ_END] += entry_size + 1;
-
-	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
-	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+	df = di = drawq_add_to_main_queue(r0, DQT_BLIT_SPRITE);
+	di[0] = r1.clbuf_da;
+	di[1] = r1.clbuf_da >> 32;
+	di[2] = r1.w;
+	di[3] = r1.h;
+	df[4] = 1./pscale.x;
+	df[5] = 1./pscale.y;
+	df[6] = -pos.x;
+	df[7] = -pos.y;
 
 	// go through the affected sectors
 	for (iy=bb0.y; iy<=bb1.y; iy++)
 		for (ix=bb0.x; ix<=bb1.x; ix++)
-			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
-}
+			drawq_add_sector_id(r0, iy*r0.sector_w + ix);	// add sector reference
 #endif
+}
 
 void blit_scale(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp)
 {
-	if (fb.use_cl)
+	if (r0.use_cl)
 		blit_scale_cl(r0, r1, pscale, pos, interp);
-	else if (fb.use_frgb==0)
+	else if (r0.use_frgb==0)
 		blit_scale_lrgb(r0, r1, pscale, pos, interp);
+}
+
+void blit_in_rect(raster_t r0, raster_t r1, rect_t r, int keep_aspect_ratio, int interp)
+{
+	xy_t pscale, pos;
+
+	pscale = div_xy(get_rect_dim(r), xy(r1.w, r1.h));
+	pos = add_xy(rect_p01(r), mul_xy(pscale, set_xy(0.5)));
+
+	blit_scale(r0, r1, pscale, pos, interp);
+}
+
+void blit_scale_photo_cl(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp, xy_t pc, double distortion, double gain)
+{
+#ifdef RL_OPENCL
+	double grad;
+	int32_t ix, iy;
+	int32_t *di;
+	float *df;
+	xyi_t bb0, bb1;
+
+	grad = 1.;	// 1 for triangular filtering
+	
+/*	if (pos.x + grad < 0.)			return ;
+	if (pos.y + grad < 0.)			return ;
+	if (pos.x - grad > (double) (r0.w-1))	return ;
+	if (pos.y - grad > (double) (r0.h-1))	return ;
+
+	// calculate the bounding box
+	bb0.x = MAXN(ceil(x - grad), 0);
+	bb0.y = MAXN(ceil(y - grad), 0);
+	bb1.x = MINN(floor(x + grad), r0.w-1);
+	bb1.y = MINN(floor(y + grad), r0.h-1);*/
+bb0 = xyi(0, 0);
+bb1.x = MINN(r0.w-1, r0.w-1);
+bb1.y = MINN(r0.h-1, r0.h-1);
+
+	bb0.x >>= r0.sector_size;
+	bb0.y >>= r0.sector_size;
+	bb1.x >>= r0.sector_size;
+	bb1.y >>= r0.sector_size;
+
+	// store the drawing parameters in the main drawing queue
+	df = di = drawq_add_to_main_queue(r0, DQT_BLIT_PHOTO);
+	di[0] = r1.clbuf_da;
+	di[1] = r1.clbuf_da >> 32;
+	di[2] = r1.w;
+	di[3] = r1.h;
+	df[4] = 1./pscale.x;
+	df[5] = 1./pscale.y;
+	df[6] = -pos.x;
+	df[7] = -pos.y;
+	df[8] = pc.x;
+	df[9] = pc.y;
+	df[10] = distortion;
+	df[11] = 1. / (MINN(r1.w, r1.h)*0.5);
+	df[12] = gain;
+
+	// go through the affected sectors
+	for (iy=bb0.y; iy<=bb1.y; iy++)
+		for (ix=bb0.x; ix<=bb1.x; ix++)
+			drawq_add_sector_id(r0, iy*r0.sector_w + ix);	// add sector reference
+#endif
+}
+
+void blit_photo_in_rect(raster_t r0, raster_t r1, rect_t r, int keep_aspect_ratio, int interp, xy_t pc, double distortion, double gain)
+{
+	xy_t pscale, pos;
+
+	pscale = div_xy(get_rect_dim(r), xy(r1.w, r1.h));
+	pos = add_xy(rect_p01(r), mul_xy(pscale, set_xy(0.5)));
+
+	blit_scale_photo_cl(r0, r1, pscale, pos, interp, pc, distortion, gain);
 }

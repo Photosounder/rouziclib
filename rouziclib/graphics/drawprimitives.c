@@ -1,4 +1,4 @@
-void draw_circle(const int circlemode, raster_t fb, double x, double y, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_circle_lrgb(const int circlemode, raster_t fb, xy_t pos, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, lboundx, lboundy, rboundx, rboundy;
@@ -14,10 +14,10 @@ void draw_circle(const int circlemode, raster_t fb, double x, double y, double c
 	radf = roundaway(1./radius * fpratio);
 	circradf = roundaway(circrad * fpratio);
 
-	lboundx = (int32_t) ceil (x - circrad - grad);	if (lboundx<0) lboundx = 0; if (lboundx>=fb.w) lboundx = fb.w-1;
-	lboundy = (int32_t) ceil (y - circrad - grad);	if (lboundy<0) lboundy = 0; if (lboundy>=fb.h) lboundy = fb.h-1;
-	rboundx = (int32_t) floor (x + circrad + grad);	if (rboundx<0) rboundx = 0; if (rboundx>=fb.w) rboundx = fb.w-1;
-	rboundy = (int32_t) floor (y + circrad + grad);	if (rboundy<0) rboundy = 0; if (rboundy>=fb.h) rboundy = fb.h-1;
+	lboundx = (int32_t) ceil (pos.x - circrad - grad);	if (lboundx<0) lboundx = 0; if (lboundx>=fb.w) lboundx = fb.w-1;
+	lboundy = (int32_t) ceil (pos.y - circrad - grad);	if (lboundy<0) lboundy = 0; if (lboundy>=fb.h) lboundy = fb.h-1;
+	rboundx = (int32_t) floor (pos.x + circrad + grad);	if (rboundx<0) rboundx = 0; if (rboundx>=fb.w) rboundx = fb.w-1;
+	rboundy = (int32_t) floor (pos.y + circrad + grad);	if (rboundy<0) rboundy = 0; if (rboundy>=fb.h) rboundy = fb.h-1;
 
 	if (circlemode==HOLLOWCIRCLE)
 	{
@@ -32,8 +32,8 @@ void draw_circle(const int circlemode, raster_t fb, double x, double y, double c
 	highbound2 = roundaway((circrad + grad) * fpratio);
 	highbound2 *= highbound2;
 
-	xf = roundaway(x * fpratio);
-	yf = roundaway(y * fpratio);
+	xf = roundaway(pos.x * fpratio);
+	yf = roundaway(pos.y * fpratio);
 
 	for (iy=lboundy; iy<=rboundy; iy++)
 	{
@@ -65,42 +65,190 @@ void draw_circle(const int circlemode, raster_t fb, double x, double y, double c
 	}
 }
 
-void draw_rect(raster_t fb, xy_t p0, xy_t p1, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_circle_cl(const int circlemode, raster_t fb, xy_t pos, double circrad, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
-	draw_line_thin(fb, p0.x, p0.y, p0.x, p1.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p0.x, p1.y, p1.x, p1.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p1.x, p1.y, p1.x, p0.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p1.x, p0.y, p0.x, p0.y, radius, colour, bf, intensity);
+#ifdef RL_OPENCL
+	float *df;
+	double grad, circum;
+	int32_t i, ix, iy;
+	rect_t bb, secbox, fr, screen_box = rect(XY0, xy(fb.w-1, fb.h-1));
+	recti_t bbi;
+
+	if (intensity==0.)
+		return ;
+	
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+
+	// calculate the bounding box
+	bb.p0 = ceil_xy(sub_xy(pos, set_xy(grad+circrad)));
+	bb.p1 = floor_xy(add_xy(pos, set_xy(grad+circrad)));
+
+	if (check_box_box_intersection(bb, screen_box)==0)
+		return ;
+
+	bbi.p0 = xy_to_xyi(max_xy(bb.p0, screen_box.p0));
+	bbi.p1 = xy_to_xyi(min_xy(bb.p1, screen_box.p1));
+	bbi = rshift_recti(bbi, fb.sector_size);
+
+	// calculate the drawing parameters
+	circum = circrad/radius;
+	intensity *= (0.5 + 0.5 * erf(circum)) - (0.5 + 0.5 * erf(-circum));
+	colour.r *= intensity;
+	colour.g *= intensity;
+	colour.b *= intensity;
+
+	// store the drawing parameters in the main drawing queue
+	df = drawq_add_to_main_queue(fb, DQT_CIRCLE_FULL);
+	df[0] = pos.x;
+	df[1] = pos.y;
+	df[2] = circrad;
+	df[3] = 1./radius;
+	df[4] = colour.r;
+	df[5] = colour.g;
+	df[6] = colour.b;
+
+	// find the affected sectors
+	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
+		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
+		{
+			secbox.p0.x = ix << fb.sector_size;
+			secbox.p0.y = iy << fb.sector_size;
+			secbox.p1 = add_xy(secbox.p0, set_xy((1 << fb.sector_size) - 1));
+
+			if (check_box_circle_intersection(secbox, pos, circrad+grad))
+				if (circrad-grad <= 0. || check_box_wholly_inside_circle(secbox, pos, circrad-grad)==0)
+					drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+		}
+
+	if (circrad-grad <= 0. || circlemode==HOLLOWCIRCLE)
+		return ;
+
+	//************PLAIN FILL AREA************
+
+	df = drawq_add_to_main_queue(fb, DQT_PLAIN_FILL);
+	df[0] = colour.r;
+	df[1] = colour.g;
+	df[2] = colour.b;
+
+	// find the affected sectors
+	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
+		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
+		{
+			secbox.p0.x = ix << fb.sector_size;
+			secbox.p0.y = iy << fb.sector_size;
+			secbox.p1 = add_xy(secbox.p0, set_xy((1 << fb.sector_size) - 1));
+
+			if (check_box_wholly_inside_circle(secbox, pos, circrad-grad))	// if we're inside the plain fill area
+				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+		}
+#endif
 }
 
-void draw_rect_chamfer(raster_t fb, xy_t p0, xy_t p1, double radius, lrgb_t colour, const blend_func_t bf, double intensity, double chamfer)
+void draw_circle_arc(raster_t fb, xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
+{
+	int i, count;
+	double stepth, oval_ratio = circrad.x / circrad.y;
+	xy_t p0, p1;
+
+	count = nearbyint(rangelimit(2.*pi * max_of_xy(circrad)/radius, 8., 2048.) * (th1-th0));
+	count = MAXN(count, 2);
+	th0 *= 2.*pi;
+	th1 *= 2.*pi;
+	stepth = (th1-th0) / (double) count;
+
+	for (i=0; i<count; i++)
+	{
+		p0 = rotate_xy2(xy(0., -circrad.y), th0 + (double) i * stepth);
+		p1 = rotate_xy2(xy(0., -circrad.y), th0 + (double) (i+1) * stepth);
+		p0.x *= oval_ratio;
+		p1.x *= oval_ratio;
+		draw_line_thin(fb, add_xy(pos, p0), add_xy(pos, p1), radius, colour, bf, intensity);
+	}
+}
+
+void draw_circle_with_lines(raster_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
+{
+	draw_circle_arc(fb, pos, set_xy(circrad), 0., 1., radius, colour, bf, intensity);
+}
+
+void draw_circle(const int circlemode, raster_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
+{
+	if (circlemode!=HOLLOWCIRCLE)
+		radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
+
+	if (circlemode==HOLLOWCIRCLE)
+		draw_circle_with_lines(fb, pos, circrad, radius, colour, blend_add, intensity);
+	else
+		if (fb.use_cl)
+			draw_circle_cl(circlemode, fb, pos, circrad, radius, col_to_frgb(colour), blend_add, intensity);
+		else
+			draw_circle_lrgb(circlemode, fb, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
+}
+
+void draw_rect(raster_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity)
+{
+	draw_line_thin(fb, xy(r.p0.x, r.p0.y), xy(r.p0.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(r.p0.x, r.p1.y), xy(r.p1.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(r.p1.x, r.p1.y), xy(r.p1.x, r.p0.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(r.p1.x, r.p0.y), xy(r.p0.x, r.p0.y), radius, colour, bf, intensity);
+}
+
+void draw_rect_chamfer(raster_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity, double chamfer)
 {
 	xy_t p2, p3;
 	double cs, csx, csy, sx=1., sy=1.;
 
-	if (p1.x-p0.x < 0.)
+	if (r.p1.x-r.p0.x < 0.)
 		sx = -1.;
-	if (p1.y-p0.y < 0.)
+	if (r.p1.y-r.p0.y < 0.)
 		sy = -1.;
 
-	cs = chamfer * MINN(fabs(p1.x-p0.x), fabs(p1.y-p0.y));
+	cs = chamfer * MINN(fabs(r.p1.x-r.p0.x), fabs(r.p1.y-r.p0.y));
 	csx = cs*sx;
 	csy = cs*sy;
 
-	p2.x = p0.x+csx;
-	p3.x = p1.x-csx;
-	p2.y = p0.y+csy;
-	p3.y = p1.y-csy;
+	p2.x = r.p0.x+csx;
+	p3.x = r.p1.x-csx;
+	p2.y = r.p0.y+csy;
+	p3.y = r.p1.y-csy;
 
-	draw_line_thin(fb, p0.x, p2.y, p0.x, p3.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p2.x, p1.y, p3.x, p1.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p1.x, p3.y, p1.x, p2.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p3.x, p0.y, p2.x, p0.y, radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(r.p0.x, p2.y), xy(r.p0.x, p3.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(p2.x, r.p1.y), xy(p3.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(r.p1.x, p3.y), xy(r.p1.x, p2.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(p3.x, r.p0.y), xy(p2.x, r.p0.y), radius, colour, bf, intensity);
 
-	draw_line_thin(fb, p0.x, p3.y, p2.x, p1.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p3.x, p1.y, p1.x, p3.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p1.x, p2.y, p3.x, p0.y, radius, colour, bf, intensity);
-	draw_line_thin(fb, p2.x, p0.y, p0.x, p2.y, radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(r.p0.x, p3.y), xy(p2.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(p3.x, r.p1.y), xy(r.p1.x, p3.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(r.p1.x, p2.y), xy(p3.x, r.p0.y), radius, colour, bf, intensity);
+	draw_line_thin(fb, xy(p2.x, r.p0.y), xy(r.p0.x, p2.y), radius, colour, bf, intensity);
+}
+
+void draw_line_dashed(raster_t fb, xy_t p1, xy_t p2, double dash_period, double dash_ratio, double phase, double radius, col_t colour, const blend_func_t bf, double intensity)
+{
+	xy_t pt1, pt2, pd;
+	double t1, t2, t1c, t2c, d;
+
+	d = hypot_xy(p1, p2);
+	pd = sub_xy(p2, p1);
+	t1 = phase * dash_period;
+
+	while (1)
+	{
+		t2 = t1 + dash_period*dash_ratio;
+
+		t1c = MAXN(0., t1) / d;
+		t2c = MINN(d, t2) / d;
+
+		if (t1 >= d)
+			return ;
+
+		pt1 = add_xy(mul_xy(set_xy(t1c), pd), p1);
+		pt2 = add_xy(mul_xy(set_xy(t2c), pd), p1);
+
+		draw_line_thin(fb, pt1, pt2, radius, colour, bf, intensity);
+
+		t1 += dash_period;
+	}
 }
 
 int32_t get_dist_to_roundrect(int32_t lx1, int32_t ly1, int32_t lx2, int32_t ly2, int32_t corner, int32_t ixf, int32_t iyf)
@@ -144,7 +292,7 @@ int32_t get_dist_to_roundrect(int32_t lx1, int32_t ly1, int32_t lx2, int32_t ly2
 	return d;
 }
 
-void draw_roundrect(raster_t fb, double x1, double y1, double x2, double y2, double corner, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_roundrect(raster_t fb, rect_t box, double corner, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
@@ -155,16 +303,16 @@ void draw_roundrect(raster_t fb, double x1, double y1, double x2, double y2, dou
 	ratio = 32768. * intensity + 0.5;
 
 	radf = roundaway(1./radius * fpratio);
-	x1f = roundaway((x1+corner) * fpratio);
-	y1f = roundaway((y1+corner) * fpratio);
-	x2f = roundaway((x2-corner) * fpratio);
-	y2f = roundaway((y2-corner) * fpratio);
+	x1f = roundaway((box.p0.x+corner) * fpratio);
+	y1f = roundaway((box.p0.y+corner) * fpratio);
+	x2f = roundaway((box.p1.x-corner) * fpratio);
+	y2f = roundaway((box.p1.y-corner) * fpratio);
 	cornerf = roundaway(corner * fpratio);
 
-	lboundx = (int32_t) rangelimit(ceil (x1 - grad), 0., (double) (fb.w-1));
-	lboundy = (int32_t) rangelimit(ceil (y1 - grad), 0., (double) (fb.h-1));
-	rboundx = (int32_t) rangelimit(floor (x2 + grad), 0., (double) (fb.w-1));
-	rboundy = (int32_t) rangelimit(floor (y2 + grad), 0., (double) (fb.h-1));
+	lboundx = (int32_t) rangelimit(ceil (box.p0.x - grad), 0., (double) (fb.w-1));
+	lboundy = (int32_t) rangelimit(ceil (box.p0.y - grad), 0., (double) (fb.h-1));
+	rboundx = (int32_t) rangelimit(floor (box.p1.x + grad), 0., (double) (fb.w-1));
+	rboundy = (int32_t) rangelimit(floor (box.p1.y + grad), 0., (double) (fb.h-1));
 
 	for (iy=lboundy; iy<=rboundy; iy++)
 	{
@@ -184,7 +332,7 @@ void draw_roundrect(raster_t fb, double x1, double y1, double x2, double y2, dou
 	}
 }
 
-void draw_roundrect_frame(raster_t fb, double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, double corner1, double corner2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_roundrect_frame(raster_t fb, rect_t box1, rect_t box2, double corner1, double corner2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
@@ -195,21 +343,21 @@ void draw_roundrect_frame(raster_t fb, double x1, double y1, double x2, double y
 	ratio = 32768. * intensity + 0.5;
 
 	radf = roundaway(1./radius * fpratio);
-	x1f = roundaway((x1+corner1) * fpratio);
-	y1f = roundaway((y1+corner1) * fpratio);
-	x2f = roundaway((x2-corner1) * fpratio);
-	y2f = roundaway((y2-corner1) * fpratio);
-	x3f = roundaway((x3+corner2) * fpratio);
-	y3f = roundaway((y3+corner2) * fpratio);
-	x4f = roundaway((x4-corner2) * fpratio);
-	y4f = roundaway((y4-corner2) * fpratio);
+	x1f = roundaway((box1.p0.x+corner1) * fpratio);
+	y1f = roundaway((box1.p0.y+corner1) * fpratio);
+	x2f = roundaway((box1.p1.x-corner1) * fpratio);
+	y2f = roundaway((box1.p1.y-corner1) * fpratio);
+	x3f = roundaway((box2.p0.x+corner2) * fpratio);
+	y3f = roundaway((box2.p0.y+corner2) * fpratio);
+	x4f = roundaway((box2.p1.x-corner2) * fpratio);
+	y4f = roundaway((box2.p1.y-corner2) * fpratio);
 	corner1f = roundaway(corner1 * fpratio);
 	corner2f = roundaway(corner2 * fpratio);
 
-	lboundx = (int32_t) rangelimit(ceil (x1 - grad), 0., (double) (fb.w-1));
-	lboundy = (int32_t) rangelimit(ceil (y1 - grad), 0., (double) (fb.h-1));
-	rboundx = (int32_t) rangelimit(floor (x2 + grad), 0., (double) (fb.w-1));
-	rboundy = (int32_t) rangelimit(floor (y2 + grad), 0., (double) (fb.h-1));
+	lboundx = (int32_t) rangelimit(ceil (box1.p0.x - grad), 0., (double) (fb.w-1));
+	lboundy = (int32_t) rangelimit(ceil (box1.p0.y - grad), 0., (double) (fb.h-1));
+	rboundx = (int32_t) rangelimit(floor (box1.p1.x + grad), 0., (double) (fb.w-1));
+	rboundy = (int32_t) rangelimit(floor (box1.p1.y + grad), 0., (double) (fb.h-1));
 
 	for (iy=lboundy; iy<=rboundy; iy++)
 	{
@@ -298,7 +446,7 @@ void draw_gaussian_gradient(raster_t fb, double cx, double cy, lrgb_t c0, lrgb_t
 	}
 }
 
-void draw_point_lrgb(raster_t fb, double x, double y, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_point_lrgb(raster_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t iy, ix, fbi;
 	double grad;
@@ -310,8 +458,8 @@ void draw_point_lrgb(raster_t fb, double x, double y, double radius, lrgb_t colo
 	const double fpratio = (double) (1<<fp);
 	int32_t xf, yf, radiusf;
 
-	xf = roundaway(x * fpratio);
-	yf = roundaway(y * fpratio);
+	xf = roundaway(pos.x * fpratio);
+	yf = roundaway(pos.y * fpratio);
 
 	grad = sqrt(log(1. / (GAUSSLIMIT*intensity)));
 
@@ -321,10 +469,10 @@ void draw_point_lrgb(raster_t fb, double x, double y, double radius, lrgb_t colo
 	radius = 1./radius;
 	radiusf = roundaway(radius * (double) (1<<29));
 
-	bstartx = (int32_t) ceil(x - bradius);	if (bstartx<0)	bstartx = 0;
-	bstarty = (int32_t) ceil(y - bradius);	if (bstarty<0)	bstarty = 0;
-	bendx = (int32_t) floor(x + bradius);	if (bendx >= fb.w) bendx = fb.w-1;
-	bendy = (int32_t) floor(y + bradius);	if (bendy >= fb.h) bendy = fb.h-1;
+	bstartx = (int32_t) ceil(pos.x - bradius);	if (bstartx<0)	bstartx = 0;
+	bstarty = (int32_t) ceil(pos.y - bradius);	if (bstarty<0)	bstarty = 0;
+	bendx = (int32_t) floor(pos.x + bradius);	if (bendx >= fb.w) bendx = fb.w-1;
+	bendy = (int32_t) floor(pos.y + bradius);	if (bendy >= fb.h) bendy = fb.h-1;
 
 	for (iy=bstarty; iy<=bendy; iy++)
 	for (ix=bstartx; ix<=bendx; ix++)
@@ -339,7 +487,7 @@ void draw_point_lrgb(raster_t fb, double x, double y, double radius, lrgb_t colo
 	}
 }
 
-void draw_point_frgb(raster_t fb, double x, double y, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_frgb(raster_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	int32_t iy, ix, fbi;
 	float ixf, iyf, p, bradius, ratio=intensity;
@@ -349,100 +497,78 @@ void draw_point_frgb(raster_t fb, double x, double y, double radius, frgb_t colo
 
 	radius = 1./radius;
 
-	bstartx = (int32_t) ceil(x - bradius);	if (bstartx<0)	bstartx = 0;
-	bstarty = (int32_t) ceil(y - bradius);	if (bstarty<0)	bstarty = 0;
-	bendx = (int32_t) floor(x + bradius);	if (bendx >= fb.w) bendx = fb.w-1;
-	bendy = (int32_t) floor(y + bradius);	if (bendy >= fb.h) bendy = fb.h-1;
+	bstartx = (int32_t) ceil(pos.x - bradius);	if (bstartx<0)	bstartx = 0;
+	bstarty = (int32_t) ceil(pos.y - bradius);	if (bstarty<0)	bstarty = 0;
+	bendx = (int32_t) floor(pos.x + bradius);	if (bendx >= fb.w) bendx = fb.w-1;
+	bendy = (int32_t) floor(pos.y + bradius);	if (bendy >= fb.h) bendy = fb.h-1;
 
 	for (iyf=iy=bstarty; iy<=bendy; iy++, iyf+=1.)
 	for (ixf=ix=bstartx; ix<=bendx; ix++, ixf+=1.)
 	{
 		fbi = iy*fb.w+ix;
 
-		p = fastgaussianf_d1((x - ixf) * radius);
-		p *= fastgaussianf_d1((y - iyf) * radius);
+		p = fastgaussianf_d1((pos.x - ixf) * radius);
+		p *= fastgaussianf_d1((pos.y - iyf) * radius);
 		p *= ratio;
 
 		bf(&fb.f[fbi], colour, p);
 	}
 }
 
-#ifdef RL_OPENCL
-void draw_point_cl(raster_t fb, double x, double y, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_cl(raster_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
+#ifdef RL_OPENCL
 	double grad;
 	int32_t ix, iy;
-	int32_t end, *di = fb.drawq_data;
-	float *df = fb.drawq_data;
-	const int dqtype = DQT_POINT_ADD;
-	const int entry_size = drawq_entry_size(dqtype);
-	xyi_t bb0, bb1;
+	float *df;
+	recti_t bb;;
 	
 	grad = GAUSSRAD_HQ * radius;		// gaussian will go to x = ±4, radially
 
-	if (x + grad < 0.)			return ;
-	if (y + grad < 0.)			return ;
-	if (x - grad > (double) (fb.w-1))	return ;
-	if (y - grad > (double) (fb.h-1))	return ;
+	if (pos.x + grad < 0.)			return ;
+	if (pos.y + grad < 0.)			return ;
+	if (pos.x - grad > (double) (fb.w-1))	return ;
+	if (pos.y - grad > (double) (fb.h-1))	return ;
 
 	// calculate the bounding box
-	bb0.x = MAXN(ceil(x - grad), 0);
-	bb0.y = MAXN(ceil(y - grad), 0);
-	bb1.x = MINN(floor(x + grad), fb.w-1);
-	bb1.y = MINN(floor(y + grad), fb.h-1);
+	bb.p0.x = MAXN(ceil(pos.x - grad), 0);
+	bb.p0.y = MAXN(ceil(pos.y - grad), 0);
+	bb.p1.x = MINN(floor(pos.x + grad), fb.w-1);
+	bb.p1.y = MINN(floor(pos.y + grad), fb.h-1);
 
-	bb0.x >>= fb.sector_size;
-	bb0.y >>= fb.sector_size;
-	bb1.x >>= fb.sector_size;
-	bb1.y >>= fb.sector_size;
+	bb = rshift_recti(bb, fb.sector_size);
 
 	// store the drawing parameters in the main drawing queue
-	end = di[DQ_END];
-	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
-	{
-		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
-		return ;
-	}
-
-	di[end] = dqtype;
-	end++;
-
-	// enter drawing parameters
-	df[end + 0] = x;
-	df[end + 1] = y;
-	df[end + 2] = 1./radius;
-	df[end + 3] = colour.r * intensity;
-	df[end + 4] = colour.g * intensity;
-	df[end + 5] = colour.b * intensity;
-
-	di[DQ_END] += entry_size + 1;
-
-	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
-	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+	df = drawq_add_to_main_queue(fb, DQT_POINT_ADD);
+	if (df==NULL)
+		return;
+	df[0] = pos.x;
+	df[1] = pos.y;
+	df[2] = 1./radius;
+	df[3] = colour.r * intensity;
+	df[4] = colour.g * intensity;
+	df[5] = colour.b * intensity;
 
 	// go through the affected sectors
-	for (iy=bb0.y; iy<=bb1.y; iy++)
-		for (ix=bb0.x; ix<=bb1.x; ix++)
+	for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
+		for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
 			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
-}
 #endif
+}
 
-void draw_point(raster_t fb, double x, double y, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_point(raster_t fb, xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
+	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
+
 	if (fb.use_cl)
-		draw_point_cl(fb, x, y, radius, make_colour_frgb_from_lrgb(colour), get_blend_fl_equivalent(bf), intensity);
+		draw_point_cl(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else if (fb.use_frgb)
-		draw_point_frgb(fb, x, y, radius, make_colour_frgb_from_lrgb(colour), get_blend_fl_equivalent(bf), intensity);
+		draw_point_frgb(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
-		draw_point_lrgb(fb, x, y, radius, colour, bf, intensity);
+		draw_point_lrgb(fb, pos, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_point_xy(raster_t fb, xy_t p, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
-{
-	draw_point(fb, p.x, p.y, radius, colour, bf, intensity);
-}
-
-void draw_point_on_row(raster_t fb, double x, int32_t y, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_point_on_row(raster_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t ix, fbi, dp;
 	double grad = GAUSSRAD(intensity, radius);
@@ -457,14 +583,14 @@ void draw_point_on_row(raster_t fb, double x, int32_t y, double radius, lrgb_t c
 
 	radf = roundaway(1./radius * fpratio);
 
-	bstartx = (int32_t) ceil(x - grad);	if (bstartx<0)	bstartx = 0;
-	bendx = (int32_t) floor(x + grad);	if (bendx >= fb.w) bendx = fb.w-1;
+	bstartx = (int32_t) ceil(pos.x - grad);	if (bstartx<0)	bstartx = 0;
+	bendx = (int32_t) floor(pos.x + grad);	if (bendx >= fb.w) bendx = fb.w-1;
 
-	xf = roundaway(x * fpratio);
+	xf = roundaway(pos.x * fpratio);
 
 	for (ix=bstartx; ix<=bendx; ix++)
 	{
-		fbi = y*fb.w+ix;
+		fbi = pos.y*fb.w+ix;
 		ixf = ix << fp;
 
 		dp = xf - ixf;

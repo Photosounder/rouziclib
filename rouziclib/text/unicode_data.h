@@ -30,6 +30,7 @@ enum	// General Category
 	uccat_Cs,		// Other, Surrogate
 	uccat_Co,		// Other, Private Use
 	uccat_Cn,		// Other, Not Assigned (no characters in the file have this property)
+	uccat_count
 };
 
 
@@ -54,6 +55,7 @@ enum	// Bidirectional Category
 	bidicat_S,		// Segment Separator
 	bidicat_WS,		// Whitespace
 	bidicat_ON,		// Other Neutrals
+	bidicat_count
 };
 
 enum	// Character Decomposition Mapping
@@ -75,6 +77,7 @@ enum	// Character Decomposition Mapping
 	decomp_fraction,	// A vulgar fraction form.
 	decomp_compat,		// Otherwise unspecified compatibility character.
 	decomp_canonical,	// when nothing is specified, it's a canonical mapping
+	decomp_count
 };
 
 typedef struct
@@ -86,8 +89,15 @@ typedef struct
 	uint32_t upper_map, lower_map;	// upper and lower case mappings (one or the other)
 } unicode_data_t;
 
-extern char *get_ucd_cat(int cattype, int cat);
+extern const char *get_ucd_cat(int cattype, int cat);
 extern unicode_data_t *load_unicode_data_from_file(uint8_t *ucd_path, int16_t **codepoint_lut);
 extern void init_unicode_data();
 extern unicode_data_t get_unicode_data(uint32_t c);
 extern void make_unicode_data_table_file();
+
+extern const char *uccat_name[];
+extern const char *bidicat_name[];
+extern const char *decomp_name[];
+extern const char *uccat_desc[];
+extern const char *bidicat_desc[];
+extern const char *decomp_desc[];
