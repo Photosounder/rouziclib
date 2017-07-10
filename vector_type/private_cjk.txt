@@ -1,0 +1,21 @@
+glyph 10A000
+	subglyph 1
+	copy 31D1
+	move	  1;6	0
+	copy 31D1
+	move last -1;6	0
+	subend
+
+	subglyph 2
+	copy 31D1
+	move	  1;6	0
+	copy 31D3
+	move last -1;6	0
+	subend
+
+	copy 10A000 2
+
+glyph 10ABBA
+	copy 31C6
+	scale	1 0;8	0 6
+	copy 31D1

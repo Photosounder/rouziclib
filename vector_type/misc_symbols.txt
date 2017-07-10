@@ -1,0 +1,33 @@
+glyph 1F4C1
+	copy 1F4C1 h
+	move	0	-0;8
+
+	p1	2;9	0
+	p2	3	0;3
+	mirror	v 0	p1 p2	p3
+	mirror	h 2;2	p1 p4	p5
+	lines p2 p1 p3 p4 p8 p7 p5 p6 p2
+
+	scale	1;2 1;2	0 0
+
+	subglyph h
+	p1	-2;8	5
+	curveseg p2	0a	0;6
+	curveseg p3	1;6	0;4
+	curveseg p4	1;6	2
+	curveseg p5	0;9	0;2
+	curveseg p6	0;9	0;11;4;10
+	lines p1 p2 p3 p4 p5 p6
+	subend
+
+glyph 1F4C4
+	p1	-2	6
+	p2	-2	0;4;1;5
+	p3	2	0;4;1;5
+	p4	2	4;4
+	p5	0;4	6
+	p6	0;4	4;4
+	lines p1 p2 p3 p4 p5 p1
+	lines p5 p6 p4
+	move	0	-0;4;1;5
+	scale	1;0;8;8;10	1;0;8;8;10	0 0

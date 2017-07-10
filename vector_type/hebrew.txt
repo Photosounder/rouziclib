@@ -1,0 +1,244 @@
+glyph 05D0
+	subglyph A
+	p1	0;6	1;10;6
+	p2	2	3;4;6
+	p3	2	5
+	lines p1 p2 p3
+	subend
+
+	copy 05D0 A
+	scale	-1 -1	0 2;6
+	copy 05D0 A
+	p1	-2	5
+	p2	2	0
+	lines p1 p2
+
+glyph 05D1
+	p1	-2	0
+	p2	2	0
+	p3	1	0
+	p4	1	5
+	p5	-2	5
+	lines p1 p2
+	lines p3 p4 p5
+
+glyph 05D2
+	p1	1	0
+	p2	1	5
+	p3	-1	5
+	lines p1 p2 p3
+	p4	-1	0
+	p5	1	2
+	lines p4 p5
+
+glyph 05D3
+	p1	1	0
+	p2	1	5
+	p3	-2	5
+	p4	2	5
+	lines p1 p2
+	lines p3 p4
+
+glyph 05D4
+	p1	2	0
+	p2	2	5
+	p3	-2	5
+	lines p1 p2 p3
+	p4	-2	3;6
+	p5	-2	0
+	lines p4 p5
+
+glyph 05D5
+	p1	0	0
+	p2	0	5
+	lines p1 p2
+	bounds	-0;6	0;6
+
+glyph 05D6
+	copy 'T'
+	scale	1	0;10
+
+glyph 05D7
+	p1	2	0
+	p2	2	5
+	p3	-2	5
+	p4	-2	0
+	lines p1 p2 p3 p4
+
+glyph 05D8
+	p1	-2	5
+	p2	-2	0
+	p3	2	0
+	p4	2	5
+	p5	0	5
+	lines p1 p2 p3 p4 p5
+
+glyph 05D9
+	p1	0	2;6
+	p2	0	5
+	lines p1 p2
+	bounds	-0;6	0;6
+
+glyph 05DA
+	p1	2	-1;6
+	p2	2	5
+	p3	-2	5
+	lines p1 p2 p3
+
+glyph 05DB
+	p1	-2	0
+	p2	2	0
+	p3	2	5
+	p4	-2	5
+	lines p1 p2 p3 p4
+
+glyph 05DC
+	p1	-1;6	0
+	p2	2	3;6
+	p3	2	5
+	p4	-2	5
+	p5	-2	6;6
+	lines p1 p2 p3 p4 p5
+
+glyph 05DD
+	p1	-2	0
+	p2	2	0
+	p3	2	5
+	p4	-2	5
+	lines p1 p2 p3 p4 p1
+
+glyph 05DE
+	copy 05D8
+	scale	1 -1	0 2;6
+
+glyph 05DF
+	p1	0	-1;6
+	p2	0	5
+	lines p1 p2
+	bounds	-0;6	0;6
+
+glyph 05E0
+	copy 05DB
+	scale	0;6	1
+
+glyph 05E1
+	p1	-2	5
+	p2	-2	0
+	p3	2	0
+	p4	2	5
+	p5	-3	5
+	lines p1 p2 p3 p4 p5
+
+glyph 05E2
+	p1	-2	0
+	p2	2	0
+	p3	2	5
+	p4	-1	0
+	p5	-1	5
+	lines p1 p2 p3
+	lines p4 p5
+
+glyph 05E3
+	p1	2	-1;6
+	p2	2	5
+	p3	-2	5
+	p4	-2	2;6
+	p5	0	2;6
+	lines p1 p2 p3 p4 p5
+
+glyph 05E4
+	p6	-2	0
+	p1	2	0
+	p2	2	5
+	p3	-2	5
+	p4	-2	2;6
+	p5	0	2;6
+	lines p6 p1 p2 p3 p4 p5
+
+glyph 05E5
+	p1	-2	-1;6
+	p2	-2	5
+	lines p1 p2
+	p3	-2	2;6
+	p4	2	2;6
+	p5	2	5
+	lines p3 p4 p5
+
+glyph 05E6
+	subglyph A
+	p1	0;8	1;8
+	p2	2	3
+	p3	2	5
+	lines p1 p2 p3
+	subend
+
+	copy 05E6 A
+	p1	-2	0
+	p2	2	0
+	p3	-2	5
+	lines p1 p2 p3
+
+glyph 05E7
+	p1	-1	0
+	p2	2	3
+	p3	2	5
+	p4	-2	5
+	lines p1 p2 p3 p4
+	p5	-2	3;6
+	p6	-2	-1;6
+	lines p5 p6
+
+glyph 05E8
+	p1	2	0
+	p2	2	5
+	p3	-2	5
+	lines p1 p2 p3
+
+glyph 05E9
+	p1	-2	5
+	p2	-2	0
+	p3	2	0
+	p4	2	5
+	lines p1 p2 p3 p4
+	p5	-2	2;6
+	p6	0	2;6
+	p7	0	5
+	lines p5 p6 p7
+
+glyph 05EA
+	p1	-1;4	5
+	p2	-1;4	0
+	p6	-2;8	0
+	lines p1 p2 p6
+	p3	2	0
+	p4	2	5
+	p5	-2;8	5
+	lines p3 p4 p5
+
+glyph 05F0
+	p1	-1	0
+	p2	-1	5
+	p3	1	0
+	p4	1	5
+	lines p1 p2
+	lines p3 p4
+
+glyph 05F1
+	p1	-1	2;6
+	p2	-1	5
+	p3	1	0
+	p4	1	5
+	lines p1 p2
+	lines p3 p4
+
+glyph 05F2
+	p1	-1	2;6
+	p2	-1	5
+	p3	1	2;6
+	p4	1	5
+	lines p1 p2
+	lines p3 p4
+
+glyph 05C6
+	copy 05E0
+	scale	-1 1

@@ -12,7 +12,7 @@ It includes some of the following:
 - Blending modes like additive, subtractive, multiplicative blending and alpha blending
 - Blitting of a buffer onto another, like for displaying a sprite
 - An original Hue-Saturation-Luminance colour space with a Luminance that is about perceptually correct (unlike the 1931 CIE XYZ colour space which gets the weights of each colour blatantly wrong) which is used for HSL to RGB conversion and for bringing out of gamut colours (such as colours that have components brighter than 1.0) to the most appropriate representable colour
-- Vector font generation, vector text rendering and a built-in minimalistic vector font that is always available
+- Vector font generation, vector text rendering and a built-in minimalistic vector font that is always available. A more complete typeface is available in the [vector_type](https://github.com/Photosounder/rouziclib/vector_type) directory
 - Vector procedural zoomable interface elements that for instance allow you to have a fully functional button just by calling a function with all the necessary information provided as parameters (without anything stored in memory) and simply getting the return value, with no need for storage for each instance of a control, no unique IDs or anything
 - Various utility functions and macros
 - Code for working with [SDL](https://www.libsdl.org/), OpenGL, [OpenCL](https://www.khronos.org/opencl/), [clFFT](https://github.com/clMathLibraries/clFFT), [DevIL](http://openil.sourceforge.net/), [OpenCV](http://opencv.org/), [FFMPEG](https://www.ffmpeg.org/), [LibRAW](https://www.libraw.org/) and [MPFR](http://www.mpfr.org/).

@@ -1,0 +1,200 @@
+glyph 0250
+	copy F0061
+	scale	-1 -1	0 2;3
+
+glyph 0251
+	copy 0252
+	scale	-1 -1	0 2;3
+
+glyph 0252
+	p1	0;7	0
+	p2	1;6	0;11
+	mirror	v 0	p1 p2	p3
+	mirror	h 2;3	p1 p4	p5
+	lines p8 p7 p5 p6 p2 p1 p3 p4
+	p9	-1;6	0
+	p10	-1;6	4;6
+	lines p9 p10
+
+glyph 0253
+	copy 0321
+	scale	-2
+	move	-1;6	4;6
+	copy 0252
+
+glyph 0255
+	copy F0063
+	p1	1;6	0;10
+	curveseg p2	0a	0;7
+	curveseg p3	-1;6	1x
+	curveseg p4	-1;6	1;3x
+	curveseg p5	-0;9	1;6x
+	curveseg p6	-0;9	1;9x
+	lines p1 p2 p3 p4 p5 p6
+	bounds -1;6 1;6
+
+glyph 0256
+	copy 0321
+	scale	-1 1
+	move	1;6
+	copy F0064
+	bounds	-1;6 1;6
+
+glyph 0257
+	copy 0321
+	scale	-2
+	move	1;6	4;6
+	copy 0251
+	bounds	-1;6 1;6
+
+glyph 0258
+	copy F0065
+	scale	-1 1
+
+glyph 025A
+	copy F0065
+	scale	-1 -1	0 2;3
+	copy 0321
+	scale last -1 1
+	move last  2 2;2
+	lines p-3 p-4
+	bounds	-1;6 2;3
+
+glyph 025C
+	copy 0190
+	scale -0;9 0;9
+
+glyph 025D
+	copy 025C
+	copy 0321
+	scale last -1 1
+	move last  1;9 3;3
+	bounds	-1;6 1;9
+
+glyph 025E
+	copy 029A
+	scale -1 1
+
+glyph 025F
+	copy F006A j
+	p1	-1;6	1;6
+	p2	1;6	1;6
+	lines p1 p2
+
+glyph 0260
+	copy 0321
+	scale	-1 -1
+	move	1;6	4;6
+	copy F0067
+
+glyph 0263
+	p1	-1;6	4;6
+	p8	1;6	4;6
+	circle p2 p7	8  0;6	0 -0;6	2;3
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+
+glyph 0263
+	p1	-1;6	4;6
+	p8	1;6	4;6
+	circle p2 p7	8  0;8	0 -0;6	2;3
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+
+glyph 0264
+	p1	-3	4
+	curveseg p2	2a	1
+	curveseg p3	1	0;6
+	curveseg p4	1	0;4
+	circle p5 p7	8  0;8	0 -0;6	2;3
+	mirror	v 0	p1 p7	p8
+	lines p1 p2 p3 p4 p5 p6 p7 p14 p13 p12 p11 p10 p9 p8
+
+glyph 0265
+	copy F0068
+	scale -1 -1	0 2;3
+
+glyph 0266
+	copy 0321
+	scale	-2 -2
+	move	-1;6	4;6
+	copy F006E
+
+glyph 0267
+	copy 0321
+	scale	1;6
+	move	1;6	0;6
+	copy 0266
+	p0	1;6	0;6
+
+glyph 0268
+	copy F0069
+	p1	-1	2;3
+	p2	1	2;3
+	lines p1 p2
+
+glyph 0269
+	copy 0196
+	p-3	0	4;6
+
+glyph 026B
+	copy 0334
+	copy F006C
+	bounds -1 1
+
+glyph 026C
+	copy F006C
+	p1	1;6	3
+	p2	-1;2	3
+	curveseg p3	1;6	0;6
+	curveseg p4	1;6	1x
+	curveseg p5	1;6	1x
+	curveseg p6	1;6	1x
+	curveseg p7	1;6	1;10;7x
+	lines p1 p2 p3 p4 p5 p6 p7
+	bounds -1 1
+
+glyph 026D
+	copy 0321
+	scale	-1;6 1;6
+	copy F006C
+
+glyph 026E
+	copy 01B7
+	scale 0;9
+	copy F006C
+	move last -2 0
+	bounds -2 2
+
+glyph 0291
+	subglyph C
+	p1	1;6	0
+	curveseg p2	1;6a	0;6
+	curveseg p3	-1;6	0;9x
+	curveseg p4	-1;6	1;4x
+	curveseg p5	-1;6	1x
+	curveseg p6	-0;11;3	1x
+	curveseg p7	-0;11;3	4x
+	lines p1 p2 p3 p4 p5 p6 p7
+	subend
+	copy 'Z'
+	scale 0;9
+	copy 0291 C
+
+glyph 0294
+	copy 0296
+	scale	1 -1	0 3
+
+glyph 0296
+	p1	-2	1
+	p2	-1	0
+	p3	1	0
+	p4	2	1
+	p5	2	2;8
+	p6	1	3;8
+	p7	-0	3;8
+	p8	-0	6
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+
+glyph 029A
+	copy 0190
+	scale	0;9
+	lines p-4 p-11

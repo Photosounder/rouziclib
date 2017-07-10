@@ -1,0 +1,658 @@
+glyph FE82
+	copy FE8E
+	copy 0653
+
+glyph FE84
+	copy FE8E
+	copy 0654
+
+glyph FE88
+	copy FE8E
+	copy 0655
+
+glyph FE8A
+	copy 0654
+	move	-2;9	-5
+	copy FEF0
+
+glyph FE8B
+	copy 0654
+	move	1	-4
+	copy FE91 A
+
+glyph FE8C
+	copy 0654
+	move	1	-4
+	copy FE92 A
+
+glyph FE8E
+	copy 0627
+	p1	0	0
+	p2	1;3	0
+	lines p1 p2
+
+glyph FE90
+	subglyph A
+	copy 066E
+	p1	3	0;4
+	p2	3;4	0
+	p3	3;9	0
+	lines p1 p2 p3
+	bounds -3 3
+	subend
+
+	copy FBB3
+	move 0;3
+	copy FE90 A
+
+glyph FE91
+	subglyph A
+	p1	1	2
+	p2	1	0;4
+	p3	0;8	0
+	p4	-1;9	0
+	lines p1 p2 p3 p4
+	bounds -1 1
+	subend
+
+	copy FBB3
+	copy FE91 A
+
+glyph FE92
+	subglyph A
+	copy FE91 A
+	p1	1	0;6
+	p2	1;6	0
+	p3	2;3	0
+	lines p1 p2 p3
+	bounds -1 1;6
+	subend
+
+	copy FBB3
+	copy FE92 A
+
+glyph FE94
+	copy FBB4
+	move	0;3	0;2
+	copy FEEA
+
+glyph FE96
+	copy FBB4
+	move	0;3
+	copy FE90 A
+
+glyph FE97
+	copy FBB4
+	move	1
+	copy FE91 A
+
+glyph FE98
+	copy FBB4
+	move	1
+	copy FE92 A
+
+glyph FE9A
+	copy FBB6
+	move	0;3
+	copy FE90 A
+
+glyph FE9B
+	copy FBB6
+	move	1
+	copy FE91 A
+
+glyph FE9C
+	copy FBB6
+	move	1
+	copy FE92 A
+
+glyph FEA2
+	copy 062D
+	p1	2	2
+	p2	2	0;8
+	p3	2;8	0
+	p4	3;9	0
+	lines p1 p2 p3 p4
+	bounds	-3 3
+
+glyph FEA3
+	p1	-2;3	0
+	p2	2	0
+	p3	0	2
+	p4	-1	2
+	p5	-1;6	1;9
+	lines p1 p2 p3 p4 p5
+	bounds	-1;6 2
+
+glyph FEA4
+	copy FEA3
+	p1	2	0
+	p2	2;9	0
+	lines p1 p2
+
+glyph FE9E
+	copy FEA2
+	copy FBB3
+
+glyph FE9F
+	copy FEA3
+	copy FBB3
+	move last 	-0;6
+
+glyph FEA0
+	copy FEA4
+	copy FBB3
+	move last 	-0;6
+
+glyph FEA6
+	copy FEA2
+	copy FBB2
+	move last 	0	0;3
+
+glyph FEA7
+	copy FEA3
+	copy FBB2
+	move last 	-0;6
+
+glyph FEA8
+	copy FEA4
+	copy FBB2
+	move last 	-0;6
+
+glyph FEAA
+	copy 062F
+	p1	1	0;3
+	p2	1;3	0
+	p3	1;9	0
+	lines p1 p2 p3
+	bounds	-1 1
+
+glyph FEAC
+	copy FEAA
+	copy FBB2
+	move last	0	0;2
+
+glyph FEAE
+	copy 0631
+	p1	1	0;3
+	p2	1;3	0
+	move loc	0;3;9
+	p3	2	0
+	lines p1 p2 p3
+	bounds	-1;6 1;3
+
+glyph FEB0
+	copy FBB2
+	move	0;8	0;2
+	copy FEAE
+
+glyph FEB2
+	copy 0633
+	p1	3	0;4
+	p2	3;4	0
+	p3	3;9	0
+	lines p1 p2 p3
+	bounds	-3 3
+
+glyph FEB3
+	p1	3	2
+	p2	3	0;4
+	p3	2;8	0
+	p4	2;2	0
+	p5	1;10	0;4
+	p9	1;10	1;6
+	p6	1;6	0
+	p7	1	0
+	p8	0;8	0;4
+	p10	0;8	1;6
+	p11	0;4	0
+	p12	-0;9	0
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p5 p9
+	lines p10 p8 p11 p12
+	bounds	0 3
+
+glyph FEB4
+	copy FEB3
+	p1	3	0;4
+	p2	3;4	0
+	p3	3;9	0
+	lines p1 p2 p3
+	bounds	0 3
+
+glyph FEB6
+	copy FBB6
+	move 1;10
+	copy FEB2
+
+glyph FEB7
+	copy FBB6
+	move 1;10
+	copy FEB3
+
+glyph FEB8
+	copy FBB6
+	move 1;10
+	copy FEB4
+
+glyph FEBA
+	copy 0635
+	p1	2;10	0;4
+	p2	3;2	0
+	p3	3;9	0
+	lines p1 p2 p3
+	bounds	-3 3
+
+glyph FEBB
+	p1	0;6	0
+	p2	2	1;6
+	p3	2;8	1;6
+	p4	3	1;2
+	p5	3	0;6
+	p6	2;6	0
+	p7	0	0
+	p10	0	1;6
+	p11	-0;9	0
+	lines p1 p2 p3 p4 p5 p6 p7
+	lines p10 p7 p11
+	bounds	0 3
+
+glyph FEBC
+	copy FEBB
+	p1	2;10	0;4
+	p2	3;2	0
+	p3	3;9	0
+	lines p1 p2 p3
+	bounds	0 3
+
+glyph FEBE
+	copy FBB2
+	move	1;3	-0;6
+	copy FEBA
+
+glyph FEBF
+	copy FBB2
+	move	1;3	-0;6
+	copy FEBB
+
+glyph FEC0
+	copy FBB2
+	move	1;3	-0;6
+	copy FEBC
+
+glyph FEC2
+	copy 0637
+	p1	1;11;4	0;4
+	p2	2;3;4	0
+	p3	3;3	0
+	lines p1 p2 p3
+	bounds	-2;6 2;6
+
+glyph FEC3
+	copy 0637
+	p-8	-3	0
+	bounds	-2;3 2;6
+
+glyph FEC4
+	copy FEC2
+	p-11	-3	0
+	bounds	-2;3 2;6
+
+glyph FEC6
+	copy FBB2
+	move	0;8
+	copy FEC2
+
+glyph FEC7
+	copy FBB2
+	move	0;8
+	copy FEC3
+
+glyph FEC8
+	copy FBB2
+	move	0;8
+	copy FEC4
+
+glyph FECA
+	p1	1;3	0
+	p2	0;6	0
+	curveseg p3	1;6	1;8
+	curveseg p4	1;6	0;6
+	curveseg p5	1;6	0;6
+	curveseg p6	1;6	0;7
+	curveseg p7	1;6	0;6
+	curveseg p8	1;6	0;6
+	curveseg p9	1;6	2;3
+	curveseg p10	-1;6	0;10
+	curveseg p11	-1;6	1
+	curveseg p12	-1;6	1
+	curveseg p13	-1	0;8
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13
+	bounds	-0;9;8 0;6
+
+glyph FECB
+	p1	-1;6	0
+	p2	1;6	0
+	lines p1 p2
+	p3	0	0
+	curveseg p4	1;6	0;10
+	curveseg p5	1;6	1x
+	curveseg p6	1;6	1x
+	curveseg p7	1;6	1x
+	curveseg p8	0;9	0;8x
+	lines p3 p4 p5 p6 p7 p8
+	bounds	-0;9	1;6
+
+glyph FECC
+	p1	-1;3	0
+	p2	-0;6	0
+	curveseg p3	-1;6	1;8
+	curveseg p4	-1;6	0;6
+	curveseg p5	-1;6	0;6
+	mirror v 0	p1 p5	p6
+	lines p1 p2 p3 p4 p5 p10 p9 p8 p7 p6
+	bounds	-0;6 0;6
+
+glyph FECE
+	copy FBB2
+	copy FECA
+
+glyph FECF
+	copy FBB2
+	move	0;5
+	copy FECB
+
+glyph FED0
+	copy FBB2
+	copy FECC
+
+glyph FED2
+	copy 0641
+	p1	3	0
+	p2	3;9	0
+	lines p1 p2
+	bounds	-3	3
+
+glyph FED3
+	copy FBB2
+	move	2;4	0;7;6
+	copy 06A1 A
+	p0	-0;9	0
+	bounds	0	3
+
+glyph FED4
+	subglyph A
+	p1	1;9	0
+	p2	0;4	0
+	curveseg p3	1;6	1;4
+	curveseg p4	1;6	0;9
+	curveseg p5	1;6	0;6
+	mirror v 0	p1 p5	p6
+	lines p1 p2 p3 p4 p5 p10 p9 p8 p7 p6
+	bounds	-1	1
+	subend
+	copy FED4 A
+	copy FBB2
+	move last	0	0;1
+
+glyph FED6
+	copy 0642
+	move	0	-1
+	p1	3	0
+	p2	3;9	0
+	lines p1 p2
+
+glyph FED7
+	copy FBB4
+	move	2;4	0;7;6
+	copy 06A1 A
+	p0	-0;9	0
+	bounds	0	3
+
+glyph FED8
+	copy FED4 A
+	copy FBB4
+	move last	0	0;1
+
+glyph FEDA
+	copy 0643
+	p1	2;6	0;6
+	p2	3	0
+	p3	3;3	0
+	lines p1 p2 p3
+	bounds -2;6 2;6
+	
+
+glyph FEDB
+	p8	3	5
+	p7	0	3;6
+	p6	0	3
+	p1	2;4	0;8
+	p2	2;4	0
+	p3	-1;3	0
+	lines p8 p7 p6 p1 p2 p3
+	bounds -0;6 2;6
+
+glyph FEDC
+	copy FEDB
+	p1	2;4	0;8
+	p2	3	0
+	p3	3;3	0
+	lines p1 p2 p3
+
+glyph FEDE
+	copy 0644
+	p1	2;3	0;6
+	p2	2;9	0
+	p3	3	0
+	lines p1 p2 p3
+	bounds	-2;3	2;3
+
+glyph FEDF
+	p1	2	6
+	p2	2	0;8
+	p3	1;4	0
+	p4	-0;9	0
+	lines p1 p2 p3 p4
+	bounds	0	2
+
+glyph FEE0
+	copy FEDF
+	p1	2;8	0
+	p2	2;9	0
+	lines p-2 p1 p2
+
+glyph FEE2
+	copy 0645
+	p1	1;1;6	0;6
+	p2	1;7;6	0
+	p3	1;9	0
+	lines p1 p2 p3
+	bounds	-1;1;6	1
+
+glyph FEE3
+	p1	0	0;10;6
+	curveseg p2	4a	1;9
+	curveseg p3	-2	0;6
+	curveseg p4	-2	0;10
+	curveseg p5	-1	1;1
+	curveseg p6	-2	0;9
+	curveseg p7	-2	1;11
+	curveseg p8	0;9	0;7;1
+	p9	-1;3	0
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	bounds	-0;6	2
+
+glyph FEE4
+	copy FEE3
+	p1	1;11;5	0;6
+	p2	2;5;5	0
+	p3	2;9	0
+	lines p1 p2 p3
+
+glyph FEE6
+	copy 0646
+	p1	2	0;6
+	p2	2;6	0
+	p3	2;9	0
+	lines p1 p2 p3
+	bounds	-2	2
+
+glyph FEE7
+	copy FBB2
+	move	1
+	copy FE91 A
+
+glyph FEE8
+	copy FBB2
+	move	1
+	copy FE92 A
+
+glyph FEEA
+	p1	1;9	0
+	p2	1;4	0
+	p3	1	0;4
+	p4	1	2;2
+	lines p1 p2 p3 p4
+	p5	1	0;6
+	curveseg p6	8a	0;9
+	curveseg p7	1	1
+	curveseg p8	1;6	0;6
+	curveseg p9	1;6	0;6
+	curveseg p10	1;6	0;9;1;7
+	curveseg p11	0;9	1x
+	curveseg p12	0;9	1x
+	lines p5 p6 p7 p8 p9 p10 p11 p12
+	bounds	-1 1
+
+glyph FEEB
+	p1	-1;9	0
+	p2	-0;4	0
+	curveseg p3	-1;6	1;4
+	curveseg p4	-1;6	0;9
+	curveseg p5	-1;6	0;6
+	curveseg p6	-1;6	0;6
+	curveseg p7	-1;6	0;6
+	curveseg p8	-1;6	0;9
+	curveseg p9	-1;6	1;4
+	curveseg p10	-1;6	0;8
+	curveseg p11	-1;6	0;8
+	curveseg p12	-1;6	0;8
+	curveseg p13	-1;2	1;6
+	curveseg p14	-1;2	1;6
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14
+	bounds -1	2
+
+glyph FEEC
+	p1	-1;6	0
+	p2	2;3	0
+	lines p1 p2
+	p3	0	0
+	p4	0	1;6
+	curveseg p5	1;6	0;7
+	curveseg p6	1;6	0;7
+	curveseg p7	1;6	0;7
+	curveseg p8	1;6	0;7
+	curveseg p9	1;6	1;3;6;8
+	mirror h 0	p4 p8	p10
+	lines p4 p5 p6 p7 p8 p9 p14 p13 p12 p11 p10 p4
+	bounds	-0;9	1;6
+
+glyph FEEE
+	copy 0648
+	p-8	2;3	0
+	bounds	-1;6	1;6
+
+glyph FEF0
+	p1	3;3	0
+	curveseg p2	9a	0;4;7
+	curveseg p3	1;6	0;10;4
+	curveseg p4	0;9	1x
+	curveseg p5	-0;9	1x
+	curveseg p6	-1;6	0;6
+	curveseg p7	-1;6	0;6
+	curveseg p8	-1;6	0;8
+	curveseg p9	-1	0;9
+	curveseg p10	1	0;9
+	curveseg p11	1;6	1
+	curveseg p12	1;6	2;6
+	curveseg p13	1;6	1;3
+	curveseg p14	2	1;3
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14
+	bounds	-3;3	2;6
+
+glyph FEF2
+	copy FBB5
+	move	-1;1;5	-1;2
+	copy FEF0
+
+glyph FEF3
+	copy FBB5
+	copy FE91 A
+
+glyph FEF4
+	copy FBB5
+	copy FE92 A
+
+glyph FEFB
+	subglyph L
+	p1	-1;6	0
+	curveseg p2	3a	2;5;8
+	curveseg p3	-1;3	0;6
+	curveseg p4	-1;3	0;6
+	curveseg p5	-1;3	2
+	curveseg p6	-0;6	3;6
+	lines p1 p2 p3 p4 p5 p6
+	subend
+
+	copy FEFB L
+	p1	-1;6	0
+	curveseg p2	2a	2;6
+	curveseg p3	-1	1;8
+	curveseg p4	-1	3;3
+	lines p1 p2 p3 p4
+
+glyph FEFC
+	copy FEFB L
+	move	-1	0
+	p1	1	6
+	p2	1	1
+	p3	2	0
+	p4	2;3	0
+	lines p1 p2 p3 p4
+	p5	1	2;6
+	lines p5 p-2
+	bounds -2;6	1;6
+
+glyph FEF5
+	copy 0653
+	move	-1;4	-0;6
+	copy FEFB
+	bounds	-1;6	1;6
+
+glyph FEF6
+	copy 0653
+	move	-2;4	-0;6
+	copy FEFC
+
+glyph FEF7
+	copy 0654
+	move	-1;4	-0;6
+	copy FEFB
+	bounds	-1;6	1;6
+
+glyph FEF8
+	copy 0654
+	move	-2;4	-0;6
+	copy FEFC
+
+glyph FEF9
+	copy 0655
+	move	-1;4	0
+	copy FEFB
+	bounds	-1;6	1;6
+
+glyph FEFA
+	copy 0655
+	move	-2;4	0
+	copy FEFC

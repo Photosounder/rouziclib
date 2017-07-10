@@ -1,0 +1,564 @@
+glyph 0300
+	p1	-0;9	7;6
+	p2	0;9	6;6
+	lines p1 p2
+
+glyph 0301
+	p1	-0;9	6;6
+	p2	0;9	7;6
+	lines p1 p2
+
+glyph 0302
+	p1	-0;10;10	6;6
+	p2	0	7;6
+	p3	0;10;10	6;6
+	lines p1 p2 p3
+
+glyph 0303
+	p1	-1;6	6;9
+	p2	-0;6	7;4
+	p3	0;6	6;8
+	p4	1;6	7;3
+	lines p1 p2 p3 p4
+
+glyph 0304
+	p1	-1	7
+	p2	1	7
+	lines p1 p2
+
+glyph 0305
+	p1	-2;9	7
+	p2	2;9	7
+	lines p1 p2
+	bounds	-2 2
+
+glyph 0306
+	p1	-1	7;2
+	p2	-0;6	6;6
+	p3	0;6	6;6
+	p4	1	7;2
+	lines p1 p2 p3 p4
+
+glyph 0307
+	copy '.'
+	scale	0;8
+	move	0	6;6
+
+glyph 0308
+	copy '.'
+	move	-3	0
+	copy '.'
+	scale	0;8
+	move	1	6;6
+
+glyph 0309
+	copy 0327
+	scale	1 -1	0 3
+
+glyph 030A
+	copy 25EF
+	scale	0;2
+	move	0 6
+
+glyph 030B
+	p1	-1;5	6;6
+	p2	0;1	7;6
+	p3	-0;1	6;6
+	p4	1;5	7;6
+	lines p1 p2
+	lines p3 p4
+
+glyph 030C
+	p1	-0;10;10	7;6
+	p2	0	6;6
+	p3	0;10;10	7;6
+	lines p1 p2 p3
+
+glyph 030D
+	p1	0	6;6
+	p2	0	7;6
+	lines p1 p2
+
+glyph 030E
+	p1	-0;4	6;6
+	p2	-0;4	7;6
+	p3	0;4	6;6
+	p4	0;4	7;6
+	lines p1 p2
+	lines p3 p4
+
+glyph 030F
+	p1	-1;5	7;6
+	p2	0;1	6;6
+	p3	-0;1	7;6
+	p4	1;5	6;6
+	lines p1 p2
+	lines p3 p4
+
+glyph 0310
+	copy 0307
+	move	0 0;6
+	copy 0306
+
+glyph 0311
+	p1	-1	6;6
+	p2	-0;6	7;2
+	p3	0;6	7;2
+	p4	1	6;6
+	lines p1 p2 p3 p4
+
+glyph 0312
+	p1	-0;3	6;9
+	p2	0	7;6
+	lines p1 p2
+
+glyph 0313
+	copy 0312
+
+glyph 0314
+	copy 0312
+	scale -1 1
+
+glyph 0315
+	copy 0312
+	move	2	0
+
+glyph 0316
+	copy 0300
+	move	0	-8
+
+glyph 0317
+	copy 0301
+	move	0	-8
+
+glyph 0318
+	p1	-0;6	-0;8;6
+	p2	0;6	-0;8;6
+	p3	0;6	0
+	p4	0;6	-1;5
+	move	0	-0;6
+	lines p1 p2
+	lines p3 p4
+
+glyph 0319
+	copy 0318
+	scale	-1 1
+
+glyph 031A
+	p1	-1	4
+	p2	2	4
+	p3	2	2
+	scale	0;6
+	move	2	5;5
+	lines p1 p2 p3
+
+glyph 031B
+	copy 0321
+	rotate 3
+	scale -1 1
+	move 2 5
+	bounds 0 0
+
+glyph 031C
+	circle p1 p5	8  -0;6	0 -1;0;6	0
+	lines p1 p2 p3 p4 p5
+
+glyph 031D
+	copy 0318
+	rotate	3	0;1;3 -1;1;3
+
+glyph 031E
+	copy 031D
+	scale	1 -1	0	-1
+
+glyph 031F
+	copy '+'
+	move	0	-3
+	scale 0;6
+	move	0 -1;3
+
+glyph 0320
+	copy '-'
+	scale 0;4
+	move	0 -2
+
+glyph 0321
+	p1	0	0
+	p2	0	-0;7
+	p3	-0;5	-1
+	p4	-0;10	-1
+	lines p1 p2 p3 p4
+
+glyph 0322
+	copy 0321
+	scale -1 1
+
+glyph 0323
+	copy 0307
+	move	0 -7;8
+
+glyph 0324
+	copy 0308
+	move	0 -7;8
+
+glyph 0325
+	copy 030A
+	move	0 -7;6
+
+glyph 0326
+	p1	0;3	-0;6
+	p2	-0;3	-1;6
+	lines p1 p2
+
+glyph 0327
+	p1	-0;2;5	0
+	p2	-0;2;5	-0;8
+	p3	0;5;7	-0;8
+	p4	0;5;7	-1;4
+	p5	-0;4;10	-1;4
+	bounds -0;6 0;6
+	lines p1 p2 p3 p4 p5
+
+glyph 0328
+	p1	0	0
+	p2	-0;4;9	-0;9
+	p3	0;2;5	-0;10;10
+	lines p1 p2 p3
+	scale 1;6
+
+glyph 0329
+	p1	0	-0;6
+	p2	0	-1;6
+	lines p1 p2
+
+glyph 032A
+	p1	-2	-0;6
+	p2	-2	-1;6
+	mirror	v 0	p1 p2	p3
+	lines p2 p1 p3 p4
+
+glyph 032B
+	circle p1 p6	8  0;6	-0;6 -0;8;6	2;3
+	lines p1 p2 p3 p4 p5 p6
+	circle p7 p10	8  0;6	0;6 -0;8;6	2;3
+	lines p7 p8 p9 p10 p2
+
+glyph 032C
+	copy 030C
+	move	0	-8
+
+glyph 032D
+	copy 0302
+	move	0	-8
+
+glyph 032E
+	copy 0306
+	move	0	-7;8
+
+glyph 032F
+	copy 0311
+	move	0	-7;8
+
+glyph 0330
+	copy 0303
+	move	0	-7;10
+
+glyph 0331
+	copy 0304
+	move	0	-7;6
+
+glyph 0332
+	copy 0305
+	move	0	-7;6
+
+glyph 0333
+	copy 0332
+	move	0	-0;6
+	copy 0332
+
+glyph 0334
+	copy 0303
+	move	0	-4
+
+glyph 0335
+	p1	-2	3
+	p2	2	3
+	lines p1 p2
+
+glyph 0336
+	copy 0305
+	move	0	-4
+
+glyph 0337
+	p1	-2	1
+	p2	2	5
+	lines p1 p2
+
+glyph 0338
+	p1	-2	-0
+	p2	2	6
+	lines p1 p2
+
+glyph 0339
+	copy 031C
+	scale	-1	1
+
+glyph 033A
+	copy 032A
+	scale	1 -1	0 -1
+
+glyph 033B
+	copy 20DE
+	scale	0;2
+	move	0	-1;6
+
+glyph 033C
+	circle p1 p5	8  0;6	-0;6 -1	-2;3
+	p5	0	-1;1
+	lines p1 p2 p3 p4 p5
+	circle p7 p9	8  0;6	0;6 -1	-0;9
+	lines p4 p7 p8 p9
+
+glyph 033D
+	copy 00D7
+	scale	0;4
+	move	0	6;2
+
+glyph 033E
+	copy 0303
+	rotate	3	0 7
+	scale -0;4 0;4	0 7
+
+glyph 033F
+	copy 0333
+	scale	1 -1	0 3
+
+glyph 0344
+	copy 0301
+	move	0	1
+	copy 0308
+
+glyph 0345
+	p1	0	-0;6
+	p2	0	-1;3
+	p3	0;3	-1;6
+	p4	0;7	-1;6
+	lines p1 p2 p3 p4
+
+glyph 0346
+	copy 033A
+	scale	1 -1	0 3
+
+glyph 0347
+	copy '='
+	move	0	-3
+	scale 0;6
+	move	0 -1
+
+glyph 0348
+	copy 0329
+	move	-0;3
+	copy 0329
+	move last 0;3
+
+glyph 0349
+	p1	-0;8	-0;6
+	p2	0;8	-0;6
+	p3	0;8	-1;6
+	lines p1 p2 p3
+
+glyph 034A
+	copy 0303
+	p1	-0;4	6;6
+	p2	0;4	7;6
+	lines p1 p2
+
+glyph 034B
+	copy 0307
+	move 0	1
+	copy 0303
+	move 0	0;8
+	copy 0307
+
+glyph 034C
+	copy 2248
+	move	0	-3
+	scale 0;6
+	move	0 7;0;6
+
+glyph 034D
+	copy 2194
+	move	0	-3
+	scale 0;4
+	move	0 -0;10;8
+
+glyph 034E
+	copy 2191
+	move	0	-3
+	scale 0;4
+	move	0 -1;6
+
+glyph 0350
+	copy '>'
+	move	0	-3
+	scale 0;4
+	move	0 7;4
+
+glyph 0351
+	copy 031C
+	scale	1 -1	0 3
+
+glyph 0352
+	copy 0310
+	scale	1 -1	0 7;1
+
+glyph 0353
+	copy 033D
+	scale	1 -1	0 3
+
+glyph 0354
+	copy 0355
+	scale	-1 1
+
+glyph 0355
+	copy 0350
+	scale	1 -1	0 3
+
+glyph 0356
+	copy 0355
+	rotate	9
+	move	0	-1;4
+	copy 0355
+	move	-0;10
+
+glyph 0357
+	copy 0351
+	scale -1 1
+
+glyph 0358
+	copy 0307
+	move	2
+
+glyph 0359
+	copy '*'
+	move	0 -4;4
+	scale 0;6
+	move	0 -1;4
+
+glyph 035A
+	circle p1 p8	8  0;6	-0;6 -1	2;3
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p1
+	circle p9 p16	8  0;6	0;6 -1	-2;3
+	lines p9 p10 p11 p12 p13 p14 p15 p16
+
+glyph 035B
+	p1	0;3	0
+	p2	1	2
+	p3	-1	2
+	p4	-0;3	4
+	lines p1 p2 p3 p4
+	scale 0;6
+	move	0	6;6
+
+glyph 035C
+	copy 035D
+	move	0	-9
+
+glyph 035D
+	p1	0	8
+	p2	1;8	7
+	p3	3;10	7
+	p4	5;5	8
+	lines p1 p2 p3 p4
+	bounds 0 0
+
+glyph 035E
+	p1	0	7
+	p2	5;6	7
+	lines p1 p2
+	bounds 0 0
+
+glyph 035F
+	copy 035E
+	move	0	-8
+
+glyph 0360
+	copy '~'
+	scale	1;10
+	move	2;9	2
+	bounds 0 0
+
+glyph 0361
+	copy 035D
+	scale	1 -1	0 7;6
+
+glyph 0362
+	copy 2192
+	scale	0;11 0;11	-3 3
+	move	3	-4;8
+	bounds 0 0
+
+glyph 0363
+	copy 'A'
+	scale 0;4
+	move	0	6;6
+
+glyph 0364
+	copy 'E'
+	scale 0;4
+	move	0	6;6
+
+glyph 0365
+	copy 'I'
+	scale 0;4
+	move	0	6;6
+
+glyph 0366
+	copy 'O'
+	scale 0;4
+	move	0	6;6
+
+glyph 0367
+	copy 'U'
+	scale 0;4
+	move	0	6;6
+
+glyph 0368
+	copy 'C'
+	scale 0;4
+	move	0	6;6
+
+glyph 0369
+	copy 'D'
+	scale 0;4
+	move	0	6;6
+
+glyph 036A
+	copy 'H'
+	scale 0;4
+	move	0	6;6
+
+glyph 036B
+	copy 'M'
+	scale 0;4
+	move	0	6;6
+
+glyph 036C
+	copy 'R'
+	scale 0;4
+	move	0	6;6
+
+glyph 036D
+	copy 'T'
+	scale 0;4
+	move	0	6;6
+
+glyph 036E
+	copy 'V'
+	scale 0;4
+	move	0	6;6
+
+glyph 036F
+	copy 'X'
+	scale 0;4
+	move	0	6;6

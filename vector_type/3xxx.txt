@@ -1,0 +1,7 @@
+glyph 3002
+	copy '.'
+	bounds	-0;6	5;6
+
+glyph 30FB
+	copy 00B7
+	bounds	-3	3

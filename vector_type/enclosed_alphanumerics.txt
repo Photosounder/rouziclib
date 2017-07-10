@@ -1,0 +1,268 @@
+glyph 2460
+	copy '1'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2461
+	copy '2'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2462
+	copy '3'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2463
+	copy '4'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2464
+	copy '5'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2465
+	copy '6'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2466
+	copy '7'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2467
+	copy '8'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2468
+	copy '9'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2469
+	copy '1'
+	move -4 0
+	copy '0'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 246A
+	copy '1'
+	move -3 0
+	copy '1'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 246B
+	copy '1'
+	move -4 0
+	copy '2'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 246C
+	copy '1'
+	move -4 0
+	copy '3'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 246D
+	copy '1'
+	move -4 0
+	copy '4'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 246E
+	copy '1'
+	move -4 0
+	copy '5'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 246F
+	copy '1'
+	move -4 0
+	copy '6'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2470
+	copy '1'
+	move -3;6 0
+	copy '7'
+	move 1;4 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2471
+	copy '1'
+	move -4 0
+	copy '8'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2472
+	copy '1'
+	move -4 0
+	copy '9'
+	move 1;6 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 2473
+	copy '2'
+	move -5 0
+	copy '0'
+	move 2;6 0
+	scale 0;5;3 0;5;3	0 3
+	copy 25EF
+
+glyph 24B6
+	copy 'A'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24B7
+	copy 'B'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24B8
+	copy 'C'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24B9
+	copy 'D'
+	move 0;5 0
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24BA
+	copy 'E'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24BB
+	copy 'F'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24BC
+	copy 'G'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24BD
+	copy 'H'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24BE
+	copy 'I'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24BF
+	copy 'J'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C0
+	copy 'K'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C1
+	copy 'L'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C2
+	copy 'M'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C3
+	copy 'N'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C4
+	copy 'O'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C5
+	copy 'P'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C6
+	copy 'Q'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C7
+	copy 'R'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C8
+	copy 'S'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24C9
+	copy 'T'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24CA
+	copy 'U'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24CB
+	copy 'V'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24CC
+	copy 'W'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24CD
+	copy 'X'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24CE
+	copy 'Y'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24CF
+	copy 'Z'
+	scale 0;6 0;6	0 3
+	copy 25EF
+
+glyph 24EA
+	copy '0'
+	scale 0;6 0;6	0 3
+	copy 25EF

@@ -1,0 +1,498 @@
+glyph 060C
+	p1	-0;3	0
+	p2	0;3	1
+	lines p1 p2
+
+glyph 060D
+	p1	-0;6	0
+	curveseg p2	1a	1
+	curveseg p3	1;6	0;9
+	lines p1 p2 p3
+
+glyph 061F
+	copy '?'
+	scale	-1	1
+
+glyph 0621
+	copy 0654
+	move	0	-6;2
+	scale	2
+
+glyph 0624
+	copy 0654
+	move	0;8	-4;4
+	copy 0648
+
+glyph 0626
+	copy 0654
+	move	-2;6	-5
+	copy 0649
+
+glyph 0627
+	p1	0	0
+	p2	0	6
+	lines p1 p2
+	bounds	-0;6	0;6
+
+glyph 0628
+	copy FBB3
+	move	0;3
+	copy 066E
+
+glyph 0629
+	copy FBB4
+	copy 0647
+
+glyph 062A
+	copy FBB4
+	move	0;3
+	copy 066E
+
+glyph 062B
+	copy FBB6
+	move	0;3
+	copy 066E
+
+glyph 062C
+	copy 062D
+	copy FBB3
+
+glyph 062D
+	p1	-3	3
+	p2	0	3;3
+	p3	3	3
+	p4	1	3
+	curveseg p5	-0;9	2;3
+	curveseg p6	-1	0;10x
+	curveseg p7	-1;6	0;11x
+	curveseg p8	-1;6	1x
+	curveseg p9	-1;6	1x
+	curveseg p10	-0;9	1x
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10
+	move 	0	-1
+
+glyph 062E
+	copy 062D
+	copy FBB2
+	move last 	0	0;3
+
+glyph 062F
+	p1	0	2
+	p2	0;6	1;6
+	p3	1	0;6
+	p4	1	0
+	p5	-0;8	0
+	p6	-1	0;4
+	lines p1 p2 p3 p4 p5 p6
+
+glyph 0630
+	copy FBB2
+	move	0	0;2
+	copy 062F
+
+glyph 0631
+	p1	1	2
+	p2	1;6	0;8
+	curveseg p3	1;6	1;8
+	curveseg p4	1;6	0;10x
+	curveseg p5	1;2	0;9x
+	lines p1 p2 p3 p4 p5
+
+glyph 0632
+	copy FBB2
+	move	0;8	0;2
+	copy 0631
+
+glyph 0633
+	p1	3	2
+	p2	3	0;4
+	p3	2;8	0
+	p4	2;2	0
+	p5	1;10	0;4
+	p9	1;10	1;6
+	p6	1;6	0
+	p7	1	0
+	p8	0;8	0;4
+	p10	0;8	1;6
+	p11	0;8	-0;6
+	p12	-0;4	-1;6
+	p13	-2;3	-1;6
+	p14	-3	-0;9
+	p15	-3	0;6
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p5 p9
+	lines p10 p11 p12 p13 p14 p15
+
+glyph 0634
+	copy FBB6
+	move 1;10
+	copy 0633
+
+glyph 0635
+	p1	0;6	0
+	p2	2	1;6
+	p3	2;8	1;6
+	p4	3	1;2
+	p5	3	0;6
+	p6	2;6	0
+	p7	0	0
+	p10	0	1;6
+	p11	0	-0;9
+	p12	-0;9	-1;6
+	p13	-2;3	-1;6
+	p14	-3	-0;9
+	p15	-3	0;6
+	lines p1 p2 p3 p4 p5 p6 p7
+	lines p10 p11 p12 p13 p14 p15
+
+glyph 0636
+	copy FBB2
+	move	1;3	-0;6
+	copy 0635
+
+glyph 0637
+	p1	-2;6	0
+	p2	1;6	0
+	p3	2;6	0;9
+	p4	2;6	1;6
+	p5	2	2
+	p6	1;2	2
+	p7	0;4	1;5
+	p8	-1	0
+	p9	-1	6
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+
+glyph 0638
+	copy FBB2
+	move	0;8
+	copy 0637
+
+glyph 0639
+	p1	0	4;2
+	p2	-0;9	4;0
+	curveseg p3	-1;6	0;9
+	curveseg p4	-1;6	0;8x
+	curveseg p5	-1;8	0;10x
+	curveseg p6	-1;4	1;2
+	curveseg p5	6	1x
+	curveseg p7	-0;9	0;8
+	curveseg p8	-1;6	1;6x
+	curveseg p9	-1;6	0;10x
+	curveseg p10	-1;6	1x
+	curveseg p11	-1	1;6x
+	lines p1 p2 p3 p4 p5 p6
+	lines p5 p7 p8 p9 p10 p11
+	scale 1;6 1;6	-0;6 4
+	move	0	-2
+
+glyph 063A
+	copy FBB2
+	move	-0;4	0;2
+	copy 0639
+
+glyph 063B
+	copy FBB2
+	move		2	2;8
+	copy FBB2
+	move last	0;9	2;2
+	copy 06A9
+
+glyph 063C
+	copy FBB9
+	move last	0	0
+	copy 06A9
+
+glyph 0640
+	p1	-1;3	0
+	p2	1;3	0
+	lines p1 p2
+	bounds	-0;6	0;6
+
+glyph 0641
+	copy FBB2
+	move	2;4	0;7;6
+	copy 06A1
+
+glyph 0642
+	copy FBB4
+	move	2;4	2;1;6
+	move	0	-1;6
+	copy 066F
+	bounds -3 3
+
+glyph 0643
+	p6	1	5
+	p7	0	4
+	p8	0	3
+	p9	1	2
+	p10	1	1
+	p11	0	0
+	scale	0;6 0;3	-0;3 2;6
+
+	p1	2;6	6
+	p2	2;6	0
+	p3	-1;6	0
+	p4	-2;6	1
+	p5	-2	2
+	lines p1 p2 p3 p4 p5
+	lines p6 p7 p8 p9 p10 p11
+
+glyph 0644
+	p1	2;3	6
+	p2	2;3	0
+	p3	1	-1;3
+	p4	-1;6	-1;3
+	p5	-2;3	-0;6
+	p6	-2;3	0;4
+	//curveseg p7	0;9	1x
+	lines p1 p2 p3 p4 p5 p6
+
+glyph 0645
+	p1	-1;3	1
+	p2	-0;3	2
+	p3	0;3	2
+	p4	1;6	0;9
+	p5	1;6	0
+	p6	-1;3	0
+	p7	-1;6	-0;3
+	p8	-1;6	-3
+	scale	0;9	1
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+
+glyph 0646
+	copy FBB2
+	move	-0;1
+	copy 06BA
+
+glyph 0647
+	p1	0	2
+	p2	1;2	1
+	p3	1;2	0;5
+	p4	0;9	0
+	p5	-0;9	0
+	p6	-1;2	0;5
+	p7	-1;2	1
+	p8	-0;3	1;9
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+
+glyph 0648
+	p1	1;6	1
+	p2	0;3	1
+	curveseg p3	2	0;6x
+	curveseg p4	2	2x
+	curveseg p5	2	0;6x
+	curveseg p6	2	1x
+	p7	1;6	0
+	p8	0;3	-1;3
+	p9	-1;6	-1;3
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	move	0	-1
+
+glyph 0649
+	p1	3	3;6
+	p2	2;3	4;3
+	p3	0;9	4;3
+	p4	0	3;6
+	p5	0	3
+	p6	0;9	2;3
+	p7	2;6	2;3
+	p8	3	1;9
+	p9	3	1
+	p10	2	0
+	p11	-2	0
+	p12	-3	1
+	p13	-2;6	2;6
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13
+	move	0	-1;6
+
+glyph 064A
+	copy FBB5
+	move	0	-1;6
+	copy 0649
+
+glyph 0653
+	p1	-1	-0;3
+	p2	-0;6	0;4
+	p3	0;6	-0;4
+	p4	1;6	0;3
+	lines p1 p2 p3 p4
+	scale	0;8	0;4
+	move	-0;2	6;8
+
+glyph 0654
+	p1	-2	-1
+	p2	2	1
+	lines p1 p2
+	p3	0	0
+	curveseg p4	1;6	1;5
+	curveseg p5	1;6	1x
+	curveseg p6	1;6	1x
+	curveseg p7	1;6	1x
+	curveseg p8	1;6	1x
+	lines p3 p4 p5 p6 p7 p8
+	scale	0;3
+	move	0	6;8
+
+glyph 0655
+	copy 0654
+	move	0	-8;3
+
+glyph 066E
+	p1	3	2
+	p2	3	0;4
+	p3	2;8	0
+	p4	-2	0
+	p5	-3	1
+	p6	-2;6	2
+	lines p1 p2 p3 p4 p5 p6
+
+glyph 066F
+	p1	3	2;6
+	p2	1;9	2;6
+	curveseg p3	2	0;6x
+	curveseg p4	2	2x
+	curveseg p5	2	0;6x
+	curveseg p6	2	1x
+	p7	3	1
+	p8	2	0
+	p9	-2	0
+	p10	-3	1
+	p11	-2;6	2
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11
+	move	0	-1;6
+
+glyph 0674
+	copy 0654
+
+glyph 0676
+	copy 0674
+	move	1;2	-4;2
+	copy 0648
+	bounds	-1;6	1;6
+
+glyph 0678
+	copy 0674
+	move	2;6	-3
+	copy 0649
+
+glyph 06A1
+	subglyph A
+	p1	3	1
+	p2	1;9	1
+	curveseg p3	2	0;6x
+	curveseg p4	2	2x
+	curveseg p5	2	0;6x
+	curveseg p6	2	1x
+	p7	3	0
+	p8	-2	0
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+	subend
+	copy 06A1 A
+	p1	-3	1
+	p2	-2;6	2
+	lines p0 p1 p2
+
+glyph 06A9
+	p8	3	5
+	p7	0	3;6
+	p6	0	3
+	p1	2;4	0;8
+	p2	2;4	0
+	p3	-2	0
+	p4	-3	1
+	p5	-2;6	2
+	lines p8 p7 p6 p1 p2 p3 p4 p5
+
+glyph 06AF
+	copy 06A9
+	p1	0	4;3
+	p2	3	5;9
+	lines p1 p2
+
+glyph 06BA
+	p1	1;6	2
+	p2	2	0;8
+	p3	2	0
+	p4	1	-1
+	p5	-1;4	-1
+	p6	-2	-0;4
+	p7	-2	0;6
+	p8	-1;6	1;4
+	lines p1 p2 p3 p4 p5 p6 p7 p8
+
+glyph 0660
+	copy 00B7
+
+glyph 0661
+	p1	0	0
+	p2	-1	6
+	lines p1 p2
+
+glyph 0662
+	p1	-0;6	0
+	p2	-0;11	3
+	p3	-2	6
+	p4	-0;9	5;3
+	p5	0;9	5;3
+	p6	2	6
+	lines p1 p2 p3 p4 p5 p6
+
+glyph 0663
+	p1	-0;6	0
+	p2	-0;11	3
+	p3	-2	6
+	p4	-1;2	5;3
+	p5	-0;8	5;3
+	p6	0	5;9
+	mirror	v 0	p3 p6	p7
+	lines p1 p2 p3 p4 p5 p6 p9 p8 p7
+
+glyph 0664
+	p1	1	0
+	p2	-1	1;2
+	p3	-1	1;10
+	p4	1	3
+	mirror	h 3	p1 p3	p5
+	lines p1 p2 p3 p4 p7 p6 p5
+
+glyph 0665
+	p1	0	6
+	curveseg p2	4;2;6a	1
+	curveseg p3	5;5a	2;7x
+	curveseg p4	6a	2
+	curveseg p5	1;6	0;8x
+	mirror	v 0	p2 p5	p6
+	lines p1 p2 p3 p4 p5 p9 p8 p7 p6 p1
+
+glyph 0666
+	p1	2	0
+	p2	1;6	3
+	p3	1;6	6
+	p4	0;6	5;3
+	p5	-1	5;3
+	p6	-2	6
+	lines p1 p2 p3 p4 p5 p6
+
+glyph 0667
+	p1	0	0
+	p2	1	3;8
+	p3	2	6
+	mirror	v 0	p2 p3	p4
+	lines p5 p4 p1 p2 p3
+
+glyph 0668
+	copy 0667
+	scale	1 -1	0 3
+
+glyph 0669
+	p1	2	0
+	p2	1;6	2
+	p3	1;6	5
+	curveseg p4	-1;6a	1
+	curveseg p5	-1;6	1x
+	curveseg p6	-1;6	1x
+	curveseg p7	-1;6	1x
+	curveseg p8	-1;6	1x
+	curveseg p9	-1;6	1x
+	curveseg p10	-1;6	1x
+	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10

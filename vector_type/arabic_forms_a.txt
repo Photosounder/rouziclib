@@ -1,0 +1,45 @@
+glyph FBB2
+	copy '.'
+	scale	0;8
+	move	0	2;8
+
+glyph FBB3
+	copy '.'
+	scale	0;8
+	move	0	-1;4
+
+glyph FBB4
+	copy FBB2
+	move	-0;8	0
+	copy FBB2
+	move last 0;8	0
+
+glyph FBB5
+	copy FBB4
+	move	0	-4
+
+glyph FBB6
+	copy FBB4
+	copy FBB2
+	move last	0	1
+
+glyph FBB7
+	copy FBB6
+	move	0	-5
+
+glyph FBB8
+	copy FBB6
+	scale	1 -1	0 3;6
+
+glyph FBB9
+	copy FBB8
+	move	0	-5
+
+glyph FBBA
+	copy FBB4
+	copy FBB4
+	move last	0	1;4
+
+glyph FBBB
+	copy FBBA
+	move	0	-5;4
