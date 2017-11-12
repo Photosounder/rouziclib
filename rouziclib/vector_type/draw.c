@@ -5,6 +5,10 @@ int draw_vector_char(raster_t fb, vector_font_t *font, uint32_t c, xy_t p, xy_t 
 	unicode_data_t ucd;
 	int found = 0;
 
+	// Algorithmic substitution
+	if (bidi == -2)
+		c = substitute_rtl_punctuation(c);
+
 	process_one_glyph(font, get_letter_index(font, c));
 
 	l = get_letter(font, c);
@@ -96,7 +100,7 @@ int draw_vector_char_lookahead(raster_t fb, vector_font_t *font, uint32_t c, cha
 			scale_mod = LOWERCASESCALE;
 	}
 
-	do
+	do	// loop through all following non-spacing (combining) marks
 	{
 		cn = utf8_to_unicode32(&string[i], &i);		// lookup next character
 		ucd2 = get_unicode_data(cn);
@@ -104,6 +108,14 @@ int draw_vector_char_lookahead(raster_t fb, vector_font_t *font, uint32_t c, cha
 		if (ucd2.bidicat==bidicat_NSM)			// non-spacing (combining) mark
 		{
 			ir = i+1;
+
+			if (c >= cp_ins_start && c < cp_ins_end)	// if c is a custom spacing character and cn is a variation selector that indicates its index
+			{
+				l = get_letter(font, c);
+				if (l)
+				if (l->obj)
+					report_insert_rect_pos(add_xy(p, off), mul_xy(xy(l->width, -6.), set_xy(scale)), bidi, c, cn);
+			}
 
 			if (onscreen)
 			{
@@ -146,30 +158,106 @@ int draw_vector_char_lookahead(raster_t fb, vector_font_t *font, uint32_t c, cha
 	return ir;
 }
 
-void cursor_processing(raster_t fb, vector_font_t *font, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int bidi, int bidi_change, double line_thick)
+void check_closest_cursor(xy_t off, double scale, xy_t expected_pos, double *closest_deltapos, int isa, int *curpos)
 {
-	if (is==curpos)		// if the cursor is on the current character
+	if (fabs(off.y - expected_pos.y) <= LINEVSPACING*scale*0.5)
+		if (fabs(off.x - expected_pos.x) < *closest_deltapos)
+		{
+			*closest_deltapos = fabs(off.x - expected_pos.x);
+			*curpos = isa;
+		}
+}
+
+void cursor_processing(raster_t fb, vector_font_t *font, char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
+{
+	col_t sel_col = make_colour(0.0033, 0.028, (bidi == -2 ? 0.1 : 0.1), 1.);
+	static int32_t sel0=0, sel1=0, newline=0;
+	static xy_t p0, p1;
+	rect_t box;
+	int isa = is + string - cur_textedit->string;
+	double wc1;
+
+	if (recur==0 && is==0)		// if it's the first run of this function for this string in this loop
+	{
+		sel0 = cur_textedit->sel0;
+		sel1 = cur_textedit->sel1;
+		minmax_i32(&sel0, &sel1);
+		newline = 0;
+	}
+
+	if (recur > 0 && is==0)
+		newline = 1;
+
+	if (newline)
+	{
+		newline = 0;
+		p0 = add_xy(p, off);
+	}
+
+	if (sel0 < sel1)		// if there's a selection to display
+	{
+		if (sel0==isa)
+			p0 = add_xy(p, off);
+
+		if (sel1==isa || (c=='\n' && isa > sel0))
+		{
+			p1 = add_xy(p, off);
+
+			box.p0 = add_xy(p0, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
+			box.p1 = add_xy(p1, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), -8.*scale));
+		//	draw_rect_full(fb, box, line_thick, sel_col, 1.);
+
+			if (c=='\n')
+				newline = 1;
+
+			if (sel1==isa)
+				sel0 = sel1 = 0;
+		}
+	}
+
+	if (isa >= sel0 && isa <= sel1 && sel0 < sel1 && bidi_change==0)		// display selection one character at a time
+	{
+		wc1 = glyph_width(font, off.x, c, scale, mode);
+		box.p0 = add_xy(add_xy(p, off), xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
+		box.p1 = add_xy(box.p0, xy(wc1 * (bidi == -2 ? -1. : 1.), -10.*scale));
+		draw_rect_full(fb, box, line_thick, sel_col, 1.);
+	}
+
+	if (cur_textedit->click_on==0 && is==curpos)		// if the cursor is on the current character
 	{
 		draw_textedit_cursor(fb, add_xy(p, off), scale, bidi, bidi_change, line_thick);
 		cur_textedit->cur_screen_pos = div_xy(off, set_xy(scale));
-		fprintf_rl(stdout, "cur_screen_pos: %g | %g\n", cur_textedit->cur_screen_pos.x, cur_textedit->cur_screen_pos.y);
-		fprintf_rl(stdout, "expected_pos: %g | %g\n", expected_pos.x, expected_pos.y);
-		fprintf_rl(stdout, "cur_vert_mov: %d\n", cur_textedit->cur_vert_mov);
 	}
+
+	if (cur_textedit->click_on)
+		check_closest_cursor(off, scale, expected_pos, &closest_deltapos[0], isa, &cur_textedit->curpos);
+
+	// find the position in the line above and below
+	expected_pos = add_xy( mul_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale)) , xy(0., LINEVSPACING * -scale) );
+	expected_pos = add_xy( mul_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale)) , expected_pos );
+	//expected_pos.y = MAXN(0., expected_pos.y);
+	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[1], isa, &cur_textedit->curpos_up);
+
+	expected_pos = add_xy( mul_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale)) , xy(0., LINEVSPACING * scale) );
+	expected_pos = add_xy( mul_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale)) , expected_pos );
+	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[2], isa, &cur_textedit->curpos_down);
 }
 
 void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
 {
 	uint32_t i, is, c, co;
-	double w=0.;
+	double w=0., base_off=0.;
 	xy_t off_ls=XY0;
 	int drawline=0;
 	unicode_data_t ucd;
 	int c_bidi, len_sec, con_prev=0, use_textedit=0, curpos, bidi_change=0;
 	col_t colm;
-	xy_t expected_pos, closest_pos;
-	double closest_deltapos=FLT_MAX;
-	int closest_is=0, newcursor_curline=0;
+	xy_t expected_pos=XY0;
+	static double closest_deltapos[3];
+		
+	if (recur==0)		// if it's the top recursion of the function for this string
+		for (i=0; i<3; i++)
+			closest_deltapos[i] = FLT_MAX;
 
 	if (font==NULL)
 		return ;
@@ -190,23 +278,25 @@ void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy
 
 		if ((mode&3)==ALIG_CENTRE)
 			if (bidi==-2)
-				p.x += w*0.5;
+				base_off += w*0.5;
 			else
-				p.x -= w*0.5;
+				base_off -= w*0.5;
 
 		if ((mode&3)==ALIG_LEFT && bidi==-2)
-			p.x += w;
+			base_off += w;
 
 		if ((mode&3)==ALIG_RIGHT && bidi!=-2)
-			p.x -= w;
+			base_off -= w;
 	}
 
 	if (bidi==1)
 	{
 		if (w==0.)
 			w = calc_strwidth_firstline(font, string, scale, mode, len, NULL);
-		p.x -= w;
+		base_off -= w;
 	}
+
+	off.x += base_off;
 
 	colm = colour;
 	if (drawline==0)
@@ -222,13 +312,17 @@ void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy
 				use_textedit = 1;
 				curpos = &cur_textedit->string[cur_textedit->curpos] - string;
 
-				if (curpos==0)
+				if (curpos==0 && cur_textedit->click_on==0 && recur==0 && len==0)	// draw cursor if the string is empty
 					draw_textedit_cursor(fb, add_xy(p, off), scale, bidi, bidi_change, line_thick);
-			}
 
-	if (use_textedit)
-		if (cur_textedit->cur_vert_mov)
-			expected_pos = add_xy( off , xy(0., LINEVSPACING * scale * cur_textedit->cur_vert_mov) );
+				if (cur_textedit->click_on)
+				{
+					expected_pos = add_xy( mul_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale)) , sub_xy(cur_textedit->click, p) );
+					expected_pos.y = MAXN(0., expected_pos.y);
+					if (recur==0)
+						cur_textedit->curpos = strlen(cur_textedit->string);
+				}
+			}
 
 	for (i=0; i<len; i++)
 	{
@@ -270,19 +364,12 @@ void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy
 			bidi_change = (bidi!=-2 && c_bidi==-2) || (bidi==-2 && c_bidi>0);
 
 			if (use_textedit)
-				cursor_processing(fb, font, p, off, scale, expected_pos, is, curpos, bidi, bidi_change, line_thick);
-
-			if (use_textedit && newcursor_curline)
-				if (fabs(off.x - expected_pos.x) < closest_deltapos)
-				{
-					closest_deltapos = fabs(off.x - expected_pos.x);
-					cur_textedit->curpos = is + string - cur_textedit->string;
-				}
+				cursor_processing(fb, font, string, c, p, off, scale, expected_pos, is, curpos, recur, mode, bidi, bidi_change, line_thick, closest_deltapos);
 
 			if (bidi_change)
 			{
 				len_sec = find_len_bidi_section(&string[is], len-is, c_bidi);
-				draw_string_full(fb, font, &string[is], p, off, scale, colour, intensity, line_thick, mode, len_sec, glyph_limit, line_limit, c_bidi, 1, tp);
+				draw_string_full(fb, font, &string[is], p, off, scale, colour, intensity, line_thick, mode, len_sec, glyph_limit, line_limit, c_bidi, recur+1, tp);
 				off.x += (calc_strwidth_len(font, &string[is], scale, mode, len_sec) + LETTERSPACING * scale) * (bidi == -2 ? -1. : 1.);
 				is += len_sec;
 				i = is-1;
@@ -290,22 +377,8 @@ void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy
 			else switch (c)
 			{
 				case '\n':
-					off.x = 0.;
+					off.x = base_off;
 					off.y += LINEVSPACING * scale;
-
-					if (use_textedit)
-					if (cur_textedit->cur_vert_mov)
-					{
-						newcursor_curline = 0;
-						if (fabs(off.y - expected_pos.y) < 0.1)
-							newcursor_curline = 1;
-
-						if (newcursor_curline)	// if the previous line was the cursor's new line
-						{
-							cur_textedit->cur_vert_mov = 0;
-							//expected_pos = XY0;
-						}
-					}
 					break;
 
 				default:
@@ -315,8 +388,8 @@ void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy
 					off.x += letter_width(font, off.x, c, scale, mode) * (bidi == -2 ? -1. : 1.);
 			}
 
-			if (use_textedit && i+1==curpos && curpos==len)	// if we're reaching the end of the string and the cursor is there 
-				cursor_processing(fb, font, p, off, scale, expected_pos, i+1, curpos, bidi, bidi_change, line_thick);
+			if (use_textedit && i+1==len)	// if we're reaching the end of the string
+				cursor_processing(fb, font, string, 0, p, off, scale, expected_pos, i+1, curpos, recur, mode, bidi, bidi_change, line_thick, closest_deltapos);
 
 			if (drawline)
 			if (c==' ' || c=='\t' || c=='\n')	// if c is whitespace char

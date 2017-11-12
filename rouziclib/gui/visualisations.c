@@ -1,4 +1,4 @@
-void draw_graph_data_bar_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+draw_graph_bar_ret_t draw_graph_data_bar_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		rect_t area, float *data, float *label_data, int count, const char *format, double min_data_height, double max_data_height, int norm, double bar_width, col_t col)
 {
 	xy_t offset;
@@ -6,8 +6,9 @@ void draw_graph_data_bar_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_f
 	xy_t frame_dim;
 	rect_t main_frame;
 	const double margin = 12.;
+	draw_graph_bar_ret_t ret;
 
-	int i;
+	int i, first_bar;
 	xy_t bar_dim_px;
 	rect_t bar;
 	double max=min_data_height;
@@ -19,7 +20,11 @@ void draw_graph_data_bar_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_f
 	offset = fit_into_area(area, main_frame, margin, &sm);
 
 	if (dialog_enclosing_frame(offset, sm, main_frame, margin, NULL, make_grey(doztof("0;0;9"))))
-		return;
+	{
+		ret.onscreen_index0 = 0;
+		ret.onscreen_index1 = -1;
+		return ret;
+	}
 
 	if (norm)
 	{
@@ -29,6 +34,7 @@ void draw_graph_data_bar_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_f
 		vscale *= max_data_height / max;
 	}
 
+	first_bar = 1;
 	for (i=0; i<count; i++)
 	{
 		bar = make_rect_off( xy(i, 0.) , xy(bar_width, data[i] * vscale) , xy(0.5, 0.) );
@@ -36,6 +42,13 @@ void draw_graph_data_bar_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_f
 
 		if (bar.p1.x >= zc.corners.p0.x && bar.p0.x <= zc.corners.p1.x)
 		{
+			if (first_bar)
+			{
+				first_bar = 0;
+				ret.onscreen_index0 = i;
+			}
+			ret.onscreen_index1 = i;
+
 			bar_dim_px = mul_xy(get_rect_dim(bar), set_xy(zc.scrscale));
 			if (bar_dim_px.x*bar_dim_px.y > 0.04 || bar_dim_px.x > 2.)
 				draw_rect_full(fb, sc_rect(bar), drawing_thickness, col, 1.);
@@ -43,9 +56,11 @@ void draw_graph_data_bar_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_f
 			if (graph_ss*sm*zc.scrscale > 0.5)
 			{
 				print_to_screen(offset_scale( xy(i, -10.*graph_ss) , offset, sm), graph_ss*sm, col, 1., ALIG_CENTRE, "%d", i);
-				print_to_screen(offset_scale( xy(i, data[i] * vscale + (data[i] * vscale>=0. ? 4. : -10.)*graph_ss) , offset, sm), graph_ss*sm, col, 1., ALIG_CENTRE, format, label_data ? label_data[i] : data[i]);
+				print_to_screen(offset_scale( xy(i, data[i] * vscale + (data[i] * vscale>=0. ? 4. : -10.)*graph_ss) , offset, sm), graph_ss*sm, col, 1., ALIG_CENTRE, format, label_data ? label_data[i] : data[i], i);
 			}
 		}
 	}
+
+	return ret;
 }
 

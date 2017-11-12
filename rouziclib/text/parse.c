@@ -134,3 +134,154 @@ char *remove_after_char_copy(char *string, char c)	// makes a cut copy of a stri
 
 	return cut;
 }
+
+char *remove_name_from_path(char *dirpath, char *fullpath)	// removes the file or dir name after DIR_CHAR and DIR_CHAR itself
+{
+	char *p;
+	int len;
+
+	p = strrchr(fullpath, DIR_CHAR);
+	if (p == NULL)
+		return NULL;
+
+	len = p - fullpath;
+
+	if (dirpath==NULL)
+		dirpath = calloc(len + 1, sizeof(char));
+
+	memcpy(dirpath, fullpath, len);
+	dirpath[len] = 0;
+
+	return dirpath;
+}
+
+char *append_name_to_path(char *dest, char *path, char *name)	// appends properly regardless of how path is ended
+{
+	int path_len, name_len, path_has_dirchar=0;
+
+	path_len = strlen(path);
+	name_len = strlen(name);
+
+	if (path_len > 0)
+		if (path[path_len-1] == DIR_CHAR)
+			path_has_dirchar = 1;
+
+	if (dest==NULL)
+		dest = calloc(path_len + name_len + 2, sizeof(char));
+	
+	if (dest==path)		// in-place appending
+	{
+		if (path_has_dirchar)
+			sprintf(&path[path_len], "%s", name);
+		else
+			sprintf(&path[path_len], "%c%s", DIR_CHAR, name);
+	}
+	else
+	{
+		if (path_has_dirchar)
+			sprintf(dest, "%s%s", path, name);
+		else
+			sprintf(dest, "%s%c%s", path, DIR_CHAR, name);
+	}
+
+	return dest;
+}
+
+char **arrayise_text(char *text, int *linecount)	// turns line breaks into null chars, makes an array of pointers to the beginning of each lines
+{
+	int i, ia, len;
+	char **array;
+
+	*linecount = 0;
+	if (text==NULL)
+		return NULL;
+
+	len = strlen(text);
+	if (len==0)
+	{
+		array = calloc(1, sizeof(char *));
+		array[0] = text;
+
+		return array;
+	}
+
+	*linecount = 1;
+	for (i=0; i<len-1; i++)
+		if (text[i]=='\n')
+			(*linecount)++;
+
+	array = calloc(*linecount, sizeof(char *));
+	array[0] = text;
+
+	for (ia=1, i=0; i<len-1; i++)
+		if (text[i]=='\n')
+		{
+			array[ia] = &text[i+1];
+			text[i] = '\0';
+			ia++;
+		}
+
+	if (text[len-1]=='\n')
+		text[len-1] = '\0';
+
+	return array;
+}
+
+char *strstr_i (char *fullstr, char *substr)		// case insensitive substring search
+{
+	char *fullstr_low, *substr_low, *p, *ret = NULL;
+
+	if (fullstr==NULL || substr==NULL)
+		return NULL;
+
+	fullstr_low = string_tolower(make_string_copy(fullstr));	// make lowercase copy
+	substr_low = string_tolower(make_string_copy(substr));
+
+	p = strstr(fullstr_low, substr_low);
+	if (p)
+		ret = fullstr + (p - fullstr_low);
+
+	free (fullstr_low);
+	free (substr_low);
+
+	return ret;
+}
+
+char *bstrchr(const char *s, int c, int l)	// find first occurrence of c in char s[] for length l
+{
+	const char ch = c;
+
+	if (l <= 0)
+		return NULL;
+
+	for (; *s != ch; ++s, --l)
+		if (l == 0)
+			return NULL;
+
+	return (char*) s;
+}
+
+char *bstrstr(const char *s1, int l1, const char *s2, int l2)	// find first occurrence of s2[] in s1[] for length l1
+{
+	const char *ss1 = s1;
+	const char *ss2 = s2;
+
+	if (l1 <= 0)
+		return NULL;
+	if (l2 <= 0)
+		return (char *) s1;
+
+	// match prefix
+	for (; (s1 = bstrchr(s1, *s2, ss1-s1+l1)) != NULL && ss1-s1+l1!=0; ++s1)
+	{
+		// match rest of prefix
+		const char *sc1, *sc2;
+		for (sc1 = s1, sc2 = s2; ;)
+			if (++sc2 >= ss2+l2)
+				return (char *) s1;
+			else if (*++sc1 != *sc2)
+				break;
+	}
+
+	return NULL;
+}

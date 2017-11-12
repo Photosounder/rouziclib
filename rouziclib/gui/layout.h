@@ -7,3 +7,5 @@ extern xyi_t get_grid_index_at_point(xy_t p, xy_t origin, xy_t cell_dim);
 extern recti_t get_grid_index_rect(rect_t r, xy_t origin, xy_t cell_dim);
 
 #define dialog_enclosing_frame(offset, sm, main_frame, margin, label, colour)	dialog_enclosing_frame_fullarg(fb, zc, font, drawing_thickness, offset, sm, main_frame, margin, label, colour)
+
+#define check_box_on_screen(box)	check_box_box_intersection(box, zc.corners_dl)

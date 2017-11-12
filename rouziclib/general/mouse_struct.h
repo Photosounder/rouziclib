@@ -6,7 +6,7 @@ typedef struct
 
 typedef struct
 {
-	int lmb, mmb, rmb, wheel;
+	int lmb, mmb, rmb, wheel, clicks;
 	xy_t orig;		// coordinates of the original click
 } mousebut_t;
 

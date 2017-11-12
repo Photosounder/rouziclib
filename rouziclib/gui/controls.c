@@ -4,7 +4,7 @@ int ctrl_button_chamf_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font
 	double intensity = 1.;
 	double scale = rect_min_side(box);
 	double total_scale = scale*zc.scrscale;
-	ctrl_button_state_t butt_state;
+	ctrl_button_state_t butt_state={0};
 	rect_t boxb;
 
 	if (total_scale < 3.)
@@ -12,8 +12,6 @@ int ctrl_button_chamf_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font
 
 	if (check_box_box_intersection(box, zc.corners)==0)
 		return 0;
-
-	memset(&butt_state, 0, sizeof(ctrl_button_state_t));
 
 	if (mouse.window_focus_flag > 0)
 		butt_state = proc_mouse_rect_ctrl(box, mouse);
@@ -45,15 +43,13 @@ int ctrl_checkbox_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	double intensity = 1.;
 	double scale = rect_min_side(box);
 	double total_scale = scale*zc.scrscale;
-	ctrl_button_state_t butt_state;
+	ctrl_button_state_t butt_state={0};
 
 	if (total_scale < 1.)
 		return 0;
 
 	if (check_box_box_intersection(box, zc.corners)==0)
 		return 0;
-
-	memset(&butt_state, 0, sizeof(ctrl_button_state_t));
 
 	if (mouse.window_focus_flag > 0)
 		butt_state = proc_mouse_rect_ctrl(box, mouse);
@@ -84,15 +80,13 @@ int ctrl_radio_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *fon
 	double intensity = 1.;
 	double scale = rect_min_side(box);
 	double total_scale = scale*zc.scrscale;
-	ctrl_button_state_t butt_state;
+	ctrl_button_state_t butt_state={0};
 
 	if (total_scale < 1.)
 		return 0;
 
 	if (check_box_box_intersection(box, zc.corners)==0)
 		return 0;
-
-	memset(&butt_state, 0, sizeof(ctrl_button_state_t));
 
 	if (mouse.window_focus_flag > 0)
 		butt_state = proc_mouse_rect_ctrl(box, mouse);
@@ -119,9 +113,8 @@ int ctrl_radio_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *fon
 
 knob_t make_knob(char *main_label, double default_value, const knob_func_t func, double min, double max, int valfmt)
 {
-	knob_t knob;
+	knob_t knob={0};
 
-	memset(&knob, 0, sizeof(knob));
 	//knob.main_label = make_string_copy(main_label);
 	knob.main_label = main_label;
 	knob.default_value = default_value;
@@ -224,7 +217,7 @@ int ctrl_knob_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font
 	double intensity = 1.;
 	double scale = rect_min_side(box);
 	double total_scale = scale*zc.scrscale;
-	ctrl_knob_state_t knob_state;
+	ctrl_knob_state_t knob_state={0};
 	char str[64];
 	double v=*v_orig, t, th;
 	rect_t valbox;
@@ -243,8 +236,6 @@ int ctrl_knob_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font
 		return 0;
 
 	t = knob.func(v, knob.min, knob.max, 1);
-
-	memset(&knob_state, 0, sizeof(ctrl_knob_state_t));
 
 	if (mouse.window_focus_flag > 0)
 	{
@@ -289,9 +280,7 @@ int ctrl_knob_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font
 
 ctrl_drag_state_t make_drag_state(xy_t pos, xy_t freedom)
 {
-	ctrl_drag_state_t state;
-
-	memset(&state, 0, sizeof(ctrl_drag_state_t));
+	ctrl_drag_state_t state={0};
 
 	state.pos = pos;
 	state.freedom = freedom;
@@ -302,6 +291,7 @@ ctrl_drag_state_t make_drag_state(xy_t pos, xy_t freedom)
 int ctrl_draggable_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		ctrl_drag_state_t *state, uint8_t *name, xy_t dim, col_t colour)
 {
+	int ret=0;
 	double intensity = 1.;
 	double scale = min_of_xy(dim);
 	double total_scale = scale*zc.scrscale;
@@ -316,12 +306,12 @@ int ctrl_draggable_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t 
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
-		proc_mouse_draggable_ctrl(state, box, mouse);
+		ret = proc_mouse_draggable_ctrl(state, box, mouse);
 
 	box = make_rect_off( state->pos, dim, xy(0.5, 0.5) );
 	intensity *= intensity_scaling(total_scale, 100.);
 	draw_rect_chamfer(fb, sc_rect(box), drawing_thickness, colour, blend_add, 0.5*intensity, 1./12.);
 	draw_string_bestfit(fb, font, name, sc_rect(rect_add_margin(box, xy(-(box.p1.x-box.p0.x)/8., 0.))), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
-	return 0;
+	return ret;
 }

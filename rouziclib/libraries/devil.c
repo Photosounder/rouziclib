@@ -39,10 +39,10 @@ raster_t load_image_libdevil_from_memory(ILubyte *raw_data, ILuint size, const i
 	return im;
 }
 
-raster_t load_image_libdevil(const char *in_path, const int mode, const void *clctx)	// mode is IMAGE_USE_xRGB (S, L, F)
+raster_t load_image_libdevil(const char *in_path, const int mode, const void *clctx)	// mode is IMAGE_USE_xRGB (S, L, F) and optionally | IMAGE_USE_CL
 {
 	ILubyte *raw_data;
-	ILuint size;
+	size_t size;
 	raster_t im;
 
 	raw_data = load_raw_file(in_path, &size);
@@ -60,5 +60,29 @@ raster_t load_image_libdevil(const char *in_path, const int mode, const void *cl
 
 	return im;
 }
+
+/*int load_image_libdevil_thread(load_image_libdevil_thread_data_t *d)
+{
+	raster_t r;
+
+	r = load_image_libdevil(d->in_path, d->mode, d->clctx);
+}
+
+void load_image_libdevil_threaded(raster_t *im, const char *in_path, const int mode, const void *clctx)
+{
+	load_image_libdevil_thread_data_t d;
+
+	d.im = im;
+	d.in_path = in_path;
+	d.mode = mode;
+	d.clctx = clctx;
+	
+	// Wait for thread to end
+	thrd_join(im->thread_handle, NULL);
+	free_raster(im);
+
+	// Create thread
+	thrd_create(&im->thread_handle, load_image_libdevil_thread, &d);
+}*/
 
 #endif

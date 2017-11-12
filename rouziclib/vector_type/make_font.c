@@ -1,6 +1,39 @@
 void font_alloc_one(vector_font_t *font)
 {
-	alloc_more(&font->l, 1, &font->letter_count, &font->alloc_count, sizeof(letter_t), 2.);
+	alloc_enough(&font->l, font->letter_count+=1, &font->alloc_count, sizeof(letter_t), 2.);
+}
+
+void font_create_letter(vector_font_t *font, uint32_t cp)
+{
+	font_alloc_one(font);
+	font->l[font->letter_count-1].codepoint = cp;
+	textedit_init(&font->l[font->letter_count-1].glyphdata_edit);
+
+	add_codepoint_letter_lut_reference(font);
+}
+
+void font_remove_letter(vector_font_t *font, uint32_t cp)
+{
+	int i, letter_index;
+
+	letter_index = get_letter_index(font, cp);
+	if (letter_index == -1)
+		return ;
+
+	// free elements
+	free_vobj(font->l[letter_index].obj);
+	textedit_free(&font->l[letter_index].glyphdata_edit);
+
+	font->letter_count--;
+
+	// move every next letter one position down
+	for (i=letter_index; i < font->letter_count; i++)
+	{
+		font->l[i] = font->l[i+1];
+		font->codepoint_letter_lut[font->l[i].codepoint] = i;	// update new index in the codepoint LUT
+	}
+
+	font->codepoint_letter_lut[cp] = -1;	// remove table references
 }
 
 void add_codepoint_letter_lut_reference(vector_font_t *font)
@@ -231,7 +264,7 @@ void font_parse_transform_line(char *line, char *a, letter_t *l, glyphdata_t *gd
 	p = skip_string(line, " %*s %n");
 
 	start = group_start;				// default does the points added from the start of the glyph, not the parents
-	if (sscanf(p, "%s %n", b, &n))		// detect if "all" or "loc" is added after the command
+	if (sscanf(p, "%s %n", b, &n))			// detect if "all" or "loc" is added after the command
 	{
 		if (strcmp(b, "all")==0)		// all does all the points, even those of the parents (so, probably no point in using that)
 		{
@@ -331,7 +364,7 @@ void process_glyphdata_core(vector_font_t *font, letter_t *l, char *p, glyphdata
 	group_start = l->pid_offset;
 	last_start = l->max_pid;
 
-	while (sscanf(p, "%[^\n]\n%n", line, &n) && strlen(p)>0)	// go through each line in glyphdata
+	while (sscanf(p, "%[^\n]\n%n", line, &n) && strlen(p)>0)	// go through each line in glyphdata_edit.string
 	{
 		sscanf(line, " %s", a);
 
@@ -387,11 +420,16 @@ void process_glyphdata_core(vector_font_t *font, letter_t *l, char *p, glyphdata
 				if (sscanf(line, " copy %*s %c", &c)==1)
 					copy_subgl = c;
 
-				lcopy = get_letter(font, copy_cp);
-				l->pid_offset = l->max_pid;
-				if (lcopy)
-					process_glyphdata_core(font, l, lcopy->glyphdata, gd, copy_subgl);
-				l->pid_offset = l->max_pid;
+				if (copy_cp==l->codepoint && copy_subgl==0)
+					fprintf_rl(stderr, "Error in process_glyphdata_core(): glyph %04X tries to copy itself.\n", l->codepoint);
+				else
+				{
+					lcopy = get_letter(font, copy_cp);
+					l->pid_offset = l->max_pid;
+					if (lcopy)
+						process_glyphdata_core(font, l, lcopy->glyphdata_edit.string, gd, copy_subgl);
+					l->pid_offset = l->max_pid;
+				}
 			}
 
 			font_parse_transform_line(line, a, l, gd, group_start, last_start);
@@ -410,7 +448,7 @@ void process_glyphdata(vector_font_t *font, letter_t *l, glyphdata_t *gd)
 	if (l==NULL)
 		return ;
 
-	if (l->glyphdata == NULL)
+	if (l->glyphdata_edit.string == NULL)
 		return ;
 
 	l->pid_offset = 0;
@@ -424,7 +462,7 @@ void process_glyphdata(vector_font_t *font, letter_t *l, glyphdata_t *gd)
 	memset(gd->lineA, 0, sizeof(gd->lineA));
 	memset(gd->lineB, 0, sizeof(gd->lineB));
 
-	process_glyphdata_core(font, l, l->glyphdata, gd, 0);
+	process_glyphdata_core(font, l, l->glyphdata_edit.string, gd, 0);
 }
 
 void make_glyph_vobj(letter_t *l, glyphdata_t *gd)
@@ -472,6 +510,7 @@ void font_block_process_line(char *line, vector_font_t *font)
 {
 	char a[128], c, *p;
 	uint32_t cp;
+	int current_count;
 
 	sscanf(line, "%s", a);
 
@@ -483,30 +522,33 @@ void font_block_process_line(char *line, vector_font_t *font)
 		else
 			sscanf(line, "glyph %X", &cp);
 
-		// realloc previous glyphdata
+		// in previous glyphdata_edit.string: remove trailing linebreaks, realloc previous glyphdata_edit.string (shrink down)
 		if (font->letter_count > 0)
-			if (font->l[font->letter_count-1].glyphdata)
+			if (font->l[font->letter_count-1].glyphdata_edit.string)
 			{
-				font->l[font->letter_count-1].gd_alloc = strlen(font->l[font->letter_count-1].glyphdata) + 1;
-				font->l[font->letter_count-1].glyphdata = realloc(font->l[font->letter_count-1].glyphdata, font->l[font->letter_count-1].gd_alloc);
+				font->l[font->letter_count-1].glyphdata_edit.alloc_size = strlen(font->l[font->letter_count-1].glyphdata_edit.string) + 1;
+
+				while (font->l[font->letter_count-1].glyphdata_edit.string[ font->l[font->letter_count-1].glyphdata_edit.alloc_size - 2 ] == '\n')
+				{
+					font->l[font->letter_count-1].glyphdata_edit.string[ font->l[font->letter_count-1].glyphdata_edit.alloc_size - 2 ] = '\0';
+					font->l[font->letter_count-1].glyphdata_edit.alloc_size--;
+				}
+
+				font->l[font->letter_count-1].glyphdata_edit.string = realloc(font->l[font->letter_count-1].glyphdata_edit.string, font->l[font->letter_count-1].glyphdata_edit.alloc_size);
 			}
 
-		font_alloc_one(font);
-		font->l[font->letter_count-1].codepoint = cp;
-		font->l[font->letter_count-1].gd_alloc = 100;
-		font->l[font->letter_count-1].glyphdata = calloc(font->l[font->letter_count-1].gd_alloc, sizeof(char));
-
-		add_codepoint_letter_lut_reference(font);
+		font_create_letter(font, cp);
 	}
-	else if (strlen(line) > 1)
+	else
 	{
-		while (strlen(line) + strlen(font->l[font->letter_count-1].glyphdata) + 1 >= font->l[font->letter_count-1].gd_alloc)
-		{
-			font->l[font->letter_count-1].gd_alloc *= 2;
-			font->l[font->letter_count-1].glyphdata = realloc(font->l[font->letter_count-1].glyphdata, font->l[font->letter_count-1].gd_alloc);
-		}
+		p = line;
+		if (line[0] != '\n')
+			p = skip_whitespace(line);
 
-		strcat(font->l[font->letter_count-1].glyphdata, line);			// puts the line into the letter's glyphdata
+		current_count = strlen(font->l[font->letter_count-1].glyphdata_edit.string) + 1;
+		alloc_enough(&font->l[font->letter_count-1].glyphdata_edit.string, current_count += strlen(p), &font->l[font->letter_count-1].glyphdata_edit.alloc_size, sizeof(1), 2.0);
+
+		strcat(font->l[font->letter_count-1].glyphdata_edit.string, p);			// puts the line into the letter's glyphdata_edit.string
 	}
 }
 
@@ -555,8 +597,10 @@ void make_font_aliases(char *path, vector_font_t *font)
 			font_alloc_one(font);
 			font->l[font->letter_count-1].codepoint = cp;
 			if (a[0]=='\'')
+			{
 				if (sscanf(a, "'%c'", &c)==1)
 					font->l[font->letter_count-1].alias = c;
+			}
 			else
 				sscanf(a, "%X", &font->l[font->letter_count-1].alias);
 
@@ -577,7 +621,7 @@ void process_one_glyph(vector_font_t *font, int i)
 	if (font->l[i].alias || font->l[i].obj)
 		return ;
 
-	if (font->l[i].glyphdata)
+	if (font->l[i].glyphdata_edit.string)
 	{
 		process_glyphdata(font, &font->l[i], &gd);
 		make_glyph_vobj(&font->l[i], &gd);
@@ -590,14 +634,12 @@ vector_font_t *make_font(char *index_path)
 {
 	vector_font_t *font;
 	FILE *indexfile;
-	char *dirpath, *p, line[128], a[128], path[256];
-	int i, range0, range1;
+	char *dirpath, line[128], a[128], path[256];
+	int range0, range1;
 
 	font = calloc(1, sizeof(vector_font_t));
 
-	font->letter_count = 0;
-	font->alloc_count = 256;
-	font->l = calloc (font->alloc_count, sizeof(letter_t));
+	font->l = calloc (font->alloc_count = 256, sizeof(letter_t));
 	font->codepoint_letter_lut = calloc (0x110000, sizeof(int32_t));
 	memset(font->codepoint_letter_lut, 0xFF, 0x110000 * sizeof(int32_t));
 
@@ -637,13 +679,24 @@ vector_font_t *make_font(char *index_path)
 		}
 	}
 
-	//for (i=0; i < font->letter_count; i++)
-	//	process_one_glyph(font, i);
-
 	fclose(indexfile);
 	free(dirpath);
 
 	return font;
+}
+
+void clear_font_vobjs(vector_font_t *font)
+{
+	int i;
+
+	if (font==NULL)
+		return ;
+
+	for (i=0; i<font->letter_count; i++)
+	{
+		free_vobj (font->l[i].obj);
+		font->l[i].obj = NULL;
+	}
 }
 
 void free_font(vector_font_t *font)
@@ -656,7 +709,7 @@ void free_font(vector_font_t *font)
 	for (i=0; i<font->letter_count; i++)
 	{
 		free_vobj (font->l[i].obj);
-		free(font->l[i].glyphdata);
+		textedit_free(&font->l[i].glyphdata_edit);
 	}
 
 	free(font->codepoint_letter_lut);
@@ -681,4 +734,75 @@ vector_font_t *remake_font(char *index_path, vector_font_t *oldfont)
 	free_font(oldfont);
 
 	return make_font(old_path);
+}
+
+void save_font_block(char *path, vector_font_t *font, int range0, int range1, char *cp_saved)
+{
+	FILE *file;
+	int i;
+	uint32_t cp;
+
+	file = fopen_utf8(path, "wb");
+	if (file == NULL)
+	{
+		fprintf_rl(stderr, "Couldn't save font block to file '%s'.\n", path);
+		return ;
+	}
+
+	for (i=0; i<font->letter_count; i++)
+	{
+		cp = font->l[i].codepoint;
+
+		if (cp_saved[i]==0 && cp >= range0 && cp <= range1 && font->l[i].glyphdata_edit.string)
+		{	
+			cp_saved[i] = 1;
+
+			if (font->l[i].codepoint < 0x80)
+				fprintf(file, "glyph '%c'\n", cp);
+			else
+				fprintf(file, "glyph %04X\n", cp);
+
+			fprint_indent(file, "\t", 1, font->l[i].glyphdata_edit.string);
+			fprintf(file, "\n\n");
+		}
+	}
+
+	fclose (file);
+}
+
+void save_font(vector_font_t *font, char *index_path)
+{
+	FILE *indexfile;
+	char *cp_saved, *dirpath, line[128], a[128], path[256];
+	int i, range0, range1;
+
+	cp_saved = calloc(font->letter_count, sizeof(char));
+
+	dirpath = remove_after_char_copy(index_path, '/');
+
+	indexfile = fopen_utf8(index_path, "rb");
+	if (indexfile == NULL)
+	{
+		make_fallback_font(font);
+		free(dirpath);
+		return ;
+	}
+
+	while (fgets(line, sizeof(line), indexfile))			// read the index file
+	{
+		sscanf(line, "%s", a);
+
+		if (strcmp(a, "range")==0)
+		{
+			strcpy(path, dirpath);
+			sscanf(line, "range %X %X \"%[^\"]\"", &range0, &range1, &path[strlen(path)]);
+			save_font_block(path, font, range0, range1, cp_saved);
+		}
+	}
+
+	fclose(indexfile);
+	free(dirpath);
+	free(cp_saved);
+
+	return ;
 }

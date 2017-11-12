@@ -1,10 +1,7 @@
-//	http://www.unicode.org/Public/9.0.0/ucd/UnicodeData.txt
-//	http://www.unicode.org/Public/3.2-Update/UnicodeData-3.2.0.html
-
-//unicode_data_t *unicode_data=NULL;
 #include "unicode_data_table.h"
 int16_t *codepoint_lut=NULL;
 
+#ifdef RL_INCL_UNICODE_DATA
 const char *uccat_name[] = {"Lu", "Ll", "Lt", "Lm", "Lo", "Mn", "Mc", "Me", "Nd", "Nl", "No", "Pc", "Pd", "Ps", "Pe", "Pi", "Pf", "Po", "Sm", "Sc", "Sk", "So", "Zs", "Zl", "Zp", "Cc", "Cf", "Cs", "Co", "Cn"};
 const char *bidicat_name[] = {"L", "LRE", "LRO", "R", "AL", "RLE", "RLO", "PDF", "EN", "ES", "ET", "AN", "CS", "NSM", "BN", "B", "S", "WS", "ON"};
 const char *decomp_name[] = {"<font>", "<noBreak>", "<initial>", "<medial>", "<final>", "<isolated>", "<circle>", "<super>", "<sub>", "<vertical>", "<wide>", "<narrow>", "<small>", "<square>", "<fraction>", "<compat>"};
@@ -12,6 +9,18 @@ const char *decomp_name[] = {"<font>", "<noBreak>", "<initial>", "<medial>", "<f
 const char *uccat_desc[] = {"Lu (Letter, Uppercase)", "Ll (Letter, Lowercase)", "Lt (Letter, Titlecase)", "Lm (Letter, Modifier)", "Lo (Letter, Other)", "Mn (Mark, Non-Spacing)", "Mc (Mark, Spacing Combining)", "Me (Mark, Enclosing)", "Nd (Number, Decimal Digit)", "Nl (Number, Letter)", "No (Number, Other)", "Pc (Punctuation, Connector)", "Pd (Punctuation, Dash)", "Ps (Punctuation, Open)", "Pe (Punctuation, Close)", "Pi (Punctuation, Initial quote)", "Pf (Punctuation, Final quote)", "Po (Punctuation, Other)", "Sm (Symbol, Math)", "Sc (Symbol, Currency)", "Sk (Symbol, Modifier)", "So (Symbol, Other)", "Zs (Separator, Space)", "Zl (Separator, Line)", "Zp (Separator, Paragraph)", "Cc (Other, Control)", "Cf (Other, Format)", "Cs (Other, Surrogate)", "Co (Other, Private Use)", "Cn (Other, Not Assigned)"};
 const char *bidicat_desc[] = {"L (Left-to-Right)", "LRE (Left-to-Right Embedding)", "LRO (Left-to-Right Override)", "R (Right-to-Left)", "AL (Right-to-Left Arabic)", "RLE (Right-to-Left Embedding)", "RLO (Right-to-Left Override)", "PDF (Pop Directional Format)", "EN (European Number)", "ES (European Number Separator)", "ET (European Number Terminator)", "AN (Arabic Number)", "CS (Common Number Separator)", "NSM (Non-Spacing Mark)", "BN (Boundary Neutral)", "B (Paragraph Separator)", "S (Segment Separator)", "WS (Whitespace)", "ON (Other Neutrals)"};
 const char *decomp_desc[] = {"font (A font variant (e.g. a blackletter form))", "noBreak (A no-break version of a space or hyphen)", "initial (An initial presentation form (Arabic))", "medial (A medial presentation form (Arabic))", "final (A final presentation form (Arabic))", "isolated (An isolated presentation form (Arabic))", "circle (An encircled form)", "super (A superscript form)", "sub (A subscript form)", "vertical (A vertical layout presentation form)", "wide (A wide (or zenkaku) compatibility character)", "narrow (A narrow (or hankaku) compatibility character)", "small (A small variant form (CNS compatibility))", "square (A CJK squared font variant)", "fraction (A vulgar fraction form)", "compat (Otherwise unspecified compatibility character)", "Canonical mapping"};
+
+#else
+
+const char *uccat_name[] = {""};
+const char *bidicat_name[] = {""};
+const char *decomp_name[] = {""};
+
+const char *uccat_desc[] = {""};
+const char *bidicat_desc[] = {""};
+const char *decomp_desc[] = {""};
+
+#endif
 
 const char *get_ucd_cat(int cattype, int cat)
 {

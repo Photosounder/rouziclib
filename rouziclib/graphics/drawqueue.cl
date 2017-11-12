@@ -71,6 +71,7 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			case DQT_LINE_THIN_ADD:		pv = draw_line_thin_add(&df[qi+1], pv);			break;
 			case DQT_POINT_ADD:		pv = draw_point_add(&df[qi+1], pv);			break;
 			case DQT_RECT_FULL:		pv = draw_rect_full_add(&df[qi+1], pv);			break;
+			case DQT_RECT_BLACK:		pv = draw_black_rect(&df[qi+1], pv);			break;
 			case DQT_PLAIN_FILL:		pv = draw_plain_fill_add(&df[qi+1], pv);		break;
 			case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);		break;
 			case DQT_BLIT_SPRITE:		pv = blit_sprite(&df[qi+1], data_cl, pv);		break;

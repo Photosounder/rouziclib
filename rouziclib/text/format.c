@@ -120,6 +120,21 @@ char *sprint_compile_date(char *string, const char *location)
 	if (location)
 		sprintf(&string[strlen(string)], " in %s", location);
 
+	#ifdef __STDC_VERSION__
+		sprintf(&string[strlen(string)], "\n\nC standard %d\n", __STDC_VERSION__);
+	#else
+		sprintf(&string[strlen(string)], "\n\n");
+	#endif
+	#ifdef __clang_version__
+		sprintf(&string[strlen(string)], "Clang %s\n", __clang_version__);
+	#endif
+	#ifdef __VERSION__
+		sprintf(&string[strlen(string)], "GCC %s\n", __VERSION__);
+	#endif
+	#ifdef _MSC_FULL_VER
+		sprintf(&string[strlen(string)], "Microsoft Visual Studio %d.%02d.%05d.%d\n", _MSC_VER/100, _MSC_VER%100, _MSC_FULL_VER%100000, _MSC_BUILD);
+	#endif
+
 	return string;
 }
 
@@ -132,4 +147,48 @@ void print_valfmt(char *str, int str_size, double v, const int valfmt)
 		case VALFMT_PCT_2F:	snprintf(str, str_size, "%.2f%%", v*100.);	break;
 		default:		snprintf(str, str_size, "%g", v);
 	}
+}
+
+void fprint_indent(FILE *file, char *indent, int ind_lvl, char *string)
+{
+	int i, il, len = strlen(string);
+	char c0, c1 = string[0];
+
+	for (il=0; il<ind_lvl; il++)
+		fprintf(file, "%s", indent);
+
+	for (i=0; i < len; i++)
+	{
+		c0 = c1;
+		if (i < len-1)
+			c1 = string[i+1];
+		else
+			c1 = '\0';
+
+		fprintf(file, "%c", c0);
+
+		if (c0=='\n' && i < len-1 && c1 != '\n')
+			for (il=0; il<ind_lvl; il++)
+				fprintf(file, "%s", indent);
+	}
+}
+
+char *sprint_duration(char *string, double sec)
+{
+	if (sec < 60.)
+		sprintf(string, "%.0f sec", sec);
+	else if (sec < 180.)
+		sprintf(string, "%.1f min", sec / 60.);
+	else if (sec < 3600.)
+		sprintf(string, "%.0f min", sec / 60.);
+	else if (sec < 86400.)
+		sprintf(string, "%.1f hours", sec / 3600.);
+	else if (sec < 2.*86400.)
+		sprintf(string, "1 day and %.1f hours", floor(sec / 86400.), fmod(sec, 86400.) / 3600.);
+	else if (sec < 90.*86400.)
+		sprintf(string, "%0.f days and %.1f hours", floor(sec / 86400.), fmod(sec, 86400.) / 3600.);
+	else
+		sprintf(string, "%.2f years", sec / (365.25*86400.));
+
+	return string;
 }

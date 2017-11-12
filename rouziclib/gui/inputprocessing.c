@@ -105,9 +105,9 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 	return state;
 }
 
-void proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mouse)
+int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mouse)
 {
-	int ctrl_id_check;
+	int ret=0, ctrl_id_check;
 
 	state->offset = XY0;
 
@@ -123,5 +123,29 @@ void proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mou
 	{
 		state->offset = mul_xy(state->freedom, sub_xy(mouse.u, mouse.prev_u) );
 		state->pos = add_xy(state->pos, state->offset);
+		ret = 1;
 	}
+
+	return ret;
+}
+
+int proc_mouse_xy_ctrl(rect_t box, mouse_t mouse, xy_t *pos, int *lmb, int *rmb)
+{
+	int change = 0;
+
+	*pos = XY0;
+	*lmb = 0;
+	*rmb = 0;
+
+	if (check_ctrl_id(box, mouse)==0)
+		return 0;
+
+	*pos = mouse.u;
+	*lmb = mouse.b.lmb;
+	*rmb = mouse.b.rmb;
+
+	if (*lmb != -1 || *rmb != -1)
+		change = 1;
+
+	return change;
 }

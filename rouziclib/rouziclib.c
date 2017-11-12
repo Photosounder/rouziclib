@@ -13,6 +13,7 @@
 #include "general/time.c"
 #include "general/estimates.c"
 #include "general/mouse.c"
+#include "general/noop.c"
 
 #include "memory/alloc.c"
 #include "memory/circular_buffer.c"
@@ -25,6 +26,7 @@
 #include "math/functions.c"
 #include "math/rand.c"
 #include "math/dsp.c"
+#include "math/dct.c"
 #include "math/matrix.c"
 #include "math/physics.c"
 #include "fixedpoint/fp.c"
@@ -41,6 +43,7 @@
 #include "graphics/drawqueue.c"
 #include "graphics/processing.c"
 #include "vector/vector.c"
+#include "vector/polyline.c"
 
 #include "text/unicode_data.c"
 #include "text/unicode.c"
@@ -50,6 +53,7 @@
 #include "text/format.c"
 #include "text/string.c"
 #include "text/edit.c"
+#include "text/undo.c"
 #include "vector_type/vector_type.c"
 
 #include "gui/zoom.c"
@@ -66,6 +70,10 @@
 #include "fileio/open.c"
 #include "fileio/image.c"
 #include "fileio/dir.c"
+#include "fileio/file_management.c"
+
+#include "network/network.c"
+#include "network/http.c"
 
 #include "libraries/opencv.c"
 #include "libraries/opencl.c"
@@ -74,3 +82,8 @@
 #include "libraries/clfft.c"
 #include "libraries/ffmpeg.c"
 #include "libraries/libraw.c"
+#include "libraries/libjpeg.c"
+#include "libraries/zlib.c"
+#include "libraries/fftpack.c"
+#include "libraries/tinycthread.c"
+#include "libraries/threading.c"

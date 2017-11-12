@@ -180,6 +180,9 @@ void mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 		zoom_wheel(zc, mouse->zoom_flag, event.wheel.y);
 	}
 
+	if (event.button.clicks)
+		mouse->b.clicks = event.button.clicks;
+
 	// state of modifier keys
 	mod_state = SDL_GetModState();
 
@@ -331,6 +334,36 @@ void sdl_graphics_init_autosize(raster_t *fb, const char *window_name, int flags
 	r = recti_add_margin(r, xyi(-8, -16));
 	r.p0.y += 14;
 	sdl_graphics_init_full(fb, window_name, get_recti_dim(r), r.p0, flags);	// initialise SDL as well as the framebuffer
+}
+
+char *sdl_get_clipboard_dos_conv()
+{
+	char *orig, *edited, byte0, byte1=0;
+	int i, offset=0, len;
+
+	orig = SDL_GetClipboardText();
+	if (orig==NULL)
+		return NULL;
+
+	len = strlen(orig);
+
+	edited = calloc (len+1, sizeof(char));
+
+	for (i=0; i < len; i++)
+	{
+		byte0 = byte1;
+		byte1 = orig[i];
+
+		if (byte0=='\r' && byte1=='\n')
+			offset++;
+
+		edited[i-offset] = byte1;
+	}
+
+	edited = realloc(edited, len-offset+1);
+	SDL_free(orig);
+
+	return edited;
 }
 
 #endif

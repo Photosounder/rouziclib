@@ -23,6 +23,7 @@ enum
 	#define get_rgb_channel		get_frgb_channel
 	#define set_rgb_channel		set_frgb_channel
 	#define col_to_rgb		frgb_to_rgb
+	#define col_to_xyz		frgb_to_xyz
 	#define col_to_hsl		frgb_to_hsl
 #else
 	#define col_t			lrgb_t
@@ -38,6 +39,7 @@ enum
 	#define get_rgb_channel		get_lrgb_channel
 	#define set_rgb_channel		set_lrgb_channel
 	#define col_to_rgb		lrgb_to_rgb
+	#define col_to_xyz		lrgb_to_xyz
 	#define col_to_hsl		lrgb_to_hsl
 #endif
 
@@ -68,8 +70,11 @@ extern void set_lrgb_channel(lrgb_t *col, int ch, double value);
 extern void set_frgb_channel(frgb_t *col, int ch, double value);
 extern void lrgb_to_rgb(lrgb_t col, double *r, double *g, double *b);
 extern void frgb_to_rgb(frgb_t col, double *r, double *g, double *b);
-extern xyz_t col_to_xyz(col_t col);
+extern xyz_t lrgb_to_xyz(lrgb_t col);
+extern xyz_t frgb_to_xyz(frgb_t col);
 extern col_t xyz_to_col(xyz_t v);
+extern lrgb_t xyz_to_lrgb(xyz_t v);
+extern frgb_t xyz_to_frgb(xyz_t v);
 extern void lrgb_to_hsl(lrgb_t col, double *H, double *S, double *L, int huemode);
 extern void frgb_to_hsl(frgb_t col, double *H, double *S, double *L, int huemode);
 extern void colour_blowout_double_cw(double Wr, double Wg, double Wb, double *pred, double *pgrn, double *pblu);
@@ -80,3 +85,5 @@ extern void rangelimit_frgb(frgb_t *c);
 extern col_t get_colour_seq(double x, xyz_t freq, xyz_t phase);
 extern col_t colour_mul(col_t col, double m);
 extern col_t adjust_colour_lum(col_t col, double target_lum);
+
+extern raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp);

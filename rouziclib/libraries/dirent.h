@@ -640,7 +640,7 @@ opendir(
         size_t n;
 
         /* Convert directory name to wide-character string */
-        error = dirent_mbstowcs_s (&n, wname, PATH_MAX*4, dirname, PATH_MAX*4);
+        error = dirent_mbstowcs_s (&n, wname, PATH_MAX*4, dirname, -1);
         if (!error) {
 
             /* Open directory stream using wide-character name */
@@ -952,9 +952,9 @@ static char *realpath(const char *file_name, char *resolved_name)
 	}
 
 	if (resolved_name==NULL)
-		resolved_name = calloc (PATH_MAX*4, sizeof(char));
+		resolved_name = (char *) calloc (PATH_MAX*4, sizeof(char));
 
-	ret = dirent_mbstowcs_s (NULL, wpath, PATH_MAX*4, file_name, PATH_MAX*4);
+	ret = dirent_mbstowcs_s (NULL, wpath, PATH_MAX*4, file_name, -1);
 	if (ret)
 	{
 		dirent_set_errno (ENOENT);

@@ -45,11 +45,11 @@ ss_calc:
 	fb->sector_count = calloc (fb->max_sector_count, sizeof(int32_t));
 
 	fb->drawq_data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->drawq_size*sizeof(int32_t), NULL, &ret);
-	CL_ERR_RET("clCreateBuffer (in drawq_alloc, for fb->drawq_data_cl)", ret);
+	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->drawq_data_cl)", ret);
 	fb->sector_pos_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->max_sector_count*sizeof(int32_t), NULL, &ret);
-	CL_ERR_RET("clCreateBuffer (in drawq_alloc, for fb->sector_pos_cl)", ret);
+	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->sector_pos_cl)", ret);
 	fb->entry_list_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->list_alloc_size*sizeof(int32_t), NULL, &ret);
-	CL_ERR_RET("clCreateBuffer (in drawq_alloc, for fb->entry_list_cl)", ret);
+	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->entry_list_cl)", ret);
 
 	drawq_reinit(fb);
 }
@@ -75,7 +75,7 @@ void drawq_free(raster_t *fb)
 void drawq_run(raster_t *fb)
 {
 	const char clsrc_draw_queue[] =
-	#include "graphics/drawqueue.cl.h"
+	#include "drawqueue.cl.h"
 
 	int32_t i;
 	cl_int ret, randseed;
@@ -101,7 +101,7 @@ void drawq_run(raster_t *fb)
 	glClearTexImage(fb->gltex, 0, GL_RGBA, GL_UNSIGNED_BYTE, &z);
 	
 	ret = clEnqueueAcquireGLObjects(fb->clctx.command_queue, 1,  &fb->cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
-	CL_ERR_RET("clEnqueueAcquireGLObjects (in drawq_run, for fb->cl_srgb)", ret);
+	CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run, for fb->cl_srgb)", ret);
 	glFlush();
 	glFinish();
 	
@@ -114,11 +114,11 @@ void drawq_run(raster_t *fb)
 
 	// copy queue data to device
 	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->drawq_data_cl, CL_FALSE, 0, fb->drawq_data[DQ_END]*sizeof(int32_t), fb->drawq_data, 0, NULL, NULL);
-	CL_ERR_RET("clEnqueueWriteBuffer (in drawq_run, for fb->drawq_data)", ret);
+	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->drawq_data)", ret);
 	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->sector_pos_cl, CL_FALSE, 0, fb->sectors*sizeof(int32_t), fb->sector_pos, 0, NULL, NULL);
-	CL_ERR_RET("clEnqueueWriteBuffer (in drawq_run, for fb->sector_pos)", ret);
+	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->sector_pos)", ret);
 	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->entry_list_cl, CL_FALSE, 0, fb->entry_list_end*sizeof(int32_t), fb->entry_list, 0, NULL, &ev);
-	CL_ERR_RET("clEnqueueWriteBuffer (in drawq_run, for fb->entry_list)", ret);
+	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->entry_list)", ret);
 
 	// compute the random seed
 	randseed = rand32();
@@ -163,6 +163,7 @@ int32_t drawq_entry_size(const int32_t type)
 		case DQT_LINE_THIN_ADD:		return 8;
 		case DQT_POINT_ADD:		return 6;
 		case DQT_RECT_FULL:		return 8;
+		case DQT_RECT_BLACK:		return 5;
 		case DQT_PLAIN_FILL:		return 3;
 		case DQT_CIRCLE_FULL:		return 7;
 		case DQT_BLIT_SPRITE:		return 8;

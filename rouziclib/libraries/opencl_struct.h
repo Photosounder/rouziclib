@@ -1,7 +1,7 @@
 #ifdef RL_OPENCL
 
 #ifdef _MSC_VER
-#pragma comment (lib, "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v8.0\\lib\\x64\\OpenCL.lib")
+#pragma comment (lib, "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v9.0\\lib\\x64\\OpenCL.lib")
 #endif
 
 #ifdef _MSC_VER

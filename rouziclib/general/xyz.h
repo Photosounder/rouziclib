@@ -73,6 +73,7 @@ extern double min_of_xy(xy_t a);
 extern double max_of_xy(xy_t a);
 extern double min_of_xyz(xyz_t a);
 extern double max_of_xyz(xyz_t a);
+extern int32_t mul_x_by_y_xyi(xyi_t a);
 extern xy_t rangelimit_xy(xy_t v, xy_t l0, xy_t l1);
 extern xyz_t rangelimit_xyz(xyz_t v, xyz_t l0, xyz_t l1);
 extern xyi_t rangelimit_xyi(xyi_t v, xyi_t l0, xyi_t l1);

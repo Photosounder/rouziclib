@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_APPROX
+
 /*
 	Summary of the main trigonometry functions:
 
@@ -307,3 +309,5 @@ double fastatan2(double y, double x)	// as it is the caller must provide numbers
 
 	return th;
 }
+
+#endif

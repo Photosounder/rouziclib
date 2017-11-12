@@ -63,6 +63,11 @@ double blackman(double x, double range)		// spans [-range , +range]
 	return sign*y;
 }*/
 
+double erfr(double x)
+{
+	return 0.5 + 0.5*erf(x);
+}
+
 double roundaway(double x)	// round away from 0
 {
 	if (x < 0.)
@@ -182,4 +187,23 @@ double normalised_notation_split(double number, double *m)	// splits number into
 		*m = vm;
 
 	return vexp;
+}
+
+double fabs_min(double a, double b)
+{
+	if (sign(a) != sign(b))
+		return 0.;		// this gives the absolute minimum over the range
+
+	if (fabs(a) < fabs(b))
+		return a;
+	else
+		return b;
+}
+
+double fabs_max(double a, double b)
+{
+	if (fabs(a) > fabs(b))
+		return a;
+	else
+		return b;
 }

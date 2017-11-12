@@ -51,6 +51,11 @@ rect_t to_screen_coord_rect(zoom_t zc, rect_t r)
 	return rect( sc_xy(r.p0) , sc_xy(r.p1) );
 }
 
+rect_t to_world_coord_rect(zoom_t zc, rect_t r)
+{
+	return rect( wc_xy(r.p0) , wc_xy(r.p1) );
+}
+
 void zoom_key_released(zoom_t *zc, int8_t *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down
 {
 	int32_t td;

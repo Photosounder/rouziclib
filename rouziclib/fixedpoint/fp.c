@@ -22,6 +22,8 @@ int32_t fastabs(int32_t x)
 	return (x^y) - y;
 }
 
+#ifndef RL_EXCL_APPROX
+
 #include "ffo_lut.h"
 
 int32_t log2_ffo32(uint32_t x)	// returns the number of bits up to the most significant set bit so that 2^return > x >= 2^(return-1)
@@ -431,3 +433,5 @@ int32_t fperfr_d0(int32_t x)	// 0.5erf(x)+0.5 function in the [-4 , 4] range, in
 
 	return fperfr_lut[x >> ish] << ip;
 }
+
+#endif

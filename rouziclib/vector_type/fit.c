@@ -231,7 +231,7 @@ void draw_string_bestfit(raster_t fb, vector_font_t *font, uint8_t *string, rect
 	free_word_stats(ws);
 }
 
-double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	int nlines=0;
 	double maxwidth, maxscale;
@@ -241,6 +241,9 @@ double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *strin
 		return 0.;
 
 	box = sort_rect(box);
+	border *= rect_min_side(box);
+	box.p1 = sub_xy(box.p1, set_xy(border));		// remove the border
+	box.p0 = add_xy(box.p0, set_xy(border));
 	boxdim = get_rect_dim(box);			// box size
 
 	maxwidth = find_string_maxwidth_and_nlines(font, string, mode, &nlines, 1);	// get maxwidth (of the longest line) and number of lines
@@ -255,10 +258,10 @@ double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *strin
 	return scale;
 }
 
-/*void draw_string_fixed_thresh(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_fixed_thresh(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
-	double thresh, scale_ratio;
+	double scale_ratio=1.;
 	int nlines;
 	xy_t boxdim, p;
 
@@ -271,7 +274,7 @@ double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *strin
 
 	nlines = find_line_count_for_thresh(font, string, ws, mode, thresh, NULL);	// then the number of lines must be recounted
 
-	draw_string_maxwidth(fb, font, string, ws, box.p0, box.p1, scale*scale_ratio, colour, intensity, line_thick, mode, thresh, nlines, tp);
+	draw_string_maxwidth(fb, font, string, ws, box, scale*scale_ratio, colour, intensity, line_thick, mode, thresh, nlines, tp);
 
 	free_word_stats(ws);
-}*/
+}

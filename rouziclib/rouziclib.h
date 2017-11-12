@@ -63,6 +63,7 @@ extern "C" {
 #include "general/time.h"
 #include "general/estimates.h"
 #include "general/mouse.h"
+#include "general/noop.h"
 
 #include "memory/alloc.h"
 #include "memory/circular_buffer.h"
@@ -75,10 +76,11 @@ extern "C" {
 #include "math/functions.h"
 #include "math/rand.h"
 #include "math/dsp.h"
+#include "math/dct.h"
 #include "math/matrix.h"
 #include "math/physics.h"
-#include "fixedpoint/fp.h"
-#include "fastfloat/fastfloat.h"
+#include "fixedpoint/fp.h"			// used unless RL_EXCL_APPROX is defined
+#include "fastfloat/fastfloat.h"		// used unless RL_EXCL_APPROX is defined
 
 #include "graphics/graphics.h"
 #include "graphics/srgb.h"
@@ -92,7 +94,7 @@ extern "C" {
 #include "graphics/processing.h"
 #include "vector/vector.h"
 
-#include "text/unicode_data.h"
+#include "text/unicode_data.h"			// needs RL_INCL_UNICODE_DATA to be defined
 #include "text/unicode.h"
 #include "text/unicode_bidi.h"
 #include "text/unicode_arabic.h"
@@ -100,7 +102,9 @@ extern "C" {
 #include "text/format.h"
 #include "text/string.h"
 #include "text/edit.h"
+#include "text/undo.h"
 #include "vector_type/vector_type.h"
+#include "vector/polyline.h"
 
 #include "gui/zoom.h"
 #include "gui/focus.h"
@@ -116,6 +120,11 @@ extern "C" {
 #include "fileio/open.h"
 #include "fileio/image.h"
 #include "fileio/dir.h"
+#include "fileio/file_management.h"
+
+// used unless RL_EXCL_NETWORK is defined
+#include "network/network.h"
+#include "network/http.h"	// may need RL_ZLIB
 
 #include "libraries/mpfr.h"
 #include "libraries/opencl.h"	// unused unless RL_OPENCL is defined
@@ -125,6 +134,11 @@ extern "C" {
 #include "libraries/clfft.h"	// unused unless RL_CLFFT is defined
 #include "libraries/ffmpeg.h"	// unused unless RL_FFMPEG is defined
 #include "libraries/libraw.h"	// unused unless RL_LIBRAW is defined
+#include "libraries/libjpeg.h"	// unused unless RL_LIBJPEG is defined
+#include "libraries/zlib.h"	// unused unless RL_ZLIB is defined
+#include "libraries/fftpack.h"
+#include "libraries/tinycthread.h"
+#include "libraries/threading.h"
 
 
 #ifdef __cplusplus

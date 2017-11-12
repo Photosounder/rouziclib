@@ -1,14 +1,21 @@
 typedef struct
 {
+#ifdef SWITCH_RGB_CHANNELS
+	uint32_t b:8;
+	uint32_t g:8;
+	uint32_t r:8;
+	uint32_t a:8;
+#else
 	uint32_t r:8;
 	uint32_t g:8;
 	uint32_t b:8;
 	uint32_t a:8;
+#endif
 } srgb_t;			// sRGB
 
 typedef struct
 {
-	uint16_t r, g, b, a;	// in 1.LBD format (as it goes up to a fp value of 1.0)
+	uint16_t r, g, b, a;	// in 1.LBD format (as it goes up to a fixed-point value of 1.0)
 } lrgb_t;			// linear RGB format
 
 typedef struct
@@ -25,6 +32,10 @@ typedef struct
 	srgb_t *srgb;
 	int use_frgb;
 	int use_cl;
+
+	// threading
+	volatile int status;	// readiness status, see enum below
+	//mtx_t 
 	
 	#ifdef RL_SDL
 	void *window;
@@ -34,7 +45,7 @@ typedef struct
 
 	#ifdef RL_OPENCL
 	cl_mem clbuf, cl_srgb;
-	uint64_t clbuf_da;	// device address for clbuf
+	uint64_t clbuf_da;	// device address for clbuf (actually currently an offset from fb's device data buffer)
 	uint32_t gltex;		// ID of the GL texture for cl_srgb
 	clctx_t clctx;		// contains the context and the command queue
 
@@ -57,3 +68,10 @@ typedef struct
 	int data_alloc_table_as;	// alloc size of the data_alloc_table in elements
 	#endif
 } raster_t;
+
+enum
+{
+	raster_status_null,		// when there's no image and none being prepared
+	raster_status_prep,		// when there's an image being prepared (loading/processing)
+	raster_status_ready		// when the image is ready to be used
+};

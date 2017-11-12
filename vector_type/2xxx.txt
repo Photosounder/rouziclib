@@ -122,7 +122,6 @@ glyph 25CC
 glyph 25EF	// large white circle (6x6 octagon)
 	circle p1 p8	8  3	0 3	-0;9
 	lines p1 p2 p3 p4 p5 p6 p7 p8 p1
-	bounds	-3	3
 
 glyph 2605
 	circle	p5 p10	5 2;8;2	0 2;8;2	0

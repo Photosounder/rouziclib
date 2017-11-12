@@ -1,4 +1,4 @@
-int32_t circ_index(int32_t index, int32_t size)
+int32_t circ_index(int32_t index, const int32_t size)
 {
 	if (size <= 0)
 		return 0;

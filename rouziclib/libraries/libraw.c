@@ -65,7 +65,7 @@ rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 	rawphoto_t rp;
 	libraw_data_t *rd = libraw_init(0);
 	uint8_t *raw_data;
-	int raw_data_size;
+	size_t raw_data_size;
 
 	memset(&rp, 0, sizeof(rawphoto_t));
 
@@ -150,7 +150,7 @@ raster_t raw_photo_to_raster(raster_t fb, rawphoto_t rp)
 			set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.w + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}
 
-	gaussian_blur(r.f, r.f, r.w, r.h, 1.4);
+	gaussian_blur(r.f, r.f, xyi(r.w, r.h), 4, 1.4);
 
 /*	for (ip.y=im_p0.y; ip.y <= im_p1.y; ip.y++)
 		for (ip.x=im_p0.x; ip.x <= im_p1.x; ip.x++)
@@ -167,11 +167,12 @@ raster_t raw_photo_to_raster(raster_t fb, rawphoto_t rp)
 			//set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.w + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}*/
 
+#ifdef RL_OPENCL
 	init_raster_cl(&r, &fb.clctx);			// copies the data to an OpenCL buffer
 	
 	r.clbuf_da = 100 * 1024*1024;
-	cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, r.clbuf_da, r.w*r.h*4*sizeof(float), r.f, 0, NULL, NULL);
-	CL_ERR_NORET("clEnqueueWriteBuffer (in raw_photo_to_raster, for fb->drawq_data)", ret);
+	cl_copy_raster_to_device(fb, r);
+#endif
 
 	return r;
 }

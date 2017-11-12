@@ -4,6 +4,9 @@ double drawing_focus_adjust(focus_t f, double min_thick, double *lum, int is_poi
 {
 	double thick, odi, fdi, bokeh_size;
 
+	if (f.obj_dist==0.)
+		return min_thick;
+
 	odi = 1. / f.obj_dist;	// object distance inverse
 	fdi = 1. / f.dist;	// focus distance inverse
 	bokeh_size = (odi - fdi) * f.aperture;

@@ -220,6 +220,9 @@ void blit_scale_lrgb(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp
 	double iw_xy;
 	interp_param_t param_x, param_y;
 
+	if (r1.l==NULL)
+		return ;
+
 	switch (interp)
 	{
 		case NEAREST_INTERP:
@@ -335,6 +338,9 @@ void blit_scale_cl(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int interp)
 	float *df;
 	xyi_t bb0, bb1;
 
+	if (r1.f==NULL)
+		return ;
+
 	grad = 1.;	// 1 for triangular filtering
 	
 /*	if (pos.x + grad < 0.)			return ;
@@ -400,6 +406,9 @@ void blit_scale_photo_cl(raster_t r0, raster_t r1, xy_t pscale, xy_t pos, int in
 	int32_t *di;
 	float *df;
 	xyi_t bb0, bb1;
+
+	if (r1.f==NULL)
+		return ;
 
 	grad = 1.;	// 1 for triangular filtering
 	

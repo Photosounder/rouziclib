@@ -389,6 +389,11 @@ double max_of_xyz(xyz_t a)
 	return MAXN(MAXN(a.x, a.y), a.z);
 }
 
+int mul_x_by_y_xyi(xyi_t a)
+{
+	return a.x * a.y;
+}
+
 xy_t rangelimit_xy(xy_t v, xy_t l0, xy_t l1)
 {
 	return xy(	rangelimit( v.x, l0.x, l1.x ), 

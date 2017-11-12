@@ -2,27 +2,140 @@ textedit_t *cur_textedit=NULL;
 
 void textedit_init(textedit_t *te)
 {
-	int new_len=0;
-
 	memset(te, 0, sizeof(textedit_t));
-	alloc_more(&te->string, 16, &new_len, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
+	te->string = calloc(te->alloc_size = 16, sizeof(char));
+	te->max_scale = 1e30;
+}
+
+void textedit_free(textedit_t *te)
+{
+	textundo_free(te);
+	free(te->string);
+	memset(te, 0, sizeof(textedit_t));
+}
+
+textedit_t string_to_textedit(char *string)
+{
+	textedit_t te;
+
+	memset(&te, 0, sizeof(textedit_t));
+	te.string = string;
+	te.alloc_size = strlen(string)+1;
+	te.max_scale = 1e30;
+
+	return te;
+}
+
+void textedit_erase_selection(textedit_t *te, int *len)
+{
+	int32_t sel0, sel1;
+
+	if (te==NULL)
+		return ;
+
+	if (te->sel0==te->sel1)
+		return ;
+
+	textundo_update(te, 1);		// save the current state in undo
+
+	sel0 = te->sel0;
+	sel1 = te->sel1;
+	minmax_i32(&sel0, &sel1);
+
+	memmove(&te->string[sel0], &te->string[sel1], *len+1 - sel1);
+	*len -= sel1 - sel0;
+	te->curpos = sel0;
+	te->sel0 = te->sel1 = 0;
+}
+
+void textedit_copy_selection_clipboard(textedit_t *te)
+{
+	char swap_char;
+	int32_t sel0, sel1;
+
+	if (te==NULL)
+		return ;
+
+	if (te->sel0==te->sel1)
+		return ;
+
+	sel0 = te->sel0;
+	sel1 = te->sel1;
+	minmax_i32(&sel0, &sel1);
+
+	swap_char = te->string[sel1];
+	te->string[sel1] = '\0';
+	#ifdef RL_SDL
+	SDL_SetClipboardText(&te->string[sel0]);
+	#endif
+	te->string[sel1] = swap_char;
+}
+
+int textedit_find_prev_linebreak(textedit_t *te)
+{
+	int i;
+
+	for (i=te->curpos-1; i>0; i--)
+		if (te->string[i]=='\n')
+			return i+1;
+
+	return 0;
+}
+
+int textedit_find_next_linebreak(textedit_t *te)
+{
+	int i;
+
+	for (i=te->curpos; ; i++)
+		if (te->string[i]=='\n' || te->string[i]=='\0')
+			return i;
+}
+
+int textedit_find_prev_wordstart(textedit_t *te)
+{
+	int i;
+
+	for (i=te->curpos-2; i>0; i--)
+		if (te->string[i]==' ' || te->string[i]=='\t' || te->string[i]=='\n')
+			if (te->string[i+1]!=' ' && te->string[i+1]!='\t' && te->string[i+1]!='\n')
+				return i+1;
+
+	return 0;
+}
+
+int textedit_find_next_wordstart(textedit_t *te)
+{
+	int i;
+
+	for (i=te->curpos; ; i++)
+	{
+		if (te->string[i]=='\0')
+			return i;
+
+		if (te->string[i]==' ' || te->string[i]=='\t' || te->string[i]=='\n')
+			if (te->string[i+1]!=' ' && te->string[i+1]!='\t' && te->string[i+1]!='\n')
+				return i+1;
+	}
 }
 
 void textedit_add(textedit_t *te, char *str, int32_t cmd, int32_t mod)
 {
-	int orig_len=0, new_len=0, ins_len, new_pos, char_len;
+	int orig_len=0, ins_len, new_pos, char_len;
 	char *clipboard;
 
 	if (te==NULL)
 		return ;
 
 	if (te->string)
-		new_len = orig_len = strlen(te->string);
+		orig_len = strlen(te->string);
 
 	if (str)	// insert this string into the text
 	{
+		textundo_update(te, 0);
+		textedit_erase_selection(te, &orig_len);
+
 		ins_len = strlen(str);
-		alloc_more(&te->string, ins_len+1, &new_len, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
+		alloc_enough(&te->string, orig_len+ins_len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
 		memmove(&te->string[te->curpos+ins_len], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift part of the text right of the cursor further right
 		memcpy(&te->string[te->curpos], str, ins_len);							// insertion of str
 		te->curpos += ins_len;
@@ -30,52 +143,112 @@ void textedit_add(textedit_t *te, char *str, int32_t cmd, int32_t mod)
 	#ifdef RL_SDL
 	else
 	{
+		// position changing
+		switch (cmd)
+		{
+			case SDLK_LEFT:
+			case SDLK_RIGHT:
+			case SDLK_UP:
+			case SDLK_DOWN:
+			case SDLK_HOME:
+			case SDLK_END:
+				if (mod & KMOD_SHIFT)
+				{
+					if (te->sel0 == te->sel1)
+						te->sel0 = te->sel1 = te->curpos;
+				}
+				else
+					te->sel0 = te->sel1 = 0;
+
+				switch (cmd)
+				{
+					case SDLK_LEFT:
+						if (mod & KMOD_CTRL)
+							te->curpos = textedit_find_prev_wordstart(te);
+						else
+							te->curpos = find_prev_utf8_char(te->string, te->curpos);
+						break;
+					case SDLK_RIGHT:
+						if (mod & KMOD_CTRL)
+							te->curpos = textedit_find_next_wordstart(te);
+						else
+							te->curpos = find_next_utf8_char(te->string, te->curpos);
+						break;
+
+					case SDLK_UP:
+						te->curpos = te->curpos_up;
+						break;
+					case SDLK_DOWN:
+						te->curpos = te->curpos_down;
+						break;
+
+					case SDLK_HOME:
+						te->curpos = textedit_find_prev_linebreak(te);
+						break;
+
+					case SDLK_END:
+						te->curpos = textedit_find_next_linebreak(te);
+						break;
+				}
+
+				if (mod & KMOD_SHIFT)
+					te->sel1 = te->curpos;
+				break;
+		}
+
 		if ((mod & ~KMOD_NUM & ~KMOD_CAPS)==0)	// if there's no modifier key except maybe Num Lock and Caps Lock
 		{
 			switch (cmd)
 			{
-
 				case SDLK_RETURN:
 				case SDLK_RETURN2:
-				case SDLK_KP_ENTER:
-					textedit_add(te, "\n", 0, 0);
+				case SDLK_KP_ENTER:	// TODO notify of return
+					if (te->edit_mode == te_mode_value)
+						cur_textedit = NULL;
+					else
+					{
+						textedit_erase_selection(te, &orig_len);
+						textedit_add(te, "\n", 0, 0);
+					}
+					te->return_flag = 1;
 					break;
 
 				case SDLK_TAB:
-					textedit_add(te, "\t", 0, 0);
+					if (te->edit_mode == te_mode_value)
+					{
+						te->return_flag = 1;
+						cur_textedit = NULL;
+					}
+					else
+					{
+						textedit_erase_selection(te, &orig_len);
+						textedit_add(te, "\t", 0, 0);
+					}
 					break;
 
 				case SDLK_BACKSPACE:
-					new_pos = find_prev_utf8_char(te->string, te->curpos);
-					memmove(&te->string[new_pos], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift right side of the text one utf8 character left
-					te->curpos = new_pos;
+					if (te->sel0==te->sel1)
+					{
+						if (te->string[0])		// if the string isn't already empty
+							textundo_update(te, 0);
+						new_pos = find_prev_utf8_char(te->string, te->curpos);
+						memmove(&te->string[new_pos], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift right side of the text one utf8 character left
+						te->curpos = new_pos;
+					}
+					else
+						textedit_erase_selection(te, &orig_len);
 					break;
 
 				case SDLK_DELETE:
-					char_len = utf8_char_size(&te->string[te->curpos]);
-					memmove(&te->string[te->curpos], &te->string[te->curpos+char_len], orig_len+1 - te->curpos - char_len);
-					break;
-
-				case SDLK_LEFT:
-					te->curpos = find_prev_utf8_char(te->string, te->curpos);
-					break;
-				case SDLK_RIGHT:
-					te->curpos = find_next_utf8_char(te->string, te->curpos);
-					break;
-
-				case SDLK_UP:
-					te->cur_vert_mov++;
-					break;
-				case SDLK_DOWN:
-					te->cur_vert_mov--;
-					break;
-
-				case SDLK_HOME:
-					te->curpos = 0;
-					break;
-
-				case SDLK_END:
-					te->curpos = strlen(te->string);
+					if (te->sel0==te->sel1)
+					{
+						if (te->curpos != strlen(te->string))	// if we're not at the end of the string already
+							textundo_update(te, 0);
+						char_len = utf8_char_size(&te->string[te->curpos]);
+						memmove(&te->string[te->curpos], &te->string[te->curpos+char_len], orig_len+1 - te->curpos - char_len);
+					}
+					else
+						textedit_erase_selection(te, &orig_len);
 					break;
 			}
 		}
@@ -84,28 +257,60 @@ void textedit_add(textedit_t *te, char *str, int32_t cmd, int32_t mod)
 			switch (cmd)
 			{
 				case SDLK_v:
-					clipboard = SDL_GetClipboardText();
+					clipboard = sdl_get_clipboard_dos_conv();
 					if (clipboard==NULL)
 						break;
 
+					if (te->edit_mode == te_mode_value)
+						replace_char(clipboard, '\n', ' ');
+
 					textedit_add(te, clipboard, 0, 0);
-					SDL_free(clipboard);
+					free(clipboard);
 					break;
 
 				case SDLK_c:
 				case SDLK_x:
-					SDL_SetClipboardText(te->string);
-
-					if (cmd==SDLK_x)
+					if (te->sel0==te->sel1)
 					{
-						te->string[0] = '\0';
-						te->curpos = 0;
+						SDL_SetClipboardText(te->string);
+
+						if (cmd==SDLK_x)
+						{
+							textundo_update(te, 1);
+							te->string[0] = '\0';
+							te->curpos = 0;
+						}
+					}
+					else
+					{
+						textedit_copy_selection_clipboard(te);
+
+						if (cmd==SDLK_x)
+							textedit_erase_selection(te, &orig_len);
 					}
 					break;
 
-				case SDLK_BACKSPACE:
+				case SDLK_BACKSPACE:		// Delete All
+					textundo_update(te, 1);
 					te->string[0] = '\0';
 					te->curpos = 0;
+					break;
+
+				case SDLK_a:			// Select All
+					te->curpos = 0;
+					te->sel0 = 0;
+					te->sel1 = strlen(te->string);
+					break;
+
+				case SDLK_z:
+					if (mod & KMOD_SHIFT)
+						textundo_redo(te);
+					else
+						textundo_undo(te);
+					break;
+
+				case SDLK_y:
+					textundo_redo(te);
 					break;
 			}
 		}
@@ -144,22 +349,58 @@ int ctrl_textedit_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 
 	if (mouse.window_focus_flag > 0)
 		butt_state = proc_mouse_rect_ctrl(box, mouse);
+		
+	if (butt_state.once && te->sel0 == te->sel1)
+		te->sel0 = te->sel1 = te->curpos;
 
-	if (butt_state.once)
+	if (butt_state.once && mouse.mod_key[mouse_mod_shift]==0)
+		if (mouse.b.clicks==1)
+			te->sel0 = te->sel1 = -1;
+		else if (mouse.b.clicks==2)
+		{
+			te->sel0 = textedit_find_prev_wordstart(te);
+			te->sel1 = textedit_find_next_wordstart(te);
+		}
+		else if (mouse.b.clicks==3)
+		{
+			te->sel0 = textedit_find_prev_linebreak(te);
+			te->sel1 = textedit_find_next_linebreak(te);
+			if (te->string[te->sel1] != '\0')
+				te->sel1++;
+		}
+
+	if (butt_state.down)
 	{
 		cur_textedit = te;
-		te->click = XY0;
+		te->click = sc_xy(mouse.u);
 		te->click_on = 1;
 	}
 
+	te->curpos_up = 0;
+	if (te->string)
+		te->curpos_down = strlen(te->string);
+	te->cur_screen_pos_prev = te->cur_screen_pos;
+
 	intensity *= intensity_scaling(total_scale, 100.);
 
-	draw_string_bestfit_asis(fb, font, te->string, sc_rect(box), 0., 1e30*zc.scrscale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
-	//draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit_asis(fb, font, te->string, sc_rect(box), 1./16., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
+	//draw_string_bestfit(fb, font, te->string, sc_rect(box), 0., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
+	//draw_string_fixed_thresh(fb, font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
 	//draw_rect_chamfer(fb, sc_rect(box), drawing_thickness, colour, blend_add, 0.5*intensity, 1./12.);
 
-	if (butt_state.uponce)
+	if (mouse.b.clicks==1)
+	{
+		if (butt_state.once && mouse.mod_key[mouse_mod_shift]==0)
+			te->sel0 = te->curpos;
+		if (butt_state.down)
+			te->sel1 = te->curpos;
+	}
+	
+	if (te->return_flag)
+	{
+		te->return_flag = 0;
 		return 1;
+	}
 	return 0;
 }
 

@@ -3,6 +3,7 @@
 #include "stats.c"
 #include "fit.c"
 #include "cjk.c"
+#include "insert_rect.c"
 
 int32_t get_letter_index(vector_font_t *font, uint32_t c)
 {
@@ -39,7 +40,7 @@ char *get_letter_glyphdata(vector_font_t *font, uint32_t c)
 {
 	letter_t *l = get_letter(font, c);
 	if (l)
-		return l->glyphdata;
+		return l->glyphdata_edit.string;
 	return NULL;
 }
 
@@ -81,4 +82,46 @@ letter_t *get_dominant_letter(vector_font_t *font, uint32_t c, int *lowerscale)
 	}
 
 	return NULL;
+}
+
+uint32_t substitute_rtl_punctuation(uint32_t c)
+{
+	unicode_data_t ucd;
+
+	ucd = get_unicode_data(c);
+
+	switch (ucd.uccat)
+	{
+		case uccat_Ps:		// open punctuation
+			switch (c)
+			{
+				case '[':	return ']';
+				case '{':	return '}';
+				default:	return c+1;
+			}
+			break ;
+
+		case uccat_Pe:		// close punctuation
+			switch (c)
+			{
+				case ']':	return '[';
+				case '}':	return '[';
+				default:	return c-1;
+			}
+			break ;
+
+		case uccat_Sm:		// math symbols
+			switch (c)
+			{
+				case '<':	return '>';
+				case '>':	return '<';
+				case 0x2190:	return 0x2192;	// arrows
+				case 0x2192:	return 0x2190;
+				default:	return c;
+			}
+			break ;
+
+		default:
+			return c;
+	}
 }

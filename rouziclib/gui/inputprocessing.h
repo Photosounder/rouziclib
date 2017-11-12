@@ -7,4 +7,5 @@ extern void proc_mouse_rect_ctrl_button(int mb, ctrl_button_state_t *state, int 
 extern ctrl_button_state_t *proc_mouse_rect_ctrl_lrmb(rect_t box, mouse_t mouse);
 extern ctrl_button_state_t proc_mouse_rect_ctrl(rect_t box, mouse_t mouse);
 extern ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse);
-extern void proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mouse);
+extern int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mouse);
+extern int proc_mouse_xy_ctrl(rect_t box, mouse_t mouse, xy_t *pos, int *lmb, int *rmb);

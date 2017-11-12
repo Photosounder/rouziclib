@@ -43,3 +43,51 @@ void display_dialog_enclosing_frame_fullarg(raster_t fb, vector_font_t *font, do
 
 	draw_string_bestfit(fb, font, label, label_box, 0., 1e30, colour, intensity * (0.5+0.5*erf((0.75-scale)*6.)), drawing_thickness, ALIG_CENTRE, NULL);
 }
+
+void draw_unit_grid_level_fullarg(raster_t fb, zoom_t zc, double drawing_thickness, 
+		xy_t offset, double sm, double scale)
+{
+	double p, size_px;
+	double thick, bright;
+	xy_t start, end;
+	rect_t corners;
+
+	size_px = sm * scale * zc.scrscale;
+	if (size_px < 7.)
+		return ;
+
+	if (sm*scale > 1. && size_px > 100000.)
+		return ;
+
+	thick = 0.01 * sm*scale;
+	bright = 0.012;
+
+	if (size_px < 15.)
+		bright *= (size_px - 5.) / (15. - 5.);	// linear transition
+
+	thick *= zc.scrscale;
+	thickness_limit(&thick, &bright, drawing_thickness);
+
+	corners = offset_scale_inv_rect(zc.corners_dl, offset, sm);
+
+	start = mul_xy(ceil_xy(div_xy(corners.p0, set_xy(scale))), set_xy(scale));
+	start = offset_scale(start, offset, sm);
+	end = zc.corners_dl.p1;
+
+	for (p=start.x; p<=end.x; p+=sm*scale)
+		draw_line_thin(fb, sc_xy(xy(p, zc.corners_dl.p0.y)), sc_xy(xy(p, zc.corners_dl.p1.y)), drawing_thickness, make_grey(1.), blend_add, bright);
+
+	for (p=start.y; p<=end.y; p+=sm*scale)
+		draw_line_thin(fb, sc_xy(xy(zc.corners_dl.p0.x, p)), sc_xy(xy(zc.corners_dl.p1.x, p)), drawing_thickness, make_grey(1.), blend_add, bright);
+}
+
+void draw_unit_grid_fullarg(raster_t fb, zoom_t zc, double drawing_thickness, 
+		xy_t offset, double sm)
+{
+	draw_unit_grid_level(offset, sm, 1000000.);
+	draw_unit_grid_level(offset, sm, 1000.);
+	draw_unit_grid_level(offset, sm, 1.);
+	draw_unit_grid_level(offset, sm, 1./12.);
+	draw_unit_grid_level(offset, sm, 1./144.);
+	draw_unit_grid_level(offset, sm, 1./1728.);
+}

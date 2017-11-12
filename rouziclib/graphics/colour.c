@@ -366,11 +366,20 @@ void frgb_to_rgb(frgb_t col, double *r, double *g, double *b)
 	*b = get_frgb_channel(col, 2);
 }
 
-xyz_t col_to_xyz(col_t col)
+xyz_t lrgb_to_xyz(lrgb_t col)
 {
 	xyz_t v;
 
-	col_to_rgb(col, &v.x, &v.y, &v.z);
+	lrgb_to_rgb(col, &v.x, &v.y, &v.z);
+
+	return v;
+}
+
+xyz_t frgb_to_xyz(frgb_t col)
+{
+	xyz_t v;
+
+	frgb_to_rgb(col, &v.x, &v.y, &v.z);
 
 	return v;
 }
@@ -378,6 +387,16 @@ xyz_t col_to_xyz(col_t col)
 col_t xyz_to_col(xyz_t v)
 {
 	return make_colour(v.x, v.y, v.z, 1.);
+}
+
+lrgb_t xyz_to_lrgb(xyz_t v)
+{
+	return make_colour_lin(v.x, v.y, v.z, 1.);
+}
+
+frgb_t xyz_to_frgb(xyz_t v)
+{
+	return make_colour_frgb(v.x, v.y, v.z, 1.);
 }
 
 void lrgb_to_hsl(lrgb_t col, double *H, double *S, double *L, int huemode)
@@ -529,4 +548,37 @@ col_t adjust_colour_lum(col_t col, double target_lum)
 	col_to_hsl(col, &H, &S, &L, HUEDEG);
 
 	return colour_mul(col, target_lum / L);
+}
+
+raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp)
+{
+	int i, len, make_new_raster=0;
+	raster_t r;
+
+	// check if rp exists and is adequate
+	if (rp)
+	{
+		r = *rp;
+
+		if (rp->w!=dim.x || rp->h!=dim.y || rp->f==NULL)
+		{
+			free_raster(rp);
+			make_new_raster = 1;
+		}
+	}
+	else
+		make_new_raster = 1;
+
+	if (make_new_raster)
+	{
+		r = make_raster_f(NULL, dim.x, dim.y);
+		if (rp)
+			*rp = r;
+	}
+
+	len = mul_x_by_y_xyi(dim);
+	for (i=0; i < len; i++)
+		r.f[i] = make_grey_f(fa[i]);
+
+	return r;
 }

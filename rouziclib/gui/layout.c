@@ -5,7 +5,7 @@ int dialog_enclosing_frame_fullarg(raster_t fb, zoom_t zc, vector_font_t *font, 
 
 	full_frame = rect_add_margin(main_frame, set_xy(margin));
 	box_os = offset_scale_rect(full_frame, offset, sm);
-	if (check_box_box_intersection(box_os, zc.corners)==0)
+	if (check_box_on_screen(box_os)==0)
 		return 1;
 
 	display_dialog_enclosing_frame(sc_rect(box_os), sm*zc.scrscale, label, colour);

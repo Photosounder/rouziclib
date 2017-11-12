@@ -5,4 +5,5 @@ extern double find_string_width_for_nlines(vector_font_t *font, uint8_t *string,
 extern double find_best_string_width(vector_font_t *font, uint8_t *string, word_stats_t ws, const int mode, xy_t boxdim, int *nlines, double *scale_ratio);
 extern void draw_string_maxwidth(raster_t fb, vector_font_t *font, uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp);
 extern void draw_string_bestfit(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);
-extern double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);
+extern double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);
+extern void draw_string_fixed_thresh(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);

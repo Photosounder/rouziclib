@@ -27,5 +27,6 @@ extern int get_sdl_opengl_renderer_index();
 extern SDL_GLContext init_sdl_gl(SDL_Window *window);
 extern void sdl_graphics_init_full(raster_t *fb, const char *window_name, xyi_t dim, xyi_t pos, int flags);
 extern void sdl_graphics_init_autosize(raster_t *fb, const char *window_name, int flags, int window_index);
+extern char *sdl_get_clipboard_dos_conv();
 
 #endif

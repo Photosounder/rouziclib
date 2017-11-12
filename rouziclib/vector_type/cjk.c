@@ -23,7 +23,7 @@ void cjkdec_load_data(char *path, vector_font_t *font)
 		if (ret >= 2)
 		{
 			start = font->cjkdec_data_count;
-			alloc_more(&font->cjkdec_data, ret, &font->cjkdec_data_count, &font->cjkdec_alloc_count, sizeof(uint32_t), 2.);
+			alloc_enough(&font->cjkdec_data, font->cjkdec_data_count += ret, &font->cjkdec_alloc_count, sizeof(uint32_t), 2.);
 
 			cp = utf8_to_unicode32(arg[0], NULL);
 

@@ -12,7 +12,7 @@ extern cl_int build_cl_program(clctx_t *c, cl_program *program, const char *src)
 extern cl_int build_cl_program_from_file(clctx_t *c, cl_program *program, char *cl_src_path);
 extern cl_int create_cl_kernel(clctx_t *c, cl_program program, cl_kernel *kernel, const char *name);
 extern cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size);
-extern cl_int init_raster_cl(void *fb, const clctx_t *clctx);
+extern void init_raster_cl(raster_t *fb, const clctx_t *clctx);
 //extern uint64_t get_clmem_device_address(clctx_t *clctx, cl_mem buf);
 extern void make_gl_tex(raster_t *fb);
 extern cl_int init_fb_cl(raster_t *fb);

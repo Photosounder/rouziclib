@@ -43,3 +43,25 @@ void convert_image_srgb8(raster_t *im, const uint8_t *data, const int mode, cons
 	}
 	#endif
 }
+
+raster_t load_image_from_http(char *url, const int mode)
+{
+#ifndef RL_EXCL_NETWORK
+	int data_size, data_alloc=0;
+	uint8_t *data=NULL;
+	raster_t im;
+
+	data_size = http_get(url, -1, ONE_RETRY, &data, &data_alloc);
+
+	#ifdef RL_DEVIL
+	if (data_size > 0)
+		im = load_image_libdevil_from_memory(data, data_size, mode, NULL);
+	else
+	#endif
+		im = make_raster_f(NULL, 0, 0);
+
+	free(data);
+
+	return im;
+#endif
+}

@@ -240,7 +240,7 @@ cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size)
 	return ret;
 }
 
-cl_int init_raster_cl(raster_t *fb, const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
+void init_raster_cl(raster_t *fb, const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
 {
 	cl_int ret;
 
@@ -346,6 +346,8 @@ cl_int init_fb_cl(raster_t *fb)
 	fb->data_alloc_table_as = 500 * 1024*1024;
 	fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, fb->data_alloc_table_as, NULL, &ret);
 	CL_ERR_RET("clCreateBuffer (in init_fb_cl, for fb->data_cl)", ret);
+
+	return ret;
 }
 
 #endif

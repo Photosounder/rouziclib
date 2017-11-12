@@ -5,13 +5,17 @@ typedef struct
 } glyphdata_t;
 
 extern void font_alloc_one(vector_font_t *font);
+extern void font_create_letter(vector_font_t *font, uint32_t cp);
+extern void font_remove_letter(vector_font_t *font, uint32_t cp);
 extern void add_codepoint_letter_lut_reference(vector_font_t *font);
 extern void process_glyphdata(vector_font_t *font, letter_t *l, glyphdata_t *gd);
 extern void make_glyph_vobj(letter_t *l, glyphdata_t *gd);
 extern void process_one_glyph(vector_font_t *font, int i);
 extern vector_font_t *make_font(char *index_path);
+extern void clear_font_vobjs(vector_font_t *font);
 extern void free_font(vector_font_t *font);
 extern vector_font_t *remake_font(char *index_path, vector_font_t *oldfont);
+extern void save_font(vector_font_t *font, char *index_path);
 
 /*
 Available commands in range files:

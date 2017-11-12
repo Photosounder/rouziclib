@@ -22,3 +22,4 @@ extern void draw_string(raster_t fb, vector_font_t *font, char *string, xy_t p, 
 extern void print_to_screen_fullarg(raster_t fb, zoom_t zc, vector_font_t *font, xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, double line_thick, const char *format, ...);
 
 #define print_to_screen(pos, scale, colour, intensity, mode, format, ...)	print_to_screen_fullarg(fb, zc, font, pos, scale, colour, intensity, mode, drawing_thickness, format, __VA_ARGS__)
+//#define print_to_screen(pos, scale, colour, intensity, mode, format, ...)

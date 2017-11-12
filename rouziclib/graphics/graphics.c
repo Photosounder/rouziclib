@@ -58,6 +58,44 @@ raster_t make_raster_f(frgb_t *f, int32_t w, int32_t h)
 	return r;
 }
 
+raster_t make_raster(void *data, int32_t w, int32_t h, const int mode)	// mode is IMAGE_USE_xRGB (S, L, F)
+{
+	if (mode & IMAGE_USE_LRGB)
+		return make_raster_l(data, w, h);
+	else						// if (mode & IMAGE_USE_FRGB)
+		return make_raster_f(data, w, h);
+}
+
+raster_t copy_raster(raster_t r0)
+{
+	raster_t r1;
+
+	r1 = r0;
+
+	r1.l = copy_alloc(r0.l, r0.w*r0.h*sizeof(lrgb_t));
+	r1.f = copy_alloc(r0.f, r0.w*r0.h*sizeof(frgb_t));
+	r1.srgb = copy_alloc(r0.srgb, r0.w*r0.h*sizeof(srgb_t));
+
+	return r1;
+}
+
+void cl_copy_raster_to_device(raster_t fb, raster_t r)
+{
+#ifdef RL_OPENCL
+	cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, r.clbuf_da, r.w*r.h*4*sizeof(float), r.f, 0, NULL, NULL);
+	CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_raster_to_device, for fb.data_cl)", ret);
+#endif
+}
+
+void *get_raster_buffer_for_mode(raster_t r, const int mode)	// mode is IMAGE_USE_xRGB (S, L, F)
+{
+	if (mode & IMAGE_USE_SRGB)	return r.srgb;
+	if (mode & IMAGE_USE_LRGB)	return r.l;
+	if (mode & IMAGE_USE_FRGB)	return r.f;
+
+	return NULL;
+}
+
 void free_raster(raster_t *r)
 {
 	free (r->l);
