@@ -40,6 +40,11 @@ extern "C" {
 #include <emscripten.h>
 #endif
 
+#ifdef _WIN32
+#define _WINSOCKAPI_	// prevents Winsock.h / Winsock2.h conflict
+#include <windows.h>
+#endif
+
 // Structs and includes needed elsewhere
 #include "general/structs.h"
 #include "general/xyz_struct.h"
@@ -93,6 +98,7 @@ extern "C" {
 #include "graphics/drawqueue.h"
 #include "graphics/processing.h"
 #include "vector/vector.h"
+#include "vector/polyline.h"
 
 #include "text/unicode_data.h"			// needs RL_INCL_UNICODE_DATA to be defined
 #include "text/unicode.h"
@@ -104,7 +110,6 @@ extern "C" {
 #include "text/edit.h"
 #include "text/undo.h"
 #include "vector_type/vector_type.h"
-#include "vector/polyline.h"
 
 #include "gui/zoom.h"
 #include "gui/focus.h"
@@ -119,26 +124,29 @@ extern "C" {
 
 #include "fileio/open.h"
 #include "fileio/image.h"
+#include "fileio/path.h"
 #include "fileio/dir.h"
 #include "fileio/file_management.h"
+#include "fileio/process.h"
 
 // used unless RL_EXCL_NETWORK is defined
 #include "network/network.h"
 #include "network/http.h"	// may need RL_ZLIB
 
-#include "libraries/mpfr.h"
-#include "libraries/opencl.h"	// unused unless RL_OPENCL is defined
-#include "libraries/opencv.h"	// unused unless RL_OPENCV is defined
-#include "libraries/sdl.h"	// unused unless RL_SDL is defined
-#include "libraries/devil.h"	// unused unless RL_DEVIL is defined
-#include "libraries/clfft.h"	// unused unless RL_CLFFT is defined
-#include "libraries/ffmpeg.h"	// unused unless RL_FFMPEG is defined
-#include "libraries/libraw.h"	// unused unless RL_LIBRAW is defined
-#include "libraries/libjpeg.h"	// unused unless RL_LIBJPEG is defined
-#include "libraries/zlib.h"	// unused unless RL_ZLIB is defined
-#include "libraries/fftpack.h"
-#include "libraries/tinycthread.h"
-#include "libraries/threading.h"
+#include "libraries/opencl.h"		// unused unless RL_OPENCL is defined
+#include "libraries/opencv.h"		// unused unless RL_OPENCV is defined
+#include "libraries/sdl.h"		// unused unless RL_SDL is defined
+#include "libraries/devil.h"		// unused unless RL_DEVIL is defined
+#include "libraries/clfft.h"		// unused unless RL_CLFFT is defined
+#include "libraries/ffmpeg.h"		// unused unless RL_FFMPEG is defined
+#include "libraries/libsndfile.h"	// unused unless RL_LIBSNDFILE is defined
+#include "libraries/libraw.h"		// unused unless RL_LIBRAW is defined
+#include "libraries/libjpeg.h"		// unused unless RL_LIBJPEG is defined
+#include "libraries/zlib.h"		// unused unless RL_ZLIB is defined
+#include "libraries/mpfr.h"		// unused unless RL_MPFR is defined
+#include "libraries/fftpack.h"		// used unless RL_EXCL_FFTPACK is defined
+#include "libraries/tinycthread.h"	// unused unless RL_TINYCTHREAD is defined
+#include "libraries/threading.h"	// unused unless RL_TINYCTHREAD is defined
 
 
 #ifdef __cplusplus

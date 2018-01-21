@@ -16,6 +16,7 @@ extern int textedit_find_prev_linebreak(textedit_t *te);
 extern int textedit_find_next_linebreak(textedit_t *te);
 extern int textedit_find_prev_wordstart(textedit_t *te);
 extern int textedit_find_next_wordstart(textedit_t *te);
+extern void textedit_set_new_text(textedit_t *te, char *str);
 extern void textedit_add(textedit_t *te, char *str, int32_t cmd, int32_t mod);
 extern void test_textedit_add();
 extern int ctrl_textedit_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, textedit_t *te, rect_t box, col_t colour);

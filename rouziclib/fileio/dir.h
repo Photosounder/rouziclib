@@ -12,5 +12,7 @@ extern int export_subfiles_to_path(char *path, fs_dir_t *dir);
 extern void export_whole_dir_flat_to_file(FILE *file, fs_dir_t *dir, const int show_dirs, const int path_start);
 extern int export_whole_dir_flat_to_path(char *path, fs_dir_t *dir, const int show_dirs, const int remove_path);
 extern int dirent_test(char *path);
+extern int64_t get_volume_free_space(char *path);
+extern double get_volume_free_space_gb(char *path);
 
 #define sprint_dir_depth(dir, current_depth)	sprint_dir_depth_fullarg(dir, current_depth, NULL, NULL)

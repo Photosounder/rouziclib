@@ -1,8 +1,12 @@
-#ifdef MPFR_VERSION	// is automatically included if MPFR is present
+#ifdef RL_MPFR
 
-#ifndef MPFR
-#define MPFR
+#ifdef _MSC_VER
+#pragma comment (lib, "mpfr.lib")	// check if correct
 #endif
+
+#include <gmp.h>
+#include <mpfr.h>
+#include <mpf2mpfr.h>
 
 #define real	mpfr_t
 

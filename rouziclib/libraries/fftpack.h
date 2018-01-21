@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_FFTPACK
+
 typedef struct
 {
 	double *plan, *plan_backup;	// FFT plan and its backup
@@ -9,3 +11,5 @@ typedef struct
 extern void fftp(double *in, double *out, int n, int method, fft_plan_t *plan);
 extern fft_plan_t alloc_fft_plan(int fft_size, int alloc_size);
 extern void free_fft_plan(fft_plan_t *plan);
+
+#endif

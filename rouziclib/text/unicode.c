@@ -1,3 +1,5 @@
+// UTF-8
+
 int utf8_char_size(uint8_t *c)
 {
 	const uint8_t	m0x	= 0x80, c0x	= 0x00,
@@ -154,4 +156,123 @@ int find_next_utf8_char(uint8_t *str, int pos)
 	}
 
 	return pos;
+}
+
+// UTF-16
+
+size_t strlen_utf16(const uint16_t *str)
+{
+	size_t i;
+
+	for (i=0; ; i++)
+		if (str[i]==0)
+			return i;
+}
+
+int utf16_char_size(uint16_t *c)
+{
+	if (c[0] <= 0xD7FF || c[0] >= 0xE000)
+		return 1;
+	else
+		return 2;
+}
+
+int codepoint_utf16_size(uint32_t c)
+{
+	if (c < 0x10000) return 1;
+	if (c < 0x110000) return 2;
+
+	return 0;
+}
+
+uint32_t utf16_to_unicode32(uint16_t *c, int32_t *index)
+{
+	uint32_t v;
+	int size;
+
+	size = utf16_char_size(c);
+
+	if (size > 0 && index)
+		*index += size-1;
+
+	switch (size)
+	{
+		case 1:
+			v = c[0];
+			break;
+		case 2:
+			v = c[0] & 0x3FF;
+			v = v << 10 | (c[1] & 0x3FF);
+			v += 0x10000;
+			break;
+	}
+
+	return v;
+}
+
+uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold new 3 bytes and will be null-terminated by this function
+{
+	int c_size;
+
+	c_size = codepoint_utf16_size(c);
+
+	switch (c_size)
+	{
+		case 1:
+			str[0] = c;
+			str[1] = '\0';
+			break;
+
+		case 2:
+			c -= 0x10000;
+			str[0] = 0xD800 + (c >> 10);
+			str[1] = 0xDC00 + (c & 0x3FF);
+			str[2] = '\0';
+			break;
+
+		default:
+			str[0] = '\0';
+	}
+
+	return str;
+}
+
+uint16_t *utf8_to_utf16(uint8_t *utf8, uint16_t *utf16)
+{
+	int i, j, len;
+	uint32_t c;
+
+	len = strlen(utf8);
+
+	if (utf16==NULL)
+		utf16 = calloc(len+1, sizeof(uint16_t));
+
+	for (i=0, j=0; i <= len; i++)
+	{
+		c = utf8_to_unicode32(&utf8[i], &i);
+		sprint_utf16(&utf16[j], c);
+		j += codepoint_utf16_size(c);
+	}
+
+	return utf16;
+}
+
+uint8_t *utf16_to_utf8(uint16_t *utf16, uint8_t *utf8)
+{
+	int i, j, len;
+	uint32_t c;
+
+	len = strlen_utf16(utf16);
+
+	if (utf8==NULL)
+		utf8 = calloc(len*4+1, sizeof(uint8_t));
+
+	for (i=0, j=0; i <= len; i++)
+	{
+		c = utf16_to_unicode32(&utf16[i], &i);
+		sprint_unicode(&utf8[j], c);
+		j += codepoint_utf8_size(c);
+	}
+
+	return utf8;
 }

@@ -1,3 +1,5 @@
+#ifdef RL_TINYCTHREAD
+
 /* -*- mode: c; tab-width: 2; indent-tabs-mode: nil; -*-
 Copyright (c) 2012 Marcus Geelnard
 Copyright (c) 2013-2016 Evan Nemerson
@@ -477,3 +479,5 @@ int tss_set(tss_t key, void *val);
 #endif
 
 #endif /* _TINYTHREAD_H_ */
+
+#endif

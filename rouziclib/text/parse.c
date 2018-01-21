@@ -135,58 +135,6 @@ char *remove_after_char_copy(char *string, char c)	// makes a cut copy of a stri
 	return cut;
 }
 
-char *remove_name_from_path(char *dirpath, char *fullpath)	// removes the file or dir name after DIR_CHAR and DIR_CHAR itself
-{
-	char *p;
-	int len;
-
-	p = strrchr(fullpath, DIR_CHAR);
-	if (p == NULL)
-		return NULL;
-
-	len = p - fullpath;
-
-	if (dirpath==NULL)
-		dirpath = calloc(len + 1, sizeof(char));
-
-	memcpy(dirpath, fullpath, len);
-	dirpath[len] = 0;
-
-	return dirpath;
-}
-
-char *append_name_to_path(char *dest, char *path, char *name)	// appends properly regardless of how path is ended
-{
-	int path_len, name_len, path_has_dirchar=0;
-
-	path_len = strlen(path);
-	name_len = strlen(name);
-
-	if (path_len > 0)
-		if (path[path_len-1] == DIR_CHAR)
-			path_has_dirchar = 1;
-
-	if (dest==NULL)
-		dest = calloc(path_len + name_len + 2, sizeof(char));
-	
-	if (dest==path)		// in-place appending
-	{
-		if (path_has_dirchar)
-			sprintf(&path[path_len], "%s", name);
-		else
-			sprintf(&path[path_len], "%c%s", DIR_CHAR, name);
-	}
-	else
-	{
-		if (path_has_dirchar)
-			sprintf(dest, "%s%s", path, name);
-		else
-			sprintf(dest, "%s%c%s", path, DIR_CHAR, name);
-	}
-
-	return dest;
-}
-
 char **arrayise_text(char *text, int *linecount)	// turns line breaks into null chars, makes an array of pointers to the beginning of each lines
 {
 	int i, ia, len;

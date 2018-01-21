@@ -131,6 +131,24 @@ double Lab_L_invert(double x)
 	return Lab_L_to_linear(1. - linear_to_Lab_L(x));
 }
 
+frgb_t col_invert_linear_f(frgb_t c)
+{
+	c.r = 1. - c.r;
+	c.g = 1. - c.g;
+	c.b = 1. - c.b;
+
+	return c;
+}
+
+frgb_t col_invert_Lab_f(frgb_t c)
+{
+	c.r = Lab_L_invert(c.r);
+	c.g = Lab_L_invert(c.g);
+	c.b = Lab_L_invert(c.b);
+
+	return c;
+}
+
 void rgb_to_hsl_cw(double Wr, double Wg, double Wb, double r, double g, double b, double *H, double *S, double *L, int huemode)
 {
 	double satv[4], cmin, cmax;		// saturated colours

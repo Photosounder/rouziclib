@@ -235,7 +235,8 @@ double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *strin
 {
 	int nlines=0;
 	double maxwidth, maxscale;
-	xy_t boxdim, p;
+	xy_t boxdim, p, fitdim;
+	rect_t fitrect;
 
 	if (string == NULL)
 		return 0.;
@@ -244,14 +245,19 @@ double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *strin
 	border *= rect_min_side(box);
 	box.p1 = sub_xy(box.p1, set_xy(border));		// remove the border
 	box.p0 = add_xy(box.p0, set_xy(border));
-	boxdim = get_rect_dim(box);			// box size
+	boxdim = get_rect_dim(box);				// box size
 
-	maxwidth = find_string_maxwidth_and_nlines(font, string, mode, &nlines, 1);	// get maxwidth (of the longest line) and number of lines
+	maxwidth = find_string_maxwidth_and_nlines(font, string, mode, &nlines, 1) + 4.;	// get maxwidth (of the longest line) and number of lines
 
-	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*LINEVSPACING));		// find the scale needed for the text to fit the box with this many lines
+	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*LINEVSPACING));			// find the scale needed for the text to fit the box with this many lines
 	scale = MINN(scale, maxscale);
 
+	fitdim = mul_xy( set_xy(scale) , xy(maxwidth, nlines*LINEVSPACING) );
+	fitrect = make_rect_off( box.p0, fitdim, XY0 );
+	//draw_rect_full(fb, fitrect, line_thick, colour, intensity);
+
 	p = box.p0;
+	p.x += 2.*scale;
 	p.y += 8.*scale;
 	draw_string(fb, font, string, p, scale, colour, intensity, line_thick, mode, tp);
 

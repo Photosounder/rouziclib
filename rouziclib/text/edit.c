@@ -22,6 +22,8 @@ textedit_t string_to_textedit(char *string)
 	te.string = string;
 	te.alloc_size = strlen(string)+1;
 	te.max_scale = 1e30;
+	
+	te.curpos = strlen(string);
 
 	return te;
 }
@@ -116,6 +118,23 @@ int textedit_find_next_wordstart(textedit_t *te)
 			if (te->string[i+1]!=' ' && te->string[i+1]!='\t' && te->string[i+1]!='\n')
 				return i+1;
 	}
+}
+
+void textedit_set_new_text(textedit_t *te, char *str)	// sets a whole new text from the string
+{
+	int32_t sel0, sel1, len;
+
+	if (te==NULL)
+		return ;
+
+	textundo_update(te, 1);		// save the current state in undo
+
+	len = strlen(str);
+	alloc_enough(&te->string, len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
+	strcpy(te->string, str);							// copying of str
+	
+	te->curpos = len;
+	te->sel0 = te->sel1 = 0;
 }
 
 void textedit_add(textedit_t *te, char *str, int32_t cmd, int32_t mod)
@@ -383,10 +402,13 @@ int ctrl_textedit_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 
 	intensity *= intensity_scaling(total_scale, 100.);
 
-	draw_string_bestfit_asis(fb, font, te->string, sc_rect(box), 1./16., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
+	draw_string_bestfit_asis(fb, font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
 	//draw_string_bestfit(fb, font, te->string, sc_rect(box), 0., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
 	//draw_string_fixed_thresh(fb, font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
 	//draw_rect_chamfer(fb, sc_rect(box), drawing_thickness, colour, blend_add, 0.5*intensity, 1./12.);
+
+	if (te->rect_brightness > 0.)
+		draw_rect(fb, sc_rect(box), drawing_thickness, colour, blend_add, intensity * te->rect_brightness);
 
 	if (mouse.b.clicks==1)
 	{

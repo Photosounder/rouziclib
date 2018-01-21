@@ -8,6 +8,12 @@ char *make_string_copy(const char *orig)
 	return copy;
 }
 
+void strcpy_then_free(char *dest, char *src)
+{
+	strcpy(dest, src);
+	free(src);
+}
+
 char *replace_char(char *str, char find, char replace)	// ASCII replacement of one char with another
 {
 	char *current_pos = strchr(str,find);

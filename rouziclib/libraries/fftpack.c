@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_FFTPACK
+
 void radb2(int32_t ido, int32_t l1, double *cc, 
 	double *ch, double *wa1)
 {
@@ -1990,3 +1992,5 @@ void free_fft_plan(fft_plan_t *plan)
 
 	memset(plan, 0, sizeof(fft_plan_t));
 }
+
+#endif

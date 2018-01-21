@@ -34,14 +34,20 @@ void load_dir(char *path, fs_dir_t *dir)
 	if (dir->subfile) free (dir->subfile);	dir->subfile = NULL;
 
 	if (dir_count(path, &dir->subdir_count, &dir->subfile_count) < 0)
+	{
+		fprintf_rl(stderr, "Couldn't dir_count(%s, ... )\n", path);
 		return ;
+	}
 
 	dir->subdir = calloc(dir->subdir_count, sizeof(fs_dir_t));
 	dir->subfile = calloc(dir->subfile_count, sizeof(fs_file_t));
 
 	dirp = opendir(path);
 	if (dirp == NULL)
+	{
+		fprintf_rl(stderr, "Couldn't opendir(%s)\n", path);
 		return ;
+	}
 
 	dir->path = calloc(strlen(path)+1, sizeof(char));
 	strcpy(dir->path, path);
@@ -206,11 +212,14 @@ void export_whole_dir_flat_to_file(FILE *file, fs_dir_t *dir, const int show_dir
 	int i;
 	char *printed_path, dir_char[2];
 
+	if (dir->path==NULL)
+		return ;
+
 	sprintf(dir_char, "%c", DIR_CHAR);
 	printed_path = &dir->path[path_start];
 	if (printed_path[0] == '\0')		// hide the DIR_CHAR if the printed_path is to be empty
 		dir_char[0] = '\0';
-	else
+	else if (printed_path[0] == DIR_CHAR)
 		printed_path++;			// else remove the remaining DIR_CHAR
 
 	for (i=0; i<dir->subdir_count; i++)
@@ -231,6 +240,9 @@ void export_whole_dir_flat_to_file(FILE *file, fs_dir_t *dir, const int show_dir
 int export_whole_dir_flat_to_path(char *path, fs_dir_t *dir, const int show_dirs, const int remove_path)
 {
 	FILE *file;
+
+	if (dir->path==NULL)
+		return 0;
 
 	file = fopen_utf8(path, "wb");
 	if (file == NULL)
@@ -302,8 +314,7 @@ int64_t get_volume_free_space(char *path)
 
 	utf8_to_wchar(path, wpath);
 
-	//if (GetDiskFreeSpaceExW(wpath, &free_space, NULL, NULL)==0)
-	if (GetDiskFreeSpaceExA(path, &free_space, NULL, NULL)==0)
+	if (GetDiskFreeSpaceExW(wpath, &free_space, NULL, NULL)==0)
 	{
 		fprintf_rl(stderr, "GetLastError() in get_volume_free_space(): %d\n", GetLastError());
 		return -1;
@@ -318,4 +329,16 @@ int64_t get_volume_free_space(char *path)
 
 	return (int64_t) stats.f_bsize * stats.f_bavail;
 #endif
+}
+
+double get_volume_free_space_gb(char *path)
+{
+	int64_t bytes;
+
+	bytes = get_volume_free_space(path);
+
+	if (bytes < 0)
+		return NAN;
+
+	return (double) bytes / (1024.*1024.*1024.);
 }

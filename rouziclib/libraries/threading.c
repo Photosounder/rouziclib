@@ -1,3 +1,5 @@
+#ifdef RL_TINYCTHREAD
+
 int thrd_create_detached(thrd_start_t func, void *arg)
 {
 	int ret;
@@ -20,3 +22,5 @@ int thrd_create_detached(thrd_start_t func, void *arg)
 
 	return ret;
 }
+
+#endif

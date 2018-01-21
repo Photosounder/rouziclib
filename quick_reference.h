@@ -52,6 +52,13 @@
 		ctrl_knob(&value, make_knob("Knob name", default_value, knobf_linear, min_value, max_value, VALFMT_DEFAULT), box, colour);
 
 	// Text editor
+		static textedit_t te;
+
+		if (init)
+			textedit_init(&te);
+			// or
+			te = string_to_textedit(make_string_copy(string));
+
 		// returns 1 if Enter (or sometimes Tab) is pressed
 		if (ctrl_textedit(&te, offset_scale_rect(box, offset, sm), colour))
 

@@ -19,7 +19,7 @@ typedef struct
 	xy_t click;
 	xy_t cur_screen_pos, cur_screen_pos_prev;
 	int click_on;
-	double max_scale;
+	double max_scale, rect_brightness;
 	textundo_t undo;
 	int edit_mode, return_flag, draw_string_mode;
 } textedit_t;

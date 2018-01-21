@@ -4,52 +4,60 @@
 
 int create_symlink(const char *oldname, const char *newname, const int is_dir)	// returns 0 if successful
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	wchar_t oldname_wc[PATH_MAX*4], newname_wc[PATH_MAX*4];
 
 	utf8_to_wchar(oldname, oldname_wc);
 	utf8_to_wchar(newname, newname_wc);
 	return CreateSymbolicLinkW(newname_wc, oldname_wc, is_dir) == 0;
-#else
+
+	#else
+
 	return symlink(oldname, newname);
-#endif
+	#endif
 }
 
 int create_dir(const char *path)	// returns 0 if successful
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	wchar_t wpath[PATH_MAX*4];
 
 	utf8_to_wchar(path, wpath);
 	return CreateDirectoryW(wpath, NULL) == 0;
-#else
+
+	#else
+
 	return mkdir(path, 0755);
-#endif
+	#endif
 }
 
 int move_file(const char *path, const char *newpath)	// returns 0 if successful
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	wchar_t wpath[PATH_MAX*4], wnewpath[PATH_MAX*4];
 
 	utf8_to_wchar(path, wpath);
 	utf8_to_wchar(newpath, wnewpath);
 	return MoveFileW(wpath, wnewpath)==0;
-#else
+
+	#else
+
 	return rename(path, newpath);
-#endif
+	#endif
 }
 
 int remove_file(const char *path)	// returns 0 if successful
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	wchar_t wpath[PATH_MAX*4];
 
 	utf8_to_wchar(path, wpath);
 	return _wremove(wpath);
-#else
+
+	#else
+
 	return remove(path);
-#endif
+	#endif
 }
 
 int remove_every_file(const char *path)		// returns 0 if successful on every single file
@@ -69,4 +77,26 @@ int remove_every_file(const char *path)		// returns 0 if successful on every sin
 	free_dir(&dir);
 
 	return ret;
+}
+
+void system_open(const char *path)
+{
+	#ifdef _WIN32
+	wchar_t path_w[PATH_MAX];
+
+	utf8_to_wchar(path, path_w);
+	ShellExecuteW(NULL, L"open", path_w, NULL, NULL, SW_SHOWNORMAL);
+	#endif
+
+	#ifdef __APPLE__
+	char command[PATH_MAX+5];
+
+	sprintf(command, "open \"%s\"", path);
+	system(command);
+
+	/*NSURL *fileURL = [NSURL fileURLWithPath: [NSString stringWithUTF8String:path]];
+	
+	NSWorkspace *ws = [NSWorkspace sharedWorkspace];
+	[ws openURL: fileURL];*/
+	#endif
 }

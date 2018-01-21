@@ -25,6 +25,8 @@ enum
 	#define col_to_rgb		frgb_to_rgb
 	#define col_to_xyz		frgb_to_xyz
 	#define col_to_hsl		frgb_to_hsl
+	#define col_invert_linear	col_invert_linear_f
+	#define col_invert_Lab		col_invert_Lab_f
 #else
 	#define col_t			lrgb_t
 	#define make_colour		make_colour_lin
@@ -55,6 +57,8 @@ extern double frgb_to_grey_level(frgb_t p);
 extern double Lab_L_to_linear(double t);
 extern double linear_to_Lab_L(double t);
 extern double Lab_L_invert(double x);
+extern frgb_t col_invert_linear_f(frgb_t c);
+extern frgb_t col_invert_Lab_f(frgb_t c);
 extern void rgb_to_hsl_cw(double Wr, double Wg, double Wb, double r, double g, double b, double *H, double *S, double *L, int huemode);
 extern void rgb_to_hsl(double r, double g, double b, double *H, double *S, double *L, int huemode);
 extern void hsl_to_rgb_cw(double Wr, double Wg, double Wb, double H, double S, double L, double *r, double *g, double *b, int huemode, int secboost);

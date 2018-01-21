@@ -69,8 +69,10 @@
 
 #include "fileio/open.c"
 #include "fileio/image.c"
+#include "fileio/path.c"
 #include "fileio/dir.c"
 #include "fileio/file_management.c"
+#include "fileio/process.c"
 
 #include "network/network.c"
 #include "network/http.c"
@@ -81,6 +83,7 @@
 #include "libraries/devil.c"
 #include "libraries/clfft.c"
 #include "libraries/ffmpeg.c"
+#include "libraries/libsndfile.c"
 #include "libraries/libraw.c"
 #include "libraries/libjpeg.c"
 #include "libraries/zlib.c"
