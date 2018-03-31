@@ -7,7 +7,7 @@ glyph 221A
 	p3	0	0
 	p4	2;4	7
 	p5	2;9	7
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
 	bounds	-2 2
 
 glyph 221B
@@ -35,7 +35,7 @@ glyph 223C
 	p2	-0;9	3;4
 	p3	0;9	2;8
 	p4	1;6	3
-	lines p1 p2 p3 p4
+	lines p1 to p4
 
 glyph 223D
 	copy 223C
@@ -57,3 +57,4 @@ glyph 2260
 	copy '/'
 	scale	0;6 0;8	0 3
 	copy '='
+

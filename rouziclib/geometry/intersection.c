@@ -310,3 +310,20 @@ int check_box_wholly_inside_circle(rect_t box, xy_t circ, double rad)
 
 	return d2 < rad*rad;
 }
+
+int check_pixel_within_image(xyi_t pos, xyi_t im_dim)
+{
+	if (pos.x < 0)
+		return 0;
+
+	if (pos.y < 0)
+		return 0;
+
+	if (pos.x >= im_dim.x)
+		return 0;
+
+	if (pos.y >= im_dim.y)
+		return 0;
+
+	return 1;
+}

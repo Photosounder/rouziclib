@@ -1,4 +1,4 @@
-bool check_image_bounds(int2 pi, int2 im_dim)
+/*bool check_image_bounds(int2 pi, int2 im_dim)
 {
 	if (pi.x >= 0 && pi.x < im_dim.x)
 		if (pi.y >= 0 && pi.y < im_dim.y)
@@ -50,9 +50,67 @@ float4 image_interp_linear(global float4 *im, int2 im_dim, float2 pif)
 	pv += get_image_pixel_weighted_linear(im, im_dim, pif, pif00 + (float2)(1.f, 1.f));
 
 	return pv;
+}*/
+
+float4 read_sqrgb_pixel(global uint *im, int index)
+{
+	float4 pv;
+	uint4 pvi;
+	uint v;
+	const float mul_rb = 1.f / (1023.f*1023.f);
+	const float mul_g = 1.f / (4092.f*4092.f);
+	const float4 mul_pvi = (float4) (mul_rb, mul_g, mul_rb, 1.f);
+
+	v = im[index];
+	pvi.z = v >> 22;
+	pvi.y = (v >> 10) & 4095;
+	pvi.x = v & 1023;
+	pvi.w = 1;
+
+	pv = convert_float4(pvi*pvi) * mul_pvi;
+
+	return pv;
 }
 
-float4 blit_sprite(global uint *lei, global uchar *data_cl, float4 pv)
+float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float2 pif, float2 pscale, float2 slope)
+{
+	float4 pv = 0.f;
+	float2 knee, i, start, end, d, w;
+
+	knee = 0.5f - fabs(fmod(pscale, 1.f) - 0.5f);
+
+	start = max(0.f, ceil(pif - pscale));
+	end = min(convert_float2(im_dim - 1), floor(pif + pscale));
+
+	if (fmt==0)	// frgb_t
+		for (i.y = start.y; i.y <= end.y; i.y+=1.f)
+		{
+			for (i.x = start.x; i.x <= end.x; i.x+=1.f)
+			{
+				d = fabs(pif - i);
+				d = max(d, knee);
+				w = slope * (d - pscale);
+
+				pv += im[(int) i.y * im_dim.x + (int) i.x] * w.x*w.y;
+			}
+		}
+	else		// sqrgb_t
+		for (i.y = start.y; i.y <= end.y; i.y+=1.f)
+		{
+			for (i.x = start.x; i.x <= end.x; i.x+=1.f)
+			{
+				d = fabs(pif - i);
+				d = max(d, knee);
+				w = slope * (d - pscale);
+
+				pv += read_sqrgb_pixel(im, (int) i.y * im_dim.x + (int) i.x) * w.x*w.y;
+			}
+		}
+
+	return pv;
+}
+
+/*float4 blit_sprite_bilinear(global uint *lei, global uchar *data_cl, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
@@ -62,10 +120,7 @@ float4 blit_sprite(global uint *lei, global uchar *data_cl, float4 pv)
 	int2 im_dim;
 	float2 pscale, pos, pif;
 
-	//im = (global float4 *) ((global ulong *) lei)[0];		// global address for the start of the image
-	//im = (global float4 *) &data_cl[((global ulong *) lei)[0]];	// *lei has the 64-bit offset (in bytes) in data_cl where the image data starts
 	im = (global float4 *) &data_cl[lei[0]+(lei[1]<<32)];
-	//im = data_cl;
 	im_dim.x = lei[2];
 	im_dim.y = lei[3];
 	pscale.x = lef[4];
@@ -78,9 +133,38 @@ float4 blit_sprite(global uint *lei, global uchar *data_cl, float4 pv)
 	pv += image_interp_linear(im, im_dim, pif);
 
 	return pv;
+}*/
+
+float4 blit_sprite_flattop(global uint *lei, global uchar *data_cl, float4 pv)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const float2 pf = convert_float2(p);
+	global float *lef = lei;
+	global ulong *lel = lei;
+	global float4 *im;
+	int2 im_dim;
+	int fmt;
+	float2 pscale, pos, pif, slope;
+
+	im = (global float4 *) &data_cl[lei[0]+(lei[1]<<32)];
+	im_dim.x = lei[2];
+	im_dim.y = lei[3];
+	pscale.x = lef[4];
+	pscale.y = lef[5];
+	pos.x = lef[6];
+	pos.y = lef[7];
+	fmt = lei[8];
+	slope.x = lef[9];
+	slope.y = lef[10];
+
+	pif = pscale * (pf + pos);
+	pscale = max(1.f, pscale);
+	pv += image_filter_flattop(im, im_dim, fmt, pif, pscale, slope);
+
+	return pv;
 }
 
-float2 set_new_distance_from_point(float2 p0, float2 pc, float dist_mul)
+/*float2 set_new_distance_from_point(float2 p0, float2 pc, float dist_mul)
 {
 	return pc + (p0 - pc) * dist_mul;
 }
@@ -133,4 +217,4 @@ float4 blit_photo(global uint *lei, global uchar *data_cl, float4 pv)
 	pv += gain * image_interp_linear(im, im_dim, pif);
 
 	return pv;
-}
+}*/

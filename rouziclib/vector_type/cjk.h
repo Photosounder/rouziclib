@@ -2,7 +2,7 @@
 
 extern void cjkdec_load_data(char *path, vector_font_t *font);
 extern int is_cjkdec_glyph(vector_font_t *font, uint32_t c);
-extern int draw_cjkdec_glyph(raster_t fb, vector_font_t *font, uint32_t c, xy_t p, double scale, col_t colour, double line_thick, const int mode);
+extern int draw_cjkdec_glyph(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, double scale, col_t colour, double line_thick, const int mode);
 extern void make_cjkdec_vobj(vector_font_t *font, letter_t *l);
 
 extern const char *cjkdec_type_name[];

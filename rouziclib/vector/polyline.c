@@ -1,4 +1,4 @@
-int ctrl_polyline_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_polyline_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
 {
 	xy_t pos;
@@ -36,7 +36,7 @@ int ctrl_polyline_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	for (i=0; i < pl->pv_count; i++)
 	{
 		sprintf(ds_label, "p%d", i);
-		if (ctrl_draggable(&pl->ds[i], ds_label, set_xy(0.25 * sm), make_grey(0.25)))
+		if (ctrl_draggable(&pl->ds[i], set_xy(0.25 * sm)))
 			pl->pv[i] = offset_scale_inv(pl->ds[i].pos, offset, sm);
 
 		// Erase a point and any line referencing it
@@ -72,7 +72,7 @@ int ctrl_polyline_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	}
 
 	for (i=0; i < pl->line_count; i++)
-		draw_line_thin(fb, sc_xy(offset_scale(pl->pv[pl->line[i].x], offset, sm)), sc_xy(offset_scale(pl->pv[pl->line[i].y], offset, sm)), drawing_thickness, make_grey(0.25), blend_add, 1.);
+		draw_line_thin(fb, sc_xy(offset_scale(pl->pv[pl->line[i].x], offset, sm)), sc_xy(offset_scale(pl->pv[pl->line[i].y], offset, sm)), drawing_thickness, GUI_COL_DEF, blend_add, 1.);
 
 	return 0;
 }

@@ -1,4 +1,4 @@
-extern int dialog_enclosing_frame_fullarg(raster_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, xy_t offset, double sm, rect_t main_frame, double margin, char *label, col_t colour);
+extern int dialog_enclosing_frame_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, xy_t offset, double sm, rect_t main_frame, double margin, char *label, col_t colour);
 extern xy_t fit_into_area(rect_t area, rect_t box, double margin, double *sm);
 extern rect_t make_title_rect(rect_t main_frame, double title_pos, double title_height);
 extern xy_t get_grid_position(xy_t orig, int index, xyi_t grid_count, xy_t step, int horizontal);

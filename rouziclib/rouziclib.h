@@ -31,6 +31,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <string.h>
 #include <math.h>
 #include <float.h>
@@ -46,6 +47,8 @@ extern "C" {
 #endif
 
 // Structs and includes needed elsewhere
+#include "libraries/tinycthread.h"		// unused unless RL_TINYCTHREAD is defined
+#include "libraries/threading.h"		// unused unless RL_TINYCTHREAD is defined
 #include "general/structs.h"
 #include "general/xyz_struct.h"
 #include "geometry/rect_struct.h"		// needs xyz
@@ -55,7 +58,7 @@ extern "C" {
 #include "gui/focus_struct.h"
 #include "libraries/opencl_struct.h"		// unused unless RL_OPENCL is defined
 
-#include "graphics/graphics_struct.h"		// needs opencl, xyz
+#include "graphics/graphics_struct.h"		// needs opencl, xyz, tinycthread
 #include "graphics/blending_struct.h"		// needs graphics
 #include "general/mouse_struct.h"		// needs rect, xyz, controls
 #include "gui/zoom_struct.h"			// needs rect, xyz, mouse, graphics
@@ -68,7 +71,6 @@ extern "C" {
 #include "general/time.h"
 #include "general/estimates.h"
 #include "general/mouse.h"
-#include "general/noop.h"
 
 #include "memory/alloc.h"
 #include "memory/circular_buffer.h"
@@ -89,6 +91,7 @@ extern "C" {
 
 #include "graphics/graphics.h"
 #include "graphics/srgb.h"
+#include "graphics/sqrgb.h"
 #include "graphics/colour.h"
 #include "graphics/blending.h"
 #include "graphics/blit.h"
@@ -97,6 +100,8 @@ extern "C" {
 #include "graphics/drawprimitives.h"
 #include "graphics/drawqueue.h"
 #include "graphics/processing.h"
+#include "graphics/mipmap.h"
+#include "graphics/cl_memory.h"
 #include "vector/vector.h"
 #include "vector/polyline.h"
 
@@ -121,9 +126,12 @@ extern "C" {
 #include "gui/knob_functions.h"
 #include "gui/controls.h"
 #include "gui/control_array.h"
+#include "gui/selection.h"
+#include "gui/make_gui.h"
 
 #include "fileio/open.h"
 #include "fileio/image.h"
+#include "fileio/image_bmp.h"
 #include "fileio/path.h"
 #include "fileio/dir.h"
 #include "fileio/file_management.h"
@@ -145,8 +153,8 @@ extern "C" {
 #include "libraries/zlib.h"		// unused unless RL_ZLIB is defined
 #include "libraries/mpfr.h"		// unused unless RL_MPFR is defined
 #include "libraries/fftpack.h"		// used unless RL_EXCL_FFTPACK is defined
-#include "libraries/tinycthread.h"	// unused unless RL_TINYCTHREAD is defined
-#include "libraries/threading.h"	// unused unless RL_TINYCTHREAD is defined
+
+#include "general/noop.h"
 
 
 #ifdef __cplusplus

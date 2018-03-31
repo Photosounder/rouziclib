@@ -1,18 +1,21 @@
 // in geometry/rect_struct.h:
 // rect_t, recti_t
 
-extern rect_t rect(xy_t p0, xy_t p1);
-extern recti_t recti(xyi_t p0, xyi_t p1);
-extern recti_t rect_to_recti(rect_t r);
-extern rect_t recti_to_rect(recti_t ri);
+extern rect_t rect(const xy_t p0, const xy_t p1);
+extern recti_t recti(const xyi_t p0, const xyi_t p1);
+extern recti_t rect_to_recti(const rect_t r);
+extern rect_t recti_to_rect(const recti_t ri);
 extern xy_t rect_p01(rect_t r);
 extern xy_t rect_p10(rect_t r);
 extern xyi_t recti_p01(recti_t r);
 extern xyi_t recti_p10(recti_t r);
+extern void rect_set_p01(rect_t *r, xy_t c);
+extern void rect_set_p10(rect_t *r, xy_t c);
 extern rect_t mul_rect(rect_t r, xy_t m);
 extern recti_t rshift_recti(recti_t r, int sh);
-extern rect_t make_rect_centred(xy_t c, xy_t wh);
-extern rect_t make_rect_off(xy_t c, xy_t wh, xy_t off);
+extern rect_t make_rect_centred(const xy_t c, const xy_t wh);
+extern rect_t make_rect_off(const xy_t pos, const xy_t dim, const xy_t off);
+extern void rect_to_pos_dim(rect_t r, xy_t *pos, xy_t *dim, xy_t off);
 extern xy_t get_rect_centre(rect_t r);
 extern xyi_t get_recti_centre(recti_t r);
 extern xy_t get_rect_dim(rect_t r);
@@ -32,3 +35,4 @@ extern rect_t sort_rect(rect_t r);
 extern recti_t sort_recti(recti_t r);
 extern rect_t add_rect_xy(rect_t r, xy_t a);
 extern int equal_rect(rect_t r1, rect_t r2);
+extern xy_t pos_in_rect_by_ratio(rect_t r, xy_t ratio);

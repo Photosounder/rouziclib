@@ -1,4 +1,4 @@
-int dialog_enclosing_frame_fullarg(raster_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, 
+int dialog_enclosing_frame_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, 
 		xy_t offset, double sm, rect_t main_frame, double margin, char *label, col_t colour)
 {
 	rect_t full_frame, box_os;

@@ -1,40 +1,39 @@
-// closely-spaced ligatures for 10 to 15
-glyph F003A
-	copy '1'
-	move -3;6 0
-	copy '0'
-	move 1;3 0
+glyph E010
+	bounds 0 0
 
-glyph F003B
-	copy '1'
-	move -3 0
-	copy '1'
-	move 1;6 0
+glyph E011
+	bounds 0 1
 
-glyph F003C
-	copy '1'
-	move -3;6 0
-	copy '2'
-	move 1;3 0
+glyph E012
+	bounds 0 2
 
-glyph F003D
-	copy '1'
-	move -4 0
-	copy '3'
-	move 1;6 0
+glyph E013
+	bounds 0 3
 
-glyph F003E
-	copy '1'
-	move -4 0
-	copy '4'
-	move 1;6 0
+glyph E014
+	bounds 0 4
 
-glyph F003F
-	copy '1'
-	move -4 0
-	copy '5'
-	move 1;6 0
+glyph E015
+	bounds 0 5
 
-glyph F2612
-	copy 2610
-	copy '-'
+glyph E016
+	bounds 0 6
+
+glyph E017
+	bounds 0 7
+
+glyph E018
+	bounds 0 8
+
+glyph E019
+	bounds 0 9
+
+glyph E01A
+	bounds 0 10
+
+glyph E01B
+	bounds 0 11
+
+glyph E01C
+	bounds 0 12
+

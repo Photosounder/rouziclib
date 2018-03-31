@@ -163,6 +163,26 @@ double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a 
 	return r;
 }
 
+int64_t double_diff_ulp(double a, double b)	// gives the (signed) difference between two doubles in ulp
+{
+	uint64_t ai = *((uint64_t *) &a);
+	uint64_t bi = *((uint64_t *) &b);
+
+	return ai - bi;
+}
+
+double double_increment_minulp(const double v0, const double inc)	// guarantees a minimal incrementation if the increment is too small to increment anything
+{
+	double v1;
+
+	v1 = v0 + inc;
+
+	if (v1==v0)
+		v1 = double_add_ulp(v0, sign(inc));
+
+	return v1;
+}
+
 double normalised_notation_split(double number, double *m)	// splits number into m * 10^n
 {
 	int logv, neg=0;
@@ -206,4 +226,9 @@ double fabs_max(double a, double b)
 		return a;
 	else
 		return b;
+}
+
+int get_bit_32(const uint32_t word, const int pos)
+{
+	return (word >> pos) & 1;
 }

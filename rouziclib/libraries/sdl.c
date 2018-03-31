@@ -121,6 +121,12 @@ void mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 
 		if (event.window.event==SDL_WINDOWEVENT_FOCUS_LOST)
 			mouse->window_focus_flag = -2;
+
+		if (event.window.event==SDL_WINDOWEVENT_MINIMIZED)
+			mouse->window_minimised_flag = 2;
+
+		if (event.window.event==SDL_WINDOWEVENT_RESTORED)
+			mouse->window_minimised_flag = -2;
 	}
 
 	if (event.type==SDL_MOUSEMOTION)
@@ -252,7 +258,7 @@ SDL_GLContext init_sdl_gl(SDL_Window *window)
 	return ctx;
 }
 
-void sdl_graphics_init_full(raster_t *fb, const char *window_name, xyi_t dim, xyi_t pos, int flags)
+void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t dim, xyi_t pos, int flags)
 {
 	static int init=1;
 	SDL_DisplayMode dm;
@@ -268,19 +274,19 @@ void sdl_graphics_init_full(raster_t *fb, const char *window_name, xyi_t dim, xy
 	fb->w = dim.x;
 	fb->h = dim.y;
 
-	fb->maxw = sdl_screen_max_window_size().x;
-	fb->maxh = sdl_screen_max_window_size().y;
+	fb->maxdim.x = sdl_screen_max_window_size().x;
+	fb->maxdim.y = sdl_screen_max_window_size().y;
 
 	fb->window = SDL_CreateWindow (	window_name,			// window title
-					-fb->maxw-100,			// initial x position
+					-fb->maxdim.x-100,			// initial x position
 					SDL_WINDOWPOS_UNDEFINED,	// initial y position
-					fb->maxw,			// width, in pixels
-					fb->maxh,			// height, in pixels
+					fb->maxdim.x,			// width, in pixels
+					fb->maxdim.y,			// height, in pixels
 					SDL_WINDOW_OPENGL | flags);	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
 	if (fb->window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
 
-	SDL_GetWindowSize(fb->window, &fb->maxw, &fb->maxh);
+	SDL_GetWindowSize(fb->window, &fb->maxdim.x, &fb->maxdim.y);
 
 	if (fb->use_cl)
 	{
@@ -305,12 +311,12 @@ void sdl_graphics_init_full(raster_t *fb, const char *window_name, xyi_t dim, xy
 	if (fb->use_cl==0)
 	{
 		// fb->srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
-		fb->srgb = NULL;//calloc (fb->maxw*fb->maxh, sizeof(srgb_t));
+		fb->r.srgb = NULL;//calloc (fb->maxdim.x*fb->maxdim.y, sizeof(srgb_t));
 
-		if (fb->use_frgb==0)
-			fb->l = calloc (fb->maxw*fb->maxh, sizeof(lrgb_t));
+		if (fb->r.use_frgb==0)
+			fb->r.l = calloc (fb->maxdim.x*fb->maxdim.y, sizeof(lrgb_t));
 		else
-			fb->f = calloc (fb->maxw*fb->maxh, sizeof(frgb_t));
+			fb->r.f = calloc (fb->maxdim.x*fb->maxdim.y, sizeof(frgb_t));
 	}
 
 	#ifdef RL_OPENCL
@@ -321,9 +327,10 @@ void sdl_graphics_init_full(raster_t *fb, const char *window_name, xyi_t dim, xy
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	SDL_SetWindowPosition(fb->window, pos.x, pos.y);
+	fb->r.dim = xyi(fb->w, fb->h);
 }
 
-void sdl_graphics_init_autosize(raster_t *fb, const char *window_name, int flags, int window_index)
+void sdl_graphics_init_autosize(framebuffer_t *fb, const char *window_name, int flags, int window_index)
 {
 	recti_t r;
 

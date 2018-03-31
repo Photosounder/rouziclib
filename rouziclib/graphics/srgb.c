@@ -145,7 +145,7 @@ lut_t bytecheck_lut_init(int border)
 	return bytecheck_l;
 }
 
-void convert_lrgb_to_srgb(raster_t fb, int mode)
+void convert_lrgb_to_srgb(framebuffer_t fb, int mode)
 {
 	int32_t i, id, stop, dither;
 	uint32_t dith_on;
@@ -171,7 +171,7 @@ void convert_lrgb_to_srgb(raster_t fb, int mode)
 	{
 		for (i=0; i<pixc; i++)
 		{
-			p = fb.l[i];
+			p = fb.r.l[i];
 
 			#ifdef _DEBUG
 			if (p.r > ONE)
@@ -184,9 +184,9 @@ void convert_lrgb_to_srgb(raster_t fb, int mode)
 
 			dith_on = p.r+p.g+p.b >= black_threshold;	// 0 if the pixel is black, 1 otherwise
 			dither = dither_l.lutint[id] * dith_on;
-			fb.srgb[i].r = bytecheck_l.lutb[lsrgb_l.lutint[p.r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
-			fb.srgb[i].g = bytecheck_l.lutb[lsrgb_l.lutint[p.g] + dither >> 5];
-			fb.srgb[i].b = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
+			fb.r.srgb[i].r = bytecheck_l.lutb[lsrgb_l.lutint[p.r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
+			fb.r.srgb[i].g = bytecheck_l.lutb[lsrgb_l.lutint[p.g] + dither >> 5];
+			fb.r.srgb[i].b = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
 	
 			id = (id+1) & 0x3FFF;
 	
@@ -201,16 +201,16 @@ void convert_lrgb_to_srgb(raster_t fb, int mode)
 	{
 		for (i=0; i<pixc; i++)
 		{
-			p = fb.l[i];
+			p = fb.r.l[i];
 
-			fb.srgb[i].r = lsrgb_l.lutint[p.r] >> 5;
-			fb.srgb[i].g = lsrgb_l.lutint[p.g] >> 5;
-			fb.srgb[i].b = lsrgb_l.lutint[p.b] >> 5;
+			fb.r.srgb[i].r = lsrgb_l.lutint[p.r] >> 5;
+			fb.r.srgb[i].g = lsrgb_l.lutint[p.g] >> 5;
+			fb.r.srgb[i].b = lsrgb_l.lutint[p.b] >> 5;
 		}
 	}
 }
 
-void convert_frgb_to_srgb(raster_t fb, int mode)
+void convert_frgb_to_srgb(framebuffer_t fb, int mode)
 {
 	int32_t i, id, stop, dither;
 	uint32_t dith_on;
@@ -236,7 +236,7 @@ void convert_frgb_to_srgb(raster_t fb, int mode)
 	{
 		for (i=0; i<pixc; i++)
 		{
-			p = fb.f[i];
+			p = fb.r.f[i];
 
 			#ifdef _DEBUG
 			if (p.r > 1.f)
@@ -249,9 +249,9 @@ void convert_frgb_to_srgb(raster_t fb, int mode)
 
 			dith_on = p.r+p.g+p.b >= black_threshold;	// 0 if the pixel is black, 1 otherwise
 			dither = dither_l.lutint[id] * dith_on;
-			fb.srgb[i].r = bytecheck_l.lutb[lsrgb_fl(p.r, lsrgb_fl_l.lutint) + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
-			fb.srgb[i].g = bytecheck_l.lutb[lsrgb_fl(p.g, lsrgb_fl_l.lutint) + dither >> 5];
-			fb.srgb[i].b = bytecheck_l.lutb[lsrgb_fl(p.b, lsrgb_fl_l.lutint) + dither >> 5];
+			fb.r.srgb[i].r = bytecheck_l.lutb[lsrgb_fl(p.r, lsrgb_fl_l.lutint) + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
+			fb.r.srgb[i].g = bytecheck_l.lutb[lsrgb_fl(p.g, lsrgb_fl_l.lutint) + dither >> 5];
+			fb.r.srgb[i].b = bytecheck_l.lutb[lsrgb_fl(p.b, lsrgb_fl_l.lutint) + dither >> 5];
 	
 			id = (id+1) & 0x3FFF;
 	
@@ -266,26 +266,26 @@ void convert_frgb_to_srgb(raster_t fb, int mode)
 	{
 		for (i=0; i<pixc; i++)
 		{
-			p = fb.f[i];
+			p = fb.r.f[i];
 
-			fb.srgb[i].r = lsrgb_fl(p.r, lsrgb_fl_l.lutint) >> 5;
-			fb.srgb[i].g = lsrgb_fl(p.g, lsrgb_fl_l.lutint) >> 5;
-			fb.srgb[i].b = lsrgb_fl(p.b, lsrgb_fl_l.lutint) >> 5;
+			fb.r.srgb[i].r = lsrgb_fl(p.r, lsrgb_fl_l.lutint) >> 5;
+			fb.r.srgb[i].g = lsrgb_fl(p.g, lsrgb_fl_l.lutint) >> 5;
+			fb.r.srgb[i].b = lsrgb_fl(p.b, lsrgb_fl_l.lutint) >> 5;
 		}
 	}
 }
 
-void convert_linear_rgb_to_srgb(raster_t fb, int mode)
+void convert_linear_rgb_to_srgb(framebuffer_t fb, int mode)
 {
 	if (fb.use_cl)
 		return ;
-	else if (fb.use_frgb)
+	else if (fb.r.use_frgb)
 		convert_frgb_to_srgb(fb, mode);
 	else
 		convert_lrgb_to_srgb(fb, mode);
 }
 
-void convert_srgb_to_lrgb(raster_t fb)
+void convert_srgb_to_lrgb(framebuffer_t fb)
 {
 	int32_t i;
 	static int init=1;
@@ -301,13 +301,13 @@ void convert_srgb_to_lrgb(raster_t fb)
 
 	for (i=0; i<pixc; i++)
 	{
-		fb.l[i].r = slrgb_l.lutint[fb.srgb[i].r];
-		fb.l[i].g = slrgb_l.lutint[fb.srgb[i].g];
-		fb.l[i].b = slrgb_l.lutint[fb.srgb[i].b];
+		fb.r.l[i].r = slrgb_l.lutint[fb.r.srgb[i].r];
+		fb.r.l[i].g = slrgb_l.lutint[fb.r.srgb[i].g];
+		fb.r.l[i].b = slrgb_l.lutint[fb.r.srgb[i].b];
 	}
 }
 
-void convert_frgb_to_lrgb(raster_t *fb)
+void convert_frgb_to_lrgb(framebuffer_t *fb)
 {
 	int32_t i, pixc = fb->w*fb->h*4;
 	const float offset = (float) (1UL << 23-LBD);		// 23 (mantissa) - 15 (fractional bits of the result) = 8 (offset)
@@ -315,11 +315,11 @@ void convert_frgb_to_lrgb(raster_t *fb)
 	uint16_t *pl;
 	uint32_t *vint = (uint32_t *) &v;
 
-	if (fb->l==NULL)
-		fb->l = calloc (fb->w*fb->h, sizeof(lrgb_t));
+	if (fb->r.l==NULL)
+		fb->r.l = calloc (fb->w*fb->h, sizeof(lrgb_t));
 
-	pf = (float *) fb->f;
-	pl = (uint16_t *) fb->l;
+	pf = (float *) fb->r.f;
+	pl = (uint16_t *) fb->r.l;
 
 	for (i=0; i<pixc; i++)
 	{
@@ -328,7 +328,7 @@ void convert_frgb_to_lrgb(raster_t *fb)
 	}
 }
 
-void convert_frgb_to_lrgb_ratio(raster_t *fb, const float ratio)
+void convert_frgb_to_lrgb_ratio(framebuffer_t *fb, const float ratio)
 {
 	int32_t i, pixc = fb->w*fb->h*4;
 	const float offset = (float) (1UL << 23-LBD);		// 23 (mantissa) - 15 (fractional bits of the result) = 8 (offset)
@@ -336,11 +336,11 @@ void convert_frgb_to_lrgb_ratio(raster_t *fb, const float ratio)
 	uint16_t *pl;
 	uint32_t *vint = (uint32_t *) &v;
 
-	if (fb->l==NULL)
-		fb->l = calloc (fb->w*fb->h, sizeof(lrgb_t));
+	if (fb->r.l==NULL)
+		fb->r.l = calloc (fb->w*fb->h, sizeof(lrgb_t));
 
-	pf = (float *) fb->f;
-	pl = (uint16_t *) fb->l;
+	pf = (float *) fb->r.f;
+	pl = (uint16_t *) fb->r.l;
 
 	for (i=0; i<pixc; i++)
 	{

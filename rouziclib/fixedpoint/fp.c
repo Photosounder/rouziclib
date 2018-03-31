@@ -22,6 +22,12 @@ int32_t fastabs(int32_t x)
 	return (x^y) - y;
 }
 
+int64_t fastabs64(int64_t x)
+{
+	int32_t y = x >> 63;
+	return (x^y) - y;
+}
+
 #ifndef RL_EXCL_APPROX
 
 #include "ffo_lut.h"

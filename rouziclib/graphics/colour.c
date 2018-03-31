@@ -578,7 +578,7 @@ raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp)
 	{
 		r = *rp;
 
-		if (rp->w!=dim.x || rp->h!=dim.y || rp->f==NULL)
+		if (rp->dim.x !=dim.x || rp->dim.y!=dim.y || rp->f==NULL)
 		{
 			free_raster(rp);
 			make_new_raster = 1;
@@ -599,4 +599,43 @@ raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp)
 		r.f[i] = make_grey_f(fa[i]);
 
 	return r;
+}
+
+frgb_t add_frgba(frgb_t a, frgb_t b)
+{
+	a.r += b.r;
+	a.g += b.g;
+	a.b += b.b;
+	a.a += b.a;
+
+	return a;
+}
+
+frgb_t mul_scalar_frgb(frgb_t a, float m)
+{
+	a.r *= m;
+	a.g *= m;
+	a.b *= m;
+
+	return a;
+}
+
+frgb_t mul_scalar_frgba(frgb_t a, float m)
+{
+	a.r *= m;
+	a.g *= m;
+	a.b *= m;
+	a.a *= m;
+
+	return a;
+}
+
+frgb_t clamp_frgba(frgb_t a)
+{
+	a.r = rangelimitf(a.r, 0.f, 1.f);
+	a.g = rangelimitf(a.g, 0.f, 1.f);
+	a.b = rangelimitf(a.b, 0.f, 1.f);
+	a.a = rangelimitf(a.a, 0.f, 1.f);
+
+	return a;
 }

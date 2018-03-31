@@ -5,12 +5,16 @@
 	#include <ws2tcpip.h>
 	#pragma comment(lib,"ws2_32.lib")
 
+	#ifndef errno
 	#define errno WSAGetLastError()
+	#endif
 #else
 	#include <arpa/inet.h>
 	#include <sys/socket.h>
+	#include <netdb.h>
 
 	#define SOCKET int
+	#define closesocket close
 #endif
 
 enum { NO_RETRY, ONE_RETRY, INF_RETRY };

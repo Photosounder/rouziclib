@@ -1,4 +1,4 @@
-void draw_titled_roundrect_frame(raster_t fb, xy_t pos, double radius, xy_t c, xy_t space, lrgb_t colour, const blend_func_t bf)
+void draw_titled_roundrect_frame(framebuffer_t fb, xy_t pos, double radius, xy_t c, xy_t space, lrgb_t colour, const blend_func_t bf)
 {
 	xy_t fr;
 
@@ -13,7 +13,7 @@ void draw_titled_roundrect_frame(raster_t fb, xy_t pos, double radius, xy_t c, x
 			9., 8., radius, colour, bf, 1.);
 }
 
-void draw_label_fullarg(raster_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, 
+void draw_label_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, 
 		uint8_t *label, rect_t box, col_t colour, const int mode)
 {
 	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
@@ -29,7 +29,7 @@ void draw_label_fullarg(raster_t fb, zoom_t zc, vector_font_t *font, double draw
 	draw_string_bestfit(fb, font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
 }
 
-void display_dialog_enclosing_frame_fullarg(raster_t fb, vector_font_t *font, double drawing_thickness, 
+void display_dialog_enclosing_frame_fullarg(framebuffer_t fb, vector_font_t *font, double drawing_thickness, 
 		rect_t box_os, double scale, char *label, col_t colour)
 {
 	rect_t label_box;
@@ -44,7 +44,7 @@ void display_dialog_enclosing_frame_fullarg(raster_t fb, vector_font_t *font, do
 	draw_string_bestfit(fb, font, label, label_box, 0., 1e30, colour, intensity * (0.5+0.5*erf((0.75-scale)*6.)), drawing_thickness, ALIG_CENTRE, NULL);
 }
 
-void draw_unit_grid_level_fullarg(raster_t fb, zoom_t zc, double drawing_thickness, 
+void draw_unit_grid_level_fullarg(framebuffer_t fb, zoom_t zc, double drawing_thickness, 
 		xy_t offset, double sm, double scale)
 {
 	double p, size_px;
@@ -81,7 +81,7 @@ void draw_unit_grid_level_fullarg(raster_t fb, zoom_t zc, double drawing_thickne
 		draw_line_thin(fb, sc_xy(xy(zc.corners_dl.p0.x, p)), sc_xy(xy(zc.corners_dl.p1.x, p)), drawing_thickness, make_grey(1.), blend_add, bright);
 }
 
-void draw_unit_grid_fullarg(raster_t fb, zoom_t zc, double drawing_thickness, 
+void draw_unit_grid_fullarg(framebuffer_t fb, zoom_t zc, double drawing_thickness, 
 		xy_t offset, double sm)
 {
 	draw_unit_grid_level(offset, sm, 1000000.);

@@ -12,3 +12,4 @@ extern int check_box_box_intersection_int(recti_t box0, recti_t box1);
 extern rect_t rect_intersection(rect_t r1, rect_t r2);
 extern int check_box_circle_intersection(rect_t box, xy_t circ, double rad);
 extern int check_box_wholly_inside_circle(rect_t box, xy_t circ, double rad);
+extern int check_pixel_within_image(xyi_t pos, xyi_t im_dim);

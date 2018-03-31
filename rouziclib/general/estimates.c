@@ -34,8 +34,7 @@ double fps_estimate_2speeds(double frame_s, int reset)
 
 	if (transition)
 	{
-		//printf("d = %g\t%.0f vs %.0f (t0 = %.2f)\n", d, 1./ifpsA, 1./ifpsB, t);
-		td = frame_s / 0.2;		// does the transition in 0.2 s (actually takes longer for large changes)
+		td = rangelimit(frame_s / 0.2, 0., 1.);				// does the transition in 0.2 s (actually takes longer for large changes)
 		ifpsA = ifpsA + td * (ifpsB - ifpsA) / (1.-t);
 		t += td;
 

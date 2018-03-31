@@ -29,18 +29,14 @@ void load_dir(char *path, fs_dir_t *dir)
 	DIR *dirp;
 	struct dirent *entry;
 	int i_dir=0, i_file=0;
+	int subdir_as=0, subfile_as=0;
 
-	if (dir->subdir)  free (dir->subdir);	dir->subdir = NULL;
-	if (dir->subfile) free (dir->subfile);	dir->subfile = NULL;
-
-	if (dir_count(path, &dir->subdir_count, &dir->subfile_count) < 0)
-	{
-		fprintf_rl(stderr, "Couldn't dir_count(%s, ... )\n", path);
-		return ;
-	}
-
-	dir->subdir = calloc(dir->subdir_count, sizeof(fs_dir_t));
-	dir->subfile = calloc(dir->subfile_count, sizeof(fs_file_t));
+	free (dir->subdir);
+	free (dir->subfile);
+	dir->subdir = NULL;
+	dir->subfile = NULL;
+	dir->subdir_count = 0;
+	dir->subfile_count = 0;
 
 	dirp = opendir(path);
 	if (dirp == NULL)
@@ -49,27 +45,31 @@ void load_dir(char *path, fs_dir_t *dir)
 		return ;
 	}
 
-	dir->path = calloc(strlen(path)+1, sizeof(char));
-	strcpy(dir->path, path);
+	dir->path = make_string_copy(path);
 
 	while ((entry = readdir(dirp)))
 	{
-		if (entry->d_type == DT_DIR && i_dir < dir->subdir_count)
+		if (entry->d_type == DT_DIR)
 		{
+			alloc_enough(&dir->subdir, dir->subdir_count+=1, &subdir_as, sizeof(fs_dir_t), 2.);
 			dir->subdir[i_dir].name = calloc(strlen(entry->d_name)+1, sizeof(char));
 			strcpy(dir->subdir[i_dir].name, entry->d_name);
 			dir->subdir[i_dir].parent = dir;
 			i_dir++;
 		}
 
-		if (entry->d_type == DT_REG && i_file < dir->subfile_count)
+		if (entry->d_type == DT_REG)
 		{
+			alloc_enough(&dir->subfile, dir->subfile_count+=1, &subfile_as, sizeof(fs_file_t), 2.);
 			dir->subfile[i_file].name = calloc(strlen(entry->d_name)+1, sizeof(char));
 			strcpy(dir->subfile[i_file].name, entry->d_name);
 			dir->subfile[i_file].parent = dir;
 			i_file++;
 		}
 	}
+
+	dir->subdir = realloc(dir->subdir, dir->subdir_count * sizeof(fs_dir_t));
+	dir->subfile = realloc(dir->subfile, dir->subfile_count * sizeof(fs_file_t));
 
 	closedir(dirp);
 }
@@ -170,12 +170,12 @@ void free_dir(fs_dir_t *dir)
 		if (dir->subfile[i].name)
 			free (dir->subfile[i].name);
 
-	if (dir->name)  free (dir->name);	dir->name = NULL;
-	if (dir->subdir)  free (dir->subdir);	dir->subdir = NULL;
+	if (dir->name) free (dir->name);	dir->name = NULL;
+	if (dir->subdir) free (dir->subdir);	dir->subdir = NULL;
 	if (dir->subfile) free (dir->subfile);	dir->subfile = NULL;
 }
 
-void export_subfiles_to_file(FILE *file, fs_dir_t *dir, const int indent)
+void export_subfiles_to_file(FILE *file, fs_dir_t *dir, const int indent, const int path_full)
 {
 	int i, j;
 
@@ -185,22 +185,24 @@ void export_subfiles_to_file(FILE *file, fs_dir_t *dir, const int indent)
 			for (j=0; j<indent; j++)
 				fprintf(file, "\t");
 
-			fprintf(file, "%s\n", dir->subfile[i].name);
+			if (path_full)
+				fprintf(file, "%s%c%s\n", dir->path, DIR_CHAR, dir->subfile[i].name);
+			else
+				fprintf(file, "%s\n", dir->subfile[i].name);
 		}
 }
-
-int export_subfiles_to_path(char *path, fs_dir_t *dir)
+int export_subfiles_to_path_fullarg(char *path, fs_dir_t *dir, const int path_full)
 {
 	FILE *file;
 
 	file = fopen_utf8(path, "wb");
 	if (file == NULL)
 	{
-		fprintf_rl(stderr, "Couldn't open file %s for writing in export_subfiles_to_path()\n", path);
+		fprintf_rl(stderr, "Couldn't open file %s for writing in export_subfiles_to_path_fullarg()\n", path);
 		return 0;
 	}
 
-	export_subfiles_to_file(file, dir, 0);
+	export_subfiles_to_file(file, dir, 0, path_full);
 
 	fclose(file);
 
@@ -261,9 +263,7 @@ int export_whole_dir_flat_to_path(char *path, fs_dir_t *dir, const int show_dirs
 int dirent_test(char *path)
 {
 	int i;
-	fs_dir_t dir;
-
-	memset(&dir, 0, sizeof(fs_dir_t));
+	fs_dir_t dir={0};
 
 	load_dir_depth(path, &dir, 2);
 	print_dir_depth(&dir, 0);

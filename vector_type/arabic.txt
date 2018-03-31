@@ -68,7 +68,7 @@ glyph 062D
 	curveseg p8	-1;6	1x
 	curveseg p9	-1;6	1x
 	curveseg p10	-0;9	1x
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10
+	lines p1 to p10
 	move 	0	-1
 
 glyph 062E
@@ -83,11 +83,12 @@ glyph 062F
 	p4	1	0
 	p5	-0;8	0
 	p6	-1	0;4
-	lines p1 p2 p3 p4 p5 p6
+	lines p1 to p6
+	scale	1;4
 
 glyph 0630
 	copy FBB2
-	move	0	0;2
+	move	0	0;10
 	copy 062F
 
 glyph 0631
@@ -96,7 +97,7 @@ glyph 0631
 	curveseg p3	1;6	1;8
 	curveseg p4	1;6	0;10x
 	curveseg p5	1;2	0;9x
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
 
 glyph 0632
 	copy FBB2
@@ -119,9 +120,9 @@ glyph 0633
 	p13	-2;3	-1;6
 	p14	-3	-0;9
 	p15	-3	0;6
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 	lines p5 p9
-	lines p10 p11 p12 p13 p14 p15
+	lines p10 to p15
 
 glyph 0634
 	copy FBB6
@@ -142,8 +143,8 @@ glyph 0635
 	p13	-2;3	-1;6
 	p14	-3	-0;9
 	p15	-3	0;6
-	lines p1 p2 p3 p4 p5 p6 p7
-	lines p10 p11 p12 p13 p14 p15
+	lines p1 to p7
+	lines p10 to p15
 
 glyph 0636
 	copy FBB2
@@ -160,7 +161,7 @@ glyph 0637
 	p7	0;4	1;5
 	p8	-1	0
 	p9	-1	6
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	lines p1 to p9
 
 glyph 0638
 	copy FBB2
@@ -180,8 +181,8 @@ glyph 0639
 	curveseg p9	-1;6	0;10x
 	curveseg p10	-1;6	1x
 	curveseg p11	-1	1;6x
-	lines p1 p2 p3 p4 p5 p6
-	lines p5 p7 p8 p9 p10 p11
+	lines p1 to p6
+	lines p5 p7 to p11
 	scale 1;6 1;6	-0;6 4
 	move	0	-2
 
@@ -234,8 +235,8 @@ glyph 0643
 	p3	-1;6	0
 	p4	-2;6	1
 	p5	-2	2
-	lines p1 p2 p3 p4 p5
-	lines p6 p7 p8 p9 p10 p11
+	lines p1 to p5
+	lines p6 to p11
 
 glyph 0644
 	p1	2;3	6
@@ -245,7 +246,7 @@ glyph 0644
 	p5	-2;3	-0;6
 	p6	-2;3	0;4
 	//curveseg p7	0;9	1x
-	lines p1 p2 p3 p4 p5 p6
+	lines p1 to p6
 
 glyph 0645
 	p1	-1;3	1
@@ -257,7 +258,7 @@ glyph 0645
 	p7	-1;6	-0;3
 	p8	-1;6	-3
 	scale	0;9	1
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 
 glyph 0646
 	copy FBB2
@@ -273,7 +274,7 @@ glyph 0647
 	p6	-1;2	0;5
 	p7	-1;2	1
 	p8	-0;3	1;9
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 
 glyph 0648
 	p1	1;6	1
@@ -285,7 +286,7 @@ glyph 0648
 	p7	1;6	0
 	p8	0;3	-1;3
 	p9	-1;6	-1;3
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	lines p1 to p9
 	move	0	-1
 
 glyph 0649
@@ -302,7 +303,7 @@ glyph 0649
 	p11	-2	0
 	p12	-3	1
 	p13	-2;6	2;6
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13
+	lines p1 to p13
 	move	0	-1;6
 
 glyph 064A
@@ -315,9 +316,9 @@ glyph 0653
 	p2	-0;6	0;4
 	p3	0;6	-0;4
 	p4	1;6	0;3
-	lines p1 p2 p3 p4
-	scale	0;8	0;4
-	move	-0;2	6;8
+	lines p1 to p4
+	scale	1	0;6
+	move	-0;2	6;10
 
 glyph 0654
 	p1	-2	-1
@@ -329,7 +330,7 @@ glyph 0654
 	curveseg p6	1;6	1x
 	curveseg p7	1;6	1x
 	curveseg p8	1;6	1x
-	lines p3 p4 p5 p6 p7 p8
+	lines p3 to p8
 	scale	0;3
 	move	0	6;8
 
@@ -344,7 +345,7 @@ glyph 066E
 	p4	-2	0
 	p5	-3	1
 	p6	-2;6	2
-	lines p1 p2 p3 p4 p5 p6
+	lines p1 to p6
 
 glyph 066F
 	p1	3	2;6
@@ -358,7 +359,7 @@ glyph 066F
 	p9	-2	0
 	p10	-3	1
 	p11	-2;6	2
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11
+	lines p1 to p11
 	move	0	-1;6
 
 glyph 0674
@@ -385,7 +386,7 @@ glyph 06A1
 	curveseg p6	2	1x
 	p7	3	0
 	p8	-2	0
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 	subend
 	copy 06A1 A
 	p1	-3	1
@@ -401,7 +402,7 @@ glyph 06A9
 	p3	-2	0
 	p4	-3	1
 	p5	-2;6	2
-	lines p8 p7 p6 p1 p2 p3 p4 p5
+	lines p8 p7 p6 p1 to p5
 
 glyph 06AF
 	copy 06A9
@@ -418,7 +419,7 @@ glyph 06BA
 	p6	-2	-0;4
 	p7	-2	0;6
 	p8	-1;6	1;4
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 
 glyph 0660
 	copy 00B7
@@ -435,7 +436,7 @@ glyph 0662
 	p4	-0;9	5;3
 	p5	0;9	5;3
 	p6	2	6
-	lines p1 p2 p3 p4 p5 p6
+	lines p1 to p6
 
 glyph 0663
 	p1	-0;6	0
@@ -445,7 +446,7 @@ glyph 0663
 	p5	-0;8	5;3
 	p6	0	5;9
 	mirror	v 0	p3 p6	p7
-	lines p1 p2 p3 p4 p5 p6 p9 p8 p7
+	lines p1 to p6 p9 p8 p7
 
 glyph 0664
 	p1	1	0
@@ -453,7 +454,7 @@ glyph 0664
 	p3	-1	1;10
 	p4	1	3
 	mirror	h 3	p1 p3	p5
-	lines p1 p2 p3 p4 p7 p6 p5
+	lines p1 to p4 p7 p6 p5
 
 glyph 0665
 	p1	0	6
@@ -462,7 +463,7 @@ glyph 0665
 	curveseg p4	6a	2
 	curveseg p5	1;6	0;8x
 	mirror	v 0	p2 p5	p6
-	lines p1 p2 p3 p4 p5 p9 p8 p7 p6 p1
+	lines p1 to p5 p9 to p6 p1
 
 glyph 0666
 	p1	2	0
@@ -471,7 +472,7 @@ glyph 0666
 	p4	0;6	5;3
 	p5	-1	5;3
 	p6	-2	6
-	lines p1 p2 p3 p4 p5 p6
+	lines p1 to p6
 
 glyph 0667
 	p1	0	0
@@ -495,4 +496,5 @@ glyph 0669
 	curveseg p8	-1;6	1x
 	curveseg p9	-1;6	1x
 	curveseg p10	-1;6	1x
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10
+	lines p1 to p10
+

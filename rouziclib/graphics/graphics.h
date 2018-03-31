@@ -23,13 +23,15 @@
 #define GAUSSRAD gaussrad	// this is much faster
 
 extern double gaussrad(double intensity, double radius);
+extern raster_t make_raster_srgb(srgb_t *srgb, int32_t w, int32_t h);
 extern raster_t make_raster_l(lrgb_t *l, int32_t w, int32_t h);
 extern raster_t make_raster_f(frgb_t *f, int32_t w, int32_t h);
+extern raster_t make_raster_sq(sqrgb_t *sq, int32_t w, int32_t h);
 extern raster_t make_raster(void *data, int32_t w, int32_t h, const int mode);
 extern raster_t copy_raster(raster_t r0);
-extern void cl_copy_raster_to_device(raster_t fb, raster_t r);
 extern void *get_raster_buffer_for_mode(raster_t r, const int mode);
+extern srgb_t get_raster_pixel_in_srgb(raster_t r, const int index);
 extern void free_raster(raster_t *r);
 extern double intensity_scaling(double scale, double scale_limit);
 extern void thickness_limit(double *thickness, double *brightness, double limit);
-extern void screen_blank(raster_t fb);
+extern void screen_blank(framebuffer_t fb);

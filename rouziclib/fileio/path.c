@@ -49,6 +49,27 @@ char *append_name_to_path(char *dest, char *path, char *name)	// appends name to
 {
 	int path_len, name_len, path_has_dirchar=0;
 
+	if (path==NULL && name==NULL)
+	{
+		if (dest)
+			dest[0] = '\0';
+		return dest;
+	}
+
+	if (name==NULL)
+	{
+		if (dest)
+			sprintf(dest, "%s", path);
+		return dest;
+	}
+
+	if (path==NULL)
+	{
+		if (dest)
+			sprintf(dest, "%s", name);
+		return dest;
+	}
+
 	path_len = strlen(path);
 	name_len = strlen(name);
 
@@ -85,7 +106,7 @@ char *extract_file_extension(char *path, char *ext)
 	i = len - 1;				// start from the end of the string
 
 	if (i <= 0)
-		return ;
+		return NULL;
 
 	while (path[i] != '.' && i > 0)		// decrement until a . or the beginning
 		i--;
@@ -116,7 +137,7 @@ char *extract_file_extension(char *path, char *ext)
 
 char *make_appdata_path(const char *dirname, const char *filename, const int make_subdir)
 {
-	char *path=NULL;
+	char *path=NULL, *dirpath=NULL;
 
 	#ifdef _WIN32
 	wchar_t origpath_w[PATH_MAX];
@@ -140,15 +161,18 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 	}
 	#endif
 
-	path = calloc (strlen(origpath) + strlen(dirname)+1 + (filename ? strlen(filename) : 0) + 1, sizeof(char));
-
-	append_name_to_path(path, origpath, dirname);
+	dirpath = append_name_to_path(NULL, origpath, dirname);
 
 	if (make_subdir)
-		create_dir(path);
+		create_dir(dirpath);
 
 	if (filename)
-		append_name_to_path(path, path, filename);
+	{
+		path = append_name_to_path(NULL, dirpath, filename);
+		free(dirpath);
+	}
+	else
+		path = dirpath;
 
 	#ifdef __APPLE__
 	globfree(&globbuf);

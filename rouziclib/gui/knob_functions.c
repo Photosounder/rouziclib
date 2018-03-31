@@ -21,3 +21,39 @@ double knobf_recip(double v, double min, double max, const int mode)
 	else
 		return knobf_linear(1./v, 1./min, 1./max, mode);
 }
+
+const char *knob_func_name[] =
+{
+	"linear",
+	"log",
+	"recip",
+};
+
+const knob_func_t knob_func_array[] =
+{
+	knobf_linear,
+	knobf_log,
+	knobf_recip,
+};
+
+knob_func_t knob_func_name_to_ptr(const char *name)
+{
+	int i;
+
+	for (i=0; i < sizeof(knob_func_name)/sizeof(char *); i++)
+		if (strcmp(name, knob_func_name[i])==0)
+			return knob_func_array[i];
+
+	return NULL;
+}
+
+const char *knob_func_ptr_to_name(knob_func_t fp)
+{
+	int i;
+
+	for (i=0; i < sizeof(knob_func_name)/sizeof(char *); i++)
+		if (fp == knob_func_array[i])
+			return knob_func_name[i];
+
+	return NULL;
+}

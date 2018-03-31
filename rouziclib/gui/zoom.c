@@ -1,4 +1,4 @@
-zoom_t init_zoom(raster_t *fb, mouse_t *mouse, double drawing_thickness)
+zoom_t init_zoom(framebuffer_t *fb, mouse_t *mouse, double drawing_thickness)
 {
 	zoom_t zc;
 
@@ -108,7 +108,7 @@ void calc_screen_limits(zoom_t *zc)
 {
 	int x, y;
 
-	if (3*zc->fb->w > 4*zc->fb->h)			// if widescreen (more than 4:3 aka 12:9)
+	if (3*zc->fb->w > 4*zc->fb->h)				// if widescreen (more than 4:3 aka 12:9)
 		zc->scrscale = (double) zc->fb->h / 18.;	// for 1920x1080 srcscale would be 60
 	else
 		zc->scrscale = (double) zc->fb->w / 24.;
@@ -120,9 +120,7 @@ void calc_screen_limits(zoom_t *zc)
 	zc->scrscale *= zc->zoomscale;
 	zc->iscrscale = 1. / zc->scrscale;
 
-	//zc->drawlim_u = set_xy(zc->iscrscale * GAUSSRAD(1., zc->drawing_thickness));
 	zc->drawlim_u = set_xy(zc->iscrscale * GAUSSRAD_HQ * zc->drawing_thickness);
-	zc->border_u = add_xy(zc->limit_u, zc->drawlim_u);
 
 	zc->corners.p0 = sub_xy(zc->offset_u, mul_xy(xy(zc->fb->w, zc->fb->h), set_xy(0.5*zc->iscrscale)));
 	zc->corners.p1 = add_xy(zc->offset_u, mul_xy(xy(zc->fb->w, zc->fb->h), set_xy(0.5*zc->iscrscale)));

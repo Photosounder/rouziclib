@@ -240,7 +240,7 @@ cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size)
 	return ret;
 }
 
-void init_raster_cl(raster_t *fb, const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
+void init_raster_cl(framebuffer_t *fb, const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
 {
 	cl_int ret;
 
@@ -306,7 +306,7 @@ void init_raster_cl(raster_t *fb, const clctx_t *clctx)		// inits the linear CL 
 	return devaddr;
 }*/
 
-void make_gl_tex(raster_t *fb)
+void make_gl_tex(framebuffer_t *fb)
 {
 	cl_int ret=0;
 
@@ -318,15 +318,15 @@ void make_gl_tex(raster_t *fb)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);	// need to set GL_NEAREST
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0); 		 // set the base and max mipmap levels
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0); 		// set the base and max mipmap levels
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fb->maxw, fb->maxh, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);		// specify texture dimensions, format etc
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fb->maxdim.x, fb->maxdim.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);		// specify texture dimensions, format etc
 
 	fb->cl_srgb = clCreateFromGLTexture(fb->clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb->gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
 	CL_ERR_NORET("clCreateFromGLTexture (in make_gl_tex, for fb->cl_srgb)", ret);
 }
 
-cl_int init_fb_cl(raster_t *fb)
+cl_int init_fb_cl(framebuffer_t *fb)
 {
 	cl_int ret;
 	
@@ -343,9 +343,7 @@ cl_int init_fb_cl(raster_t *fb)
 
 	drawq_alloc(fb, 60000);
 
-	fb->data_alloc_table_as = 500 * 1024*1024;
-	fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, fb->data_alloc_table_as, NULL, &ret);
-	CL_ERR_RET("clCreateBuffer (in init_fb_cl, for fb->data_cl)", ret);
+	data_cl_alloc(fb, 500);
 
 	return ret;
 }

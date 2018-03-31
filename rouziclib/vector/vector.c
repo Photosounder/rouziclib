@@ -211,7 +211,7 @@ rect_t vobj_bounding_rect(vobj_t *o)
 	return r;
 }
 
-void draw_vobj_fullarg(raster_t fb, vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, col_t colour, const blend_func_t bf)
+void draw_vobj_fullarg(framebuffer_t fb, vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, col_t colour, const blend_func_t bf)
 {
 	int32_t i;
 	seg_t rs;

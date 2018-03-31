@@ -141,7 +141,7 @@ void gaussian_blur(float *a, float *b, xyi_t dim, const int channels, double rad
 	}
 }
 
-void image_downscale_fast_box(raster_t r0, raster_t *r1, const int ratio, const int mode)
+void image_downscale_fast_box(raster_t r0, raster_t *r1, const xyi_t ratio, const int mode)
 {
 	xyi_t dim0, dim1, ip0, ip1;
 	recti_t pixbox;
@@ -154,11 +154,11 @@ void image_downscale_fast_box(raster_t r0, raster_t *r1, const int ratio, const 
 		return ;
 	}
 
-	dim0 = xyi(r0.w, r0.h);
-	dim1 = div_xyi( add_xyi(dim0, set_xyi(ratio)) , set_xyi(ratio) );
+	dim0 = xyi(r0.dim.x, r0.dim.y);
+	dim1 = div_xyi( add_xyi(dim0, ratio) , ratio );
 
 	// if r1 is inadequate
-	if (equal_xyi(dim1, xyi(r1->w, r1->h))==0 || get_raster_buffer_for_mode(*r1, mode)==NULL)
+	if (equal_xyi(dim1, r1->dim)==0 || get_raster_buffer_for_mode(*r1, mode)==NULL)
 	{
 		free_raster(r1);
 		*r1 = make_raster(NULL, dim1.x, dim1.y, mode);
@@ -173,14 +173,14 @@ void image_downscale_fast_box(raster_t r0, raster_t *r1, const int ratio, const 
 				memset(&fsum, 0, sizeof(fsum));
 				fratio = 0.;
 
-				pixbox.p0 = mul_xyi(ip1, set_xyi(ratio));
-				pixbox.p1 = min_xyi( add_xyi(pixbox.p0, set_xyi(ratio)) , dim0 );
+				pixbox.p0 = mul_xyi(ip1, ratio);
+				pixbox.p1 = min_xyi( add_xyi(pixbox.p0, ratio) , dim0 );
 
 				for (ip0.y = pixbox.p0.y; ip0.y < pixbox.p1.y; ip0.y++)
 				{
 					for (ip0.x = pixbox.p0.x; ip0.x < pixbox.p1.x; ip0.x++)
 					{
-						pix0 = frgb_to_xyz(r0.f[ip0.y * r0.w + ip0.x]);
+						pix0 = frgb_to_xyz(r0.f[ip0.y * r0.dim.x + ip0.x]);
 
 						fsum = add_xyz(fsum, pix0);
 						fratio += 1.;
@@ -188,8 +188,8 @@ void image_downscale_fast_box(raster_t r0, raster_t *r1, const int ratio, const 
 				}
 
 				fratio = 1./fratio;
-				fsum = mul_xyz(fsum, set_xyz(1. / ratio));		// weighting of the sum with a fixed ratio
-				r1->f[ip1.y * r1->w + ip1.x] = make_colour_frgb(fsum.x, fsum.y, fsum.z, ratio * ratio * fratio);
+				fsum = mul_xyz(fsum, set_xyz(1. / mul_x_by_y_xyi(ratio)));		// weighting of the sum with a fixed ratio
+				r1->f[ip1.y * r1->dim.x + ip1.x] = make_colour_frgb(fsum.x, fsum.y, fsum.z, mul_x_by_y_xyi(ratio) * fratio);
 			}
 		}
 	}
@@ -211,11 +211,11 @@ void image_pixel_process_arg0(raster_t r, const int mode, void (*func)(void))
 	}
 
 	if (mode & IMAGE_USE_FRGB)
-		for (i=0; i < r.w*r.h; i++)
+		for (i=0; i < r.dim.x*r.dim.y; i++)
 			((void (*)(float *, float *))func)(&r.f[i], &r.f[i]);
 
 	if (mode & IMAGE_USE_LRGB)
-		for (i=0; i < r.w*r.h; i++)
+		for (i=0; i < r.dim.x*r.dim.y; i++)
 			((void (*)(uint16_t *, uint16_t *))func)(&r.f[i], &r.f[i]);
 }
 
@@ -230,12 +230,12 @@ void image_pixel_process_arg1f(raster_t r, const int mode, void (*func)(void), f
 	}
 
 	if (mode & IMAGE_USE_FRGB)
-		for (i=0; i < r.w*r.h; i++)
+		for (i=0; i < r.dim.x*r.dim.y; i++)
 			((void (*)(float *, float *, float))func)(&r.f[i], &r.f[i], arg1);
 
 	arg1_int = nearbyint(arg1 * ONE);
 	if (mode & IMAGE_USE_LRGB)
-		for (i=0; i < r.w*r.h; i++)
+		for (i=0; i < r.dim.x*r.dim.y; i++)
 			((void (*)(uint16_t *, uint16_t *, int))func)(&r.f[i], &r.f[i], arg1_int);
 }
 

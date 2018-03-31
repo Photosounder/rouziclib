@@ -28,10 +28,9 @@ glyph 0187
 glyph 018A
 	copy 0321
 	rotate 	3
-	scale 	1	-1
+	scale 	1;4	-1;4
 	move	-2	6
 	copy 'D'
-	bounds -2 2
 
 glyph 018B
 	copy 0411
@@ -72,7 +71,7 @@ glyph 0194
 	p1	-2	6
 	p8	2	6
 	circle p2 p7	8  0;8	0 -0;6	2;3
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 
 glyph 0195
 	p1	-2	6
@@ -87,7 +86,7 @@ glyph 0195
 	p10	2	0;7
 	p11	2	3;7
 	lines p1 p2
-	lines p3 p4 p5 p6 p7 p8 p9 p10 p11
+	lines p3 to p11
 	scale	1;3;0;10
 
 glyph 0196
@@ -95,7 +94,7 @@ glyph 0196
 	p2	0	0;8
 	p3	0;8	0
 	p4	1;6	0
-	lines p1 p2 p3 p4
+	lines p1 to p4
 
 glyph 0197
 	copy 'I'
@@ -131,6 +130,7 @@ glyph 019C
 
 glyph 019D
 	copy 0321
+	scale 1;6
 	move -2
 	copy 'N'
 
@@ -153,10 +153,9 @@ glyph 01A2
 glyph 01A4
 	copy 0321
 	rotate 	3
-	scale 	1	-1
+	scale 	1;4	-1;4
 	move	-2	6
 	copy 'P'
-	bounds -2 2
 
 glyph 01A6
 	p1	-2	0
@@ -170,7 +169,7 @@ glyph 01A6
 	p8	0	2
 	p9	2;4	-1;6
 	lines p1 p2
-	lines p10 p3 p4 p5 p6 p7
+	lines p10 p3 to p7
 	lines p8 p9
 
 glyph 01A7
@@ -222,7 +221,7 @@ glyph 01B2
 	p3	-1	0
 	p4	1	0
 	p5	2	1
-	lines p1 p2 p3 p4 p5 p-3
+	lines p1 to p5 p-3
 
 glyph 01B3
 	p4	0	3
@@ -249,7 +248,7 @@ glyph 01B7
 	p7	1	0
 	p8	-1	0
 	p9	-2	1
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	lines p1 to p9
 	scale	1;4 1;4	0 6
 
 glyph 01B8
@@ -270,7 +269,7 @@ glyph 01BA
 	curveseg p11	-1;6	1
 	curveseg p12	-1;6	1;8
 	curveseg p13	-1;6	1
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14
+	lines p1 to p14
 	scale	0;9
 
 glyph 01BB
@@ -283,7 +282,7 @@ glyph 01BB
 	p7	-2	2;6
 	p9	-2	0
 	p10	2	0
-	lines p1 p2 p3 p4 p5 p9 p10
+	lines p1 to p5 p9 p10
 	lines p6 p7
 
 glyph 01BC
@@ -297,7 +296,7 @@ glyph 01BC
 	p8	-2	6
 	p9	-1	6
 	p10	2	6
-	lines p1 p2 p3 p4 p5 p6 p7 p9
+	lines p1 to p7 p9
 	lines p8 p10
 
 glyph 01BE
@@ -312,7 +311,7 @@ glyph 01BE
 	p9	-1	6
 	p10	-2	4;10
 	p11	0	4;10
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	lines p1 to p9
 	lines p10 p11
 
 glyph 01C0
@@ -347,7 +346,7 @@ glyph 01F7
 	p7	2	3;4
 	p8	-2	-0;8
 	lines p1 p2
-	lines p3 p4 p5 p6 p7 p8
+	lines p3 to p8
 
 glyph 01C4
 	copy 'Z'
@@ -377,7 +376,7 @@ glyph 01C7
 	p6	-3;4	6
 	p7	-3;4	0
 	p8	-0;4	0
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
 	lines p6 p7 p8
 
 glyph 01C8
@@ -389,7 +388,7 @@ glyph 01C8
 	p6	-3	6
 	p7	-3	0
 	p8	0	0
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
 	lines p6 p7 p8
 
 glyph 01C9
@@ -406,7 +405,7 @@ glyph 01CA
 	p7	-3;6	0
 	p8	-0;6	0
 	p9	-0;6	6
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
 	lines p7 p6 p8 p9
 
 glyph 01CB
@@ -419,7 +418,7 @@ glyph 01CB
 	p7	-3;3	0
 	p8	-0;3	0
 	p9	-0;3	6
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
 	lines p7 p6 p8 p9
 
 glyph 01CC
@@ -428,7 +427,7 @@ glyph 01CC
 
 glyph 01D5
 	copy 0304
-	move	0	0;8
+	move	0	1;4
 	copy 0308
 	copy 'U'
 
@@ -438,7 +437,7 @@ glyph 01D6
 
 glyph 01D7
 	copy 0301
-	move	0	1
+	move	0	1;4
 	copy 0308
 	copy 'U'
 
@@ -448,7 +447,7 @@ glyph 01D8
 
 glyph 01D9
 	copy 030C
-	move	0	0;6
+	move	0	1
 	copy 0308
 	copy 'U'
 
@@ -458,7 +457,7 @@ glyph 01DA
 
 glyph 01DB
 	copy 0300
-	move	0	1
+	move	0	1;4
 	copy 0308
 	copy 'U'
 
@@ -468,7 +467,7 @@ glyph 01DC
 
 glyph 01DE
 	copy 0304
-	move	0	0;8
+	move	0	1;4
 	copy 0308
 	copy 'A'
 
@@ -478,7 +477,7 @@ glyph 01DF
 
 glyph 01E0
 	copy 0304
-	move	0	0;8
+	move	0	1;4
 	copy 0307
 	copy 'A'
 
@@ -530,13 +529,12 @@ glyph 01F6
 	p8	2;2	0
 	p9	3	0;10
 	p10	3	4;4
-	lines p5 p6 p7 p8 p9 p10
+	lines p5 to p10
 
 glyph 01FA
 	copy 0301
-	move	0	0;6
-	copy 030A
-	copy 'A'
+	move	0	0;8
+	copy 00C5
 
 glyph 01FB
 	copy 01FA
@@ -554,8 +552,8 @@ glyph 021C
 	p9	2	0;6
 	p10	1	-0;6
 	p11	-2	-1;10
-	lines p1 p2 p3 p4 p5 p6 p7
-	lines p6 p8 p9 p10 p11
+	lines p1 to p7
+	lines p6 p8 to p11
 
 glyph 0220
 	copy 03B7
@@ -572,7 +570,7 @@ glyph 0221
 	curveseg p7	-1;6	1x
 	curveseg p8	-1;6	1x
 	curveseg p9	-1;6	4x
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	lines p1 to p9
 	subend
 	copy F0064
 	copy 0221 C
@@ -586,7 +584,7 @@ glyph 0222
 	mirror	h 3	p1 p3	p5
 	p5	1;3	5;9
 	mirror	v 0	p1 p7	p8
-	lines p4 p3 p2 p1 p8 p9 p10 p11 p4 p7 p6 p5
+	lines p4 to p1 p8 to p11 p4 p7 p6 p5
 	lines p12 p13 p14 p11
 
 glyph 0224
@@ -599,7 +597,7 @@ glyph 0224
 
 glyph 022A
 	copy 0304
-	move	0	0;8
+	move	0	1;4
 	copy 0308
 	copy 'O'
 
@@ -609,7 +607,7 @@ glyph 022B
 
 glyph 022C
 	copy 0304
-	move	0	1
+	move	0	1;4
 	copy 0303
 	copy 'O'
 
@@ -619,7 +617,7 @@ glyph 022D
 
 glyph 0230
 	copy 0304
-	move	0	0;8
+	move	0	1;4
 	copy 0307
 	copy 'O'
 
@@ -652,7 +650,7 @@ glyph 0236
 	curveseg p10	-1;6	1x
 	curveseg p11	-0;9	1x
 	curveseg p12	-0;9	3;6x
-	lines p3 p4 p5 p6 p7 p8 p9 p10 p11 p12
+	lines p3 to p12
 	bounds -1;6 1;6
 
 glyph 0237
@@ -744,3 +742,4 @@ glyph 024E
 	copy 0336
 	move	0	1;6
 	copy 'Y'
+

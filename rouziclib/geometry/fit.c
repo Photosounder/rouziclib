@@ -75,3 +75,77 @@ xy_t fit_n_rects_in_area_fill_x(xy_t area_dim, xy_t rect_dim, int count, xyi_t *
 
 	return mul_xy(set_xy(unit_size_sq), rect_dim);
 }
+
+xyi_t get_dim_of_tile(xyi_t fulldim, xyi_t tilesize, xyi_t index)
+{
+	xyi_t rdim;
+
+	rdim = sub_xyi(fulldim, mul_xyi(tilesize, index));
+	rdim = min_xyi(tilesize, rdim);
+
+	return rdim;
+}
+
+rect_t fit_rect_in_area(xy_t r_dim0, rect_t area, xy_t off)
+{
+	double scale;
+	xy_t area_dim, r_dim1, dim_diff;
+
+	area = sort_rect(area);
+	area_dim = get_rect_dim(area);
+	scale = min_of_xy(div_xy(area_dim, r_dim0));
+	r_dim1 = mul_xy(r_dim0, set_xy(scale));
+	dim_diff = sub_xy(area_dim, r_dim1);
+	return make_rect_off(add_xy(area.p0, mul_xy(dim_diff, off)), r_dim1, XY0);
+}
+
+// Hilbert curve functions
+// n means the space is n by n, n is a power of 2
+
+int hilbert_curve_coord_to_index(const int n, xyi_t p)
+{
+	int s, index=0;
+	xyi_t r;
+
+	for (s = n>>1; s > 0; s >>= 1)
+	{
+		r.x = (p.x & s) > 0;
+		r.y = (p.y & s) > 0;
+		index += s*s * ((3 * r.x) ^ r.y);
+		hilbert_curve_rotate(s, &p, r);
+	}
+
+	return index;
+}
+
+xyi_t hilbert_curve_index_to_coord(const int n, int index)
+{
+	int s;
+	xyi_t r, p={0};
+
+	for (s = 1; s < n; s <<= 1)
+	{
+		r.x = 1 & (index >> 1);
+		r.y = 1 & (index ^ r.x);
+		hilbert_curve_rotate(s, &p, r);
+		p.x += s * r.x;
+		p.y += s * r.y;
+		index >>= 2;
+	}
+
+	return p;
+}
+
+void hilbert_curve_rotate(const int n, xyi_t *p, xyi_t r)	// rotate/flip a quadrant appropriately
+{
+	if (r.y == 0)
+	{
+		if (r.x == 1)
+		{
+			p->x = n-1 - p->x;
+			p->y = n-1 - p->y;
+		}
+
+		swap_i32(&p->x, &p->y);
+	}
+}

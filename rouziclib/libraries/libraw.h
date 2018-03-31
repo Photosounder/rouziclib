@@ -26,6 +26,6 @@ extern rawphoto_t init_rawphoto(int32_t width, int32_t height);
 extern void free_rawphoto(rawphoto_t *rp);
 extern raster_t load_raw_thumb(libraw_data_t *rd);
 extern rawphoto_t load_raw_photo_bayered(char *path, int load_thumb);
-extern raster_t raw_photo_to_raster(raster_t fb, rawphoto_t rp);
+extern raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp);
 
 #endif

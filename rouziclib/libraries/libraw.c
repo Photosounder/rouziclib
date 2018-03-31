@@ -39,9 +39,7 @@ raster_t load_raw_thumb(libraw_data_t *rd)
 		fprintf_rl(stderr, "libraw %s\n", libraw_strerror(ret));
 	else if (proc_image->type == LIBRAW_IMAGE_JPEG)
 	{
-		#ifdef RL_DEVIL
-		r = load_image_libdevil_from_memory(proc_image->data, proc_image->data_size, IMAGE_USE_FRGB, NULL);
-		#endif
+		r = load_image_mem(proc_image->data, proc_image->data_size, IMAGE_USE_FRGB);
 	}
 	else if (proc_image->colors!=3 || proc_image->bits!=8)
 	{
@@ -51,7 +49,7 @@ raster_t load_raw_thumb(libraw_data_t *rd)
 	else
 	{
 		r = make_raster_f(NULL, proc_image->width, proc_image->height);
-		convert_image_srgb8(&r, proc_image->data, IMAGE_USE_FRGB, NULL);
+		convert_image_srgb8(&r, proc_image->data, IMAGE_USE_FRGB);
 	}
 
 	libraw_dcraw_clear_mem(proc_image);
@@ -62,12 +60,10 @@ raster_t load_raw_thumb(libraw_data_t *rd)
 rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 {
 	int i, ret;
-	rawphoto_t rp;
+	rawphoto_t rp={0};
 	libraw_data_t *rd = libraw_init(0);
 	uint8_t *raw_data;
 	size_t raw_data_size;
-
-	memset(&rp, 0, sizeof(rawphoto_t));
 
 	raw_data = load_raw_file(path, &raw_data_size);
 	if (raw_data==NULL)
@@ -124,7 +120,7 @@ rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 	return rp;
 }
 
-raster_t raw_photo_to_raster(raster_t fb, rawphoto_t rp)
+raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp)
 {
 	int i, bayer_ind, col_ind;
 	double vl, v;
@@ -147,10 +143,10 @@ raster_t raw_photo_to_raster(raster_t fb, rawphoto_t rp)
 			vl = rp.data[ip.y * rp.w + ip.x];
 			v = (vl - rp.bayer_black[bayer_ind]) / (rp.maximum_value-rp.bayer_black[bayer_ind]) * get_xyz_index(rp.wb, col_ind);// * gain;
 
-			set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.w + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
+			set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}
 
-	gaussian_blur(r.f, r.f, xyi(r.w, r.h), 4, 1.4);
+	gaussian_blur(r.f, r.f, r.dim, 4, 1.4);
 
 /*	for (ip.y=im_p0.y; ip.y <= im_p1.y; ip.y++)
 		for (ip.x=im_p0.x; ip.x <= im_p1.x; ip.x++)
@@ -161,17 +157,14 @@ raster_t raw_photo_to_raster(raster_t fb, rawphoto_t rp)
 			vl = rp.data[ip.y * rp.w + ip.x];
 			v = (vl - rp.bayer_black[bayer_ind]) / (rp.maximum_value-rp.bayer_black[bayer_ind]) * get_xyz_index(rp.wb, col_ind);// * gain;
 
-			frgb_to_hsl(r.f[(ip.y-im_p0.y) * r.w + (ip.x-im_p0.x)], &H, &S, &L, HUEDEG);
-			r.f[(ip.y-im_p0.y) * r.w + (ip.x-im_p0.x)] = hsl_to_frgb(H, S, v / get_frgb_channel(hsl_to_frgb(H, S, 1., HUEDEG, 0), col_ind) , HUEDEG, 0);
+			frgb_to_hsl(r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], &H, &S, &L, HUEDEG);
+			r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)] = hsl_to_frgb(H, S, v / get_frgb_channel(hsl_to_frgb(H, S, 1., HUEDEG, 0), col_ind) , HUEDEG, 0);
 
-			//set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.w + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
+			//set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}*/
 
 #ifdef RL_OPENCL
 	init_raster_cl(&r, &fb.clctx);			// copies the data to an OpenCL buffer
-	
-	r.clbuf_da = 100 * 1024*1024;
-	cl_copy_raster_to_device(fb, r);
 #endif
 
 	return r;

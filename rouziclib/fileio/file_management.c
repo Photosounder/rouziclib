@@ -46,6 +46,23 @@ int move_file(const char *path, const char *newpath)	// returns 0 if successful
 	#endif
 }
 
+int copy_file(const char *path, const char *newpath, const int overwrite)	// returns 0 if successful
+{
+	#ifdef _WIN32
+	wchar_t wpath[PATH_MAX*4], wnewpath[PATH_MAX*4];
+
+	utf8_to_wchar(path, wpath);
+	utf8_to_wchar(newpath, wnewpath);
+	return CopyFileW(wpath, wnewpath, overwrite==0)==0;
+
+	#else
+
+	// TODO
+	fprintf_rl(stderr, "TODO: implement copy_file() for non-Windows\n");
+	return 1;
+	#endif
+}
+
 int remove_file(const char *path)	// returns 0 if successful
 {
 	#ifdef _WIN32
@@ -57,6 +74,20 @@ int remove_file(const char *path)	// returns 0 if successful
 	#else
 
 	return remove(path);
+	#endif
+}
+
+int remove_empty_dir(const char *path)
+{
+	#ifdef _WIN32
+	wchar_t wpath[PATH_MAX*4];
+
+	utf8_to_wchar(path, wpath);
+	return RemoveDirectoryW(wpath);
+
+	#else
+
+	return rmdir(path);
 	#endif
 }
 
@@ -73,6 +104,31 @@ int remove_every_file(const char *path)		// returns 0 if successful on every sin
 	for (i=0; i<dir.subfile_count; i++)
 		if (dir.subfile[i].name)
 			ret |= remove_file(append_name_to_path(ffp, path, dir.subfile[i].name));
+
+	free_dir(&dir);
+
+	return ret;
+}
+
+int remove_dir(const char *path)
+{
+	int i, ret;
+	fs_dir_t dir;
+	char ffp[PATH_MAX*4];
+
+	memset(&dir, 0, sizeof(fs_dir_t));
+
+	load_dir_depth(path, &dir, 0);
+
+	for (i=0; i<dir.subdir_count; i++)
+		if (dir.subdir[i].path)
+			ret |= remove_dir(dir.subdir[i].path);
+
+	for (i=0; i<dir.subfile_count; i++)
+		if (dir.subfile[i].name)
+			ret |= remove_file(append_name_to_path(ffp, path, dir.subfile[i].name));
+
+	remove_empty_dir(path);
 
 	free_dir(&dir);
 

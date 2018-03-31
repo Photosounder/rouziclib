@@ -23,6 +23,7 @@ void mouse_pre_event_proc(mouse_t *mouse)
 	flag_update(mouse->b.mmb);
 	flag_update(mouse->b.rmb);
 	flag_update(mouse->window_focus_flag);
+	flag_update(mouse->window_minimised_flag);
 	flag_update(mouse->mouse_focus_flag);
 }
 

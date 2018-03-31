@@ -1,5 +1,5 @@
 extern void gaussian_blur(float *a, float *b, xyi_t dim, const int channels, double radius);
-extern void image_downscale_fast_box(raster_t r0, raster_t *r1, const int ratio, const int mode);
+extern void image_downscale_fast_box(raster_t r0, raster_t *r1, const xyi_t ratio, const int mode);
 extern void image_pixel_process_arg0(raster_t r, const int mode, void (*func)(void));
 extern void image_pixel_process_arg1f(raster_t r, const int mode, void (*func)(void), float arg1);
 extern void pixel_invert_linear(float *p0, float *p1);

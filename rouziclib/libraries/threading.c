@@ -23,4 +23,22 @@ int thrd_create_detached(thrd_start_t func, void *arg)
 	return ret;
 }
 
+mtx_t *mtx_init_alloc(int type)
+{
+	mtx_t *mtx = calloc(1, sizeof(mtx_t));
+	mtx_init(mtx, type);
+
+	return mtx;
+}
+
+void mtx_destroy_free(mtx_t **mtx)
+{
+	if (mtx)
+	{
+		mtx_destroy(*mtx);
+		free(*mtx);
+		memset(mtx, 0, sizeof(mtx_t));
+	}
+}
+
 #endif

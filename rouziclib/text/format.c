@@ -138,17 +138,6 @@ char *sprint_compile_date(char *string, const char *location)
 	return string;
 }
 
-void print_valfmt(char *str, int str_size, double v, const int valfmt)
-{
-	switch (valfmt)
-	{
-		case VALFMT_DEFAULT:	snprintf(str, str_size, "%.2f", v);		break;
-		case VALFMT_3F:		snprintf(str, str_size, "%.3f", v);		break;
-		case VALFMT_PCT_2F:	snprintf(str, str_size, "%.2f%%", v*100.);	break;
-		default:		snprintf(str, str_size, "%g", v);
-	}
-}
-
 void fprint_indent(FILE *file, char *indent, int ind_lvl, char *string)
 {
 	int i, il, len = strlen(string);
@@ -191,4 +180,47 @@ char *sprint_duration(char *string, double sec)
 		sprintf(string, "%.2f years", sec / (365.25*86400.));
 
 	return string;
+}
+
+char *text_to_multiline_c_literal(const char *text)
+{
+	const char line_start[] = "\t\t\"", line_end[] = "\",\n";
+	char *lit=NULL;
+	uint8_t mb_char[5];
+	int i, j, lit_as=0, len=0, text_len = strlen(text), line_is_new=1, cp0, cp1=-1;
+
+	for (i=0; i < text_len+1; i++)
+	{
+		if (line_is_new)
+		{
+			sprintf_realloc(&lit, &lit_as, 1, "%s", line_start);
+			line_is_new = 0;
+		}
+
+		cp0 = cp1;
+		cp1 = utf8_to_unicode32(&text[i], &i);
+
+		if (cp0 != -1)
+		{
+			if (cp0 == '\n')		// if there's a line break
+			{
+				sprintf_realloc(&lit, &lit_as, 1, "%s", line_end);
+				line_is_new = 1;
+			}
+			else if (cp0 < 128)			// if it's a one-byte character
+				sprintf_realloc(&lit, &lit_as, 1, "%c", cp0);
+			else					// if it's a multi-byte character that must be escaped
+			{
+				sprint_unicode(mb_char, cp0);
+
+				for (j=0; j < strlen(mb_char); j++)
+					sprintf_realloc(&lit, &lit_as, 1, "\\x%02x", mb_char[j]);
+
+				if ((cp1 >= '0' && cp1 <= '9') || (cp1 >= 'a' && cp1 <= 'f') || (cp1 >= 'A' && cp1 <= 'F'))	// if the next character would be confused for part of the escaped characters
+					sprintf_realloc(&lit, &lit_as, 1, "\"\"");						// add "" as a delimitation
+			}
+		}
+	}
+
+	return lit;
 }

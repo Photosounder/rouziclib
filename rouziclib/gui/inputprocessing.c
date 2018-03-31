@@ -26,7 +26,7 @@ int check_ctrl_id(rect_t box, mouse_t mouse)	// returns 0 if the current control
 	return 0;
 }
 
-void proc_mouse_rect_ctrl_button(int mb, ctrl_button_state_t *state, int orig_point_within_box)
+void proc_mouse_rect_ctrl_button(int mb, int clicks, ctrl_button_state_t *state, int orig_point_within_box)
 {
 	state->over = 1;
 
@@ -41,6 +41,9 @@ void proc_mouse_rect_ctrl_button(int mb, ctrl_button_state_t *state, int orig_po
 
 			if (mb == -2)
 				state->uponce = 1;
+
+			if (mb == -2 && clicks == 2)
+				state->doubleclick = 1;
 		}
 		else
 			state->over = 0;		// if the click originated somewhere else we don't even care if the mouse is now over the box
@@ -59,8 +62,8 @@ ctrl_button_state_t *proc_mouse_rect_ctrl_lrmb(rect_t box, mouse_t mouse)
 	if (check_point_within_box(mouse.u, box))				// check if mouse is over box
 	{
 		orig_point_within_box = check_point_within_box(mouse.b.orig, box);
-		proc_mouse_rect_ctrl_button(mouse.b.lmb, &state[0], orig_point_within_box);
-		proc_mouse_rect_ctrl_button(mouse.b.rmb, &state[1], orig_point_within_box);
+		proc_mouse_rect_ctrl_button(mouse.b.lmb, mouse.b.clicks, &state[0], orig_point_within_box);
+		proc_mouse_rect_ctrl_button(mouse.b.rmb, mouse.b.clicks, &state[1], orig_point_within_box);
 	}
 
 	return state;
@@ -82,24 +85,32 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 	
 	if (check_point_within_box(mouse.b.orig, box))	// check the click originated in the same box
 	{
-		if (mouse.b.lmb == 1)
+		if (mouse.b.clicks == 2)
 		{
-			state.vert_delta = (mouse.u.y - mouse.prev_u.y) / get_rect_dim(box).y;
-
-			if (mouse.mod_key[mouse_mod_shift])
-			{
-				state.vert_delta *= 1./32.;
-				
-				if (mouse.mod_key[mouse_mod_ctrl])
-					state.vert_delta *= 1./32.;
-			}
+			if (mouse.b.lmb == 1)
+				state.doubleclick = 1;
 		}
+		else
+		{
+			if (mouse.b.lmb == 1)
+			{
+				state.vert_delta = (mouse.u.y - mouse.prev_u.y) / get_rect_dim(box).y;
 
-		if (mouse.b.lmb > 0)
-			state.down = 1;
+				if (mouse.mod_key[mouse_mod_shift])
+				{
+					state.vert_delta *= 1./32.;
 
-		if (mouse.b.lmb == -2)
-			state.uponce = 1;
+					if (mouse.mod_key[mouse_mod_ctrl])
+						state.vert_delta *= 1./32.;
+				}
+			}
+
+			if (mouse.b.lmb > 0)
+				state.down = 1;
+
+			if (mouse.b.lmb == -2)
+				state.uponce = 1;
+		}
 	}
 
 	return state;

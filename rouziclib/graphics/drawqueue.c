@@ -1,5 +1,5 @@
 #ifdef RL_OPENCL
-void drawq_reinit(raster_t *fb)
+void drawq_reinit(framebuffer_t *fb)
 {
 	memset(fb->drawq_data, 0, fb->drawq_data[DQ_END] * sizeof(int32_t));
 	memset (fb->sector_count, 0, fb->sectors * sizeof(int32_t));
@@ -9,9 +9,11 @@ void drawq_reinit(raster_t *fb)
 	fb->sector_list[DQ_END] = DQ_END_HEADER_SL;
 	fb->sector_list[DQ_ENTRY_START] = DQ_END_HEADER_SL;
 	fb->drawq_data[DQ_END] = 1;
+
+	cl_data_table_prune_unused(fb);
 }
 
-void drawq_alloc(raster_t *fb, int size)
+void drawq_alloc(framebuffer_t *fb, int size)
 {
 	int32_t i;
 	cl_int ret;
@@ -30,8 +32,8 @@ void drawq_alloc(raster_t *fb, int size)
 
 ss_calc:
 	ss = (double) (1<<fb->sector_size);
-	fb->sectors = ceil((double) fb->maxw / ss) * ceil((double) fb->maxh / ss);
-	fb->sector_w = ceil((double) fb->maxw / ss);
+	fb->sectors = ceil((double) fb->maxdim.x / ss) * ceil((double) fb->maxdim.y / ss);
+	fb->sector_w = ceil((double) fb->maxdim.x / ss);
 	if (fb->sectors >= fb->max_sector_count)
 	{
 		fb->sector_size++;
@@ -54,7 +56,7 @@ ss_calc:
 	drawq_reinit(fb);
 }
 
-void drawq_free(raster_t *fb)
+void drawq_free(framebuffer_t *fb)
 {
 	if (fb->drawq_data)
 	{
@@ -72,7 +74,7 @@ void drawq_free(raster_t *fb)
 	}
 }
 
-void drawq_run(raster_t *fb)
+void drawq_run(framebuffer_t *fb)
 {
 	const char clsrc_draw_queue[] =
 	#include "drawqueue.cl.h"
@@ -166,13 +168,14 @@ int32_t drawq_entry_size(const int32_t type)
 		case DQT_RECT_BLACK:		return 5;
 		case DQT_PLAIN_FILL:		return 3;
 		case DQT_CIRCLE_FULL:		return 7;
-		case DQT_BLIT_SPRITE:		return 8;
-		case DQT_BLIT_PHOTO:		return 13;
+		//case DQT_BLIT_BILINEAR:		return 8;
+		case DQT_BLIT_FLATTOP:		return 11;
+		//case DQT_BLIT_PHOTO:		return 13;
 		default:			return 0;
 	}
 }
 
-void *drawq_add_to_main_queue(raster_t fb, const int dqtype)
+void *drawq_add_to_main_queue(framebuffer_t fb, const int dqtype)
 {
 	int32_t end, *di = fb.drawq_data;
 	int entry_size = drawq_entry_size(dqtype);
@@ -196,7 +199,7 @@ void *drawq_add_to_main_queue(raster_t fb, const int dqtype)
 	return &di[end];
 }
 
-void drawq_add_sector_id(raster_t fb, int32_t sector_id)
+void drawq_add_sector_id(framebuffer_t fb, int32_t sector_id)
 {
 	if (fb.sector_list[DQ_END]+1 >= fb.list_alloc_size)
 	{
@@ -211,7 +214,7 @@ void drawq_add_sector_id(raster_t fb, int32_t sector_id)
 	fb.sector_list[DQ_END]++;				// sector_list becomes 1 larger
 }
 
-void drawq_compile_lists(raster_t *fb)		// makes entry_list and sector_pos
+void drawq_compile_lists(framebuffer_t *fb)		// makes entry_list and sector_pos
 {
 	int32_t i, j, end_i, end_j, main_i, sector, secpos, *count, pos=0;
 
@@ -255,7 +258,7 @@ void drawq_compile_lists(raster_t *fb)		// makes entry_list and sector_pos
 	}
 }
 
-void drawq_bracket_open(raster_t fb)
+void drawq_bracket_open(framebuffer_t fb)
 {
 	int32_t ix, iy;
 	xyi_t bb0, bb1;
@@ -272,7 +275,7 @@ void drawq_bracket_open(raster_t fb)
 			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
 }
 
-void drawq_bracket_close(raster_t fb, int32_t blending_mode)
+void drawq_bracket_close(framebuffer_t fb, int32_t blending_mode)
 {
 	int32_t ix, iy;
 	int32_t *di;
@@ -291,7 +294,7 @@ void drawq_bracket_close(raster_t fb, int32_t blending_mode)
 			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
 }
 
-void drawq_test1(raster_t fb)		// BRDF test
+void drawq_test1(framebuffer_t fb)		// BRDF test
 {
 	int32_t ix, iy;
 	xyi_t bb0, bb1;
@@ -307,4 +310,25 @@ void drawq_test1(raster_t fb)		// BRDF test
 		for (ix=bb0.x; ix<=bb1.x; ix++)
 			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
 }
+
+int drawq_get_bounding_box(framebuffer_t fb, rect_t box, xy_t rad, recti_t *bbi)
+{
+	rect_t bb, screen_box = rect(XY0, xy(fb.w-1, fb.h-1));
+
+	box = sort_rect(box);
+
+	// calculate the bounding box
+	bb.p0 = ceil_xy(sub_xy(box.p0, rad));
+	bb.p1 = floor_xy(add_xy(box.p1, rad));
+
+	if (check_box_box_intersection(bb, screen_box)==0)
+		return 0;
+
+	bbi->p0 = xy_to_xyi(max_xy(bb.p0, screen_box.p0));
+	bbi->p1 = xy_to_xyi(min_xy(bb.p1, screen_box.p1));
+	*bbi = rshift_recti(*bbi, fb.sector_size);
+
+	return 1;
+}
+
 #endif

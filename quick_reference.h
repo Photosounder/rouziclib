@@ -4,6 +4,10 @@
 		// make_colour_hsl(hue, sat, lum (linear), hue type, sec_boost)
 		col_t colour = make_colour_hsl(30., 1., 0.125, HUEDEG, 0);
 
+	// Get colour from sinusoidal colour sequence
+		// get_colour_seq(double x, xyz_t freq, xyz_t phase)
+		col = get_colour_seq((double) i+1.5, xyz(0.36, 0.187, 0.13), set_xyz(0.2));
+
 //**** Draw elements ****
 
 	// Line
@@ -29,6 +33,8 @@
 	// Single button
 		// returns 1 when released
 		if (ctrl_button_chamf("Load", offset_scale_rect(box, offset, sm), colour))
+		// invisible version
+		ctrl_button_invis(offset_scale_rect(box, offset, sm))
 
 	// Single checkbox
 		// returns 1 if state changed
@@ -52,15 +58,66 @@
 		ctrl_knob(&value, make_knob("Knob name", default_value, knobf_linear, min_value, max_value, VALFMT_DEFAULT), box, colour);
 
 	// Text editor
-		static textedit_t te;
+		static textedit_t te={0};
 
-		if (init)
-			textedit_init(&te);
+		if (te.string==NULL)		// if te.string is NULL it's not initialised
+			textedit_init(&te);	// not needed as ctrl_textedit() can do it too
 			// or
 			te = string_to_textedit(make_string_copy(string));
 
+			// at initialisation some options can be specified like:
+			te.edit_mode = te_mode_value;
+			te.max_scale = 1./6.;
+			te.rect_brightness = 0.25;
+
 		// returns 1 if Enter (or sometimes Tab) is pressed
 		if (ctrl_textedit(&te, offset_scale_rect(box, offset, sm), colour))
+
+	// Resizing rectangle
+		static ctrl_resize_rect_t resize_state={0};
+		static rect_t resize_box={0};
+	
+		if (resize_state.init==0)
+			resize_box = make_rect_centred( XY0, XY1 );
+		ctrl_resizing_rect(&resize_state, &resize_box);
+
+	// Disable input processing for some controls
+		// this works by saving hover_new and restoring it to ignore any controls in between
+		ctrl_id_t hover_save = mouse.ctrl_id->hover_new;
+		ctrl_something();
+		mouse.ctrl_id->hover_new = hover_save;
+
+//**** Controls from text layout ****
+
+	// Label
+		draw_label_fromlayout(&layout, id, ALIG_CENTRE | MONODIGITS);
+
+	// Button
+		if (ctrl_button_fromlayout(&layout, id))
+
+	// Checkbox
+		static int8_t state=0;
+		ctrl_checkbox_fromlayout(&state, &layout, id);
+
+	// Knob
+		static double value=NAN;
+		ctrl_knob_fromlayout(&value, &layout, id);
+
+	// Text editor
+		static textedit_t te={0};
+		ctrl_textedit_fromlayout(&te, &layout, id);
+
+//**** Images ****
+
+	// Loading an image as a tiled mipmap
+		mipmap_t image_mm={0};
+		free_mipmap(&image_mm);
+		image_mm = load_mipmap(path, IMAGE_USE_SQRGB);
+		// or by HTTP
+		image_mm = load_mipmap_from_http(url, IMAGE_USE_SQRGB);
+
+	// Displaying
+		blit_mipmap_in_rect(&fb, image_mm, sc_rect(image_frame), 1, LINEAR_INTERP);
 
 //**** Layout ****
 
@@ -79,6 +136,9 @@
 			if (dialog_enclosing_frame(offset, sm, main_frame, margin, "Options", make_grey(0.25)))
 				return;
 		}
+
+	// check if a box is on screen or not
+		if (check_box_on_screen(box_os))
 
 	// Turn on the tool that generates rectangle code using a right-click drag
 		rect_code_tool(offset, sm);
@@ -106,11 +166,28 @@
 		// the vertical range of the area can be changed from the default of 0 to 6 units
 		insert_rect_change_height(get_insert_rect(0), 0., 4.5)
 
+	// Fitting a rect inside a rect area
+		// the 3rd argument works just like the offset in make_rect_off()
+		frame = fit_rect_in_area(im_rect, area, xy(0.5, 0.5));
+
 //**** Parsing ****
 
 	// Load a file and have an array of lines out of it
 		// only array[0] then array need to be freed, since array[0] points to the original buffer
-		char **filename_array = arrayise_text(load_raw_file(full_list_path, NULL), &linecount);
+		char **filename_array = arrayise_text(load_raw_file_dos_conv(full_list_path, NULL), &linecount);
+	
+	// Parse a dozenal fractional notation number
+		// from a string pointer p into a double v
+		// p is updated to point to after the number and its following whitespace
+		p = string_parse_fractional_12(p, &v);
+
+	// Read a UTF-8 character in a loop
+		// i is the iterator, it's incremented further in case of a multi-byte character
+		cp = utf8_to_unicode32(&string[i], &i);
+
+	// Print a Unicode codepoint as UTF-8 in a string
+		// generally the pointer should be able to accomodate 5 bytes
+		sprint_unicode(buf, cp);
 
 //**** Memory ****
 
@@ -129,9 +206,16 @@
 
 	// Init thread handle (not for detached threads)
 		static thrd_t thread_handle=NULL;
+
+	// before thrd_join the caller should signal to the thread function to quit using this element in the data struct
+		volatile int thread_on;
+		data_struct.thread_on = 0;
 	
 	// Wait for thread to end (not for detached threads, use mutex instead)
 		thrd_join(thread_handle, NULL);
+
+		// and before creating the thread:
+		data_struct.thread_on = 1;
 
 	// Create thread
 		thrd_create(&thread_handle, thread_function, &data_struct);
@@ -148,6 +232,13 @@
 		mtx_lock(&my_mutex);
 		mtx_unlock(&my_mutex);
 		mtx_destroy(&my_mutex);
+		
+		// or
+		mtx_t *mutex_ptr;
+		mutex_ptr = mtx_init_alloc(mtx_plain);
+		mtx_lock(mutex_ptr);
+		mtx_unlock(mutex_ptr);
+		mtx_destroy_free(&mutex_ptr);
 
 //**** Network ****
 	

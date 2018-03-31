@@ -60,7 +60,7 @@ void area_to_area_transform(rect_t a, rect_t b, xy_t *tmul, xy_t *tadd)		// find
 	*tadd = sub_xy(get_rect_centre(a), mul_xy(get_rect_centre(b), *tmul));
 }
 
-void rect_code_tool_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, double drawing_thickness,
+void rect_code_tool_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, double drawing_thickness,
 		xy_t offset, double sm)
 {
 	static rect_t r;

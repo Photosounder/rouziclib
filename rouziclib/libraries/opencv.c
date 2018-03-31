@@ -1,63 +1,32 @@
 #ifdef RL_OPENCV
 
-void convert_cvimage_to_raster(IplImage *frame, raster_t *image)
+void convert_cvimage_to_raster(IplImage *frame, raster_t *image, const int mode)
 {
-	int32_t ix, iy, ic;
-	static int init=1;
-	float *pf;
-	uint16_t *pl;
-	uint8_t *ps;
-	static lut_t slrgb_l;
-
-	if (init)
-	{
-		init = 0;
-		slrgb_l = get_lut_slrgb();
-	}
+	int32_t i, ic;
+	uint8_t *ps0, *ps1;
 
 	if (frame==NULL)		return ;
 	if (frame->imageData==NULL)	return ;
 
-	if (image->w != frame->width || image->h != frame->height)
+	if (image->dim.x != frame->width || image->dim.y != frame->height)
 	{
-		image->w = frame->width;
-		image->h = frame->height;
+		image->dim.x = frame->width;
+		image->dim.y = frame->height;
 
-		if (image->use_frgb)
-		{
-			if (image->f)
-				free (image->f);
-			image->f = calloc(image->w*image->h, sizeof(frgb_t));
-		}
-		else
-		{
-			if (image->l)
-				free (image->l);
-			image->l = calloc(image->w*image->h, sizeof(lrgb_t));
-		}
+		free (image->srgb);
+		image->srgb = calloc(image->dim.x*image->dim.y, sizeof(srgb_t));
 	}
 
+	for (i=0; i < image->dim.x*image->dim.y; i++)
+	{
+		ps0 = &frame->imageData[i*3];
+		ps1 = &image->srgb[i];
 
-	if (image->use_frgb)
-		for (iy=0; iy<image->h; iy++)
-			for (ix=0; ix<image->w; ix++)
-			{
-				pf = &image->f[iy*image->w+ix];
-				ps = &frame->imageData[(iy*image->w+ix)*3];
+		for (ic=0; ic<3; ic++)
+			ps1[ic] = ps0[2-ic];
+	}
 
-				for (ic=0; ic<3; ic++)
-					pf[ic] = slrgb_l.flut[ps[2-ic]];
-			}
-	else
-		for (iy=0; iy<image->h; iy++)
-			for (ix=0; ix<image->w; ix++)
-			{
-				pl = &image->l[iy*image->w+ix];
-				ps = &frame->imageData[(iy*image->w+ix)*3];
-
-				for (ic=0; ic<3; ic++)
-					pl[ic] = slrgb_l.lutint[ps[2-ic]];
-			}
+	convert_image_srgb8(image, image->srgb, mode);		// fills all the necessary buffers with the image data
 }
 
 void convert_srgb_to_cvimage(raster_t *image, IplImage *frame)
@@ -65,29 +34,31 @@ void convert_srgb_to_cvimage(raster_t *image, IplImage *frame)
 	int32_t ix, iy, ic;
 	uint8_t *ps0, *ps1;
 
-	for (iy=0; iy<image->h; iy++)
-		for (ix=0; ix<image->w; ix++)
+	for (iy=0; iy<image->dim.y; iy++)
+		for (ix=0; ix<image->dim.x; ix++)
 		{
-			ps0 = &image->srgb[iy*image->w+ix];
-			ps1 = &frame->imageData[(iy*image->w+ix)*3];
+			ps0 = &image->srgb[iy*image->dim.x+ix];
+			ps1 = &frame->imageData[(iy*image->dim.x+ix)*3];
 
 			for (ic=0; ic<3; ic++)
 				ps1[ic] = ps0[ic];
 		}
 }
 
-int get_webcam_frame(raster_t *image, char *debug_str)
+int get_webcam_frame(raster_t *image, char *debug_str, const int mode)
 {
 	static CvCapture *capture;
 	IplImage *frame;
 	static int init=1;
+	raster_t im_local={0};
 
 	if (init)
 	{
 		init = 0;
 
 		capture = cvCreateCameraCapture(0);
-		if (capture==NULL)		return 0;
+		if (capture==NULL)
+			return 0;
 
 		cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, 1280.);
 		cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, 960.);
@@ -95,22 +66,26 @@ int get_webcam_frame(raster_t *image, char *debug_str)
 
 	frame = cvQueryFrame(capture);
 
-	convert_cvimage_to_raster(frame, image);
+	if (image==NULL)
+		image = &im_local;
 
-	sprintf(debug_str, "%gx%g, %.3g FPS, %g, %g", 
-			cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH), 
-			cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT),
-			cvGetCaptureProperty(capture, CV_CAP_PROP_FPS),
-			cvGetCaptureProperty(capture, CV_CAP_PROP_GAIN),
-			cvGetCaptureProperty(capture, CV_CAP_PROP_EXPOSURE),
-			0);
+	convert_cvimage_to_raster(frame, image, mode);
+
+	if (debug_str)
+		sprintf(debug_str, "%gx%g, %.3g FPS, %g, %g", 
+				cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH), 
+				cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT),
+				cvGetCaptureProperty(capture, CV_CAP_PROP_FPS),
+				cvGetCaptureProperty(capture, CV_CAP_PROP_GAIN),
+				cvGetCaptureProperty(capture, CV_CAP_PROP_EXPOSURE),
+				0);
 
 	//cvReleaseCapture(&capture);
 
 	return 1;
 }
 
-int get_video_frame(raster_t *image, char *path)
+int get_video_frame(raster_t *image, char *path, const int mode)
 {
 	static CvCapture *capture;
 	IplImage *frame;
@@ -127,7 +102,7 @@ int get_video_frame(raster_t *image, char *path)
 
 	frame = cvQueryFrame(capture);
 
-	convert_cvimage_to_raster(frame, image);
+	convert_cvimage_to_raster(frame, image, mode);
 
 	//cvReleaseCapture(&capture);		// TODO close it at some point
 
@@ -148,8 +123,8 @@ return ;
 			cvReleaseImage(frame);
 		}
 
-		writer = cvCreateVideoWriter(path, CV_FOURCC('X','V','I','D'), fps, cvSize(image->w, image->h), 1);
-		frame = cvCreateImage(cvSize(image->w, image->h), IPL_DEPTH_8U, 3);
+		writer = cvCreateVideoWriter(path, CV_FOURCC('X','V','I','D'), fps, cvSize(image->dim.x, image->dim.y), 1);
+		frame = cvCreateImage(cvSize(image->dim.x, image->dim.y), IPL_DEPTH_8U, 3);
 	}
 
 	if (action==2 && writer)	// close and clean up

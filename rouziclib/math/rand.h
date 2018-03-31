@@ -1,6 +1,7 @@
 extern uint32_t rand32();
 extern double randrange(double low, double high);
 extern double gaussian_rand();
+extern xy_t gaussian_rand_xy();
 
 extern int pow_mod(int base, uint32_t expon, uint32_t mod);
 extern uint32_t rand_minstd(uint32_t pos);

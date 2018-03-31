@@ -20,24 +20,24 @@ extern void save_font(vector_font_t *font, char *index_path);
 /*
 Available commands in range files:
 
-glyph	<codepoint>
-subglyph <ID char>
+glyph		<codepoint>
+subglyph	<ID char>
 subend
-p<n>	<x>	<y>
-lines	<list of points>
-copy	<codepoint>  (<ID char of subglyph>)
-bounds	<left>	<right>
-curveseg p<n>	<angle>(a)  <length>(x)
-rect	p<first_n>  <p0 x y>  <p1 x y>
-circle	p<first_n>  p<last_n>  <num seg>  <radius>  <centre x y>  <start angle>
-mirror	h/v  <mirror_pos>  p<first_n>  p<last_n>  p<start>
+p<n>		<x>	<y>
+lines		<list of points>
+copy		<codepoint>  (<ID char of subglyph>)
+bounds		<left>	<right>
+curveseg	p<n>	<angle>(a)  <length>(x)
+rect		p<first_n>  <p0 x y>  <p1 x y>
+circle		p<first_n>  p<last_n>  <num seg>  <radius>  <centre x y>  <start angle>
+mirror		h/v  <mirror_pos>  p<first_n>  p<last_n>  p<start>
 
 	the following commands can be followed by an optional 'all', 'loc' or 'last'
 
-scale	<scale>
-scale	<scale x y>  (<centre x y>)
-move	<x>	<y>
-rotate	<angle>	 (<centre x y>)
-shearX	<angle>	 (<centre x y>)
-shearY	<angle>	 (<centre x y>)
+scale		<scale>
+scale		<scale x y>  (<centre x y>)
+move		<x>	<y>
+rotate		<angle>	 (<centre x y>)
+shearX		<angle>	 (<centre x y>)
+shearY		<angle>	 (<centre x y>)
 */

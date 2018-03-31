@@ -14,7 +14,7 @@ void cjkdec_load_data(char *path, vector_font_t *font)
 	font->cjkdec_pos = calloc(0x110000, sizeof(int32_t));
 	memset(font->cjkdec_pos, 0xFF, 0x110000*sizeof(int32_t));
 	font->cjkdec_alloc_count = 48;
-	font->cjkdec_data = calloc(font->cjkdec_alloc_count, sizeof(uint32_t));
+	font->cjkdec_data = calloc(font->cjkdec_alloc_count, sizeof(int32_t));
 
 	while (fgets(line, sizeof(line), file))
 	{
@@ -59,7 +59,7 @@ int is_cjkdec_glyph(vector_font_t *font, uint32_t c)
 	return 0;
 }
 
-int draw_cjkdec_glyph(raster_t fb, vector_font_t *font, uint32_t c, xy_t p, double scale, col_t colour, double line_thick, const int mode)
+int draw_cjkdec_glyph(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, double scale, col_t colour, double line_thick, const int mode)
 {
 	rect_t area;
 

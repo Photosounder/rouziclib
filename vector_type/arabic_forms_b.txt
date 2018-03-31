@@ -51,7 +51,7 @@ glyph FE91
 	p2	1	0;4
 	p3	0;8	0
 	p4	-1;9	0
-	lines p1 p2 p3 p4
+	lines p1 to p4
 	bounds -1 1
 	subend
 
@@ -112,7 +112,7 @@ glyph FEA2
 	p2	2	0;8
 	p3	2;8	0
 	p4	3;9	0
-	lines p1 p2 p3 p4
+	lines p1 to p4
 	bounds	-3 3
 
 glyph FEA3
@@ -121,7 +121,7 @@ glyph FEA3
 	p3	0	2
 	p4	-1	2
 	p5	-1;6	1;9
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
 	bounds	-1;6 2
 
 glyph FEA4
@@ -161,16 +161,16 @@ glyph FEA8
 
 glyph FEAA
 	copy 062F
-	p1	1	0;3
-	p2	1;3	0
-	p3	1;9	0
+	p1	1;4	0;3
+	p2	1;7	0
+	p3	2;1	0
 	lines p1 p2 p3
-	bounds	-1 1
+	bounds	-1;4 1;4
 
 glyph FEAC
 	copy FEAA
 	copy FBB2
-	move last	0	0;2
+	move last	0	0;10
 
 glyph FEAE
 	copy 0631
@@ -207,7 +207,7 @@ glyph FEB3
 	p10	0;8	1;6
 	p11	0;4	0
 	p12	-0;9	0
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 	lines p5 p9
 	lines p10 p8 p11 p12
 	bounds	0 3
@@ -253,7 +253,7 @@ glyph FEBB
 	p7	0	0
 	p10	0	1;6
 	p11	-0;9	0
-	lines p1 p2 p3 p4 p5 p6 p7
+	lines p1 to p7
 	lines p10 p7 p11
 	bounds	0 3
 
@@ -327,7 +327,7 @@ glyph FECA
 	curveseg p11	-1;6	1
 	curveseg p12	-1;6	1
 	curveseg p13	-1	0;8
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13
+	lines p1 to p13
 	bounds	-0;9;8 0;6
 
 glyph FECB
@@ -340,7 +340,7 @@ glyph FECB
 	curveseg p6	1;6	1x
 	curveseg p7	1;6	1x
 	curveseg p8	0;9	0;8x
-	lines p3 p4 p5 p6 p7 p8
+	lines p3 to p8
 	bounds	-0;9	1;6
 
 glyph FECC
@@ -350,7 +350,7 @@ glyph FECC
 	curveseg p4	-1;6	0;6
 	curveseg p5	-1;6	0;6
 	mirror v 0	p1 p5	p6
-	lines p1 p2 p3 p4 p5 p10 p9 p8 p7 p6
+	lines p1 to p5 p10 to p6
 	bounds	-0;6 0;6
 
 glyph FECE
@@ -388,7 +388,7 @@ glyph FED4
 	curveseg p4	1;6	0;9
 	curveseg p5	1;6	0;6
 	mirror v 0	p1 p5	p6
-	lines p1 p2 p3 p4 p5 p10 p9 p8 p7 p6
+	lines p1 to p5 p10 to p6
 	bounds	-1	1
 	subend
 	copy FED4 A
@@ -421,7 +421,6 @@ glyph FEDA
 	p3	3;3	0
 	lines p1 p2 p3
 	bounds -2;6 2;6
-	
 
 glyph FEDB
 	p8	3	5
@@ -453,7 +452,7 @@ glyph FEDF
 	p2	2	0;8
 	p3	1;4	0
 	p4	-0;9	0
-	lines p1 p2 p3 p4
+	lines p1 to p4
 	bounds	0	2
 
 glyph FEE0
@@ -480,7 +479,7 @@ glyph FEE3
 	curveseg p7	-2	1;11
 	curveseg p8	0;9	0;7;1
 	p9	-1;3	0
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9
+	lines p1 to p9
 	bounds	-0;6	2
 
 glyph FEE4
@@ -513,7 +512,7 @@ glyph FEEA
 	p2	1;4	0
 	p3	1	0;4
 	p4	1	2;2
-	lines p1 p2 p3 p4
+	lines p1 to p4
 	p5	1	0;6
 	curveseg p6	8a	0;9
 	curveseg p7	1	1
@@ -522,7 +521,7 @@ glyph FEEA
 	curveseg p10	1;6	0;9;1;7
 	curveseg p11	0;9	1x
 	curveseg p12	0;9	1x
-	lines p5 p6 p7 p8 p9 p10 p11 p12
+	lines p5 to p12
 	bounds	-1 1
 
 glyph FEEB
@@ -540,7 +539,7 @@ glyph FEEB
 	curveseg p12	-1;6	0;8
 	curveseg p13	-1;2	1;6
 	curveseg p14	-1;2	1;6
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14
+	lines p1 to p14
 	bounds -1	2
 
 glyph FEEC
@@ -555,7 +554,7 @@ glyph FEEC
 	curveseg p8	1;6	0;7
 	curveseg p9	1;6	1;3;6;8
 	mirror h 0	p4 p8	p10
-	lines p4 p5 p6 p7 p8 p9 p14 p13 p12 p11 p10 p4
+	lines p4 to p9 p14 to p10 p4
 	bounds	-0;9	1;6
 
 glyph FEEE
@@ -578,7 +577,7 @@ glyph FEF0
 	curveseg p12	1;6	2;6
 	curveseg p13	1;6	1;3
 	curveseg p14	2	1;3
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14
+	lines p1 to p14
 	bounds	-3;3	2;6
 
 glyph FEF2
@@ -602,7 +601,7 @@ glyph FEFB
 	curveseg p4	-1;3	0;6
 	curveseg p5	-1;3	2
 	curveseg p6	-0;6	3;6
-	lines p1 p2 p3 p4 p5 p6
+	lines p1 to p6
 	subend
 
 	copy FEFB L
@@ -610,7 +609,7 @@ glyph FEFB
 	curveseg p2	2a	2;6
 	curveseg p3	-1	1;8
 	curveseg p4	-1	3;3
-	lines p1 p2 p3 p4
+	lines p1 to p4
 
 glyph FEFC
 	copy FEFB L
@@ -619,7 +618,7 @@ glyph FEFC
 	p2	1	1
 	p3	2	0
 	p4	2;3	0
-	lines p1 p2 p3 p4
+	lines p1 to p4
 	p5	1	2;6
 	lines p5 p-2
 	bounds -2;6	1;6
@@ -656,3 +655,4 @@ glyph FEFA
 	copy 0655
 	move	-2;4	0
 	copy FEFC
+

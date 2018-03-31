@@ -31,6 +31,21 @@ double gaussian_rand()
 	//y = sqrt(-2. * log(s) / s) * v2;
 }
 
+xy_t gaussian_rand_xy()
+{
+	double v1, v2, s;
+
+	do
+	{
+		v1 = randrange(-1., 1.);
+		v2 = randrange(-1., 1.);
+		s = v1*v1 + v2*v2;
+	}
+	while (s >= 1.);	// clips points inside the unit square but outside the unit circle
+	
+	return xy( sqrt(-2. * log(s) / s) * v1 , sqrt(-2. * log(s) / s) * v2 );
+}
+
 // adapted from rand.cl
 int pow_mod(int base, uint32_t expon, uint32_t mod)
 {

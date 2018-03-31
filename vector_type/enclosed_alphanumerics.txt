@@ -266,3 +266,4 @@ glyph 24EA
 	copy '0'
 	scale 0;6 0;6	0 3
 	copy 25EF
+

@@ -1,4 +1,4 @@
-int draw_vector_char(raster_t fb, vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
+int draw_vector_char(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
 	double fixoff, wc1, wc2;
@@ -71,7 +71,7 @@ int draw_vector_char(raster_t fb, vector_font_t *font, uint32_t c, xy_t p, xy_t 
 	return found;
 }
 
-int draw_vector_char_lookahead(raster_t fb, vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
+int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
 	double fixoff, wc1, wc2;
@@ -91,7 +91,7 @@ int draw_vector_char_lookahead(raster_t fb, vector_font_t *font, uint32_t c, cha
 	if (onscreen)
 	{
 		ucd1 = get_unicode_data(c);
-		bidi1 = bidicat_direction(ucd1.bidicat);
+		//bidi1 = bidicat_direction(ucd1.bidicat);
 		wc1 = glyph_width(font, off.x, c, scale, mode);
 
 		draw_vector_char(fb, font, c, p, off, scale, colour, line_thick, mode, bidi);
@@ -168,7 +168,7 @@ void check_closest_cursor(xy_t off, double scale, xy_t expected_pos, double *clo
 		}
 }
 
-void cursor_processing(raster_t fb, vector_font_t *font, char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
+void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
 {
 	col_t sel_col = make_colour(0.0033, 0.028, (bidi == -2 ? 0.1 : 0.1), 1.);
 	static int32_t sel0=0, sel1=0, newline=0;
@@ -243,7 +243,7 @@ void cursor_processing(raster_t fb, vector_font_t *font, char *string, uint32_t 
 	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[2], isa, &cur_textedit->curpos_down);
 }
 
-void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
+void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
 {
 	uint32_t i, is, c, co;
 	double w=0., base_off=0.;
@@ -402,17 +402,17 @@ void draw_string_full(raster_t fb, vector_font_t *font, char *string, xy_t p, xy
 		draw_line_thin(fb, add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, blend_add, intensity*3.);
 }
 
-void draw_string_len(raster_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)
+void draw_string_len(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)
 {
 	draw_string_full(fb, font, string, p, XY0, scale, colour, intensity, line_thick, mode, len, 0.2, 0.01, 2, 0, tp);
 }
 
-void draw_string(raster_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	draw_string_len(fb, font, string, p, scale, colour, intensity, line_thick, mode, -1, tp);
 }
 
-void print_to_screen_fullarg(raster_t fb, zoom_t zc, vector_font_t *font, xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, double line_thick, const char *format, ...)
+void print_to_screen_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, double line_thick, const char *format, ...)
 {
 	va_list args;
 	char string[4096];

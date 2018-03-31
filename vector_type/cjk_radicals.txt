@@ -4,15 +4,13 @@ glyph 2E86
 	p2	-2;6	6
 	p3	2;6	6
 	p4	2;6	0
-	lines p1 p2 p3 p4
+	lines p1 to p4
 	subend
-	
 	subglyph 2
 	copy 31D1
 	move	-2;6	0
 	copy 31C6
 	subend
-	
 	subglyph 3
 	copy 31D3
 	scale	0;6 1
@@ -32,3 +30,172 @@ glyph 2E88
 	p3	1;6	4;3
 	lines p1 p2 p3
 	move	0	-1
+
+glyph 2E81
+	copy 31D2
+	scale	1;3 1	-2 0
+	scale	0;11;6 0;1;6	3 6
+	copy 31D3
+	move last	-1;8 0
+	scale last	0;11 0;11	-3 0
+
+glyph 2E8A
+	copy 31D0
+	scale	0;6 1	3 0
+	copy 31D1
+
+glyph 2E80
+	copy 31D4
+	move	0	2
+	copy 31D4
+
+glyph 2E8C
+	p1	-3;4	4;9
+	p2	-2;4	3;7
+	p3	-2	2;6
+	p4	-0;1	2;1
+	p5	-0;1	5;4
+	p6	2;10	4;6
+	p7	2;1	3;5
+	p8	1;2	2;3
+	lines p1 p2 p3
+	lines p4 p5
+	lines p6 p7 p8
+
+glyph 2E95
+	p1	-2;9	6;1
+	p2	2;1	6;1
+	p3	2;1	0
+	p4	-2;11	0;5
+	p5	2;1	0;5
+	p6	3;7	3;4
+	p7	-3;9	3;4
+	lines p1 p2 p3
+	lines p4 p5
+	lines p6 p7
+
+glyph 2E99
+	p1	-3;7	-0;5
+	p2	-2;3	0;1
+	p3	-0;7	1;1
+	p4	0;11	3
+	p5	1;7	5;1
+	p6	-3;7	2;10
+	p7	-2;6	4
+	p8	-1;6	5;6
+	p9	-0;11	6;9
+	p10	2;11	-0;2
+	p11	0;8	1;1
+	p12	-0;7	2;3
+	p13	-1;4	3;5
+	p14	-2	5;1
+	p15	3;2	5;1
+	lines p1 to p5
+	lines p6 to p9
+	lines p10 to p15
+
+glyph 2EA4
+	p1	-3;5	4;1
+	p2	-1;10	4;2
+	p3	0;4	4;6
+	p4	2;5	5;1
+	p5	-2;8	3;8
+	p6	-2;1	2;11
+	p7	-1;11	2;3
+	p8	-0;7	3;11
+	p9	0	3;2
+	p10	0;2	2;6
+	p11	2;7	4;1
+	p12	2	3;1
+	p13	1;2	2
+	lines p1 to p4
+	lines p5 p6 p7
+	lines p8 p9 p10
+	lines p11 p12 p13
+
+glyph 2EAE
+	subglyph a
+	p1	-3;9	2;3
+	p2	-3;2	2;10
+	p3	-2;7	3;9
+	p4	-2;1	4;10
+	p5	-0;3	3;9
+	p6	-2;7	3;9
+	p7	-1;1	2;6
+	p8	-1;4	3
+	p9	-1;9	3;9
+	lines p1 to p4
+	lines p5 p6
+	lines p7 p8 p9
+	subend
+
+	copy 2EAE a
+	move 3;4
+	copy 2EAE a
+
+glyph 2EB9
+	p1	-0;5	6;4
+	p2	-0;5	3;3
+	p3	-3;8	3;3
+	p4	3;8	3;3
+	p5	-2;10	4;11
+	p6	1;4	4;11
+	p7	-3;10	0;10
+	p8	-1;5	2
+	p9	0;8	3;6
+	p10	2;10	5;10
+	lines p1 p2
+	lines p3 p4
+	lines p5 p6
+	lines p7 to p10
+
+glyph 2EBA
+	p1	0	6;7
+	p2	0	-0;9
+	p3	-2;3	5;6
+	p4	2;2	5;6
+	p5	2;2	2;11
+	p6	-2;3	2;11
+	p7	-3;7	4;2
+	p8	3;4	4;2
+	lines p1 p2
+	lines p3 to p6
+	lines p7 p8
+
+glyph 2E97
+	p1	-2;6	4;1
+	p2	-2;8	3;3
+	p3	-3;1	2;6
+	p4	-3;8	2
+	p5	-1	5;5
+	p6	-1	1;3
+	p7	-1;7	0;10
+	p8	-2;7	1;5
+	p9	-1;3	1;1
+	p10	0;2	4;2
+	p11	1;1	3
+	p12	1;5	2
+	p13	2;2	4;3
+	p14	3;5	2;9
+	p15	3;8	2;1
+	lines p1 to p4
+	lines p5 p6 p7
+	lines p8 p9
+	lines p10 p11 p12
+	lines p13 p14 p15
+
+glyph 2E8D
+	p1	-3;3	4;8
+	p2	-2;2	3;5
+	p3	-1;11	2;8
+	p4	-1;1	5
+	p5	0	3;8
+	p6	0;2	2;11
+	p7	2;9	4;9
+	p8	2;3	3;10
+	p9	1;8	3
+	p10	1;1	2;4
+	lines p1 p2 p3
+	lines p4 p5 p6
+	lines p7 to p10
+

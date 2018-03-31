@@ -15,7 +15,7 @@ extern seg_t seg_make_xyz(xyz_t p1, xyz_t p2, double m);
 extern seg_t rot_seg(seg_t seg, double scale, double th);
 extern void rot_vobj(vobj_t *o, double x, double y, double scale, double angle);
 extern rect_t vobj_bounding_rect(vobj_t *o);
-extern void draw_vobj_fullarg(raster_t fb, vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, col_t colour, const blend_func_t bf);
+extern void draw_vobj_fullarg(framebuffer_t fb, vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, col_t colour, const blend_func_t bf);
 extern xy_t *vobj_to_map(vobj_t *o, int32_t dofree);
 extern vobj_t *map_to_vobj(xy_t *map, int32_t mapsize, int32_t dofree);
 

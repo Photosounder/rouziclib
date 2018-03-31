@@ -1,17 +1,18 @@
 typedef struct
 {
 #ifdef SWITCH_RGB_CHANNELS
-	uint32_t b:8;
-	uint32_t g:8;
-	uint32_t r:8;
-	uint32_t a:8;
+	uint8_t b, g, r, a;
 #else
-	uint32_t r:8;
-	uint32_t g:8;
-	uint32_t b:8;
-	uint32_t a:8;
+	uint8_t r, g, b, a;
 #endif
 } srgb_t;			// sRGB
+
+typedef struct
+{
+	uint32_t r:10;
+	uint32_t g:12;
+	uint32_t b:10;
+} sqrgb_t;			// squared RGB, the stored values are proportional to the square root of the linear value
 
 typedef struct
 {
@@ -25,17 +26,47 @@ typedef struct
 
 typedef struct
 {
-	int32_t w, h, maxw, maxh;
-	rect_t window_dl;
+	xyi_t dim;		// formerly [wh]
 	lrgb_t *l;
 	frgb_t *f;
 	srgb_t *srgb;
+	sqrgb_t *sq;
 	int use_frgb;
-	int use_cl;
+	// TODO consider a flag to indicate that the host-side raster has been updated since the last copy to the device to trigger a new copy
+	
+	#ifdef RL_OPENCL
+	void *referencing_fb;		// used to access the framebuffer's device alloc table if *f is referenced there for removal when freeing the raster
+	#endif
+} raster_t;
 
-	// threading
-	volatile int status;	// readiness status, see enum below
-	//mtx_t 
+typedef struct
+{
+	raster_t *r;				// an array of raster tiles indexed by [y*tilecount.x + x]
+	xyi_t fulldim, tiledim, tilecount;	// full size in actual pixels, max size in actual pixels of a tile for this level (used for position calculations), number of tiles
+	xy_t scale;
+} mipmap_level_t;
+
+typedef struct
+{
+	mipmap_level_t *lvl;
+	int lvl_count;
+	xyi_t fulldim;
+} mipmap_t;
+
+typedef struct
+{
+	size_t start, end;	// position on fb's data_cl device buffer
+	int unused;		// 0 means in use, 1 means was used last frame, 2 means unused and should be removed
+	void *host_ptr;
+} cl_data_alloc_t;
+
+typedef struct
+{
+	raster_t r;
+	int32_t w, h;
+	rect_t window_dl;	// window draw limit (based on the usual drawing size)
+	xyi_t maxdim;		// formerly max[wh]
+	int use_cl;
 	
 	#ifdef RL_SDL
 	void *window;
@@ -44,8 +75,7 @@ typedef struct
 	#endif
 
 	#ifdef RL_OPENCL
-	cl_mem clbuf, cl_srgb;
-	uint64_t clbuf_da;	// device address for clbuf (actually currently an offset from fb's device data buffer)
+	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
 	uint32_t gltex;		// ID of the GL texture for cl_srgb
 	clctx_t clctx;		// contains the context and the command queue
 
@@ -62,16 +92,10 @@ typedef struct
 	int sector_w;		// number of sectors per row (for instance rows of 30 64x64 sectors for 1920x1080)
 
 	// CL data (for images and what not)
-	cl_mem data_cl;			// device buffer that contains all the needed data
-	int64_t data_cl_as;		// alloc size of data_cl in bytes
-	xyi_t *data_alloc_table;	// table that lists allocations within the buffer (.x=start, .y=end)
-	int data_alloc_table_as;	// alloc size of the data_alloc_table in elements
+	cl_mem data_cl;				// device buffer that contains all the needed data
+	size_t data_cl_as;			// alloc size of data_cl in bytes
+	cl_data_alloc_t *data_alloc_table;	// table that lists allocations within the buffer
+	int data_alloc_table_count;
+	int data_alloc_table_as;		// alloc size of the data_alloc_table in elements
 	#endif
-} raster_t;
-
-enum
-{
-	raster_status_null,		// when there's no image and none being prepared
-	raster_status_prep,		// when there's an image being prepared (loading/processing)
-	raster_status_ready		// when the image is ready to be used
-};
+} framebuffer_t;

@@ -43,13 +43,13 @@ void add_codepoint_letter_lut_reference(vector_font_t *font)
 
 void font_parse_p_line(char *line, xy_t *pv, int *pid, letter_t *l)
 {
-	int n, ip;
+	int n=0, ip;
 	char *p;
 
 	p = skip_whitespace(line);
 	if (p[0]=='p')
 	{
-		sscanf(p, "p%d %n", &ip, &n);	// take the p number
+		sscanf(p, "p%d%n", &ip, &n);	// take the p number
 
 		p = &p[n];
 		p = string_parse_fractional_12(p, &pv[l->point_count].x);
@@ -63,10 +63,10 @@ void font_parse_p_line(char *line, xy_t *pv, int *pid, letter_t *l)
 
 void font_parse_curveseg_line(char *line, xy_t *pv, int *pid, letter_t *l)
 {
-	int n, ip, d1_is_ratio=0, abs_angle=0;
+	int n=0, ip, d1_is_ratio=0, abs_angle=0;
 	char *p;
 	double th0=0.5*pi, th1=0., d0, d1=0.;
-	xy_t p0=XY0, p1=XY0, p2;
+	xy_t p0=XY0, p1, p2;
 
 	p = skip_string(line, " curveseg %n");
 	sscanf(p, "p%d %n", &ip, &n);			// take the p number
@@ -115,7 +115,7 @@ void font_parse_rect_line(char *line, xy_t *pv, int *pid, letter_t *l)
 {
 	int i, ip, n=0, pstart=0;
 	double num_seg=0., radius=0., start_angle=0.;
-	xy_t centre=XY0, pn;
+	xy_t pn;
 	rect_t r;
 	char *p=line;
 
@@ -205,28 +205,75 @@ void font_parse_mirror_line(char *line, xy_t *pv, int *pid, letter_t *l)
 	}
 }
 
+void font_add_line(int pA, int pB, int *lineA, int *lineB, letter_t *l)
+{
+	if (pA!=-1)
+	{
+		if (l->line_count >= 400)
+			fprintf_rl(stderr, "l->line_count has become too large in font_add_line()\n");
+		lineA[l->line_count] = pA + l->pid_offset;
+		lineB[l->line_count] = pB + l->pid_offset;
+		l->line_count++;
+	}
+}
+
 void font_parse_lines_line(char *line, xy_t *pv, int *pid, int *lineA, int *lineB, letter_t *l)
 {
-	int n, pA=-1, pB;
-	char *p;
+	int i, n, wl, to=0, pA=-1, pB, direction;
+	char *p, *pend;
 
+	pend = &line[strlen(line)];		// pointer to line's NULL terminator
 	p = skip_string(line, " lines %n");
 
-	while (sscanf(p, "p%d %n", &pB, &n) && strlen(p)>1)
+	while (p < pend)
 	{
+		wl = 0;		// word length
+		n = 0;		// position of the next word
+		sscanf(p, "%*s%n %n", &wl, &n);
+
+		if (n==0)		// if the second n is unmatched the behaviour is undefined
+			n = wl;
+
+		if (wl==0)
+			break;
+
+		if (compare_varlen_word_to_fixlen_word(p, wl, "to"))
+			to = 1;
+		else
+			if (p[0]=='p')
+			{
+				if (sscanf(p, "p%d", &pB))
+				{
+					if (pB + l->pid_offset < 0)	// make sure the actual point referenced isn't < 0 when pB is negative
+						pB = l->pid_offset;
+
+					if (to)
+					{
+						to = 0;
+
+						direction = sign(pB - pA);
+						if (direction==0)
+						{
+							fprintf_rl(stderr, "Forbidden \"p%d to p%d\" in line \"%s\"\n", pA, pB, line);
+							return ;
+						}
+
+						for (i=pA; ; i+=direction)
+						{
+							if (i==pB)
+								break ;
+
+							font_add_line(i, i+direction, lineA, lineB, l);
+						}
+					}
+					else
+						font_add_line(pA, pB, lineA, lineB, l);
+
+					pA = pB;
+				}
+			}
+
 		p = &p[n];
-
-		if (pB + l->pid_offset < 0)	// make sure the actual point referenced isn't < 0
-			pB = l->pid_offset;
-
-		if (pA!=-1)
-		{
-			lineA[l->line_count] = pA + l->pid_offset;
-			lineB[l->line_count] = pB + l->pid_offset;
-			l->line_count++;
-		}
-
-		pA = pB;
 	}
 }
 
@@ -353,7 +400,7 @@ void font_parse_transform_line(char *line, char *a, letter_t *l, glyphdata_t *gd
 
 void process_glyphdata_core(vector_font_t *font, letter_t *l, char *p, glyphdata_t *gd, int req_subgl)
 {
-	int n, group_start, last_start, subgl=0;
+	int n=0, group_start, last_start, subgl=0;
 	char c, line[128], a[128];
 	uint32_t copy_cp, copy_subgl;
 	letter_t *lcopy;
@@ -366,6 +413,7 @@ void process_glyphdata_core(vector_font_t *font, letter_t *l, char *p, glyphdata
 
 	while (sscanf(p, "%[^\n]\n%n", line, &n) && strlen(p)>0)	// go through each line in glyphdata_edit.string
 	{
+		a[0] = '\0';
 		sscanf(line, " %s", a);
 
 		if (strcmp(a, "subglyph")==0)				// entering subglyph section
@@ -436,6 +484,9 @@ void process_glyphdata_core(vector_font_t *font, letter_t *l, char *p, glyphdata
 		}
 
 		p = &p[n];
+		if (n==0)
+			break ;
+		n = 0;
 	}
 
 	//if (l->codepoint==0xFE94)
@@ -512,12 +563,13 @@ void font_block_process_line(char *line, vector_font_t *font)
 	uint32_t cp;
 	int current_count;
 
+	a[0] = '\0';
 	sscanf(line, "%s", a);
 
 	if (strcmp(a, "glyph")==0)
 	{
 		cp = 0;
-		if(sscanf(line, "glyph '%c'", &c)==1)
+		if (sscanf(line, "glyph '%c'", &c)==1)
 			cp = c;
 		else
 			sscanf(line, "glyph %X", &cp);
@@ -546,9 +598,10 @@ void font_block_process_line(char *line, vector_font_t *font)
 			p = skip_whitespace(line);
 
 		current_count = strlen(font->l[font->letter_count-1].glyphdata_edit.string) + 1;
-		alloc_enough(&font->l[font->letter_count-1].glyphdata_edit.string, current_count += strlen(p), &font->l[font->letter_count-1].glyphdata_edit.alloc_size, sizeof(1), 2.0);
+		alloc_enough(&font->l[font->letter_count-1].glyphdata_edit.string, current_count += strlen(p)+1, &font->l[font->letter_count-1].glyphdata_edit.alloc_size, sizeof(1), 2.0);
 
 		strcat(font->l[font->letter_count-1].glyphdata_edit.string, p);			// puts the line into the letter's glyphdata_edit.string
+		strcat(font->l[font->letter_count-1].glyphdata_edit.string, "\n");
 	}
 }
 
@@ -558,39 +611,39 @@ void make_fallback_font(vector_font_t *font)
 
 	int i;
 
-	for (i=0; fallback_font[i]; i++)	// loop ends when reaching the last element (NULL)
+	for (i=0; i < sizeof(fallback_font)/sizeof(char *); i++)
 		font_block_process_line(fallback_font[i], font);
 }
 
 void make_font_block(char *path, vector_font_t *font)
 {
-	FILE *file;
-	char line[128];
-
-	file = fopen_utf8(path, "rb");
-	if (file == NULL)
+	int i, linecount;
+	char **line;
+	
+	line = arrayise_text(load_raw_file_dos_conv(path, NULL), &linecount);
+	if (line == NULL)
 		return ;
 
-	while (fgets(line, sizeof(line), file))
-		font_block_process_line(line, font);
+	for (i=0; i < linecount; i++)
+		font_block_process_line(line[i], font);
 
-	fclose (file);
+	free(line[0]);
+	free(line);
 }
 
 void make_font_aliases(char *path, vector_font_t *font)
 {
-	int ret;
+	int i, ret, linecount;
 	uint32_t cp, tgt;
-	FILE *file;
-	char line[128], a[128], c, *p;
-
-	file = fopen_utf8(path, "rb");
-	if (file == NULL)
-		return ;
+	char **line, a[128], c, *p;
 	
-	while (fgets(line, sizeof(line), file))
+	line = arrayise_text(load_raw_file_dos_conv(path, NULL), &linecount);
+	if (line == NULL)
+		return ;
+
+	for (i=0; i < linecount; i++)
 	{
-		ret = sscanf(line, "%X = %s", &cp, a);
+		ret = sscanf(line[i], "%X = %s", &cp, a);
 
 		if (ret==2)
 		{
@@ -608,7 +661,8 @@ void make_font_aliases(char *path, vector_font_t *font)
 		}
 	}
 
-	fclose (file);
+	free(line[0]);
+	free(line);
 }
 
 void process_one_glyph(vector_font_t *font, int i)
@@ -633,9 +687,8 @@ void process_one_glyph(vector_font_t *font, int i)
 vector_font_t *make_font(char *index_path)
 {
 	vector_font_t *font;
-	FILE *indexfile;
-	char *dirpath, line[128], a[128], path[256];
-	int range0, range1;
+	char *dirpath, **line, a[128], path[256];
+	int i, linecount, range0, range1;
 
 	font = calloc(1, sizeof(vector_font_t));
 
@@ -645,42 +698,45 @@ vector_font_t *make_font(char *index_path)
 
 	dirpath = remove_after_char_copy(index_path, '/');
 
-	indexfile = fopen_utf8(index_path, "rb");
-	if (indexfile == NULL)
+	line = arrayise_text(load_raw_file_dos_conv(index_path, NULL), &linecount);
+	if (line == NULL)
 	{
 		make_fallback_font(font);
 		free(dirpath);
 		return font;
 	}
 
-	while (fgets(line, sizeof(line), indexfile))			// read the index file
+	for (i=0; i < linecount; i++)			// read the index file
 	{
-		sscanf(line, "%s", a);
+		a[0] = '\0';
+		sscanf(line[i], "%s", a);
 
 		if (strcmp(a, "range")==0)
 		{
 			strcpy(path, dirpath);
-			sscanf(line, "range %X %X \"%[^\"]\"", &range0, &range1, &path[strlen(path)]);
+			sscanf(line[i], "range %X %X \"%[^\"]\"", &range0, &range1, &path[strlen(path)]);
 			make_font_block(path, font);
 		}
 
 		if (strcmp(a, "substitutions")==0)
 		{
 			strcpy(path, dirpath);
-			sscanf(line, "substitutions \"%[^\"]\"", &path[strlen(path)]);
+			sscanf(line[i], "substitutions \"%[^\"]\"", &path[strlen(path)]);
 			make_font_aliases(path, font);
 		}
 
 		if (strcmp(a, "cjkdecomp")==0)
 		{
 			strcpy(path, dirpath);
-			sscanf(line, "cjkdecomp \"%[^\"]\"", &path[strlen(path)]);
+			sscanf(line[i], "cjkdecomp \"%[^\"]\"", &path[strlen(path)]);
 			cjkdec_load_data(path, font);
 		}
 	}
-
-	fclose(indexfile);
+	
 	free(dirpath);
+
+	free(line[0]);
+	free(line);
 
 	return font;
 }
@@ -772,37 +828,39 @@ void save_font_block(char *path, vector_font_t *font, int range0, int range1, ch
 
 void save_font(vector_font_t *font, char *index_path)
 {
-	FILE *indexfile;
-	char *cp_saved, *dirpath, line[128], a[128], path[256];
-	int i, range0, range1;
+	char *cp_saved, *dirpath, **line, a[128], path[256];
+	int i, linecount, range0, range1;
 
 	cp_saved = calloc(font->letter_count, sizeof(char));
 
 	dirpath = remove_after_char_copy(index_path, '/');
-
-	indexfile = fopen_utf8(index_path, "rb");
-	if (indexfile == NULL)
+	
+	line = arrayise_text(load_raw_file_dos_conv(index_path, NULL), &linecount);
+	if (line == NULL)
 	{
 		make_fallback_font(font);
 		free(dirpath);
+		free(cp_saved);
 		return ;
 	}
 
-	while (fgets(line, sizeof(line), indexfile))			// read the index file
+	for (i=0; i < linecount; i++)		// read the index file
 	{
-		sscanf(line, "%s", a);
+		a[0] = '\0';
+		sscanf(line[i], "%s", a);
 
 		if (strcmp(a, "range")==0)
 		{
 			strcpy(path, dirpath);
-			sscanf(line, "range %X %X \"%[^\"]\"", &range0, &range1, &path[strlen(path)]);
+			sscanf(line[i], "range %X %X \"%[^\"]\"", &range0, &range1, &path[strlen(path)]);
 			save_font_block(path, font, range0, range1, cp_saved);
 		}
 	}
 
-	fclose(indexfile);
 	free(dirpath);
 	free(cp_saved);
+	free(line[0]);
+	free(line);
 
 	return ;
 }

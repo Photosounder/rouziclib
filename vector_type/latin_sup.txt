@@ -13,7 +13,7 @@ glyph 00A2
 	p8	2	1
 	p9	-1;6	-1;6
 	p10	1;6	5;6
-	lines p5 p4 p3 p2 p1 p6 p7 p8
+	lines p5 to p1 p6 p7 p8
 	lines p9 p10
 
 glyph 00A3
@@ -27,7 +27,7 @@ glyph 00A3
 	p8	2	5
 	p9	-2	2;6
 	p10	0;6	2;6
-	lines p1 p2 p3 p4 p5 p6 p7 p8
+	lines p1 to p8
 	lines p9 p10
 
 glyph 00A4
@@ -77,7 +77,7 @@ glyph 00A7
 	p16	1;6	-0;9
 	p17	1;6	0
 	p18	-1;6	2;3
-	lines p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p17 p16 p15 p14 p13
+	lines p12 to p3 p17 to p13
 	lines p3 p2 p1 p18 p7
 	move 0 0;9
 
@@ -94,8 +94,8 @@ glyph 00A9
 	p10	-0;8	3;8
 	p11	-0;8	2;4
 	p12	0;8	2;4
-	lines p9 p10 p11 p12
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p1
+	lines p9 to p12
+	lines p1 to p8 p1
 
 glyph 00AA
 	copy 'A'
@@ -145,9 +145,9 @@ glyph 00AE
 	p13	-0;8	3
 	p14	-0;4	3
 	p15	0;8	2
-	lines p9 p10 p11 p12 p13
+	lines p9 to p13
 	lines p14 p15
-	lines p1 p2 p3 p4 p5 p6 p7 p8 p1
+	lines p1 to p8 p1
 
 glyph 00B0
 	copy 25EF
@@ -194,7 +194,7 @@ glyph 00B6
 	p5	2	6
 	lines p1 p2
 	lines p3 p4
-	lines p5 p6 p7 p8 p9 p10
+	lines p5 to p10
 	move	-0;3 0
 
 glyph 00B7
@@ -255,6 +255,7 @@ glyph 00C6
 	p5	0	2;4
 	lines p1 p2 p3
 	lines p4 p5
+	bounds	-3;6	3;6
 
 glyph 00D0
 	copy 'D'
@@ -282,7 +283,7 @@ glyph 00DE
 	p8	-2	1;6
 	p1	-2	0
 	p2	-2	6
-	lines p3 p4 p5 p6 p7 p8
+	lines p3 to p8
 	lines p1 p2
 
 glyph 00DF
@@ -301,7 +302,7 @@ glyph 00DF
 	scale loc -0;6	-0;8	0 6
 	move loc 0;6	-6
 	p1	1	4;3
-	lines p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10
+	lines p0 to p10
 
 glyph 00F7
 	copy '.'
@@ -321,5 +322,15 @@ glyph 00FE
 	p6	-1;8	0
 	p7	-1;8	-2
 	p8	-1;8	6;6
-	lines p1 p2 p3 p4 p5 p6
+	lines p1 to p6
 	lines p7 p8
+
+glyph 00C5
+	copy 030A
+	move	0	-0;8
+	copy 'A'
+
+glyph 00E5
+	copy 00C5
+	scale 0;9
+

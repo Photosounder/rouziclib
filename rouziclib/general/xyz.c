@@ -1,4 +1,4 @@
-xy_t xy(double x, double y)
+xy_t xy(const double x, const double y)
 {
 	xy_t out;
 
@@ -7,7 +7,7 @@ xy_t xy(double x, double y)
 	return out;
 }
 
-xyi_t xyi(int32_t x, int32_t y)
+xyi_t xyi(const int32_t x, const int32_t y)
 {
 	xyi_t out;
 
@@ -16,7 +16,7 @@ xyi_t xyi(int32_t x, int32_t y)
 	return out;
 }
 
-xyz_t xyz(double x, double y, double z)
+xyz_t xyz(const double x, const double y, const double z)
 {
 	xyz_t out;
 
@@ -26,7 +26,7 @@ xyz_t xyz(double x, double y, double z)
 	return out;
 }
 
-xy_t xyz_to_xy(xyz_t in)
+xy_t xyz_to_xy(const xyz_t in)
 {
 	xy_t out;
 
@@ -36,7 +36,7 @@ xy_t xyz_to_xy(xyz_t in)
 	return out;
 }
 
-xyz_t xy_to_xyz(xy_t in)
+xyz_t xy_to_xyz(const xy_t in)
 {
 	xyz_t out;
 
@@ -47,7 +47,7 @@ xyz_t xy_to_xyz(xy_t in)
 	return out;
 }
 
-xy_t xyi_to_xy(xyi_t in)
+xy_t xyi_to_xy(const xyi_t in)
 {
 	xy_t out;
 
@@ -57,7 +57,18 @@ xy_t xyi_to_xy(xyi_t in)
 	return out;
 }
 
-xyi_t xy_to_xyi(xy_t in)
+xyz_t xyi_to_xyz(const xyi_t in)
+{
+	xyz_t out;
+
+	out.x = in.x;
+	out.y = in.y;
+	out.z = 0.;
+
+	return out;
+}
+
+xyi_t xy_to_xyi(const xy_t in)
 {
 	xyi_t out;
 
@@ -67,29 +78,29 @@ xyi_t xy_to_xyi(xy_t in)
 	return out;
 }
 
-xy_t set_xy(double v)
+xy_t set_xy(const double v)
 {	return xy(v, v);
 }
 
-xyz_t set_xyz(double v)
+xyz_t set_xyz(const double v)
 {	return xyz(v, v, v);
 }
 
-xyi_t set_xyi(int32_t v)
+xyi_t set_xyi(const int32_t v)
 {	return xyi(v, v);
 }
 
-int equal_xy(xy_t a, xy_t b)
+int equal_xy(const xy_t a, const xy_t b)
 {
 	return (a.x==b.x) && (a.y==b.y);
 }
 
-int equal_xyz(xyz_t a, xyz_t b)
+int equal_xyz(const xyz_t a, const xyz_t b)
 {
 	return (a.x==b.x) && (a.y==b.y) && (a.z==b.z);
 }
 
-int equal_xyi(xyi_t a, xyi_t b)
+int equal_xyi(const xyi_t a, const xyi_t b)
 {
 	return (a.x==b.x) && (a.y==b.y);
 }
@@ -196,6 +207,11 @@ xyi_t div_xyi(xyi_t a, xyi_t b)
 	return a;
 }
 
+xyi_t div_round_up_xyi(xyi_t a, xyi_t b)
+{
+	return div_xyi( add_xyi( a , sub_xyi(b, set_xyi(1)) ) , b );
+}
+
 xy_t neg_xy(xy_t a)
 {
 	a.x = -a.x;
@@ -218,7 +234,7 @@ xyi_t neg_xyi(xyi_t a)
 	return a;
 }
 
-xy_t inv_xy(xy_t a)
+xy_t inv_xy(xy_t a)	// reciprocal
 {
 	a.x = 1. / a.x;
 	a.y = 1. / a.y;
@@ -252,6 +268,24 @@ xy_t neg_y(xy_t a)
 	return a;
 }
 
+xy_t sign_xy(xy_t a)
+{
+	a.x = sign(a.x);
+	a.y = sign(a.y);
+
+	return a;
+}
+
+int isnan_xy(xy_t a)
+{
+	return isnan(a.x) || isnan(a.y);
+}
+
+int isfinite_xy(xy_t a)
+{
+	return isfinite(a.x) && isfinite(a.y);
+}
+
 xy_t func1_xy(xy_t a, double (*f)(double))
 {
 	a.x = f(a.x);
@@ -267,7 +301,7 @@ xyz_t func1_xyz(xyz_t a, double (*f)(double))
 	return a;
 }
 
-xyi_t func1_xyi(xyi_t a, double (*f)(double))
+xyi_t func1_xyi(xyi_t a, int32_t (*f)(int32_t))
 {
 	a.x = f(a.x);
 	a.y = f(a.y);
@@ -289,7 +323,7 @@ xyz_t func2_xyz(xyz_t a, xyz_t b, double (*f)(double,double))
 	return a;
 }
 
-xyi_t func2_xyi(xyi_t a, xyi_t b, double (*f)(double,double))
+xyi_t func2_xyi(xyi_t a, xyi_t b, int32_t (*f)(int32_t,int32_t))
 {
 	a.x = f(a.x, b.x);
 	a.y = f(a.y, b.y);
@@ -387,6 +421,16 @@ double min_of_xyz(xyz_t a)
 double max_of_xyz(xyz_t a)
 {
 	return MAXN(MAXN(a.x, a.y), a.z);
+}
+
+double min_of_xyi(xyi_t a)
+{
+	return MINN(a.x, a.y);
+}
+
+double max_of_xyi(xyi_t a)
+{
+	return MAXN(a.x, a.y);
 }
 
 int mul_x_by_y_xyi(xyi_t a)

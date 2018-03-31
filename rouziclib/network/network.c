@@ -85,7 +85,7 @@ uint8_t *tcp_request(char *domain, char *port, char *request, int timeout, int r
 
 loopstart:
 	client = socket(ai->ai_family, SOCK_STREAM, IPPROTO_TCP);		// Create the socket
-	ret = connect (client, ai->ai_addr, (int) ai->ai_addrlen);		// Connect to the server
+	connect (client, ai->ai_addr, (int) ai->ai_addrlen);		// Connect to the server
 
 	if (setsockopt (client, SOL_SOCKET, SO_RCVTIMEO, (const char *) &timeout, sizeof(timeout)))
 		fprintf_rl(stderr, "Setting the recv() timeout failed\n");

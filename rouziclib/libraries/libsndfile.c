@@ -8,7 +8,7 @@ SNDFILE *sf_open_utf8(char *path, int mode, SF_INFO *sfinfo)
 	utf8_to_wchar(path, wpath);
 	return sf_wchar_open(wpath, mode, sfinfo);
 #else
-	return sf_open(in_path, mode, sfinfo);
+	return sf_open(path, mode, sfinfo);
 #endif
 }
 

@@ -74,8 +74,9 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			case DQT_RECT_BLACK:		pv = draw_black_rect(&df[qi+1], pv);			break;
 			case DQT_PLAIN_FILL:		pv = draw_plain_fill_add(&df[qi+1], pv);		break;
 			case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);		break;
-			case DQT_BLIT_SPRITE:		pv = blit_sprite(&df[qi+1], data_cl, pv);		break;
-			case DQT_BLIT_PHOTO:		pv = blit_photo(&df[qi+1], data_cl, pv);		break;
+			//case DQT_BLIT_BILINEAR:		pv = blit_sprite_bilinear(&df[qi+1], data_cl, pv);	break;
+			case DQT_BLIT_FLATTOP:		pv = blit_sprite_flattop(&df[qi+1], data_cl, pv);	break;
+			//case DQT_BLIT_PHOTO:		pv = blit_photo(&df[qi+1], data_cl, pv);		break;
 			case DQT_TEST1:			pv = drawgradienttest(pv);				break;
 				
 			default:

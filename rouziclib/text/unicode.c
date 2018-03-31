@@ -48,6 +48,9 @@ uint32_t utf8_to_unicode32(uint8_t *c, int32_t *index)
 	int size;
 	const uint8_t m6 = 63, m5 = 31, m4 = 15, m3 = 7;
 
+	if (c==NULL)
+		return 0;
+
 	size = utf8_char_size(c);
 
 	if (size > 0 && index)
@@ -214,6 +217,9 @@ uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold ne
 {
 	int c_size;
 
+	if (str==NULL)
+		return NULL;
+
 	c_size = codepoint_utf16_size(c);
 
 	switch (c_size)
@@ -242,6 +248,9 @@ uint16_t *utf8_to_utf16(uint8_t *utf8, uint16_t *utf16)
 	int i, j, len;
 	uint32_t c;
 
+	if (utf8==NULL)
+		return NULL;
+
 	len = strlen(utf8);
 
 	if (utf16==NULL)
@@ -261,6 +270,9 @@ uint8_t *utf16_to_utf8(uint16_t *utf16, uint8_t *utf8)
 {
 	int i, j, len;
 	uint32_t c;
+
+	if (utf16==NULL)
+		return NULL;
 
 	len = strlen_utf16(utf16);
 

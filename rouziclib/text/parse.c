@@ -1,11 +1,11 @@
-char *skip_string(char *string, const char *skipstring)		// skipstring must be terminated by a %n
+char *skip_string(const char *string, const char *skipstring)		// skipstring must be terminated by a %n
 {
 	int n=0;
 	sscanf(string, skipstring, &n);
 	return &string[n];
 }
 
-char *skip_whitespace(char *string)
+char *skip_whitespace(const char *string)
 {
 	return skip_string(string, " %n");
 }
@@ -38,7 +38,7 @@ int string_get_field(char *string, char *delim, int n, char *field)	// copies th
 	return 1;
 }
 
-char *string_parse_fractional_12(char *string, double *v)
+char *string_parse_fractional_12(const char *string, double *v)
 {
 	int i, n=0, ret=1, count=0, neg=0;
 	double divisor=1., digit;
@@ -83,7 +83,7 @@ char *string_parse_fractional_12(char *string, double *v)
 	return p;
 }
 
-double doztof(char *string)
+double doztof(const char *string)
 {
 	double v;
 
@@ -92,7 +92,7 @@ double doztof(char *string)
 	return v;
 }
 
-xy_t doztof_xy(char *str_x, char *str_y)
+xy_t doztof_xy(const char *str_x, const char *str_y)
 {
 	return xy(doztof(str_x), doztof(str_y));
 }
@@ -232,4 +232,14 @@ char *bstrstr(const char *s1, int l1, const char *s2, int l2)	// find first occu
 	}
 
 	return NULL;
+}
+
+int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix)		// returns 1 if the words are equal
+{
+	size_t fixlen = strlen(fix);
+
+	if (fixlen != varlen)
+		return 0;
+
+	return strncmp(var, fix, varlen)==0;
 }

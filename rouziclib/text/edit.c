@@ -2,9 +2,10 @@ textedit_t *cur_textedit=NULL;
 
 void textedit_init(textedit_t *te)
 {
-	memset(te, 0, sizeof(textedit_t));
+	//memset(te, 0, sizeof(textedit_t));
 	te->string = calloc(te->alloc_size = 16, sizeof(char));
-	te->max_scale = 1e30;
+	if (te->max_scale==0.)
+		te->max_scale = 1e30;
 }
 
 void textedit_free(textedit_t *te)
@@ -16,9 +17,8 @@ void textedit_free(textedit_t *te)
 
 textedit_t string_to_textedit(char *string)
 {
-	textedit_t te;
+	textedit_t te={0};
 
-	memset(&te, 0, sizeof(textedit_t));
 	te.string = string;
 	te.alloc_size = strlen(string)+1;
 	te.max_scale = 1e30;
@@ -351,7 +351,7 @@ void test_textedit_add()
 	fprintf_rl(stdout, "%s\nalloc_size: %d\tcurpos: %d", te.string, te.alloc_size, te.curpos);
 }
 
-int ctrl_textedit_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_textedit_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		textedit_t *te, rect_t box, col_t colour)
 {
 	double intensity = 1.;
@@ -359,6 +359,9 @@ int ctrl_textedit_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state;
 	rect_t boxb;
+	
+	if (te->string==NULL)		// if te->string is NULL it's not initialised
+		textedit_init(te);
 
 	if (total_scale < 1.)
 		return 0;
@@ -426,7 +429,7 @@ int ctrl_textedit_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	return 0;
 }
 
-void draw_textedit_cursor(raster_t fb, xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness)
+void draw_textedit_cursor(framebuffer_t fb, xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness)
 {
 	static uint32_t t0=0;
 	double frame_s;

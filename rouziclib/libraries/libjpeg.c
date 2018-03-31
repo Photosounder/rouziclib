@@ -135,4 +135,79 @@ void paste_convert_8x8_block(float *im, xyi_t dim, xyi_t ib, double *block)	// p
 			im[block_start + ip.y*dim.x + ip.x] = slrgb(block[ip.y*8 + ip.x] * (1./255.));
 }
 
+raster_t load_image_mem_libjpeg(uint8_t *raw_data, size_t size, const int mode)
+{
+	struct jpeg_decompress_struct cinfo={0};
+	struct jpeg_error_mgr jerr;
+	int ret;
+	xyi_t ip;
+	raster_t im={0};
+	uint8_t *scanline, *p0, *p1;
+	
+	// allocate and initialize JPEG decompression object
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_decompress(&cinfo);
+
+	jpeg_mem_src(&cinfo, raw_data, size);
+
+	ret = jpeg_read_header(&cinfo, TRUE);	// read file header
+	if (ret != 1)
+	{
+		fprintf_rl(stderr, "Image cannot be read by jpeg_read_header()\n");
+	}
+	else
+	{
+		jpeg_calc_output_dimensions(&cinfo);
+
+		im = make_raster_srgb(NULL, cinfo.output_width, cinfo.output_height);
+		scanline = malloc(cinfo.output_width * cinfo.output_components);
+
+		jpeg_start_decompress(&cinfo);
+
+		for (ip.y=0; ip.y < im.dim.y; ip.y++)
+		{
+			jpeg_read_scanlines(&cinfo, &scanline, 1);
+
+			for (ip.x=0; ip.x < im.dim.x; ip.x++)
+			{
+				p0 = &scanline[ip.x * cinfo.output_components];
+				p1 = &im.srgb[ip.y*im.dim.x + ip.x];
+				p1[0] = p0[0];
+				p1[1] = p0[1];
+				p1[2] = p0[2];
+			}
+		}
+
+		free(scanline);
+	}
+
+	// free the libjpeg stuff
+	jpeg_finish_decompress(&cinfo);
+	jpeg_destroy_decompress(&cinfo);
+
+	convert_image_srgb8(&im, im.srgb, mode);		// fills all the necessary buffers with the image data
+
+	return im;
+}
+
 #endif
+
+int check_data_is_jpeg(uint8_t *raw_data, size_t size)
+{
+	if (size < 3)
+		return 0;
+
+	return memcmp(raw_data, "\xFF\xD8\xFF", 3) == 0;
+}
+
+raster_t load_image_mem_libjpeg_if_possible(uint8_t *raw_data, size_t size, const int mode)
+{
+	#ifdef RL_LIBJPEG
+	if (check_data_is_jpeg(raw_data, size))
+		return load_image_mem_libjpeg(raw_data, size, mode);
+	else
+		return load_image_mem_lib(NULL, raw_data, size, mode);
+	#else
+	return load_image_mem_lib(NULL, raw_data, size, mode);
+	#endif
+}

@@ -1,0 +1,20 @@
+glyph 240D
+	copy 'C'
+	move	-5;6
+	copy 'R'
+	move	2;9
+	scale	0;3 0;3	0 3
+	copy 20DF
+	bounds	-3	3
+
+glyph 2421
+	copy 'D'
+	move	-5;6
+	copy 'E'
+	move	-5;6
+	copy 'L'
+	move	6
+	scale	0;2;6 0;2;6	0 3
+	copy 20DF
+	bounds	-3	3
+

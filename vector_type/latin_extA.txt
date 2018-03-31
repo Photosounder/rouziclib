@@ -1,23 +1,3 @@
-glyph 0104
-	copy 0328
-	move	2 0
-	copy 'A'
-	bounds -2 2
-
-glyph 0105
-	copy 0104
-	scale 0;9
-
-glyph 0118
-	copy 0328
-	move	2 0
-	copy 'E'
-	bounds -2 2
-
-glyph 0119
-	copy 0118
-	scale 0;9
-
 glyph 010F
 	copy 'D'
 	scale 0;9
@@ -65,7 +45,7 @@ glyph 0135
 
 glyph 0139
 	copy 0301
-	move -1;3 0
+	move -1 0
 	copy 'L'
 
 glyph 013A
@@ -105,13 +85,12 @@ glyph 014A
 	p6	1;6	-1
 	p7	0;9	-1
 	lines p1 p2 p3
-	lines p4 p5 p6 p7
+	lines p4 to p7
 
 glyph 0152
 	copy 'E'
 	move	2 	0
 	scale	0;9 	1
-	
 	p1	-3	5
 	p2	-2	6
 	p3	-0;4	6
@@ -120,7 +99,7 @@ glyph 0152
 	p6	-0;4	0
 	p7	-2	0
 	p8	-3	1
-	lines p4 p3 p2 p1 p8 p7 p6 p5
+	lines p4 to p1 p8 to p5
 
 glyph 0166
 	copy 'T'
@@ -134,4 +113,5 @@ glyph 017F
 	p3	-0;6	6
 	p4	0;6	6
 	p5	1;3	5;3
-	lines p1 p2 p3 p4 p5
+	lines p1 to p5
+

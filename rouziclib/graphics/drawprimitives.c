@@ -1,4 +1,4 @@
-void draw_circle_lrgb(const int circlemode, raster_t fb, xy_t pos, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_circle_lrgb(const int circlemode, framebuffer_t fb, xy_t pos, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, lboundx, lboundy, rboundx, rboundy;
@@ -59,13 +59,13 @@ void draw_circle_lrgb(const int circlemode, raster_t fb, xy_t pos, double circra
 
 				p = p * ratio >> 15;
 
-				bf(&fb.l[fbi], colour, p);
+				bf(&fb.r.l[fbi], colour, p);
 			}
 		}
 	}
 }
 
-void draw_circle_cl(const int circlemode, raster_t fb, xy_t pos, double circrad, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_circle_cl(const int circlemode, framebuffer_t fb, xy_t pos, double circrad, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 #ifdef RL_OPENCL
 	float *df;
@@ -144,7 +144,7 @@ void draw_circle_cl(const int circlemode, raster_t fb, xy_t pos, double circrad,
 #endif
 }
 
-void draw_circle_arc(raster_t fb, xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_circle_arc(framebuffer_t fb, xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	int i, count;
 	double stepth, oval_ratio = circrad.x / circrad.y;
@@ -166,12 +166,12 @@ void draw_circle_arc(raster_t fb, xy_t pos, xy_t circrad, double th0, double th1
 	}
 }
 
-void draw_circle_with_lines(raster_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_circle_with_lines(framebuffer_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	draw_circle_arc(fb, pos, set_xy(circrad), 0., 1., radius, colour, bf, intensity);
 }
 
-void draw_circle(const int circlemode, raster_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_circle(const int circlemode, framebuffer_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	if (circlemode!=HOLLOWCIRCLE)
 		radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
@@ -185,7 +185,7 @@ void draw_circle(const int circlemode, raster_t fb, xy_t pos, double circrad, do
 			draw_circle_lrgb(circlemode, fb, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_rect(raster_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_rect(framebuffer_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	draw_line_thin(fb, xy(r.p0.x, r.p0.y), xy(r.p0.x, r.p1.y), radius, colour, bf, intensity);
 	draw_line_thin(fb, xy(r.p0.x, r.p1.y), xy(r.p1.x, r.p1.y), radius, colour, bf, intensity);
@@ -193,7 +193,7 @@ void draw_rect(raster_t fb, rect_t r, double radius, col_t colour, const blend_f
 	draw_line_thin(fb, xy(r.p1.x, r.p0.y), xy(r.p0.x, r.p0.y), radius, colour, bf, intensity);
 }
 
-void draw_rect_chamfer(raster_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity, double chamfer)
+void draw_rect_chamfer(framebuffer_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity, double chamfer)
 {
 	xy_t p2, p3;
 	double cs, csx, csy, sx=1., sy=1.;
@@ -223,7 +223,7 @@ void draw_rect_chamfer(raster_t fb, rect_t r, double radius, col_t colour, const
 	draw_line_thin(fb, xy(p2.x, r.p0.y), xy(r.p0.x, p2.y), radius, colour, bf, intensity);
 }
 
-void draw_line_dashed(raster_t fb, xy_t p1, xy_t p2, double dash_period, double dash_ratio, double phase, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_dashed(framebuffer_t fb, xy_t p1, xy_t p2, double dash_period, double dash_ratio, double phase, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	xy_t pt1, pt2, pd;
 	double t1, t2, t1c, t2c, d;
@@ -292,7 +292,7 @@ int32_t get_dist_to_roundrect(int32_t lx1, int32_t ly1, int32_t lx2, int32_t ly2
 	return d;
 }
 
-void draw_roundrect(raster_t fb, rect_t box, double corner, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_roundrect(framebuffer_t fb, rect_t box, double corner, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
@@ -327,12 +327,12 @@ void draw_roundrect(raster_t fb, rect_t box, double corner, double radius, lrgb_
 			p = fperfr_d0(-d) >> 15;
 			p = p * ratio >> 15;
 
-			bf(&fb.l[fbi], colour, p);
+			bf(&fb.r.l[fbi], colour, p);
 		}
 	}
 }
 
-void draw_roundrect_frame(raster_t fb, rect_t box1, rect_t box2, double corner1, double corner2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_roundrect_frame(framebuffer_t fb, rect_t box1, rect_t box2, double corner1, double corner2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
@@ -373,13 +373,13 @@ void draw_roundrect_frame(raster_t fb, rect_t box1, rect_t box2, double corner1,
 			p = fperfr_d0(-dout) - fperfr_d0(-din) >> 15;
 			p = p * ratio >> 15;
 
-			bf(&fb.l[fbi], colour, p);
+			bf(&fb.r.l[fbi], colour, p);
 		}
 	}
 }
 
 // TODO optimise using fixed point arithmetic and look-up tables
-void draw_polar_glow(raster_t fb, double cx, double cy, lrgb_t col, double colmul, double scale, double rad, double gradr, double gradth, double angle, int32_t islog, int32_t riserf, double erfrad, double pixoffset)
+void draw_polar_glow(framebuffer_t fb, double cx, double cy, lrgb_t col, double colmul, double scale, double rad, double gradr, double gradth, double angle, int32_t islog, int32_t riserf, double erfrad, double pixoffset)
 {
 	int32_t ix, iy, g, ginv;
 	double ixf, iyf, r, th, gx, gy;
@@ -414,16 +414,16 @@ void draw_polar_glow(raster_t fb, double cx, double cy, lrgb_t col, double colmu
 			g = 32768. * gx + 0.5;
 			ginv = 32768 - g;
 
-			fb.l[iy*fb.w+ix].r = g * col.r + ginv * fb.l[iy*fb.w+ix].r >> 15;
-			fb.l[iy*fb.w+ix].g = g * col.g + ginv * fb.l[iy*fb.w+ix].g >> 15;
-			fb.l[iy*fb.w+ix].b = g * col.b + ginv * fb.l[iy*fb.w+ix].b >> 15;
-			fb.l[iy*fb.w+ix].a = ONEF;
+			fb.r.l[iy*fb.w+ix].r = g * col.r + ginv * fb.r.l[iy*fb.w+ix].r >> 15;
+			fb.r.l[iy*fb.w+ix].g = g * col.g + ginv * fb.r.l[iy*fb.w+ix].g >> 15;
+			fb.r.l[iy*fb.w+ix].b = g * col.b + ginv * fb.r.l[iy*fb.w+ix].b >> 15;
+			fb.r.l[iy*fb.w+ix].a = ONEF;
 		}
 	}
 }
 
 // TODO optimise using fixed point arithmetic and look-up tables
-void draw_gaussian_gradient(raster_t fb, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy, const blend_func_t bf)
+void draw_gaussian_gradient(framebuffer_t fb, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy, const blend_func_t bf)
 {
 	int32_t ix, iy, p;
 	double gx, gy;
@@ -441,12 +441,12 @@ void draw_gaussian_gradient(raster_t fb, double cx, double cy, lrgb_t c0, lrgb_t
 
 			gc = c0;
 			blend_blend(&gc, c1, p);
-			bf(&fb.l[iy*fb.w+ix], gc, 32768);
+			bf(&fb.r.l[iy*fb.w+ix], gc, 32768);
 		}
 	}
 }
 
-void draw_point_lrgb(raster_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_point_lrgb(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t iy, ix, fbi;
 	double grad;
@@ -483,11 +483,11 @@ void draw_point_lrgb(raster_t fb, xy_t pos, double radius, lrgb_t colour, const 
 		p *= fpgauss_d0((int64_t) (yf - (iy<<fp)) * radiusf >> fpr) >> 15;
 		p = (p>>15) * ratio >> 15;
 
-		bf(&fb.l[fbi], colour, p);
+		bf(&fb.r.l[fbi], colour, p);
 	}
 }
 
-void draw_point_frgb(raster_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_frgb(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	int32_t iy, ix, fbi;
 	float ixf, iyf, p, bradius, ratio=intensity;
@@ -511,11 +511,11 @@ void draw_point_frgb(raster_t fb, xy_t pos, double radius, frgb_t colour, const 
 		p *= fastgaussianf_d1((pos.y - iyf) * radius);
 		p *= ratio;
 
-		bf(&fb.f[fbi], colour, p);
+		bf(&fb.r.f[fbi], colour, p);
 	}
 }
 
-void draw_point_cl(raster_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_cl(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 #ifdef RL_OPENCL
 	double grad;
@@ -556,19 +556,19 @@ void draw_point_cl(raster_t fb, xy_t pos, double radius, frgb_t colour, const bl
 #endif
 }
 
-void draw_point(raster_t fb, xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_point(framebuffer_t fb, xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
 
 	if (fb.use_cl)
 		draw_point_cl(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
-	else if (fb.use_frgb)
+	else if (fb.r.use_frgb)
 		draw_point_frgb(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
 		draw_point_lrgb(fb, pos, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_point_on_row(raster_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_point_on_row(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t ix, fbi, dp;
 	double grad = GAUSSRAD(intensity, radius);
@@ -599,6 +599,6 @@ void draw_point_on_row(raster_t fb, xy_t pos, double radius, lrgb_t colour, cons
 		p = fpgauss_d0(dp) >> 15;
 		p = p * ratio >> 15;
 
-		bf(&fb.l[fbi], colour, p);
+		bf(&fb.r.l[fbi], colour, p);
 	}
 }

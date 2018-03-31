@@ -1,0 +1,961 @@
+glyph 30FB
+	copy 00B7
+	bounds	-3	3
+
+glyph 30A0
+	p1	-1;6	2;4
+	p2	1;6	2;4
+	p3	-1;6	4
+	p4	1;6	4
+	lines p1 p2
+	lines p3 p4
+
+glyph 30A2
+	p1	-2;11	5;10
+	p2	-2;3	5;1
+	p3	0;2	5;7
+	p4	2;2	5;10
+	p5	2;11	5;2
+	p6	0;6	3;10
+	p7	-0;5	4;4
+	p8	0;5	3;10
+	p9	-0;1	2;6
+	p10	-0;10	1;1
+	p11	-2;1	-0;2
+	lines p1 to p6
+	lines p7 to p11
+
+glyph 30A4
+	p1	0;11	6;8
+	p2	1;9	6
+	p3	-0;3	4
+	p4	-1;8	3
+	p5	-3;3	2
+	p6	0;3	0
+	p7	0;3	3;6
+	p8	-0;2	3;11
+	lines p1 to p5
+	lines p6 p7 p8
+
+glyph 30A6
+	p1	-2;8	5;3
+	p2	-2	4;9
+	p3	-2	3
+	p4	-2	4;9
+	p5	-0;1	5
+	p6	2	5;2
+	p7	2;5	4;10
+	p8	1;9	2;11
+	p9	0;8	1;3
+	p10	-1;1	-0;2
+	p11	-0;9	6;8
+	p12	-0;1	6;5
+	p13	-0;1	5
+	lines p1 p2 p3
+	lines p4 to p10
+	lines p11 p12 p13
+
+glyph 30A8
+	p1	-2;3	5;2
+	p2	-1;7	4;8
+	p3	-0;5	4;8
+	p4	2	5;2
+	p5	-3;5	1;9
+	p6	-2;9	1;1
+	p7	-0;2	1;8
+	p8	1;7	1;8
+	p9	3;1	1;6
+	p10	-0;2	1;8
+	p11	-0;1	4;2
+	p12	-0;4	4;6
+	lines p1 to p4
+	lines p5 to p9
+	lines p10 p11 p12
+
+glyph 30A9
+	copy 30AA
+	scale	0;9;6
+
+glyph 30AA
+	p1	-3	4;11
+	p2	-2;3	4;2
+	p3	2;11	5
+	p4	0	6;7
+	p5	0;10	6;3
+	p6	0;10	0;2
+	p7	0;7	0;6
+	p8	-0;11	1;1
+	p9	-3;5	0;9
+	p10	-2;3	1;5
+	p11	-0;8	2;10
+	p12	0;8	4;7
+	lines p1 p2 p3
+	lines p4 to p8
+	lines p9 to p12
+
+glyph 30AB
+	p1	-2;10	4;8
+	p2	-2;1	4
+	p3	2	4;9
+	p4	2;5	4;4
+	p5	1;11	2;1
+	p6	1;4	0;8
+	p7	0;10	0;5
+	p8	0;8	0;8
+	p9	-0;6	1;2
+	p10	-0;5	6;7
+	p11	0;5	6;1
+	p12	-0;7	3;1
+	p13	-1;7	1;6
+	p14	-3;3	0
+	lines p1 to p9
+	lines p10 to p14
+
+glyph 30AD
+	p1	-1;3	6;6
+	p2	-0;7	6;4
+	p3	1	0
+	p4	-2;10	4;8
+	p5	-2	4;4
+	p6	-0;8	4;7
+	p7	1;10	5;5
+	p8	-3	2;8
+	p9	-2;3	2;1
+	p10	-0;2	2;11
+	p11	2;9	3;7
+	lines p1 p2 p3
+	lines p4 p5 p6 p7
+	lines p8 p9 p10 p11
+
+glyph 30AF
+	p1	-0;7	6;7
+	p2	0;1	6;1
+	p3	-0;5	5;3
+	p4	-1;3	4;1
+	p5	-2;8	2;11
+	p6	-0;2	5;3
+	p7	0;3	5;1
+	p8	1;10	5;6
+	p9	2;3	5;1
+	p10	1;3	3;2
+	p11	0	1;7
+	p12	-2;6	-0;2
+	lines p1 to p5
+	lines p6 to p12
+
+glyph 30BF
+	p1	-1;2	4;2
+	p2	-0;2	3;5
+	p3	0;5	2;8
+	lines p1 p2 p3
+	copy 30AF
+	move last	-0;2
+
+glyph 30BD
+	p1	-2;8	5;8
+	p2	-1;8	4;7
+	p3	-1;2	3;7
+	p4	1;7	5;11
+	p5	2;4	5;5
+	p6	1;9	3;9
+	p7	0;5	1;7
+	p8	-1;7	-0;2
+	lines p1 p2 p3
+	lines p4 to p8
+
+glyph 30BB
+	p1	-3;6	3;5
+	p2	-2;10	2;10
+	p3	2;1	4;7
+	p4	2;7	4;2
+	p5	0;7	2;4
+	p6	-1;9	6
+	p7	-0;10	5;8
+	p8	-0;11	1;9
+	p9	-0;8	1
+	p10	-0;1	0;8
+	p11	1;2	0;7
+	p12	2;5	0;9
+	lines p1 to p5
+	lines p6 to p12
+
+glyph 30B9
+	p1	-2;3	5;8
+	p2	-1;8	4;11
+	p3	1;3	5;7
+	p4	1;8	5;4
+	p5	0;2	3;2
+	p6	-1;2	1;9
+	p7	-3;3	0;4
+	p8	2;7	0;6
+	p9	2;1	1;6
+	p10	1;3	2;4
+	p11	0;2	3;2
+	lines p1 to p7
+	lines p8 p9 p10 p11
+
+glyph 30B7
+	p1	-3;2	4;4
+	p2	-2;1	3;10
+	p3	-1;7	3;3
+	p4	-2;2	5;10
+	p5	-1;1	5;3
+	p6	-0;8	4;9
+	p7	-2;9	1;4
+	p8	-2	0;5
+	p9	-0;1	1;8
+	p10	1;10	3;1
+	p11	3;3	4;7
+	lines p1 p2 p3
+	lines p4 p5 p6
+	lines p7 to p11
+
+glyph 30B5
+	p1	-3;7	4;3
+	p2	-2;11	3;7
+	p3	-0;11	4;2
+	p4	1;1	4;5
+	p5	3;2	4;5
+	p6	-1;11	5;11
+	p7	-1;3	5;6
+	p8	-1;3	2
+	p9	0;6	6;5
+	p10	1;3	6;1
+	p11	1;2	3;4
+	p12	0;10	1;9
+	p13	0;3	0;9
+	p14	-1	-0;3
+	lines p1 to p5
+	lines p6 p7 p8
+	lines p9 to p14
+
+glyph 30B3
+	p1	-2;3	5;2
+	p2	-1;8	4;6
+	p3	1;9	5
+	p4	2;3	4;7
+	p5	1;7	1;6
+	p6	2	1;6
+	p7	0;4	1;6
+	p8	-1;9	1;2
+	p9	-2;6	1;9
+	lines p1 to p5
+	lines p6 to p9
+
+glyph 30B1
+	p1	-1;10	6;8
+	p2	-0;10	6;1
+	p3	-1;6	4;7
+	p4	-2;3	3;7
+	p5	-3;3	2;8
+	p6	2;11	4;10
+	p7	0;6	4;4
+	p8	-1;1	4;4
+	p9	-1;6	4;7
+	p10	-1;8	-0;5
+	p11	-0;4	1
+	p12	0;7	2;6
+	p13	0;10	3;9
+	p14	0;6	4;4
+	lines p1 to p5
+	lines p6 to p9
+	lines p10 to p14
+
+glyph 30C4
+	p1	-2;10	5;3
+	p2	-2;1	4;5
+	p3	-1;8	3;8
+	p4	-1	5;8
+	p5	-0;2	4;10
+	p6	0;1	4;1
+	p7	1;9	5;9
+	p8	2;7	5;2
+	p9	1;9	3;6
+	p10	0;7	1;11
+	p11	-0;8	0;7
+	p12	-1;9	-0;1
+	lines p1 p2 p3
+	lines p4 p5 p6
+	lines p7 to p12
+
+glyph 30C1
+	p1	0;5	6;9
+	p2	1;2	6;2
+	p3	0;1	5;7
+	p4	-2;4	4;10
+	p5	-0;3	5;3
+	p6	0;3	4;10
+	p7	0;2	3;3
+	p8	-0;2	1;10
+	p9	-0;7	0;11
+	p10	-1;8	-0;3
+	p11	-3;3	3;9
+	p12	-2;7	3;2
+	p13	-0;2	3;9
+	p14	1;8	3;11
+	p15	3	3;10
+	lines p1 to p4
+	lines p5 to p10
+	lines p11 p12 p13 p14 p15
+
+glyph 30CF
+	p1	-1;8	4;11
+	p2	-0;11	4;4
+	p3	-1;9	3;2
+	p4	-2;8	2;1
+	p5	-3;8	1;4
+	p6	0;8	4;11
+	p7	1;9	4
+	p8	2;7	2;11
+	p9	3	1;8
+	lines p1 to p5
+	lines p6 to p9
+
+glyph 30CE
+	p1	0;10	6;3
+	p2	1;7	5;7
+	p3	0;9	3;11
+	p4	-0;6	2;2
+	p5	-2;7	0;3
+	lines p1 to p5
+
+glyph 30CD
+	p1	-1;2	6;9
+	p2	-0;6	6;3
+	p3	1	6;1
+	p4	-2;3	5
+	p5	-1;8	4;5
+	p6	1;5	5;1
+	p7	1;9	4;9
+	p8	0	3;3
+	p9	-1;8	2;2
+	p10	-3;6	1;3
+	p11	-0;3	3
+	p12	0	2;7
+	p13	0	-0;3
+	p14	0;9	2;11
+	p15	2;1	2;6
+	p16	3	1;11
+	lines p1 p2 p3
+	lines p4 to p10
+	lines p11 p12 p13
+	lines p14 p15 p16
+
+glyph 30CC
+	p1	-1;11	6;2
+	p2	-1;3	5;4
+	p3	1;7	6
+	p4	2;1	5;6
+	p5	0;10	3;6
+	p6	-1;3	1
+	p7	-2;9	0
+	p8	-1;8	3;11
+	p9	-0;3	3;4
+	p10	1	2;6
+	p11	1;7	1;9
+	lines p1 to p7
+	lines p8 p9 p10 p11
+
+glyph 30CB
+	p1	-2;1	5;3
+	p2	-1;5	4;8
+	p3	0;2	4;9
+	p4	1;6	5
+	p5	-3;5	2
+	p6	-2;8	1;3
+	p7	-0;7	1;8
+	p8	1;2	1;9
+	p9	2;11	1;7
+	lines p1 to p4
+	lines p5 to p9
+
+glyph 30CA
+	p1	-3;2	4;4
+	p2	-2;5	3;8
+	p3	-0;10	4;1
+	p4	1;2	4;4
+	p5	2;10	4;3
+	p6	-0;8	6;5
+	p7	0;2	6
+	p8	0;1	3;9
+	p9	-0;3	2
+	p10	-0;9	0;11
+	p11	-1;11	-0;4
+	lines p1 to p5
+	lines p6 to p11
+
+glyph 30C8
+	p1	-1;4	6;7
+	p2	-0;8	6;3
+	p3	-0;8	0
+	p4	-0;8	4
+	p5	0;5	3;9
+	p6	1;3	3;4
+	p7	1;10	2;10
+	lines p1 p2 p3
+	lines p4 p5 p6 p7
+
+glyph 30C6
+	p1	-1;10	6;2
+	p2	-1;2	5;7
+	p3	0;1	5;8
+	p4	1;5	6
+	p5	-3;2	4
+	p6	-2;6	3;7
+	p7	-0;9	3;11
+	p8	1;2;8	4;2;7
+	p9	2;10	4;2
+	p10	-0;1	3;11
+	p11	0;3	3;6
+	p12	0	2;3
+	p13	-0;7	0;10
+	p14	-1;7	-0;3
+	lines p1 to p4
+	lines p5 to p9
+	lines p10 to p14
+
+glyph 30A1
+	copy 30A2
+	scale	0;9;6
+
+glyph 30A3
+	copy 30A4
+	scale	0;9;6
+
+glyph 30A5
+	copy 30A6
+	scale	0;9;6
+
+glyph 30A7
+	copy 30A8
+	scale	0;9;6
+
+glyph 30C3
+	copy 30C4
+	scale	0;9;6
+
+glyph 30D2
+	p1	-2;5	6;1
+	p2	-1;7	5;9
+	p3	-1;9	2;1
+	p4	-1;7	1;5
+	p5	-1;2	0;11
+	p6	-0;2	0;9
+	p7	1;2	0;9
+	p8	2;4	1
+	p9	-1;8	4;1
+	p10	-1;2	3;9
+	p11	-0;2	3;9
+	p12	1;11	4;3
+	lines p1 to p8
+	lines p9 to p12
+
+glyph 30D5
+	p1	-2;7	5;8
+	p2	-1;11	4;11
+	p3	1;9	5;9
+	p4	2;4	5;2
+	p5	1;3	3;1
+	p6	-0;1	1;6
+	p7	-1;10	-0;1
+	lines p1 to p7
+
+glyph 30D8
+	p1	-3;5	3;5
+	p2	-2;8	2;9
+	p3	-1;10	3;10
+	p4	-0;11	4;8
+	p5	-0;6	4;8
+	p6	3;6	1;6
+	lines p1 to p6
+
+glyph 30D9
+	copy 3099
+	move	-1	-1;2
+	copy 30D8
+
+glyph 30DA
+	copy 309A
+	move	-1;4	-1;4
+	copy 30D8
+
+glyph 30DB
+	p1	-2;11	1;3
+	p2	-2;5	1;10
+	p3	-2;1	2;6
+	p4	-1;11	3;4
+	p5	-1;7	1;4
+	p6	-0;1;5	0;7;2
+	p7	-0;3	0;4
+	p8	0	0;10
+	p9	0	6
+	p10	-0;9	6;4
+	p11	-2;9	4;11
+	p12	-2;3	4;5
+	p13	-0;11	4;4
+	p14	2;4	4;10
+	p15	1;6	3;5
+	p16	2;5	2;5
+	p17	2;8	1;4
+	lines p1 to p4
+	lines p5 p6
+	lines p7 to p10
+	lines p11 p12 p13 p14
+	lines p15 p16 p17
+
+glyph 30DE
+	p1	-3;3	4;11
+	p2	-2;6	4;1
+	p3	2;4	5
+	p4	2;10	4;4
+	p5	-0;1;7	1;11;6
+	p6	0;7	0;7
+	p7	0;3	1;7
+	p8	-0;6	2;4
+	p9	-1;4	2;11
+	lines p1 to p5
+	lines p6 to p9
+
+glyph 30DF
+	p1	-1;8	6;5
+	p2	-0;9	5;9
+	p3	1;5	5;2
+	p4	-1;5	4;3
+	p5	-0;9	3;7
+	p6	1;1	3
+	p7	-2	2;1
+	p8	-1;5	1;4
+	p9	1;11	0;2
+	lines p1 p2 p3
+	lines p4 p5 p6
+	lines p7 p8 p9
+
+glyph 30E0
+	p1	-0;8	6;3
+	p2	0;2	5;8
+	p3	-2;1	1
+	p4	-3;1	1;9
+	p5	-2;7	0;11
+	p6	2;4	1;9
+	p7	2;7	0;8
+	p8	2;4	1;9
+	p9	1;9	2;8
+	p10	0;11	3;7
+	lines p1 p2 p3
+	lines p4 p5 p6
+	lines p7 to p10
+
+glyph 30E1
+	p1	-1;8	4;8
+	p2	-0;4	3;11
+	p3	0;10	2;11
+	p4	1;7	1;11
+	p5	1;1	6;4
+	p6	1;10	5;9
+	p7	0;1	2;11
+	p8	-1;6	1;1
+	p9	-3;1	0
+	lines p1 to p4
+	lines p5 to p9
+
+glyph 30E2
+	p1	-2;7	5;7
+	p2	-1;11	5;2
+	p3	-0;8	5;2
+	p4	1;8	5;9
+	p5	-1;2	5;2
+	p6	-0;7	4;8
+	p7	-0;8	1;8
+	p8	-0;5	0;11
+	p9	0	0;7
+	p10	2;5	0;8
+	p11	-3;5	3;6
+	p12	-2;9	2;10
+	p13	0;5	3;4
+	p14	2;10	3;6
+	lines p1 to p4
+	lines p5 to p10
+	lines p11 p12 p13 p14
+
+glyph 30E3
+	copy 30E4
+	scale 0;9;6
+
+glyph 30E4
+	p1	-3;4	4;2
+	p2	-2;7	3;7
+	p3	2;3	5;3
+	p4	2;11	4;9
+	p5	1	3;1
+	p6	-1;11	6;3
+	p7	-1;1	6;1
+	p8	0;4	0;2
+	lines p1 to p5
+	lines p6 p7 p8
+
+glyph 30E6
+	p1	-3;4	1;9
+	p2	-2;9	1;1
+	p3	-0;9	1;6
+	p4	1;5	1;8
+	p5	3;2	1;7
+	p6	0;6	1;7
+	p7	1;4	4;10
+	p8	0;11	5;2
+	p9	-1;6	4;7
+	p10	-2;1	5;3
+	lines p1 to p5
+	lines p6 to p10
+
+glyph 30E5
+	copy 30E6
+	scale 0;9;6
+
+glyph 30E8
+	p1	-2;5	1;4
+	p2	-1;10	0;9
+	p3	-0;1	1;1
+	p4	2;1	1;1
+	p5	1;6	1;1
+	p6	2;2	5;3
+	p7	1;9	5;7
+	p8	-1;9	5;1
+	p9	-2;2	5;7
+	p10	-2;2	3;7
+	p11	-1;8	3;1
+	p12	1;10;7	3;5;7
+	lines p1 to p4
+	lines p5 to p9
+	lines p10 p11 p12
+
+glyph 30E7
+	copy 30E8
+	scale 0;9;6
+
+glyph 30FF
+	p1	-2;8	6;3
+	p2	-2;1	5;8
+	p3	1;4	6;3
+	p4	1;11	5;10
+	p5	1;7	5;4
+	p6	1;7	0;2
+	lines p1 to p6
+
+glyph 30EF
+	p1	-2;7	5;9
+	p2	-2	5;4
+	p3	-1;11	3
+	p4	-1;9	5;4
+	p5	1;11	5;9
+	p6	2;5	5;3
+	p7	1;6	2;11
+	p8	0;5	1;4
+	p9	-1;3	0
+	lines p1 p2 p3
+	lines p4 to p9
+
+glyph 30EE
+	copy 30EF
+	scale 0;9;6
+
+glyph 30ED
+	p1	-2;10	5;4
+	p2	-2;1	4;10
+	p3	-1;9	0;11
+	p4	-1;9	1;4
+	p5	1;11	1;6
+	p6	1;5	1;6
+	p7	2;3	4;10
+	p8	1;11	5;3
+	p9	-2;1	4;10
+	lines p1 p2 p3
+	lines p4 p5
+	lines p6 to p9
+
+glyph 30EC
+	p1	-2;5	5;10
+	p2	-1;7	5;4
+	p3	-1;9	1
+	p4	-1;6	0;6
+	p5	0;6	1;7
+	p6	1;10	2;7
+	p7	3	3;10
+	lines p1 to p7
+
+glyph 30EB
+	p1	-2;1	4;11
+	p2	-1;5	4;5
+	p3	-1;9	2;7
+	p4	-2;3	1;6
+	p5	-3;3	0;5
+	p6	-0;4	5;11
+	p7	0;4	5;5
+	p8	0;1	1;3
+	p9	0;4	0;9
+	p10	1;11	1;9
+	p11	2;9	2;7
+	p12	3;7	3;7
+	lines p1 to p5
+	lines p6 to p12
+
+glyph 30EA
+	p1	-2	6
+	p2	-1;5	5;9
+	p3	-1;5	2;9
+	p4	0;9	6;6
+	p5	1;6	6;2
+	p6	1;5	3;4
+	p7	1;2	1;11
+	p8	0;8	1
+	p9	-0;3	0;2
+	p10	-1	-0;3
+	lines p1 p2 p3
+	lines p4 to p10
+
+glyph 30E9
+	p1	-1;8	6;3
+	p2	-1;2	5;9
+	p3	-0;1	5;9
+	p4	1;8	6
+	p5	-2;6	4;5
+	p6	-1;11	3;10
+	p7	1;10	4;7
+	p8	2;4	4;2
+	p9	1;1	2;2
+	p10	0	0;10
+	p11	-1;4	-0;2
+	lines p1 to p4
+	lines p5 to p11
+
+glyph 30FD
+	p1	-1;6	4;6
+	p2	-0;5	3;10
+	p3	0;4	3;1
+	p4	0;9	2;2
+	lines p1 to p4
+
+glyph 30FC
+	p1	-3;2	3;7
+	p2	-2;9	3;1
+	p3	3;1	3;3
+	lines p1 p2 p3
+
+glyph 30F6
+	copy 30B1
+	scale 0;9;6
+
+glyph 30AC
+	copy 3099
+	move	0	-0;9
+	copy 30AB
+
+glyph 30AE
+	copy 3099
+	move	-0;6	-0;4
+	copy 30AD
+
+glyph 30B0
+	copy 3099
+	move	0	-0;3
+	copy 30AF
+
+glyph 30B2
+	copy 3099
+	move	-0;3	-0;2
+	copy 30B1
+
+glyph 30B4
+	copy 3099
+	move	-0;2	-0;6
+	copy 30B3
+
+glyph 30B6
+	copy 3099
+	move	-0;2	-0;1
+	copy 30B5
+
+glyph 30B8
+	copy 3099
+	move	-0;8	-0;6
+	copy 30B7
+
+glyph 30BA
+	copy 3099
+	move	-0;4	-0;2
+	copy 30B9
+
+glyph 30BC
+	copy 3099
+	move	-0;4	-0;6
+	copy 30BB
+
+glyph 30BE
+	copy 3099
+	move	0;2	-0;2
+	copy 30BD
+
+glyph 30C0
+	copy 3099
+	move	0;1	-0;2
+	copy 30BF
+
+glyph 30C2
+	copy 3099
+	move	0	-0;9
+	copy 30C1
+
+glyph 30C5
+	copy 3099
+	move	0;3	-0;3
+	copy 30C4
+
+glyph 30C7
+	copy 3099
+	move	0;2	-0;6
+	copy 30C6
+
+glyph 30C9
+	copy 3099
+	move	-0;9	-0;6
+	copy 30C8
+
+glyph 30D0
+	copy 3099
+	move	-0;4	-1
+	copy 30CF
+
+glyph 30D1
+	copy 309A
+	move	-0;10	-1
+	copy 30CF
+
+glyph 30D3
+	copy 3099
+	move	-0;6	-0;6
+	copy 30D2
+
+glyph 30D4
+	copy 309A
+	move	-0;9	-0;10
+	copy 30D2
+
+glyph 30D6
+	copy 3099
+	move	0;1	-0;3
+	copy 30D5
+
+glyph 30D7
+	copy 309A
+	move	0	-0;5
+	copy 30D5
+
+glyph 30DC
+	copy 3099
+	move	-0;3	-0;2
+	copy 30DB
+
+glyph 30DD
+	copy 309A
+	move	-1	-0;4
+	copy 30DB
+
+glyph 30F4
+	copy 3099
+	move	0	-0;3
+	copy 30A6
+
+glyph 30F7
+	copy 3099
+	move	0	-0;2
+	copy 30EF
+
+glyph 30F8
+	copy 3099
+	move	0;1	-0;3
+	copy 30F0
+
+glyph 30F9
+	copy 3099
+	move	0	-0;6
+	copy 30F1
+
+glyph 30FA
+	copy 3099
+	move	0;2	-0;3
+	copy 30F2
+
+glyph 30FE
+	copy 3099
+	move	-1;6	-0;10
+	copy 30FD
+
+glyph 30F0
+	p1	-2;6	5;2
+	p2	-1;10	4;9
+	p3	-1	4;8
+	p4	0;9	4;10
+	p5	2;3	5;3
+	p6	-0;2	6;8
+	p7	0;6	6;4
+	p8	0;6	-0;1
+	p9	-2;2	4
+	p10	-1;7	3;9
+	p11	-1;4;11	2;1;6
+	p12	-3;4	2;4
+	p13	-2;9	1;10
+	p14	-0;1	2;5
+	p15	1;5	2;7
+	p16	3;2	2;8
+	lines p1 to p5
+	lines p6 p7 p8
+	lines p9 p10 p11
+	lines p12 to p16
+
+glyph 30F1
+	p1	-2;4	5;5
+	p2	-1;10	4;10
+	p3	1;9	5;5
+	p4	2;4	4;10
+	p5	0;3	3;7
+	p6	-0;8	3;10
+	p7	0	3;7
+	p8	-0;1	1;5
+	p9	-3;5	1;7
+	p10	-2;10	1
+	p11	-0;11	1;4
+	p12	0;10	1;6
+	p13	3	1;4
+	lines p1 to p5
+	lines p6 p7 p8
+	lines p9 to p13
+
+glyph 30F2
+	p1	-2;2	5;11
+	p2	-1;7	5;4
+	p3	1;9	6
+	p4	2;4	5;6
+	p5	1	2;8
+	p6	-0;3	1;1
+	p7	-1;10	-0;2
+	p8	-2;4	4
+	p9	-1;8	3;5
+	p10	1;8	4;1
+	lines p1 to p7
+	lines p8 p9 p10
+
+glyph 30F3
+	p1	-2;7	5;6
+	p2	-1;4	4;10
+	p3	-1;1	4;2
+	p4	-2;6	1;6
+	p5	-1;9	0;9
+	p6	0;10	2;6
+	p7	2;3	3;11
+	p8	3;2	5;1
+	lines p1 p2 p3
+	lines p4 to p8
+
+glyph 30F5
+	copy 30AB
+	scale 0;9;6
+

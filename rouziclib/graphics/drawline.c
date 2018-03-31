@@ -1,8 +1,8 @@
-void draw_line_thin_lrgb(raster_t fb, xy_t p1, xy_t p2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_lrgb(framebuffer_t fb, xy_t p1, xy_t p2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t i, iy, ix, fbi;
 	xy_t p3, p4, p1l, p2l, p3l, p4l;
-	double d12, d12s, d12si, dx12, dy12, vx12, vy12, grad;
+	double d12, d12s, dx12, dy12, vx12, vy12, grad;
 	int32_t p, ratio;		// 0.15
 	double iradius, bradius, bvx, bvy;
 	int32_t bstartx, bstarty, bendx, bendy, incx, incy, incc;
@@ -24,8 +24,6 @@ void draw_line_thin_lrgb(raster_t fb, xy_t p1, xy_t p2, double radius, lrgb_t co
 	dx12 = p2.x-p1.x;
 	dy12 = p2.y-p1.y;
 	d12 = hypot(dx12, dy12); if (d12==0.) return;
-	d12s = d12 * d12;
-	d12si = 1./d12s;
 	vx12 = dx12/d12;
 	vy12 = dy12/d12;
 
@@ -160,7 +158,7 @@ void draw_line_thin_lrgb(raster_t fb, xy_t p1, xy_t p2, double radius, lrgb_t co
 				p >>= 15;
 				p = p * ratio >> 15;
 
-				bf(&fb.l[fbi], colour, p);
+				bf(&fb.r.l[fbi], colour, p);
 			}
 	
 			if (ix==bx1 && iy==by1) break;
@@ -177,11 +175,11 @@ void draw_line_thin_lrgb(raster_t fb, xy_t p1, xy_t p2, double radius, lrgb_t co
 	}
 }
 
-void draw_line_thin_frgb(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_line_thin_frgb(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	int32_t i, iy, ix, fbi;
 	xy_t p3, p4, p1l, p2l, p3l, p4l;
-	double d12, d12s, d12si, dx12, dy12, vx12, vy12, grad;
+	double d12, d12s, dx12, dy12, vx12, vy12, grad;
 	float ixf, iyf, p, ratio=intensity;
 	double iradius, bradius, bvx, bvy;
 	int32_t bstartx, bstarty, bendx, bendy, incx, incy, incc;
@@ -198,8 +196,6 @@ void draw_line_thin_frgb(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t co
 	dx12 = p2.x-p1.x;
 	dy12 = p2.y-p1.y;
 	d12 = hypot(dx12, dy12); if (d12==0.) return;
-	d12s = d12 * d12;
-	d12si = 1./d12s;
 	vx12 = dx12/d12;
 	vy12 = dy12/d12;
 
@@ -329,7 +325,7 @@ void draw_line_thin_frgb(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t co
 				p *= fastgaussianf_d1(yrp-yr1);
 				p *= ratio;
 
-				bf(&fb.f[fbi], colour, p);
+				bf(&fb.r.f[fbi], colour, p);
 			}
 	
 			if (ix==bx1 && iy==by1) break;
@@ -346,7 +342,7 @@ void draw_line_thin_frgb(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t co
 	}
 }
 
-void draw_line_thin_cl(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
+void draw_line_thin_cl(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
 #ifdef RL_OPENCL
 	double grad;
@@ -425,7 +421,7 @@ void draw_line_thin_cl(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t colo
 #endif
 }
 
-/*void draw_line_thin_cl(raster_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
+/*void draw_line_thin_cl(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
 #ifdef RL_OPENCL
 	double grad, iradius, th;
@@ -513,25 +509,25 @@ if (gv[1]!=1.){
 #endif
 }*/
 
-void draw_line_thin(raster_t fb, xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin(framebuffer_t fb, xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 0);	// adjusts the focus
 
 	if (fb.use_cl)
 		draw_line_thin_cl(fb, p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
-	else if (fb.use_frgb)
+	else if (fb.r.use_frgb)
 		draw_line_thin_frgb(fb, p1, p2, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
 		draw_line_thin_lrgb(fb, p1, p2, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_line_thin_rectclip(raster_t fb, xy_t p1, xy_t p2, xy_t b1, xy_t b2, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_rectclip(framebuffer_t fb, xy_t p1, xy_t p2, xy_t b1, xy_t b2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	line_rect_clip(&p1, &p2, rect(b1, b2));
 	draw_line_thin(fb, p1, p2, radius, colour, bf, intensity);
 }
 
-void draw_line_thin_short(raster_t fb, xy_t p1, xy_t p2, double u1, double u2, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_short(framebuffer_t fb, xy_t p1, xy_t p2, double u1, double u2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	xy_t p3, p4;
 

@@ -34,6 +34,7 @@
 
 #include "graphics/graphics.c"
 #include "graphics/srgb.c"
+#include "graphics/sqrgb.c"
 #include "graphics/colour.c"
 #include "graphics/blending.c"
 #include "graphics/blit.c"
@@ -42,6 +43,8 @@
 #include "graphics/drawprimitives.c"
 #include "graphics/drawqueue.c"
 #include "graphics/processing.c"
+#include "graphics/mipmap.c"
+#include "graphics/cl_memory.c"
 #include "vector/vector.c"
 #include "vector/polyline.c"
 
@@ -66,9 +69,12 @@
 #include "gui/knob_functions.c"
 #include "gui/controls.c"
 #include "gui/control_array.c"
+#include "gui/selection.c"
+#include "gui/make_gui.c"
 
 #include "fileio/open.c"
 #include "fileio/image.c"
+#include "fileio/image_bmp.c"
 #include "fileio/path.c"
 #include "fileio/dir.c"
 #include "fileio/file_management.c"

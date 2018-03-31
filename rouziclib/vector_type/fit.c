@@ -159,10 +159,10 @@ double find_best_string_width(vector_font_t *font, uint8_t *string, word_stats_t
 	return thresh;		// happens only if the longest line is a single word
 }
 
-void draw_string_maxwidth(raster_t fb, vector_font_t *font, uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp)
+void draw_string_maxwidth(framebuffer_t fb, vector_font_t *font, uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp)
 {
 	int i, iw, il, len, line_start=0, line_end=0, line_iw_start=0, line_iw_end=0, new_lw;
-	const double space_width = letter_width(font, 0., ' ', 1., mode);
+	//const double space_width = letter_width(font, 0., ' ', 1., mode);
 	double line_width;
 	xy_t p;
 
@@ -196,7 +196,7 @@ void draw_string_maxwidth(raster_t fb, vector_font_t *font, uint8_t *string, wor
 	}
 }
 
-void draw_string_bestfit(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_bestfit(framebuffer_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
 	double thresh, box_thresh, scale_ratio;
@@ -231,7 +231,7 @@ void draw_string_bestfit(raster_t fb, vector_font_t *font, uint8_t *string, rect
 	free_word_stats(ws);
 }
 
-double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+double draw_string_bestfit_asis(framebuffer_t fb, vector_font_t *font, uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	int nlines=0;
 	double maxwidth, maxscale;
@@ -252,8 +252,8 @@ double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *strin
 	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*LINEVSPACING));			// find the scale needed for the text to fit the box with this many lines
 	scale = MINN(scale, maxscale);
 
-	fitdim = mul_xy( set_xy(scale) , xy(maxwidth, nlines*LINEVSPACING) );
-	fitrect = make_rect_off( box.p0, fitdim, XY0 );
+	//fitdim = mul_xy( set_xy(scale) , xy(maxwidth, nlines*LINEVSPACING) );
+	//fitrect = make_rect_off( box.p0, fitdim, XY0 );
 	//draw_rect_full(fb, fitrect, line_thick, colour, intensity);
 
 	p = box.p0;
@@ -264,7 +264,7 @@ double draw_string_bestfit_asis(raster_t fb, vector_font_t *font, uint8_t *strin
 	return scale;
 }
 
-void draw_string_fixed_thresh(raster_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_fixed_thresh(framebuffer_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
 	double scale_ratio=1.;
@@ -276,7 +276,7 @@ void draw_string_fixed_thresh(raster_t fb, vector_font_t *font, uint8_t *string,
 
 	ws = make_word_stats(font, string, mode);
 
-	boxdim = abs_xy(div_xy(sub_xy(box.p1, box.p0), set_xy(scale)));
+	//boxdim = abs_xy(div_xy(sub_xy(box.p1, box.p0), set_xy(scale)));
 
 	nlines = find_line_count_for_thresh(font, string, ws, mode, thresh, NULL);	// then the number of lines must be recounted
 

@@ -91,3 +91,8 @@ extern col_t colour_mul(col_t col, double m);
 extern col_t adjust_colour_lum(col_t col, double target_lum);
 
 extern raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp);
+
+extern frgb_t add_frgba(frgb_t a, frgb_t b);
+extern frgb_t mul_scalar_frgb(frgb_t a, float m);
+extern frgb_t mul_scalar_frgba(frgb_t a, float m);
+extern frgb_t clamp_frgba(frgb_t a);

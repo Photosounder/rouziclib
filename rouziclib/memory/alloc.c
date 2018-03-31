@@ -3,7 +3,7 @@ void alloc_enough(void **buffer, int needed_count, int *alloc_count, int size_el
 	int newsize;
 	void *p;
 
-	if (needed_count >= *alloc_count)
+	if (needed_count > *alloc_count)
 	{
 		newsize = ceil((double) needed_count * inc_ratio);
 
@@ -22,6 +22,15 @@ void alloc_enough(void **buffer, int needed_count, int *alloc_count, int size_el
 
 		if (*buffer==NULL)
 			fprintf_rl(stderr, "realloc failed in alloc_enough() for *alloc_count = %d\n", *alloc_count);
+	}
+}
+
+void free_null(void **ptr)
+{
+	if (ptr)
+	{
+		free(*ptr);
+		*ptr = NULL;
 	}
 }
 
@@ -49,4 +58,12 @@ void *copy_alloc(void *b0, size_t size)		// makes an allocated copy of a buffer
 	memcpy(b1, b0, size);
 
 	return b1;
+}
+
+size_t next_aligned_offset(size_t offset, const int size_elem)
+{
+	if (offset & (size_elem-1))			// if the offset isn't aligned
+		return (offset | (size_elem-1)) + 1;	// align it to the next size_elem-aligned offset
+	else
+		return offset;
 }

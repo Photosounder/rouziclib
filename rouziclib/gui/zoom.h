@@ -1,7 +1,7 @@
 // in gui/zoom_struct.h:
 // zoom_t
 
-extern zoom_t init_zoom(raster_t *fb, mouse_t *mouse, double drawing_thickness);
+extern zoom_t init_zoom(framebuffer_t *fb, mouse_t *mouse, double drawing_thickness);
 extern double to_screen_coord_x(zoom_t zc, double x);
 extern double to_screen_coord_y(zoom_t zc, double y);
 extern xy_t to_screen_coord_xy(zoom_t zc, xy_t p);

@@ -1,4 +1,30 @@
-int ctrl_button_chamf_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_button_invis_fullarg(zoom_t zc, rect_t box, ctrl_button_state_t *butt_state_ptr)
+{
+	double scale = rect_min_side(box);
+	double total_scale = scale*zc.scrscale;
+	ctrl_button_state_t butt_state={0};
+
+	if (butt_state_ptr)
+		*butt_state_ptr = butt_state;
+
+	if (total_scale < 3.)
+		return 0;
+
+	if (check_box_box_intersection(box, zc.corners_dl)==0)
+		return 0;
+
+	if (zc.mouse->window_focus_flag > 0)
+		butt_state = proc_mouse_rect_ctrl(box, *zc.mouse);
+
+	if (butt_state_ptr)
+		*butt_state_ptr = butt_state;
+
+	if (butt_state.uponce)
+		return 1;
+	return 0;
+}
+
+int ctrl_button_chamf_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
@@ -10,13 +36,13 @@ int ctrl_button_chamf_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font
 	if (total_scale < 3.)
 		return 0;
 
-	if (check_box_box_intersection(box, zc.corners)==0)
+	if (check_box_box_intersection(box, zc.corners_dl)==0)
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
 		butt_state = proc_mouse_rect_ctrl(box, mouse);
 
-	intensity *= intensity_scaling(total_scale, 100.);
+	intensity *= intensity_scaling(total_scale, 48.);
 
 	draw_rect_chamfer(fb, sc_rect(box), drawing_thickness, colour, blend_add, 0.5*intensity, 1./12.);
 
@@ -37,7 +63,7 @@ int ctrl_button_chamf_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font
 	return 0;
 }
 
-int ctrl_checkbox_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_checkbox_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		int8_t *state, uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
@@ -48,7 +74,7 @@ int ctrl_checkbox_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	if (total_scale < 1.)
 		return 0;
 
-	if (check_box_box_intersection(box, zc.corners)==0)
+	if (check_box_box_intersection(box, zc.corners_dl)==0)
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
@@ -59,12 +85,15 @@ int ctrl_checkbox_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	if (butt_state.over && butt_state.down==0)
 		draw_rect(fb, sc_rect(box), drawing_thickness, colour, blend_add, 0.25*intensity);
 
-	if (butt_state.uponce)
+	if (butt_state.uponce && state)
 		*state = (*state & 1) ^ 1;
 
 	box.p0.x += 2.*scale/LINEVSPACING;
 	box.p1.x -= 2.*scale/LINEVSPACING;
-	draw_string_bestfit(fb, font, (*state==1) ? "\xE2\x98\x91" : (*state==0) ? "\xE2\x98\x90" : "\xF3\xB2\x98\x92", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	if (state)
+		draw_string_bestfit(fb, font, (*state==1) ? "\xE2\x98\x91" : (*state==0) ? "\xE2\x98\x90" : "\xF3\xB2\x98\x92", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	else
+		draw_string_bestfit(fb, font, "\xE2\x98\x90", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
 
 	box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
 	draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
@@ -74,7 +103,7 @@ int ctrl_checkbox_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *
 	return 0;
 }
 
-int ctrl_radio_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_radio_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		int8_t state, uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
@@ -85,7 +114,7 @@ int ctrl_radio_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *fon
 	if (total_scale < 1.)
 		return 0;
 
-	if (check_box_box_intersection(box, zc.corners)==0)
+	if (check_box_box_intersection(box, zc.corners_dl)==0)
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
@@ -100,33 +129,35 @@ int ctrl_radio_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *fon
 	if (state)
 		draw_circle(FULLCIRCLE, fb, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 7./12.*0.3*total_scale, drawing_thickness, colour, blend_add, intensity);
 
-	box.p0.x += 2.*scale/LINEVSPACING;
-	box.p1.x -= 2.*scale/LINEVSPACING;
-
-	box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
-	draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	if (name)
+	{
+		box.p0.x += 2.*scale/LINEVSPACING;
+		box.p1.x -= 2.*scale/LINEVSPACING;
+	
+		box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
+		draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	}
 
 	if (butt_state.uponce)
 		return 1;
 	return 0;
 }
 
-knob_t make_knob(char *main_label, double default_value, const knob_func_t func, double min, double max, int valfmt)
+knob_t make_knob(char *main_label, double default_value, const knob_func_t func, double min, double max, char *fmt_str)
 {
 	knob_t knob={0};
 
-	//knob.main_label = make_string_copy(main_label);
 	knob.main_label = main_label;
 	knob.default_value = default_value;
 	knob.func = func;
 	knob.min = min;
 	knob.max = max;
-	knob.valfmt = valfmt;
+	knob.fmt_str = fmt_str;
 
 	return knob;
 }
 
-int ctrl_knob_value_button(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_knob_value_button(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		double *v, double t, double vt, double box_scale, xy_t centre, double scale, col_t colour)
 {
 	char str[64];
@@ -155,7 +186,7 @@ double find_next_round_knob_value(double vo, knob_t knob, double t_step)
 	to = knob.func(vo, knob.min, knob.max, 1);
 	v = knob.func(MINN(1., to+t_step), knob.min, knob.max, 0);
 
-	dv = v - vo;
+	//dv = v - vo;
 
 	dvexp = normalised_notation_split(v, &dvm);
 
@@ -167,7 +198,7 @@ double find_next_round_knob_value(double vo, knob_t knob, double t_step)
 		return 10.*dvexp;
 }
 
-int ctrl_knob_value_buttons(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_knob_value_buttons(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		double *v, knob_t knob, xy_t centre, double scale, col_t colour)
 {
 	int i, ret=0;
@@ -211,7 +242,7 @@ int ctrl_knob_value_buttons(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t
 	return ret;
 }
 
-int ctrl_knob_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_knob_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		double *v_orig, knob_t knob, rect_t box, col_t colour)
 {
 	double intensity = 1.;
@@ -219,48 +250,61 @@ int ctrl_knob_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font
 	double total_scale = scale*zc.scrscale;
 	ctrl_knob_state_t knob_state={0};
 	char str[64];
-	double v=*v_orig, t, th;
+	double v=NAN, t, t_off=0., th;
 	rect_t valbox;
 	xy_t p0, p1, centre = get_rect_centre(box);
+
+	if (v_orig)
+		v = *v_orig;
+
+	if (isnan(v))	// initialise the value
+	{
+		v = knob.default_value;
+		if (v_orig)
+			*v_orig = v;
+	}
 
 	if (total_scale < 1.)
 		return 0;
 
-	if (isnan(v))
-	{
-		v = knob.default_value;
-		*v_orig = v;
-	}
-
-	if (check_box_box_intersection(box, zc.corners)==0)
+	if (check_box_box_intersection(box, zc.corners_dl)==0)
 		return 0;
 
-	t = knob.func(v, knob.min, knob.max, 1);
-
+	// process input
 	if (mouse.window_focus_flag > 0)
 	{
 		knob_state = proc_mouse_knob_ctrl(box, mouse);
-		t += knob_state.vert_delta * 0.25;
+		t_off = knob_state.vert_delta * 0.25;
 	}
 
-	t = rangelimit(t, 0., 1.);
+	// reset on doubleclick
+	if (knob_state.doubleclick)
+	{
+		v = knob.default_value;
+		if (v_orig)
+			*v_orig = v;
+	}
+
+	// calculate new position and value
+	t = knob.func(v, knob.min, knob.max, 1);
+
+	t = rangelimit(t+t_off, 0., 1.);
 	v = knob.func(t, knob.min, knob.max, 0);
 
+	// show value buttons
 	if (total_scale > 96.)
 		if (ctrl_knob_value_buttons(fb, zc, mouse, font, drawing_thickness, &v, knob, centre, scale, colour))
 			knob_state.uponce = 1;
 
+	// draw knob
 	intensity *= intensity_scaling(total_scale, 24.);
 
-//draw_rect(fb, sc_rect(box), drawing_thickness, colour, blend_add, 0.25*intensity);
-
-	print_valfmt(str, sizeof(str), v, knob.valfmt);
+	sprintf(str, knob.fmt_str, v);
 	valbox = make_rect_centred(centre, set_xy(0.707*scale));
 	draw_string_bestfit(fb, font, str, sc_rect(valbox), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 
 	valbox = make_rect_centred(add_xy(centre, xy(0., -5./12.*scale)), xy(7./12.*scale, 0.25*scale));
 	draw_string_bestfit(fb, font, knob.main_label, sc_rect(valbox), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
-//draw_rect(fb, sc_rect(valbox), drawing_thickness, colour, blend_add, 0.25*intensity);
 
 	draw_circle_arc(fb, sc_xy(centre), set_xy(0.5*total_scale), -0.375, 0.375, drawing_thickness, colour, blend_add, 0.5*intensity);
 
@@ -269,11 +313,12 @@ int ctrl_knob_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font
 	p1 = rotate_xy2(xy(0., 0.4*scale), th);
 	draw_line_thin(fb, sc_xy(add_xy(centre, p0)), sc_xy(add_xy(centre, p1)), drawing_thickness, colour, blend_add, 2.*intensity);
 
-	*v_orig = v;
+	if (v_orig)
+		*v_orig = v;
 
-	if (knob_state.uponce)
+	if (knob_state.uponce || knob_state.doubleclick)	// the final value change when the mouse button is released
 		return 1;
-	if (knob_state.down)
+	if (knob_state.down)					// an ongoing value change when the mouse button is held down
 		return 2;
 	return 0;
 }
@@ -288,11 +333,10 @@ ctrl_drag_state_t make_drag_state(xy_t pos, xy_t freedom)
 	return state;
 }
 
-int ctrl_draggable_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
-		ctrl_drag_state_t *state, uint8_t *name, xy_t dim, col_t colour)
+int ctrl_draggable_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+		ctrl_drag_state_t *state, xy_t dim)
 {
 	int ret=0;
-	double intensity = 1.;
 	double scale = min_of_xy(dim);
 	double total_scale = scale*zc.scrscale;
 	rect_t box;
@@ -302,16 +346,103 @@ int ctrl_draggable_fullarg(raster_t fb, zoom_t zc, mouse_t mouse, vector_font_t 
 
 	box = make_rect_off( state->pos, dim, xy(0.5, 0.5) );
 
-	if (check_box_box_intersection(box, zc.corners)==0 && state->down==0)
+	if (check_box_box_intersection(box, zc.corners_dl)==0 && state->down==0)
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
 		ret = proc_mouse_draggable_ctrl(state, box, mouse);
 
-	box = make_rect_off( state->pos, dim, xy(0.5, 0.5) );
-	intensity *= intensity_scaling(total_scale, 100.);
-	draw_rect_chamfer(fb, sc_rect(box), drawing_thickness, colour, blend_add, 0.5*intensity, 1./12.);
-	draw_string_bestfit(fb, font, name, sc_rect(rect_add_margin(box, xy(-(box.p1.x-box.p0.x)/8., 0.))), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
-
 	return ret;
+}
+
+void update_ctrl_resizing_rect_positions(ctrl_resize_rect_t *state, rect_t *box)
+{
+	int i;
+	xy_t rpos;
+
+	state->drag[0].pos = get_rect_centre(*box);
+
+	for (i=0; i<4; i++)
+	{
+		rpos = xy(i&1, i>>1);
+		state->drag[i+1].pos = pos_in_rect_by_ratio(*box, rpos);
+
+		rpos = mul_xy(set_xy(0.5), xy( 2 - abs(i-1) , 2 - abs(i-2) ));
+		state->drag[i+5].pos = pos_in_rect_by_ratio(*box, rpos);
+	}
+}
+
+int ctrl_resizing_rect_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+		ctrl_resize_rect_t *state, rect_t *box)
+{
+	int i, ret;
+	double intensity = 1.;
+	xy_t dim = get_rect_dim(*box);
+	double scale = min_of_xy(dim);
+	double total_scale = scale*zc.scrscale;
+	double aspect_ratio, cdim;
+	rect_t cbox;
+
+	if (total_scale < 3. && state->dragged==0)
+		return 0;
+
+	aspect_ratio = min_of_xy(dim) / max_of_xy(dim);
+	cdim = scale / (9.*aspect_ratio + 3.);		// size of the controls, from 1/12*scale for a square towards 1/3*scale
+
+	if (check_box_box_intersection(rect_add_margin(*box, set_xy(cdim*0.5)), zc.corners_dl)==0 && state->dragged==0)
+		return 0;
+
+	intensity *= intensity_scaling(total_scale, 48.);
+
+	if (state->init==0)
+	{
+		memset(state, 0, sizeof(ctrl_resize_rect_t));
+		state->init = 1;
+
+		state->drag[0].freedom = XY1;
+		for (i=0; i<4; i++)
+		{
+			state->drag[i+1].freedom = XY1;
+			state->drag[i+5].freedom = xy(i&1, i+1&1);
+		}
+
+		update_ctrl_resizing_rect_positions(state, box);
+	}
+
+	// Input processing and dragging
+	for (i=0; i<9; i++)
+	{
+		ret = ctrl_draggable(&state->drag[i], i==0 ? dim : set_xy(cdim));
+		if (ret)
+		{
+			state->dragged = 1;
+
+			switch (i)
+			{
+				case 0:	*box = add_rect_xy(*box, state->drag[i].offset);	break;
+
+				case 1:	box->p0 = state->drag[i].pos;				break;
+				case 2:	rect_set_p10(box, state->drag[i].pos);			break;
+				case 3:	rect_set_p01(box, state->drag[i].pos);			break;
+				case 4:	box->p1 = state->drag[i].pos;				break;
+
+				case 5:	box->p0.y = state->drag[i].pos.y;			break;
+				case 6:	box->p1.x = state->drag[i].pos.x;			break;
+				case 7:	box->p1.y = state->drag[i].pos.y;			break;
+				case 8:	box->p0.x = state->drag[i].pos.x;			break;
+			}
+
+			update_ctrl_resizing_rect_positions(state, box);
+			dim = get_rect_dim(*box);
+		}
+	}
+
+	// Draw controls
+	for (i=0; i<9; i++)
+	{
+		cbox = make_rect_centred(state->drag[i].pos, i==0 ? dim : set_xy(cdim));
+		draw_rect(fb, sc_rect(cbox), drawing_thickness, GUI_COL_DEF, blend_add, intensity);
+	}
+
+	return state->dragged;
 }
