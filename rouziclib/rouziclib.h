@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 
- * with MinGW's GCC make sure to use -lwinmm
+ * with MinGW's GCC make sure to use -lwinmm, and probably -w to turn off pointless warnings
 
 ****************/
 
@@ -47,8 +47,8 @@ extern "C" {
 #endif
 
 // Structs and includes needed elsewhere
-#include "libraries/tinycthread.h"		// unused unless RL_TINYCTHREAD is defined
-#include "libraries/threading.h"		// unused unless RL_TINYCTHREAD is defined
+#include "libraries/tinycthread.h"		// used if RL_TINYCTHREAD is defined
+#include "libraries/threading.h"		// used if RL_TINYCTHREAD is defined
 #include "general/structs.h"
 #include "general/xyz_struct.h"
 #include "geometry/rect_struct.h"		// needs xyz
@@ -56,11 +56,12 @@ extern "C" {
 #include "gui/controls_struct.h"
 #include "gui/inputprocessing_struct.h"
 #include "gui/focus_struct.h"
-#include "libraries/opencl_struct.h"		// unused unless RL_OPENCL is defined
+#include "libraries/opencl_struct.h"		// used if RL_OPENCL is defined
 
 #include "graphics/graphics_struct.h"		// needs opencl, xyz, tinycthread
 #include "graphics/blending_struct.h"		// needs graphics
-#include "general/mouse_struct.h"		// needs rect, xyz, controls
+#include "general/keyboard_struct.h"
+#include "general/mouse_struct.h"		// needs rect, xyz, controls, keyboard
 #include "gui/zoom_struct.h"			// needs rect, xyz, mouse, graphics
 #include "vector/vector_struct.h"		// needs xyz
 #include "vector_type/vector_type_struct.h"	// needs vector
@@ -71,9 +72,12 @@ extern "C" {
 #include "general/time.h"
 #include "general/estimates.h"
 #include "general/mouse.h"
+#include "general/keyboard.h"
+#include "general/hashing.h"
 
 #include "memory/alloc.h"
 #include "memory/circular_buffer.h"
+#include "memory/generic_buffer.h"
 
 #include "geometry/rect.h"
 #include "geometry/intersection.h"
@@ -114,6 +118,7 @@ extern "C" {
 #include "text/string.h"
 #include "text/edit.h"
 #include "text/undo.h"
+#include "text/history.h"
 #include "vector_type/vector_type.h"
 
 #include "gui/zoom.h"
@@ -125,36 +130,48 @@ extern "C" {
 #include "gui/inputprocessing.h"
 #include "gui/knob_functions.h"
 #include "gui/controls.h"
+#include "gui/controls_secondary.h"
 #include "gui/control_array.h"
 #include "gui/selection.h"
 #include "gui/make_gui.h"
+#include "gui/editor_toolbar.h"
 
 #include "fileio/open.h"
+#include "fileio/endian.h"
 #include "fileio/image.h"
 #include "fileio/image_bmp.h"
+#include "fileio/sound_format.h"
+#include "fileio/sound_aiff.h"
+#include "fileio/sound_wav.h"
 #include "fileio/path.h"
 #include "fileio/dir.h"
 #include "fileio/file_management.h"
 #include "fileio/process.h"
+#include "fileio/fileball.h"
 
-// used unless RL_EXCL_NETWORK is defined
+// used if RL_INCL_NETWORK is defined
 #include "network/network.h"
 #include "network/http.h"	// may need RL_ZLIB
 
-#include "libraries/opencl.h"		// unused unless RL_OPENCL is defined
-#include "libraries/opencv.h"		// unused unless RL_OPENCV is defined
-#include "libraries/sdl.h"		// unused unless RL_SDL is defined
-#include "libraries/devil.h"		// unused unless RL_DEVIL is defined
-#include "libraries/clfft.h"		// unused unless RL_CLFFT is defined
-#include "libraries/ffmpeg.h"		// unused unless RL_FFMPEG is defined
-#include "libraries/libsndfile.h"	// unused unless RL_LIBSNDFILE is defined
-#include "libraries/libraw.h"		// unused unless RL_LIBRAW is defined
-#include "libraries/libjpeg.h"		// unused unless RL_LIBJPEG is defined
-#include "libraries/zlib.h"		// unused unless RL_ZLIB is defined
-#include "libraries/mpfr.h"		// unused unless RL_MPFR is defined
+#include "libraries/opencl.h"		// used if RL_OPENCL is defined
+#include "libraries/opencv.h"		// used if RL_OPENCV is defined
+#include "libraries/sdl.h"		// used if RL_SDL is defined
+#include "libraries/devil.h"		// used if RL_DEVIL is defined
+#include "libraries/clfft.h"		// used if RL_CLFFT is defined
+#include "libraries/ffmpeg.h"		// used if RL_FFMPEG is defined
+#include "libraries/libsndfile.h"	// used if RL_LIBSNDFILE is defined
+#include "libraries/libraw.h"		// used if RL_LIBRAW is defined
+#include "libraries/libjpeg.h"		// used if RL_LIBJPEG is defined
+#include "libraries/libstb_image.h"
+#include "libraries/libminimp3.h"
+#include "libraries/libdr_flac.h"
+#include "libraries/zlib.h"		// used if RL_ZLIB is defined, otherwise miniz is used
+#include "libraries/mpfr.h"		// used if RL_MPFR is defined
 #include "libraries/fftpack.h"		// used unless RL_EXCL_FFTPACK is defined
+#include "libraries/cfftpack.h"		// used unless RL_EXCL_CFFTPACK is defined
 
 #include "general/noop.h"
+#include "general/globals.h"
 
 
 #ifdef __cplusplus

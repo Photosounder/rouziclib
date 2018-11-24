@@ -66,8 +66,24 @@ char *sprintf_realloc(char **string, int *alloc_count, const int append, const c
 	alloc_enough(string, len0+len1+1, alloc_count, sizeof(char), (*alloc_count)==0 ? 1. : 1.5);
 
 	va_start(args, format);
-	vsnprintf(&(*string)[len0], *alloc_count, format, args);
+	vsnprintf(&(*string)[len0], *alloc_count - len0, format, args);
 	va_end(args);
 
 	return *string;
+}
+
+char *vsprintf_alloc(const char *format, va_list args)	// like vsprintf but allocates a new string
+{
+	int len;
+	char *str;
+	va_list args_copy;
+
+	va_copy(args_copy, args);
+	len = vsnprintf(NULL, 0, format, args_copy);	// gets the printed length without actually printing
+	va_end(args_copy);
+
+	str = calloc(len+1, sizeof(char));
+	vsnprintf(str, len+1, format, args);
+
+	return str;
 }

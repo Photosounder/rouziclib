@@ -1,18 +1,21 @@
 void alloc_mipmap_level(mipmap_level_t *ml, xyi_t fulldim, xyi_t tilesize, const int mode)
 {
 	xyi_t it, rdim;
+	size_t elem_size = get_raster_mode_elem_size(mode);
 
 	ml->tiledim = tilesize;
 	ml->fulldim = fulldim;
 	ml->tilecount = div_round_up_xyi(fulldim , tilesize);
 
 	ml->r = calloc(mul_x_by_y_xyi(ml->tilecount), sizeof(raster_t));
+	ml->total_bytes = mul_x_by_y_xyi(ml->tilecount) * sizeof(raster_t);
 
 	for (it.y=0; it.y < ml->tilecount.y; it.y++)
 		for (it.x=0; it.x < ml->tilecount.x; it.x++)
 		{
 			rdim = get_dim_of_tile(fulldim, tilesize, it);
-			ml->r[it.y*ml->tilecount.x + it.x] = make_raster(NULL, rdim.x, rdim.y, mode);
+			ml->r[it.y*ml->tilecount.x + it.x] = make_raster(NULL, rdim, XYI0, mode);
+			ml->total_bytes += mul_x_by_y_xyi(rdim) * elem_size;
 		}
 }
 
@@ -225,6 +228,7 @@ mipmap_t raster_to_tiled_mipmaps_fast(raster_t r, xyi_t tilesize, xyi_t mindim, 
 	m.lvl_count = 1. + log2(max_of_xy(div_xy(xyi_to_xy(m.fulldim), xyi_to_xy(mindim))));
 	m.lvl_count = MAXN(m.lvl_count, 1);
 	m.lvl = calloc(m.lvl_count, sizeof(mipmap_level_t));
+	m.total_bytes = m.lvl_count * sizeof(mipmap_level_t);
 
 	// the first level is a tiled copy of the original
 	m.lvl[0].scale = set_xy(1.);
@@ -239,6 +243,9 @@ mipmap_t raster_to_tiled_mipmaps_fast(raster_t r, xyi_t tilesize, xyi_t mindim, 
 		//tile_downscale_fast_box(m.lvl[i-1], m.lvl[i], set_xyi(2));
 		tile_downscale_box_2x2(m.lvl[i-1], m.lvl[i], mode);
 	}
+	
+	for (i=0; i<m.lvl_count; i++)
+		m.total_bytes += m.lvl[i].total_bytes;
 
 	return m;
 }
@@ -272,6 +279,9 @@ void free_mipmap(mipmap_t *m)
 {
 	int i;
 
+	if (m==NULL)
+		return;
+
 	for (i=0; i<m->lvl_count; i++)
 		free_mipmap_level(&m->lvl[i]);
 
@@ -286,13 +296,16 @@ void free_mipmap_array(mipmap_t *m, int count)
 		free_mipmap(&m[i]);
 }
 
-void remove_mipmap_levels_above_dim(mipmap_t m, xyi_t dim)
+void remove_mipmap_levels_above_dim(mipmap_t *m, xyi_t dim)
 {
 	int i;
 
-	for (i=0; i < m.lvl_count; i++)
-		if (m.lvl[i].fulldim.x > dim.x || m.lvl[i].fulldim.y > dim.y)
-			free_mipmap_level(&m.lvl[i]);
+	for (i=0; i < m->lvl_count; i++)
+		if (m->lvl[i].fulldim.x > dim.x || m->lvl[i].fulldim.y > dim.y)
+		{
+			m->total_bytes -= m->lvl[i].total_bytes;
+			free_mipmap_level(&m->lvl[i]);
+		}
 }
 
 void blit_mipmap(framebuffer_t *fb, mipmap_t m, xy_t pscale, xy_t pos, int interp)

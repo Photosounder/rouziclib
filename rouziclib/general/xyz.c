@@ -7,7 +7,7 @@ xy_t xy(const double x, const double y)
 	return out;
 }
 
-xyi_t xyi(const int32_t x, const int32_t y)
+xyi_t xyi(const int x, const int y)
 {
 	xyi_t out;
 
@@ -79,15 +79,33 @@ xyi_t xy_to_xyi(const xy_t in)
 }
 
 xy_t set_xy(const double v)
-{	return xy(v, v);
+{
+	return xy(v, v);
 }
 
 xyz_t set_xyz(const double v)
-{	return xyz(v, v, v);
+{
+	return xyz(v, v, v);
 }
 
-xyi_t set_xyi(const int32_t v)
-{	return xyi(v, v);
+xyi_t set_xyi(const int v)
+{
+	return xyi(v, v);
+}
+
+int is0_xy(const xy_t v)
+{
+	return (v.x==0.) && (v.y==0.);
+}
+
+int is0_xyz(const xyz_t v)
+{
+	return (v.x==0.) && (v.y==0.) && (v.z==0.);
+}
+
+int is0_xyi(const xyi_t v)
+{
+	return (v.x==0) && (v.y==0);
 }
 
 int equal_xy(const xy_t a, const xy_t b)
@@ -301,7 +319,7 @@ xyz_t func1_xyz(xyz_t a, double (*f)(double))
 	return a;
 }
 
-xyi_t func1_xyi(xyi_t a, int32_t (*f)(int32_t))
+xyi_t func1_xyi(xyi_t a, int (*f)(int))
 {
 	a.x = f(a.x);
 	a.y = f(a.y);
@@ -323,7 +341,7 @@ xyz_t func2_xyz(xyz_t a, xyz_t b, double (*f)(double,double))
 	return a;
 }
 
-xyi_t func2_xyi(xyi_t a, xyi_t b, int32_t (*f)(int32_t,int32_t))
+xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int))
 {
 	a.x = f(a.x, b.x);
 	a.y = f(a.y, b.y);

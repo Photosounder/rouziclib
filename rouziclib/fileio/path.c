@@ -1,7 +1,30 @@
+char *find_last_dirchar(char *path, int ignore_trailing)
+{
+	int i, len;
+
+	if (path==NULL)
+		return NULL;
+
+	len = strlen(path);
+	if (ignore_trailing)
+		len -= 1;
+	if (len <= 0)
+		return path;
+
+	for (i = len-1; i >= 0; i--)
+		if (path[i] == '/' || path[i] == '\\')
+			return &path[i];
+
+	return NULL;
+}
+
 char *remove_name_from_path(char *dirpath, char *fullpath)	// removes the file or dir name after DIR_CHAR and DIR_CHAR itself
 {
 	char *p;
 	int len;
+	
+	if (dirpath)
+		dirpath[0] = '\0';
 
 	if (fullpath==NULL)
 	{
@@ -9,13 +32,38 @@ char *remove_name_from_path(char *dirpath, char *fullpath)	// removes the file o
 		return NULL;
 	}
 
-	p = strrchr(fullpath, DIR_CHAR);	// look for DIR_CHAR
+	p = find_last_dirchar(fullpath, 1);	// look for the last '\' or '/', ignoring trailing ones
 	if (p == NULL)
+		return NULL;
+
+	len = p - fullpath;
+
+	if (dirpath==NULL)
+		dirpath = calloc(len + 1, sizeof(char));
+
+	memcpy(dirpath, fullpath, len);
+	dirpath[len] = 0;
+
+	return dirpath;
+}
+
+char *remove_extension_from_path(char *dirpath, char *fullpath)
+{
+	char *p;
+	int len;
+	
+	if (dirpath)
+		dirpath[0] = '\0';
+
+	if (fullpath==NULL)
 	{
-		if (dirpath)
-			dirpath[0] = '\0';
+		fprintf_rl(stderr, "fullpath is NULL in remove_extension_from_path()\n");
 		return NULL;
 	}
+
+	p = strrchr(fullpath, '.');
+	if (p == NULL)
+		return NULL;
 
 	len = p - fullpath;
 
@@ -98,7 +146,7 @@ char *append_name_to_path(char *dest, char *path, char *name)	// appends name to
 	return dest;
 }
 
-char *extract_file_extension(char *path, char *ext)
+char *extract_file_extension(const char *path, char *ext)
 {
 	int len, i, j;
 

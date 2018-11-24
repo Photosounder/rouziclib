@@ -1,4 +1,4 @@
-#ifndef RL_EXCL_NETWORK
+#ifdef RL_INCL_NETWORK
 
 #ifdef _WIN32
 	#include <winsock2.h>

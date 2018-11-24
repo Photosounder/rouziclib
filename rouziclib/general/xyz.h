@@ -3,11 +3,12 @@
 
 #define XY0	xy(0.,0.)
 #define XY1	xy(1.,1.)
+#define XYI0	xyi(0,0)
 #define XYZ0	xyz(0.,0.,0.)
 #define zyx(z, y, x)	xyz(x, y, z)
 
 extern xy_t xy(const double x, const double y);
-extern xyi_t xyi(const int32_t x, const int32_t y);
+extern xyi_t xyi(const int x, const int y);
 extern xyz_t xyz(const double x, const double y, const double z);
 extern xy_t xyz_to_xy(const xyz_t in);
 extern xyz_t xy_to_xyz(const xy_t in);
@@ -16,8 +17,12 @@ extern xyz_t xyi_to_xyz(const xyi_t in);
 extern xyi_t xy_to_xyi(const xy_t in);
 extern xy_t set_xy(const double v);
 extern xyz_t set_xyz(const double v);
-extern xyi_t set_xyi(const int32_t v);
+extern xyi_t set_xyi(const int v);
 
+extern int is0_xy(const xy_t v);
+extern int is0_xyz(const xyz_t v);
+extern int is0_xyi(const xyi_t v);
+extern int equal_xyi(const xyi_t a, const xyi_t b);
 extern int equal_xy(const xy_t a, const xy_t b);
 extern int equal_xyz(const xyz_t a, const xyz_t b);
 extern int equal_xyi(const xyi_t a, const xyi_t b);
@@ -59,12 +64,12 @@ extern int isfinite_xy(xy_t a);
 #define sq_xy(a)	func1_xy(a, sq)
 extern xy_t func1_xy(xy_t a, double (*f)(double));
 extern xyz_t func1_xyz(xyz_t a, double (*f)(double));
-extern xyi_t func1_xyi(xyi_t a, int32_t (*f)(int32_t));
+extern xyi_t func1_xyi(xyi_t a, int (*f)(int));
 
 #define fmod_xy(a, b)	func2_xy(a, b, fmod)
 extern xy_t func2_xy(xy_t a, xy_t b, double (*f)(double,double));
 extern xyz_t func2_xyz(xyz_t a, xyz_t b, double (*f)(double,double));
-extern xyi_t func2_xyi(xyi_t a, xyi_t b, int32_t (*f)(int32_t,int32_t));
+extern xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int));
 
 extern xyi_t rshift_xyi(xyi_t a, int sh);
 
@@ -83,7 +88,7 @@ extern double min_of_xyz(xyz_t a);
 extern double max_of_xyz(xyz_t a);
 extern double min_of_xyi(xyi_t a);
 extern double max_of_xyi(xyi_t a);
-extern int32_t mul_x_by_y_xyi(xyi_t a);
+extern int mul_x_by_y_xyi(xyi_t a);
 extern xy_t rangelimit_xy(xy_t v, xy_t l0, xy_t l1);
 extern xyz_t rangelimit_xyz(xyz_t v, xyz_t l0, xyz_t l1);
 extern xyi_t rangelimit_xyi(xyi_t v, xyi_t l0, xyi_t l1);

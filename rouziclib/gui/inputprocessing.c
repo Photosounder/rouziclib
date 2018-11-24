@@ -1,7 +1,20 @@
 int equal_ctrl_id(ctrl_id_t a, ctrl_id_t b)	// returns 1 if the controls are identical
 {
-	if (equal_rect(a.box, b.box) == 0)
+	if (a.type != b.type)
 		return 0;
+
+	switch (a.type)
+	{
+		case 0:
+			if (equal_rect(a.box, b.box) == 0)
+				return 0;
+			break;
+
+		case 1:
+			if (equal_xy(a.pos, b.pos) == 0 || a.radius != b.radius)
+				return 0;
+			break;
+	}
 
 	if (a.id != b.id)
 		return 0;
@@ -9,69 +22,118 @@ int equal_ctrl_id(ctrl_id_t a, ctrl_id_t b)	// returns 1 if the controls are ide
 	return 1;
 }
 
-int check_ctrl_id(rect_t box, mouse_t mouse)	// returns 0 if the current control should be ignored
+int check_ctrl_id(rect_t box, xy_t pos, double radius, mouse_t mouse, int type)	// returns 0 if the current control should be ignored
 {
-	mouse.ctrl_id->current.box = box;
+	int mouse_hovers = 0;
+	double d_current, d_hovnew;
 
-	if (equal_rect(mouse.ctrl_id->hover.box, box))			// if this control has the same box as the previously hovered control
-		mouse.ctrl_id->current.id++;				// increment the ID to differentiate between stacked same-box controls
+	mouse.ctrl_id->current.type = type;
+	mouse.ctrl_id->current.box = box;
+	mouse.ctrl_id->current.pos = pos;
+	mouse.ctrl_id->current.radius = radius;
+
+	if (mouse.ctrl_id->hover.type == type)
+		if (			// if this control has the same box or position and size and type as the previously hovered control
+				(type==0 && equal_rect(mouse.ctrl_id->hover_new.box, box)) ||
+				(type==0 && equal_rect(mouse.ctrl_id->hover.box, box)) ||
+				(type==1 && equal_xy(mouse.ctrl_id->hover_new.pos, pos) && mouse.ctrl_id->hover_new.radius == radius) ||
+				(type==1 && equal_xy(mouse.ctrl_id->hover.pos, pos) && mouse.ctrl_id->hover.radius == radius)
+				)
+			mouse.ctrl_id->current.id++;				// increment the ID to differentiate between stacked same-box controls
 
 	if (mouse.b.lmb > 0)						// if LMB is being pressed
 		mouse.ctrl_id->hover_new = mouse.ctrl_id->hover;	// the hovered ID stays the same as before no matter what
-	else if (check_point_within_box(mouse.u, box))			// otherwise if the mouse hovers the control
-		mouse.ctrl_id->hover_new = mouse.ctrl_id->current;	// the hovered ID becomes the ID of the current control
+	else
+	{
+		switch (type)	// find if the mouse hovers the control
+		{
+			case 0:
+				mouse_hovers = check_point_within_box(mouse.u, box);
+				break;
+
+			case 1:
+				d_current = hypot_xy(mouse.u, pos);
+				d_hovnew = (mouse.ctrl_id->hover_new.type == type) ? hypot_xy(mouse.u, mouse.ctrl_id->hover_new.pos) : FLT_MAX;
+
+				if (d_current <= radius && d_current <= d_hovnew)
+					mouse_hovers = 1;
+				break;
+		}
+
+		if (mouse_hovers)						// if the mouse hovers the control
+			mouse.ctrl_id->hover_new = mouse.ctrl_id->current;	// the hovered ID becomes the ID of the current control
+	}
 
 	if (equal_ctrl_id(mouse.ctrl_id->current, mouse.ctrl_id->hover))
 		return 1;
 	return 0;
 }
 
-void proc_mouse_rect_ctrl_button(int mb, int clicks, ctrl_button_state_t *state, int orig_point_within_box)
+void proc_mouse_ctrl_button(int mb, int clicks, ctrl_button_state_t *state, const int cur_point_within_box, const int orig_point_within_box)
 {
-	state->over = 1;
+	if (orig_point_within_box && mb != -1)
+		state->orig = 1;
 
-	if (mb != -1)					// if there is clicking going on
-		if (orig_point_within_box)		// check the click originated in the same box
-		{
-			if (mb > 0)
-				state->down = 1;
+	if (cur_point_within_box)
+	{
+		state->over = 1;
 
-			if (mb == 2)
-				state->once = 1;
+		if (mb != -1)					// if there is clicking going on
+			if (orig_point_within_box)		// check the click originated in the same box
+			{
+				if (mb > 0)
+					state->down = 1;
 
-			if (mb == -2)
-				state->uponce = 1;
+				if (mb == 2)
+					state->once = 1;
 
-			if (mb == -2 && clicks == 2)
-				state->doubleclick = 1;
-		}
-		else
-			state->over = 0;		// if the click originated somewhere else we don't even care if the mouse is now over the box
+				if (mb == -2)
+					state->uponce = 1;
+
+				if (mb == -2 && clicks == 2)
+					state->doubleclick = 1;
+			}
+			else
+				state->over = 0;		// if the click originated somewhere else we don't even care if the mouse is now over the box
+	}
 }
 
 ctrl_button_state_t *proc_mouse_rect_ctrl_lrmb(rect_t box, mouse_t mouse)
 {
 	static ctrl_button_state_t state[2];
-	int orig_point_within_box;
+	int cur_point_within_box, orig_point_within_box;
 
 	memset(state, 0, sizeof(state));
 
-	if (check_ctrl_id(box, mouse)==0)
+	if (check_ctrl_id_rect(box, mouse)==0)
 		return state;
 
-	if (check_point_within_box(mouse.u, box))				// check if mouse is over box
-	{
-		orig_point_within_box = check_point_within_box(mouse.b.orig, box);
-		proc_mouse_rect_ctrl_button(mouse.b.lmb, mouse.b.clicks, &state[0], orig_point_within_box);
-		proc_mouse_rect_ctrl_button(mouse.b.rmb, mouse.b.clicks, &state[1], orig_point_within_box);
-	}
+	orig_point_within_box = check_point_within_box(mouse.b.orig, box);
+	cur_point_within_box = check_point_within_box(mouse.u, box);
+
+	proc_mouse_ctrl_button(mouse.b.lmb, mouse.b.clicks, &state[0], cur_point_within_box, orig_point_within_box);
+	proc_mouse_ctrl_button(mouse.b.rmb, mouse.b.clicks, &state[1], cur_point_within_box, orig_point_within_box);
 
 	return state;
 }
 
-ctrl_button_state_t proc_mouse_rect_ctrl(rect_t box, mouse_t mouse)
+ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, mouse_t mouse, const int check_bypass)
 {
-	return proc_mouse_rect_ctrl_lrmb(box, mouse)[0];			// return the state for the lmb
+	static ctrl_button_state_t state[2];
+	int cur_point_within_circle, orig_point_within_circle;
+
+	memset(state, 0, sizeof(state));
+	
+	// the check_bypass is necessary to get button states while dragging and releasing (uponce)
+	if (check_ctrl_id_circle(pos, radius, mouse)==0 && check_bypass==0)
+		return state;
+
+	cur_point_within_circle = check_bypass | check_point_within_circle(mouse.u, pos, radius);
+	orig_point_within_circle = check_bypass | check_point_within_circle(mouse.b.orig, pos, radius);
+	proc_mouse_ctrl_button(mouse.b.lmb, mouse.b.clicks, &state[0], cur_point_within_circle, orig_point_within_circle);
+	proc_mouse_ctrl_button(mouse.b.rmb, mouse.b.clicks, &state[1], cur_point_within_circle, orig_point_within_circle);
+
+	return state;
 }
 
 ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
@@ -80,19 +142,19 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 
 	memset(&state, 0, sizeof(state));
 
-	if (check_ctrl_id(box, mouse)==0)
+	if (check_ctrl_id_rect(box, mouse)==0)
 		return state;
 	
 	if (check_point_within_box(mouse.b.orig, box))	// check the click originated in the same box
 	{
 		if (mouse.b.clicks == 2)
 		{
-			if (mouse.b.lmb == 1)
+			if (mouse.b.lmb >= 2)
 				state.doubleclick = 1;
 		}
 		else
 		{
-			if (mouse.b.lmb == 1)
+			if (mouse.b.lmb >= 1)
 			{
 				state.vert_delta = (mouse.u.y - mouse.prev_u.y) / get_rect_dim(box).y;
 
@@ -122,7 +184,7 @@ int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mous
 
 	state->offset = XY0;
 
-	ctrl_id_check = check_ctrl_id(box, mouse);
+	ctrl_id_check = check_ctrl_id_rect(box, mouse);
 	
 	if (mouse.b.lmb < 0)				// if LMB is released
 		state->down = 0;			// the control is deselected
@@ -148,7 +210,7 @@ int proc_mouse_xy_ctrl(rect_t box, mouse_t mouse, xy_t *pos, int *lmb, int *rmb)
 	*lmb = 0;
 	*rmb = 0;
 
-	if (check_ctrl_id(box, mouse)==0)
+	if (check_ctrl_id_rect(box, mouse)==0)
 		return 0;
 
 	*pos = mouse.u;
@@ -159,4 +221,16 @@ int proc_mouse_xy_ctrl(rect_t box, mouse_t mouse, xy_t *pos, int *lmb, int *rmb)
 		change = 1;
 
 	return change;
+}
+
+ctrl_button_state_t proc_mouse_circular_ctrl(xy_t *pos, double radius, mouse_t mouse, int dragged)
+{
+	ctrl_button_state_t butt={0};
+
+	butt = proc_mouse_circ_ctrl_lrmb(*pos, radius, mouse, dragged)[0];
+
+	if (butt.down)
+		*pos = add_xy(*pos, sub_xy(mouse.u, mouse.prev_u));
+
+	return butt;
 }

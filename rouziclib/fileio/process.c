@@ -1,15 +1,14 @@
 #ifdef _WIN32
-PROCESS_INFORMATION create_process(const char *cmd)
+
+PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags)
 {
 	STARTUPINFO si={0};
 	PROCESS_INFORMATION procinf={0};
-	char full_cmd[32768];
 	wchar_t wcmd[32768];
 
 	si.cb = sizeof(si);
 
-	sprintf(full_cmd, "C:\\Windows\\System32\\cmd.exe /C %s", cmd);
-	utf8_to_wchar(full_cmd, wcmd);
+	utf8_to_wchar(cmd, wcmd);
 
 	// Start the child process.
 	if( !CreateProcessW( NULL,		// No module name (use command line)
@@ -17,7 +16,7 @@ PROCESS_INFORMATION create_process(const char *cmd)
 				NULL,		// Process handle not inheritable
 				NULL,		// Thread handle not inheritable
 				FALSE,		// Set handle inheritance to FALSE
-				0,		// No creation flags
+				flags,		// No creation flags
 				NULL,		// Use parent's environment block
 				NULL,		// Use parent's starting directory 
 				&si,		// Pointer to STARTUPINFO structure
@@ -29,16 +28,71 @@ PROCESS_INFORMATION create_process(const char *cmd)
 	}
 
 	return procinf;
-/*
-fprintf_rl(stdout, "Waiting...\n");
+}
+
+PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags)
+{
+	STARTUPINFO si={0};
+	PROCESS_INFORMATION procinf={0};
+	char full_cmd[32768];
+	wchar_t wcmd[32768];
+
+	si.cb = sizeof(si);
+
+	sprintf(full_cmd, "C:\\Windows\\System32\\cmd.exe /C \"%s\"", cmd);
+	utf8_to_wchar(full_cmd, wcmd);
+
+	// Start the child process.
+	if( !CreateProcessW( NULL,		// No module name (use command line)
+				wcmd,		// Command line
+				NULL,		// Process handle not inheritable
+				NULL,		// Thread handle not inheritable
+				FALSE,		// Set handle inheritance to FALSE
+				flags,		// No creation flags
+				NULL,		// Use parent's environment block
+				NULL,		// Use parent's starting directory 
+				&si,		// Pointer to STARTUPINFO structure
+				&procinf)	// Pointer to PROCESS_INFORMATION structure
+	  ) 
+	{
+		fprintf_rl(stderr, "CreateProcessW failed (%d) in create_process(%s)\n", GetLastError(), cmd);
+		return procinf;
+	}
+
+	return procinf;
+}
+
+void wait_process_end(PROCESS_INFORMATION *procinf)
+{
+//fprintf_rl(stdout, "Waiting...\n");
 	// Wait until child process exits.
-fprintf_rl(stdout, "return %d\n", WaitForSingleObject(procinf.hProcess, 0));
-	WaitForSingleObject(procinf.hProcess, INFINITE);
-fprintf_rl(stdout, "return %d\n", WaitForSingleObject(procinf.hProcess, 0));
-fprintf_rl(stdout, "Done.\n");
+//fprintf_rl(stdout, "return %d\n", WaitForSingleObject(procinf->hProcess, 0));
+	WaitForSingleObject(procinf->hProcess, INFINITE);
+//fprintf_rl(stdout, "return %d\n", WaitForSingleObject(procinf->hProcess, 0));
+//fprintf_rl(stdout, "Done.\n");
 
 	// Close process and thread handles. 
-	CloseHandle(procinf.hProcess);
-	CloseHandle(procinf.hThread);*/
+	CloseHandle(procinf->hProcess);
+	CloseHandle(procinf->hThread);
 }
+
+void send_SIGINT(HANDLE hProcess)	// probably better to use TerminateProcess(hProcess, 0);
+{
+	DWORD pid = GetProcessId(hProcess);
+	FreeConsole();
+	if (AttachConsole(pid))
+	{
+		// Disable Ctrl-C handling for our program
+		SetConsoleCtrlHandler(NULL, 1);
+
+		GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0); // SIGINT
+
+		//Re-enable Ctrl-C handling or any subsequently started
+		//programs will inherit the disabled state.
+		SetConsoleCtrlHandler(NULL, 0);
+
+		WaitForSingleObject(hProcess, 10000);
+	}
+}
+
 #endif

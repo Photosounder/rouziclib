@@ -4,7 +4,6 @@ zoom_t init_zoom(framebuffer_t *fb, mouse_t *mouse, double drawing_thickness)
 
 	memset(&zc, 0, sizeof(zc));
 
-	zc.guiscale = 1.;
 	zc.zoomscale = 1.;
 	zc.fb = fb;
 	zc.mouse = mouse;
@@ -56,40 +55,49 @@ rect_t to_world_coord_rect(zoom_t zc, rect_t r)
 	return rect( wc_xy(r.p0) , wc_xy(r.p1) );
 }
 
-void zoom_key_released(zoom_t *zc, int8_t *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down
+void zoom_toggle(zoom_t *zc, int *flag_zoom_key)
 {
-	int32_t td;
-	int32_t zko = *flag_zoom_key;						// save the original zoom_key state
+	*flag_zoom_key ^= 1;		// toggle zoom
 
-	#ifdef RL_SDL
-	td = SDL_GetTicks() - zc->zoom_key_time;				// time difference
-	#endif
-
-	if (source==1 && *flag_zoom_key==0 && zc->zoom_key_time)		// if the button was just released as the zoom was off and the timer running
-		*flag_zoom_key = 1;						// turn the zoom on
-	else if (source==1 && *flag_zoom_key && zc->zoom_key_time && td <= 500)	// if the button has been pressed for less than 0.5s and released
-		*flag_zoom_key = 0;						// turn off the zoom mode, don't reset the view
-
-	if (source==2 && zc->zoom_key_time && td > 500)				// if the button is held down and for more than 0.5s and the button timer is running
-	{
-		zc->zoomscale = 1.;						// reset everything
-		zc->offset_u = XY0;
-		*flag_zoom_key = 0;
-		zc->zoom_key_time = 0;
-	}
-
-	calc_screen_limits(zc);
-	
-	if (*flag_zoom_key==0 && zko)				// if the cursor is to be shown and we switched from zoom on to zoom off
+	if (*flag_zoom_key==0)		// if the cursor is to be shown and we switched from zoom on to zoom off
 	{
 		#ifdef RL_SDL
 		SDL_SetRelativeMouseMode(0);
 		SDL_WarpMouseInWindow(zc->fb->window, zc->fb->w/2, zc->fb->h/2);
 		#endif
+		zc->mouse->a = xy(zc->fb->w/2, zc->fb->h/2);
+		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
 	}
+
+	calc_screen_limits(zc);
 }
 
-void zoom_wheel(zoom_t *zc, int8_t flag_zoom_key, int y)
+void zoom_reset(zoom_t *zc, int *flag_zoom_key)
+{
+	zc->zoomscale = 1.;
+	zc->offset_u = XY0;
+	zc->zoom_key_time = 0;
+	*flag_zoom_key = 1;
+	zoom_toggle(zc, flag_zoom_key);
+}
+
+void zoom_key_released(zoom_t *zc, int *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down
+{
+	int td;
+	int zko = *flag_zoom_key;						// save the original zoom_key state
+
+	td = get_time_ms() - zc->zoom_key_time;					// time difference
+
+	if (source==1 && *flag_zoom_key==0 && zc->zoom_key_time)		// if the button was just released as the zoom was off and the timer running
+		zoom_toggle(zc, flag_zoom_key);					// turn the zoom on
+	else if (source==1 && *flag_zoom_key && zc->zoom_key_time && td <= 500)	// if the button has been pressed for less than 0.5s and released
+		zoom_toggle(zc, flag_zoom_key);					// turn off the zoom mode, don't reset the view
+
+	if (source==2 && zc->zoom_key_time && td > 500)				// if the button is held down and for more than 0.5s and the button timer is running
+		zoom_reset(zc, flag_zoom_key);					// reset everything
+}
+
+void zoom_wheel(zoom_t *zc, int flag_zoom_key, int y)
 {
 	double ratio;
 
@@ -112,7 +120,6 @@ void calc_screen_limits(zoom_t *zc)
 		zc->scrscale = (double) zc->fb->h / 18.;	// for 1920x1080 srcscale would be 60
 	else
 		zc->scrscale = (double) zc->fb->w / 24.;
-	zc->scrscale *= zc->guiscale;
 	zc->scrscale_unzoomed = zc->scrscale;
 
 	zc->limit_u = mul_xy(xy(zc->fb->w, zc->fb->h), set_xy(0.5/zc->scrscale));

@@ -5,7 +5,7 @@ typedef struct
 
 typedef struct
 {
-	int32_t x, y;
+	int x, y;
 } xyi_t;
 
 typedef struct

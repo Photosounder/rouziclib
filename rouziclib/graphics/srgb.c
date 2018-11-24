@@ -275,6 +275,48 @@ void convert_frgb_to_srgb(framebuffer_t fb, int mode)
 	}
 }
 
+void blit_lrgb_on_srgb(framebuffer_t fb, srgb_t *srgb0, srgb_t *srgb1)
+{
+	int32_t i;
+	lrgb_t p, l0;
+	static int init=1;
+	static lut_t lsrgb_l, slrgb_l;
+	int32_t pixc = fb.w*fb.h;
+	srgb_t s0, s1;
+
+	if (init)
+	{
+		init = 0;
+		lsrgb_l = get_lut_lsrgb();
+		slrgb_l = get_lut_slrgb();
+	}
+
+	for (i=0; i < pixc; i++)
+	{
+		p = fb.r.l[i];
+
+		if (p.a > 0)
+		{
+			if (p.a < ONE)
+			{
+				s0 = srgb0[i];
+				l0.r = slrgb_l.lutint[s0.r];
+				l0.g = slrgb_l.lutint[s0.g];
+				l0.b = slrgb_l.lutint[s0.b];
+				p = blend_alphablend_sep_alpha(l0, p, 32768, LBD_TO_Q15(p.a));
+			}
+
+			s1.r = lsrgb_l.lutint[p.r] >> 5;
+			s1.g = lsrgb_l.lutint[p.g] >> 5;
+			s1.b = lsrgb_l.lutint[p.b] >> 5;
+
+			srgb1[i] = s1;
+		}
+		else
+			srgb1[i] = srgb0[i];
+	}
+}
+
 void convert_linear_rgb_to_srgb(framebuffer_t fb, int mode)
 {
 	if (fb.use_cl)
@@ -345,6 +387,52 @@ void convert_frgb_to_lrgb_ratio(framebuffer_t *fb, const float ratio)
 	for (i=0; i<pixc; i++)
 	{
 		v = pf[i]*ratio + offset;	// adding the offset puts the correct integer value in the mantissa
-		pl[i] = *vint;		// keeps mantissa, no need for a mask
+		pl[i] = *vint;			// keeps mantissa, no need for a mask
 	}
+}
+
+srgb_t srgb_change_order_pixel(const srgb_t in, const int order)
+{
+	srgb_t out={0};
+
+	switch (order)
+	{
+		case ORDER_RGBA:
+			return in;
+
+		case ORDER_ABGR:
+			out.r = in.a;
+			out.g = in.b;
+			out.b = in.g;
+			out.a = in.r;
+			break;
+
+		case ORDER_BGRA:
+			out.r = in.b;
+			out.g = in.g;
+			out.b = in.r;
+			out.a = in.a;
+			break;
+
+		case ORDER_ARGB:
+			out.r = in.a;
+			out.g = in.r;
+			out.b = in.g;
+			out.a = in.b;
+			break;
+	}
+
+	return out;
+}
+
+void srgb_change_order(srgb_t *in, srgb_t *out, const size_t count, const int order)
+{
+	if (order == ORDER_RGBA)
+		if (in == out)
+			return ;
+		else
+			memcpy(out, in, count * sizeof(srgb_t));
+
+	for (size_t i=0; i < count; i++)
+		out[i] = srgb_change_order_pixel(in[i], order);
 }

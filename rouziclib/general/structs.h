@@ -9,3 +9,9 @@ typedef struct
 	int32_t *lutint;	// same as lut except in fixed point format
 	uint8_t *lutb;		// for values from 0 to 255 (like sRGB colours)
 } lut_t;
+
+typedef struct
+{
+	char *buf;
+	size_t as, len;
+} buffer_t;

@@ -28,6 +28,17 @@ rect_t recti_to_rect(const recti_t ri)
 	return rect(xyi_to_xy(ri.p0), xyi_to_xy(ri.p1));
 }
 
+recti_t rect_to_recti_fixedpoint(const rect_t r, const double fpratio)	// fpratio should be something like 1<<16
+{
+	recti_t rfp;
+	rfp.p0.x = roundaway(r.p0.x * fpratio);
+	rfp.p0.y = roundaway(r.p0.y * fpratio);
+	rfp.p1.x = roundaway(r.p1.x * fpratio);
+	rfp.p1.y = roundaway(r.p1.y * fpratio);
+
+	return rfp;
+}
+
 xy_t rect_p01(rect_t r)
 {
 	return xy(r.p0.x, r.p1.y);
@@ -143,6 +154,34 @@ recti_t recti_add_margin(recti_t r, xyi_t margin)
 	r.p1 = add_xyi(r.p1, margin);
 
 	return r;
+}
+
+rect_t rect_add_margin_offset(rect_t r, xy_t margin, xy_t offset)
+{
+	xy_t m0, m1;
+
+	margin = mul_xy(margin, set_xy(2.));
+	m0 = mul_xy(offset, margin);
+	m1 = mul_xy(sub_xy(XY1, offset), margin);
+
+	r = sort_rect(r);
+	r.p0 = sub_xy(r.p0, m0);
+	r.p1 = add_xy(r.p1, m1);
+
+	return r;
+}
+
+rect_t rect_move(rect_t r, xy_t v)
+{
+	r.p0 = add_xy(r.p0, v);
+	r.p1 = add_xy(r.p1, v);
+
+	return r;
+}
+
+rect_t rect_neg_y(rect_t r)
+{
+	return rect( neg_y(r.p0) , neg_y(r.p1) );
 }
 
 rect_t make_rect_ulcorner(xy_t ulc, xy_t wh)

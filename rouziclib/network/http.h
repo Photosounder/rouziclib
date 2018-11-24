@@ -1,4 +1,4 @@
-#ifndef RL_EXCL_NETWORK
+#ifdef RL_INCL_NETWORK
 
 enum { DEFAULT, RAW, MULTI_GZ_CAT };
 

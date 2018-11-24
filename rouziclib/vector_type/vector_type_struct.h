@@ -21,7 +21,7 @@ typedef struct
 	int click_on;
 	double max_scale, rect_brightness;
 	textundo_t undo;
-	int edit_mode, return_flag, draw_string_mode;
+	int edit_mode, return_flag, draw_string_mode, was_cur_te, tab_switch, sel_all;
 } textedit_t;
 
 typedef struct

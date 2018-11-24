@@ -7,7 +7,7 @@ void font_create_letter(vector_font_t *font, uint32_t cp)
 {
 	font_alloc_one(font);
 	font->l[font->letter_count-1].codepoint = cp;
-	textedit_init(&font->l[font->letter_count-1].glyphdata_edit);
+	textedit_init(&font->l[font->letter_count-1].glyphdata_edit, 1);
 
 	add_codepoint_letter_lut_reference(font);
 }
@@ -22,6 +22,7 @@ void font_remove_letter(vector_font_t *font, uint32_t cp)
 
 	// free elements
 	free_vobj(font->l[letter_index].obj);
+	font->l[letter_index].obj = NULL;
 	textedit_free(&font->l[letter_index].glyphdata_edit);
 
 	font->letter_count--;
@@ -597,7 +598,10 @@ void font_block_process_line(char *line, vector_font_t *font)
 		if (line[0] != '\n')
 			p = skip_whitespace(line);
 
-		current_count = strlen(font->l[font->letter_count-1].glyphdata_edit.string) + 1;
+		if (font->l[font->letter_count - 1].glyphdata_edit.string==NULL)
+			current_count = 0;
+		else
+			current_count = strlen(font->l[font->letter_count-1].glyphdata_edit.string) + 1;
 		alloc_enough(&font->l[font->letter_count-1].glyphdata_edit.string, current_count += strlen(p)+1, &font->l[font->letter_count-1].glyphdata_edit.alloc_size, sizeof(1), 2.0);
 
 		strcat(font->l[font->letter_count-1].glyphdata_edit.string, p);			// puts the line into the letter's glyphdata_edit.string
@@ -619,7 +623,7 @@ void make_font_block(char *path, vector_font_t *font)
 {
 	int i, linecount;
 	char **line;
-	
+
 	line = arrayise_text(load_raw_file_dos_conv(path, NULL), &linecount);
 	if (line == NULL)
 		return ;
@@ -687,7 +691,7 @@ void process_one_glyph(vector_font_t *font, int i)
 vector_font_t *make_font(char *index_path)
 {
 	vector_font_t *font;
-	char *dirpath, **line, a[128], path[256];
+	char dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
 	int i, linecount, range0, range1;
 
 	font = calloc(1, sizeof(vector_font_t));
@@ -696,13 +700,14 @@ vector_font_t *make_font(char *index_path)
 	font->codepoint_letter_lut = calloc (0x110000, sizeof(int32_t));
 	memset(font->codepoint_letter_lut, 0xFF, 0x110000 * sizeof(int32_t));
 
-	dirpath = remove_after_char_copy(index_path, '/');
+	remove_name_from_path(dirpath, index_path);
+	dirpath[strlen(dirpath)+1] = '\0';
+	dirpath[strlen(dirpath)] = DIR_CHAR;
 
 	line = arrayise_text(load_raw_file_dos_conv(index_path, NULL), &linecount);
 	if (line == NULL)
 	{
 		make_fallback_font(font);
-		free(dirpath);
 		return font;
 	}
 
@@ -733,8 +738,6 @@ vector_font_t *make_font(char *index_path)
 		}
 	}
 	
-	free(dirpath);
-
 	free(line[0]);
 	free(line);
 
@@ -828,18 +831,19 @@ void save_font_block(char *path, vector_font_t *font, int range0, int range1, ch
 
 void save_font(vector_font_t *font, char *index_path)
 {
-	char *cp_saved, *dirpath, **line, a[128], path[256];
+	char *cp_saved, dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
 	int i, linecount, range0, range1;
 
 	cp_saved = calloc(font->letter_count, sizeof(char));
 
-	dirpath = remove_after_char_copy(index_path, '/');
+	remove_name_from_path(dirpath, index_path);
+	dirpath[strlen(dirpath)+1] = '\0';
+	dirpath[strlen(dirpath)] = DIR_CHAR;
 	
 	line = arrayise_text(load_raw_file_dos_conv(index_path, NULL), &linecount);
 	if (line == NULL)
 	{
 		make_fallback_font(font);
-		free(dirpath);
 		free(cp_saved);
 		return ;
 	}
@@ -857,7 +861,6 @@ void save_font(vector_font_t *font, char *index_path)
 		}
 	}
 
-	free(dirpath);
 	free(cp_saved);
 	free(line[0]);
 	free(line);

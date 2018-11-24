@@ -1,4 +1,4 @@
-// cp drawqueue.cl drawqueue.cl.c && gcc -E -P drawqueue.cl.c > dq.cl && ttc dq.cl && mv dq.cl.h drawqueue.cl.h && rm drawqueue.cl.c dq.cl
+// cp drawqueue.cl drawqueue.cl.c && gcc -E -P drawqueue.cl.c | dos2unix > dq.cl && bin_to_c dq.cl && mv dq.cl.h drawqueue.cl.h && rm drawqueue.cl.c dq.cl
 
 #include "drawqueue_enums.h"
 #include "gaussian.cl"
@@ -6,8 +6,9 @@
 #include "drawline.cl"
 #include "drawrect.cl"
 #include "drawcircle.cl"
-#include "blit.cl"
 #include "srgb.cl"
+#include "blit.cl"
+#include "colour.cl"
 
 float4 drawgradienttest(float4 pv)
 {
@@ -74,6 +75,7 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			case DQT_RECT_BLACK:		pv = draw_black_rect(&df[qi+1], pv);			break;
 			case DQT_PLAIN_FILL:		pv = draw_plain_fill_add(&df[qi+1], pv);		break;
 			case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);		break;
+			case DQT_CIRCLE_HOLLOW:		pv = draw_circle_hollow_add(&df[qi+1], pv);		break;
 			//case DQT_BLIT_BILINEAR:		pv = blit_sprite_bilinear(&df[qi+1], data_cl, pv);	break;
 			case DQT_BLIT_FLATTOP:		pv = blit_sprite_flattop(&df[qi+1], data_cl, pv);	break;
 			//case DQT_BLIT_PHOTO:		pv = blit_photo(&df[qi+1], data_cl, pv);		break;
@@ -94,6 +96,9 @@ kernel void draw_queue_srgb_kernel(global float *df, global int *poslist, global
 	float4 pv;		// pixel value (linear)
 
 	pv = draw_queue(df, poslist, entrylist, data_cl, sector_w, sector_size);
+
+	//pv = luma_compression(pv, 0.02f);
+	//pv = pv*(1.f-0.007f) + 0.007f;
 
 	if (pv.s0==0.f)
 	if (pv.s1==0.f)

@@ -74,7 +74,7 @@ void load_dir(char *path, fs_dir_t *dir)
 	closedir(dirp);
 }
 
-void load_dir_depth(char *path, fs_dir_t *dir, int max_depth)	// a max_depth of -1 means infinite
+void load_dir_depth(char *path, fs_dir_t *dir, int max_depth)	// a max_depth of -1 means infinite, 0 excludes subfolders
 {
 	int i;
 	char subdir_path[PATH_MAX*4];
@@ -82,7 +82,7 @@ void load_dir_depth(char *path, fs_dir_t *dir, int max_depth)	// a max_depth of 
 	load_dir(path, dir);
 
 	if (max_depth)
-	for (i=0; i<dir->subdir_count; i++)
+	for (i=0; i < dir->subdir_count; i++)
 	{
 		if (strcmp(dir->subdir[i].name, ".") && strcmp(dir->subdir[i].name, ".."))
 		{
@@ -97,7 +97,7 @@ void print_dir_depth(fs_dir_t *dir, int current_depth)
 {
 	int i, j;
 
-	for (i=0; i<dir->subdir_count; i++)
+	for (i=0; i < dir->subdir_count; i++)
 	{
 		if (strcmp(dir->subdir[i].name, ".") && strcmp(dir->subdir[i].name, ".."))
 		{
@@ -109,7 +109,7 @@ void print_dir_depth(fs_dir_t *dir, int current_depth)
 		}
 	}
 
-	for (i=0; i<dir->subfile_count; i++)
+	for (i=0; i < dir->subfile_count; i++)
 	{
 		for (j=0; j<current_depth; j++)
 			fprintf_rl(stdout, "    ");
@@ -128,7 +128,7 @@ char *sprint_dir_depth_fullarg(fs_dir_t *dir, int current_depth, char **string, 
 	if (alloc_count==NULL)
 		alloc_count = &ac;
 
-	for (i=0; i<dir->subdir_count; i++)
+	for (i=0; i < dir->subdir_count; i++)
 	{
 		if (strcmp(dir->subdir[i].name, ".") && strcmp(dir->subdir[i].name, ".."))
 		{
@@ -140,7 +140,7 @@ char *sprint_dir_depth_fullarg(fs_dir_t *dir, int current_depth, char **string, 
 		}
 	}
 
-	for (i=0; i<dir->subfile_count; i++)
+	for (i=0; i < dir->subfile_count; i++)
 	{
 		for (j=0; j<current_depth; j++)
 			sprintf_realloc(string, alloc_count, 1, "    ");
@@ -158,7 +158,7 @@ void free_dir(fs_dir_t *dir)
 {
 	int i;
 
-	for (i=0; i<dir->subdir_count; i++)
+	for (i=0; i < dir->subdir_count; i++)
 	{
 		if (strcmp(dir->subdir[i].name, ".") && strcmp(dir->subdir[i].name, ".."))
 			free_dir(&dir->subdir[i]);
@@ -166,7 +166,7 @@ void free_dir(fs_dir_t *dir)
 			free (dir->subdir[i].name);
 	}
 
-	for (i=0; i<dir->subfile_count; i++)
+	for (i=0; i < dir->subfile_count; i++)
 		if (dir->subfile[i].name)
 			free (dir->subfile[i].name);
 
@@ -179,7 +179,7 @@ void export_subfiles_to_file(FILE *file, fs_dir_t *dir, const int indent, const 
 {
 	int i, j;
 
-	for (i=0; i<dir->subfile_count; i++)
+	for (i=0; i < dir->subfile_count; i++)
 		if (dir->subfile[i].name)
 		{
 			for (j=0; j<indent; j++)
@@ -224,7 +224,7 @@ void export_whole_dir_flat_to_file(FILE *file, fs_dir_t *dir, const int show_dir
 	else if (printed_path[0] == DIR_CHAR)
 		printed_path++;			// else remove the remaining DIR_CHAR
 
-	for (i=0; i<dir->subdir_count; i++)
+	for (i=0; i < dir->subdir_count; i++)
 	{
 		if (strcmp(dir->subdir[i].name, ".") && strcmp(dir->subdir[i].name, ".."))
 		{
@@ -235,7 +235,7 @@ void export_whole_dir_flat_to_file(FILE *file, fs_dir_t *dir, const int show_dir
 		}
 	}
 
-	for (i=0; i<dir->subfile_count; i++)
+	for (i=0; i < dir->subfile_count; i++)
 		fprintf(file, "%s%s%s\n", printed_path, dir_char, dir->subfile[i].name);
 }
 
@@ -281,7 +281,7 @@ void get_volumes_path()
 	
 /*	bits = GetLogicalDrives();
 
-	for (i=0; i<32; i++)
+	for (i=0; i < 32; i++)
 	{
 		if ((bits >> i) & 1)
 		{

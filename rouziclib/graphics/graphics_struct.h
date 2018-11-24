@@ -1,10 +1,6 @@
 typedef struct
 {
-#ifdef SWITCH_RGB_CHANNELS
-	uint8_t b, g, r, a;
-#else
 	uint8_t r, g, b, a;
-#endif
 } srgb_t;			// sRGB
 
 typedef struct
@@ -31,12 +27,17 @@ typedef struct
 	frgb_t *f;
 	srgb_t *srgb;
 	sqrgb_t *sq;
+	uint8_t *buf;		// generic pointer for other image formats like planar YUV
+	size_t buf_size;
+	int buf_fmt;		// format of the buffer, 10 for YUV 8-bit, 11 for YUV 10-bit
 	int use_frgb;
+	int as;			// alloc size in pixels
 	// TODO consider a flag to indicate that the host-side raster has been updated since the last copy to the device to trigger a new copy
 	
 	#ifdef RL_OPENCL
 	void *referencing_fb;		// used to access the framebuffer's device alloc table if *f is referenced there for removal when freeing the raster
 	#endif
+	int table_index;		// index in the cl_data allocation table
 } raster_t;
 
 typedef struct
@@ -44,6 +45,7 @@ typedef struct
 	raster_t *r;				// an array of raster tiles indexed by [y*tilecount.x + x]
 	xyi_t fulldim, tiledim, tilecount;	// full size in actual pixels, max size in actual pixels of a tile for this level (used for position calculations), number of tiles
 	xy_t scale;
+	size_t total_bytes;
 } mipmap_level_t;
 
 typedef struct
@@ -51,6 +53,7 @@ typedef struct
 	mipmap_level_t *lvl;
 	int lvl_count;
 	xyi_t fulldim;
+	size_t total_bytes;
 } mipmap_t;
 
 typedef struct
@@ -59,6 +62,18 @@ typedef struct
 	int unused;		// 0 means in use, 1 means was used last frame, 2 means unused and should be removed
 	void *host_ptr;
 } cl_data_alloc_t;
+
+typedef struct
+{
+	int index;		// sought table index
+	int next_index;		// index of the next entry in the overflow table for hash collisions
+} hash_table_elem_t;
+
+typedef struct
+{
+	hash_table_elem_t *elem, *overflow;
+	int overflow_as, overflow_first_avail;
+} hash_table_t;
 
 typedef struct
 {
@@ -72,6 +87,8 @@ typedef struct
 	void *window;
 	void *renderer;
 	void *texture;
+	int fullscreen_on;
+	recti_t wind_rect;
 	#endif
 
 	#ifdef RL_OPENCL
@@ -97,5 +114,6 @@ typedef struct
 	cl_data_alloc_t *data_alloc_table;	// table that lists allocations within the buffer
 	int data_alloc_table_count;
 	int data_alloc_table_as;		// alloc size of the data_alloc_table in elements
+	hash_table_t hash_table;
 	#endif
 } framebuffer_t;

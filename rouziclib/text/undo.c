@@ -5,9 +5,20 @@ void textundo_remove_later_states(textedit_t *te)
 	int i;
 
 	for (i=te->undo.cur_state_index+1; i < te->undo.state_count; i++)
-		free (te->undo.state[i].string);
+		free(te->undo.state[i].string);
 
 	te->undo.state_count = te->undo.cur_state_index + 1;
+}
+
+void textundo_clear_all(textedit_t *te)
+{
+	int i;
+
+	for (i=0; i < te->undo.state_count; i++)
+		free_null(&te->undo.state[i].string);
+	free(te->undo.state);
+
+	memset(&te->undo, 0, sizeof(textundo_t));
 }
 
 void textundo_free(textedit_t *te)
@@ -25,6 +36,14 @@ void textundo_add_state(textedit_t *te)
 {
 	textundostate_t *cs;
 
+	if (te->string == NULL)
+		return ;
+
+	// Check if the current string is the same as the last undo state
+	if (te->undo.state_count > 0 && te->undo.cur_state_index >= 0 && te->undo.cur_state_index < te->undo.state_count)
+		if (strcmp(te->string, te->undo.state[te->undo.cur_state_index].string)==0)
+			return ;
+
 	textundo_remove_later_states(te);
 
 	alloc_enough(&te->undo.state, te->undo.state_count+=1, &te->undo.alloc_count, sizeof(textundostate_t), 1.5);	// alloc enough space
@@ -36,6 +55,7 @@ void textundo_add_state(textedit_t *te)
 	cs->curpos = te->curpos;
 	cs->timestamp = te->undo.timestamp;		// copy the old timestamp which reflects the time of the last change
 	te->undo.latest_is_saved = 0;
+	te->return_flag = 4;	// indicates modification
 }
 
 void textundo_restore_state(textedit_t *te)
@@ -49,6 +69,7 @@ void textundo_restore_state(textedit_t *te)
 	te->string = make_string_copy(cs->string);
 	te->alloc_size = cs->alloc_size;
 	te->sel0 = te->sel1 = te->curpos = cs->curpos;
+	te->return_flag = 4;	// indicates modification
 }
 
 void textundo_update(textedit_t *te, int forced_save)

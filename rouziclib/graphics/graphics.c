@@ -16,85 +16,44 @@ double gaussrad(double intensity, double radius)
 	}
 }
 
-raster_t make_raster_srgb(srgb_t *srgb, int32_t w, int32_t h)
+size_t get_raster_mode_elem_size(const int mode)
+{
+	switch (mode)
+	{
+		case IMAGE_USE_SRGB:	return sizeof(srgb_t);
+		case IMAGE_USE_LRGB:	return sizeof(lrgb_t);
+		case IMAGE_USE_FRGB:	return sizeof(frgb_t);
+		case IMAGE_USE_SQRGB:	return sizeof(sqrgb_t);
+		default:		return 0;
+	}
+}
+
+raster_t make_raster(void *data, const xyi_t dim, xyi_t maxdim, const int mode)	// maxdim can be XYI0
 {
 	raster_t r={0};
+	void **ptr;
 
-	r.dim = xyi(w, h);
+	if (is0_xyi(maxdim))
+		maxdim = dim;
 
-	if (srgb)
-		r.srgb = srgb;
-	else
-		if (w*h)
-			r.srgb = calloc(w*h, sizeof(srgb_t));
-		else
-			r.srgb = NULL;
+	r.dim = dim;
+	r.table_index = -1;
+	r.as = mul_x_by_y_xyi(maxdim);
+	ptr = get_raster_buffer_for_mode_ptr(&r, mode);
+
+	if (data)
+		*ptr = data;
+	else if (r.as)
+		*ptr = calloc(r.as, get_raster_mode_elem_size(mode));
 
 	return r;
 }
 
-raster_t make_raster_l(lrgb_t *l, int32_t w, int32_t h)
+raster_t make_raster_empty()
 {
 	raster_t r={0};
-
-	r.dim = xyi(w, h);
-
-	if (l)
-		r.l = l;
-	else
-		if (w*h)
-			r.l = calloc(w*h, sizeof(lrgb_t));
-		else
-			r.l = NULL;
-
+	r.table_index = -1;
 	return r;
-}
-
-raster_t make_raster_f(frgb_t *f, int32_t w, int32_t h)
-{
-	raster_t r={0};
-
-	r.dim = xyi(w, h);
-	r.use_frgb = 1;
-
-	if (f)
-		r.f = f;
-	else
-		if (w*h)
-			r.f = calloc(w*h, sizeof(frgb_t));
-		else
-			r.f = NULL;
-
-	return r;
-}
-
-raster_t make_raster_sq(sqrgb_t *sq, int32_t w, int32_t h)
-{
-	raster_t r={0};
-
-	r.dim = xyi(w, h);
-
-	if (sq)
-		r.sq = sq;
-	else
-		if (w*h)
-			r.sq = calloc(w*h, sizeof(sqrgb_t));
-		else
-			r.sq = NULL;
-
-	return r;
-}
-
-raster_t make_raster(void *data, int32_t w, int32_t h, const int mode)	// mode is IMAGE_USE_xRGB (S, L, F, SQ)
-{
-	if (mode & IMAGE_USE_SRGB)
-		return make_raster_srgb(data, w, h);
-	if (mode & IMAGE_USE_LRGB)
-		return make_raster_l(data, w, h);
-	if (mode & IMAGE_USE_FRGB)
-		return make_raster_f(data, w, h);
-	else //if (mode & IMAGE_USE_SQRGB)
-		return make_raster_sq(data, w, h);
 }
 
 raster_t copy_raster(raster_t r0)
@@ -107,18 +66,66 @@ raster_t copy_raster(raster_t r0)
 	r1.f = copy_alloc(r0.f, r0.dim.x*r0.dim.y *sizeof(frgb_t));
 	r1.srgb = copy_alloc(r0.srgb, r0.dim.x*r0.dim.y *sizeof(srgb_t));
 	r1.sq = copy_alloc(r0.sq, r0.dim.x*r0.dim.y *sizeof(sqrgb_t));
+	r1.buf = copy_alloc(r0.buf, r0.buf_size);
+	r1.buf_size = r0.buf_size;
 
 	return r1;
 }
 
-void *get_raster_buffer_for_mode(raster_t r, const int mode)	// mode is IMAGE_USE_xRGB (S, L, F)
+void **get_raster_buffer_for_mode_ptr(raster_t *r, const int mode)
+{
+	switch (mode)
+	{
+		case IMAGE_USE_SRGB:	return &r->srgb;	break;
+		case IMAGE_USE_LRGB:	return &r->l;		break;
+		case IMAGE_USE_FRGB:	return &r->f;		break;
+		case IMAGE_USE_SQRGB:	return &r->sq;		break;
+		case IMAGE_USE_BUF:	return &r->buf;		break;
+	}
+
+	return NULL;
+}
+
+void *get_raster_buffer_for_mode(raster_t r, const int mode)
 {
 	if (mode & IMAGE_USE_SRGB)	return r.srgb;
 	if (mode & IMAGE_USE_LRGB)	return r.l;
 	if (mode & IMAGE_USE_FRGB)	return r.f;
 	if (mode & IMAGE_USE_SQRGB)	return r.sq;
+	if (mode & IMAGE_USE_BUF)	return r.buf;
 
 	return NULL;
+}
+
+void **get_raster_buffer_ptr(raster_t *r)
+{
+	if (r->srgb)	return &r->srgb;
+	if (r->l)	return &r->l;
+	if (r->f)	return &r->f;
+	if (r->sq)	return &r->sq;
+	if (r->buf)	return &r->buf;
+
+	return NULL;
+}
+
+void *get_raster_buffer(raster_t *r)
+{
+	void **ptr;
+
+	ptr = get_raster_buffer_ptr(r);
+
+	return *ptr;
+}
+
+int get_raster_mode(raster_t r)
+{
+	if (r.srgb)	return IMAGE_USE_SRGB;
+	if (r.l)	return IMAGE_USE_LRGB;
+	if (r.f)	return IMAGE_USE_FRGB;
+	if (r.sq)	return IMAGE_USE_SQRGB;
+	if (r.buf)	return IMAGE_USE_BUF;
+
+	return -1;
 }
 
 srgb_t get_raster_pixel_in_srgb(raster_t r, const int index)
@@ -126,7 +133,7 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const int index)
 	srgb_t s={0};
 	frgb_t f;
 	lrgb_t l;
-	sqrgb_t sq;
+	sqrgb_t sqp;
 	const float mul_rb = 1.f / (1023.f*1023.f);
 	const float mul_g = 1.f / (4092.f*4092.f);
 	static int init=1;
@@ -148,10 +155,10 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const int index)
 			f = clamp_frgba(r.f[index]);
 		else
 		{
-			sq = r.sq[index];
-			f.r = (float) (sq.r*sq.r) * mul_rb;
-			f.g = (float) (sq.g*sq.g) * mul_g;
-			f.b = (float) (sq.b*sq.b) * mul_rb;
+			sqp = r.sq[index];
+			f.r = (float) (sqp.r*sqp.r) * mul_rb;
+			f.g = (float) (sqp.g*sqp.g) * mul_g;
+			f.b = (float) (sqp.b*sqp.b) * mul_rb;
 			f.a = 1.f;
 		}
 
@@ -173,42 +180,72 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const int index)
 
 		return s;
 	}
+
+	return s;
 }
 
 void free_raster(raster_t *r)
 {
-	/*#ifdef RL_TINYCTHREAD
-	if (r->mutex)
-		mtx_lock(r->mutex);
-	#endif*/
+	void **ptr;
 
-	#ifdef RL_OPENCL
-	cl_data_table_remove_entry_by_host_ptr(r->referencing_fb, r->f);	// remove reference from cl data table
-	cl_data_table_remove_entry_by_host_ptr(r->referencing_fb, r->sq);	// remove reference from cl data table
-	#endif
+	ptr = get_raster_buffer_ptr(r);
 
-	free_null(&r->l);
-	free_null(&r->f);
-	free_null(&r->srgb);
-	free_null(&r->sq);
-
-	/*#ifdef RL_TINYCTHREAD
-	if (r->mutex)
+	while (ptr)
 	{
-		mtx_unlock(r->mutex);
-		//mtx_destroy_free(&r->mutex);
+		#ifdef RL_OPENCL
+		cl_data_table_remove_entry_by_host_ptr(r->referencing_fb, *ptr);	// remove reference from cl data table
+		#endif
+	
+		free_null(ptr);
+
+		ptr = get_raster_buffer_ptr(r);
 	}
-	#endif*/
 
 	memset(r, 0, sizeof(raster_t));
 }
 
+framebuffer_t init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode)
+{
+	framebuffer_t fb={0};
+
+	if (is0_xyi(maxdim))
+		maxdim = dim;
+
+	fb.r = make_raster(NULL, dim, maxdim, mode);
+	fb.w = fb.r.dim.x;
+	fb.h = fb.r.dim.y;
+	fb.maxdim = maxdim;
+
+	return fb;
+}
+
+void enlarge_framebuffer(framebuffer_t *fb, xyi_t newdim)
+{
+	if (fb->use_cl==0)
+		alloc_enough(get_raster_buffer_ptr(&fb->r), mul_x_by_y_xyi(newdim), &fb->r.as, get_raster_mode_elem_size(get_raster_mode(fb->r)), 1.2);
+
+	fb->r.dim = newdim;
+	fb->w = fb->r.dim.x;
+	fb->h = fb->r.dim.y;
+}
+
 double intensity_scaling(double scale, double scale_limit)	// gives an intensity ratio that decreases if the scale of the thing to be drawn is below a scale threshold
 {
-	double ratio = 1.;
+	double ratio = 1., x;
+	const double knee_width = 0.25, y_offset = sqrt(1.+knee_width) - 1.;
 
 	if (scale < scale_limit)
 		ratio = scale / scale_limit;
+
+	// logarithmic knee smoothing
+	//x = log(scale / scale_limit);
+	//ratio = exp( (-sqrt(sq(x)+knee_width) + x) * 0.5 );
+	
+	// linear adjust knee smoothing
+	x = scale / scale_limit;
+	ratio = sqrt(sq(x-1.)+knee_width) - x - 1. - y_offset;
+	ratio *= -0.5;
+	ratio = MINN(ratio, 1.);
 
 	return ratio;
 }

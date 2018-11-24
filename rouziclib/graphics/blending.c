@@ -1,3 +1,5 @@
+blend_func_t cur_blend=blend_add;
+
 // The following functions blend a whole foreground pixel with a background pixel by a ratio of p (1.15 fixed-point format)
 
 void blend_solid(lrgb_t *bg, lrgb_t fg, int32_t p)
@@ -68,10 +70,57 @@ void blend_blend(lrgb_t *bg, lrgb_t fg, int32_t p)
 	bg->b = fg.b * p + bg->b * pinv >> 15;
 }
 
-void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)	// proper alpha blending when both pixels might have any possible alpha value
+int alphablend_one_channel(int Cb, int Ca, int Ab_ai, int Aa, int Aoi)
+{
+	int Co;
+	Co = ( (int64_t) Ca*Aa + ((int64_t) Cb*Ab_ai >> 15) ) * Aoi >> 30;	// 1.LBD format
+
+	return MINN(ONE, Co);
+}
+
+lrgb_t blend_alphablend_sep_alpha(lrgb_t Cb, lrgb_t Ca, int Ab, int Aa)	// pixel a on top of pixel b, with separated 1.15 format alpha values
+{
+	lrgb_t Co={0};
+	int Aai, Ao, Aoi, Ab_ai;
+
+	// Special cases
+	if (Aa == 32768)		// if the front pixel is opaque
+		return Ca;		// just return the front pixel
+	else if (Aa == 0)		// if the front pixel is transparent
+		return Cb;		// just return the back pixel
+	else if (Ab == 0)		// if the back pixel is blank
+	{
+		Ca.a = Q15_TO_LBD(Aa);	// update the front pixel's alpha that takes the multiplication by p into account
+		return Ca;		// the output pixel is the front pixel
+	}
+
+	Aai = 32768 - Aa;
+	Ab_ai = Ab * Aai;
+	Ao = Aa + (Ab_ai >> 15);	// output alpha in 1.15
+	Co.a = Q15_TO_LBD(Ao);
+	if (Ao==0)
+		return Co;
+
+	Aoi = (1L<<30) / Ao;		// inverted to make the division, 0.30 format
+
+	Co.r = alphablend_one_channel(Cb.r, Ca.r, Ab_ai, Aa, Aoi);
+	Co.g = alphablend_one_channel(Cb.g, Ca.g, Ab_ai, Aa, Aoi);
+	Co.b = alphablend_one_channel(Cb.b, Ca.b, Ab_ai, Aa, Aoi);
+
+	return Co;
+}
+
+void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)
+{
+	*bg = blend_alphablend_sep_alpha(*bg, fg, LBD_TO_Q15(bg->a), LBD_TO_Q15(fg.a) * p >> 15);
+}
+
+/*void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)	// proper alpha blending when both pixels might have any possible alpha value
 {
 	int32_t r, g, b, a, pinv, fba;
+	int64_t ai;
 
+	p = p * fg.a >> LBD;	// apply fb's alpha to p
 	pinv = 32768 - p;
 
 	#if LBD == 15
@@ -80,7 +129,8 @@ void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)	// proper alpha blending
 	a = 32768 * bg->a >> LBD;		// 1.15
 	#endif
 
-	bg->a = ONE * p + bg->a * pinv >> 15;	// FIXME fg.a is assumed to be 1.0
+	bg->a = ONE * p + bg->a * pinv >> 15;
+
 	if (bg->a > 0)
 	{
 		#if LBD == 15
@@ -89,9 +139,12 @@ void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)	// proper alpha blending
 		fba = 32768 * bg->a >> LBD;
 		#endif
 
-		r = (fg.r*p + (bg->r * a >> 15)*pinv) / fba;
-		g = (fg.g*p + (bg->g * a >> 15)*pinv) / fba;
-		b = (fg.b*p + (bg->b * a >> 15)*pinv) / fba;
+		//ai = fpdiv_d2(32768, fba, 15);
+		ai = (1L<<30) / fba;
+
+		r = (fg.r*p + (bg->r * a >> 15)*pinv) * ai >> 15;
+		g = (fg.g*p + (bg->g * a >> 15)*pinv) * ai >> 15;
+		b = (fg.b*p + (bg->b * a >> 15)*pinv) * ai >> 15;
 
 		if (r>ONE) bg->r = ONE; else bg->r = r;
 		if (g>ONE) bg->g = ONE; else bg->g = g;
@@ -103,7 +156,7 @@ void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)	// proper alpha blending
 		bg->g = 0;
 		bg->b = 0;
 	}
-}
+}*/
 
 void blend_alphablendfg(lrgb_t *bg, lrgb_t fg, int32_t p)	// alpha blending (doesn't take framebuffer's alpha into account though, assumed to be 1.0)
 {

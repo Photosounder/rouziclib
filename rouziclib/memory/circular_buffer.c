@@ -1,4 +1,4 @@
-int32_t circ_index(int32_t index, const int32_t size)
+int circ_index(int index, const int size)
 {
 	if (size <= 0)
 		return 0;
@@ -13,7 +13,7 @@ int32_t circ_index(int32_t index, const int32_t size)
 }
 
 // example call: memset_circular(buffer, 0, sizeof(double), 120, buffer_start, buffer_size);
-void *memset_circular(void *s, int c, int32_t esize, int32_t num, int32_t pos, int32_t limit)
+void *memset_circular(void *s, int c, int esize, int num, int pos, int limit)
 {
 	uint8_t *sb = s;
 
@@ -31,7 +31,7 @@ void *memset_circular(void *s, int c, int32_t esize, int32_t num, int32_t pos, i
 }
 
 // example call: memcpy_circular(dest, src, sizeof(double), 120, buffer_start, buffer_size);
-void *memcpy_circular(void *dest, void *src, int32_t esize, int32_t num, int32_t pos, int32_t limit)
+void *memcpy_circular(void *dest, void *src, int esize, int num, int pos, int limit)
 {
 	uint8_t *db = dest, *sb = src;
 

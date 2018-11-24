@@ -67,7 +67,7 @@ int draw_cjkdec_glyph(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p,
 		return 0;
 
 	area = make_rect_off(p, set_xy(6.*scale), xy(0., 1.));
-	draw_rect_full(fb, area, line_thick, make_grey(0.01), 1.);
+	draw_rect_full(fb, area, line_thick, make_grey(0.01), cur_blend, 1.);
 
 	return 1;
 }
@@ -89,7 +89,7 @@ vobj_t *vobj_fitted_cat(vobj_t **o, int count, rect_t *fit_rect, rect_t *obj_rec
 	seg_base = 0;
 	for (io=0; io<count; io++)
 	{
-		area_to_area_transform(fit_rect[io], obj_rect[io], &tmul, &tadd);
+		area_to_area_transform(fit_rect[io], obj_rect[io], &tmul, &tadd, 0);
 
 		for (i=0; i<o[io]->count; i++)
 		{

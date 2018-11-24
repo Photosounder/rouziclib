@@ -45,10 +45,11 @@ enum
 	#define col_to_hsl		lrgb_to_hsl
 #endif
 
-extern lrgb_t make_colour_lin(double r, double g, double b, double a);
-extern frgb_t make_colour_frgb(double r, double g, double b, double a);
+extern lrgb_t make_colour_lin(const double r, const double g, const double b, const double a);
+extern frgb_t make_colour_frgb(const double r, const double g, const double b, const double a);
 extern frgb_t lrgb_to_frgb(lrgb_t cl);
 extern lrgb_t frgb_to_lrgb(frgb_t cf);
+extern srgb_t make_colour_srgb_s(int r, int g, int b, int a);
 extern lrgb_t make_colour_srgb_l(int r, int g, int b, int a);
 extern frgb_t make_colour_srgb_f(int r, int g, int b, int a);
 extern lrgb_t make_grey_l(double v);
@@ -79,6 +80,7 @@ extern xyz_t frgb_to_xyz(frgb_t col);
 extern col_t xyz_to_col(xyz_t v);
 extern lrgb_t xyz_to_lrgb(xyz_t v);
 extern frgb_t xyz_to_frgb(xyz_t v);
+extern int is0_col(col_t col);
 extern void lrgb_to_hsl(lrgb_t col, double *H, double *S, double *L, int huemode);
 extern void frgb_to_hsl(frgb_t col, double *H, double *S, double *L, int huemode);
 extern void colour_blowout_double_cw(double Wr, double Wg, double Wb, double *pred, double *pgrn, double *pblu);
@@ -86,8 +88,10 @@ extern void colour_blowout_double(double *pred, double *pgrn, double *pblu);
 extern void colour_blowout_int_cw(uint32_t Wr, uint32_t Wg, uint32_t Wb, uint32_t *pred, uint32_t *pgrn, uint32_t *pblu);
 extern void colour_blowout_int(uint32_t *pred, uint32_t *pgrn, uint32_t *pblu);
 extern void rangelimit_frgb(frgb_t *c);
+extern col_t get_colour_seq_fullarg(double x, xyz_t freq, xyz_t phase, double m, double a);
 extern col_t get_colour_seq(double x, xyz_t freq, xyz_t phase);
 extern col_t colour_mul(col_t col, double m);
+extern col_t mix_colours(col_t a, col_t b, double t);
 extern col_t adjust_colour_lum(col_t col, double target_lum);
 
 extern raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp);

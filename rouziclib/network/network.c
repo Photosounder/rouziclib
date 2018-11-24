@@ -1,4 +1,4 @@
-#ifndef RL_EXCL_NETWORK
+#ifdef RL_INCL_NETWORK
 
 static int init_net=0;
 
@@ -105,7 +105,7 @@ loopstart:
 		if (rec < 0)
 		{
 			fprintf_rl(stderr, "Connection to %s lost... Error %d\n", domain, errno);
-			closesocket (client);
+			closesocket(client);
 
 			i++;
 
@@ -126,7 +126,7 @@ loopstart:
 		}
 	}
 
-	closesocket (client);
+	closesocket(client);
 
 jump_end:
 	freeaddrinfo(ai);

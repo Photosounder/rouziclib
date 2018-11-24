@@ -3,6 +3,11 @@
 
 #ifdef RL_OPENCL
 
+#ifdef RL_OPENCL_GL
+#include <GL/glew.h>
+#include <GL/glut.h>
+#endif
+
 extern const char *get_cl_error_string(cl_int err);
 extern void check_compilation_log(clctx_t *c, cl_program program);
 extern cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform);

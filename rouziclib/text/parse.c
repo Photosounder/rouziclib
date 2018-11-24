@@ -175,7 +175,7 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 	return array;
 }
 
-char *strstr_i (char *fullstr, char *substr)		// case insensitive substring search
+char *strstr_i(char *fullstr, char *substr)		// case insensitive substring search
 {
 	char *fullstr_low, *substr_low, *p, *ret = NULL;
 
@@ -234,6 +234,24 @@ char *bstrstr(const char *s1, int l1, const char *s2, int l2)	// find first occu
 	return NULL;
 }
 
+void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// like strstr but binary
+{
+	int i;
+
+	if (l==NULL || s==NULL || l_len<=0 || s_len<=0 || l_len < s_len)
+		return NULL;
+
+	if (s_len == 1)		// special case where s_len is 1
+		return memchr(l, s[0], l_len);
+
+	for (i=0; i <= l_len - s_len; i++)
+		if (l[i] == s[0])
+			if (memcmp(&l[i], s, s_len) == 0)
+				return &l[i];
+
+	return NULL;
+}
+
 int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix)		// returns 1 if the words are equal
 {
 	size_t fixlen = strlen(fix);
@@ -242,4 +260,70 @@ int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const cha
 		return 0;
 
 	return strncmp(var, fix, varlen)==0;
+}
+
+char *find_pattern_in_string(const char *str, const char *pat)	// looks for matches from the end
+{
+	int i, ip, str_len, pat_len, match;
+
+	if (str==NULL || pat==NULL)
+		return NULL;
+
+	str_len = strlen(str);
+	pat_len = strlen(pat);
+
+	for (i = str_len-pat_len; i >= 0; i--)
+	{
+		match = 1;
+		for (ip=0; ip < pat_len && match; ip++)
+		{
+			switch (pat[ip])
+			{
+				case '\377':			// 0xFF, matches any char
+					break;
+
+				case '\376':			// 0xFE, matches any digit
+					if (str[i+ip] < '0' || str[i+ip] > '9')
+						match = 0;
+					break;
+
+				// '\365' and up are available
+
+				default:			// 0x00 to 0xF4, match a valid UTF-8 byte
+					if (str[i+ip] != pat[ip])
+						match = 0;
+					break;
+			}
+		}
+
+		if (match)
+			return &str[i];
+	}
+	
+	return NULL;
+}
+
+char *find_date_time_in_string(const char *str)
+{
+	// pattern matches YYYY-MM-DD<?>hh.mm.ss
+	return find_pattern_in_string(str, "\376\376\376\376-\376\376-\376\376\377\376\376.\376\376.\376\376");
+}
+
+double parse_timestamp(const char *ts)
+{
+	double t = NAN, hh=0., mm=0., ss=0.;
+	char *p;
+
+	if (p = find_pattern_in_string(ts, "\376\376:\376\376:\376\376"))	// see if it contains hours (HH)
+		sscanf(p, "%lg:%lg:%lg", &hh, &mm, &ss);
+	else if (p = find_pattern_in_string(ts, "\376:\376\376:\376\376"))	// see if it contains hours (H)
+		sscanf(p, "%lg:%lg:%lg", &hh, &mm, &ss);
+	else if (p = find_pattern_in_string(ts, "\376\376:\376\376"))		// see if it contains minutes (MM)
+		sscanf(p, "%lg:%lg", &mm, &ss);
+	else if (p = find_pattern_in_string(ts, "\376:\376\376"))		// see if it contains minutes (M)
+		sscanf(p, "%lg:%lg", &mm, &ss);
+	else									// it contains only seconds
+		sscanf(ts, "%lg", &ss);
+
+	return (hh*60. + mm)*60. + ss;
 }

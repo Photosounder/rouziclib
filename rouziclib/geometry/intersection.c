@@ -147,37 +147,44 @@ void line_rect_clip(xy_t *l1, xy_t *l2, rect_t br)
 
 int check_point_within_box(xy_t p, rect_t box)
 {
-	xy_t bmin, bmax;
+	box = sort_rect(box);
 
-	bmin = min_xy(box.p0, box.p1);
-	bmax = max_xy(box.p0, box.p1);
+	if (p.x < box.p0.x) return 0;
+	if (p.y < box.p0.y) return 0;
+	if (p.x > box.p1.x) return 0;
+	if (p.y > box.p1.y) return 0;
 
-	if (p.x < bmin.x) return 0;
-	if (p.y < bmin.y) return 0;
-	if (p.x > bmax.x) return 0;
-	if (p.y > bmax.y) return 0;
+	if (p.x == box.p0.x) return 2;
+	if (p.y == box.p0.y) return 2;
+	if (p.x == box.p1.x) return 2;
+	if (p.y == box.p1.y) return 2;
 
 	return 1;
 }
 
 int check_point_within_box_int(xyi_t p, recti_t box)
 {
-	xyi_t bmin, bmax;
+	box = sort_recti(box);
 
-	bmin = min_xyi(box.p0, box.p1);
-	bmax = max_xyi(box.p0, box.p1);
+	if (p.x < box.p0.x) return 0;
+	if (p.y < box.p0.y) return 0;
+	if (p.x > box.p1.x) return 0;
+	if (p.y > box.p1.y) return 0;
 
-	if (p.x < bmin.x) return 0;
-	if (p.y < bmin.y) return 0;
-	if (p.x > bmax.x) return 0;
-	if (p.y > bmax.y) return 0;
-
-	if (p.x == bmin.x) return 2;
-	if (p.y == bmin.y) return 2;
-	if (p.x == bmax.x) return 2;
-	if (p.y == bmax.y) return 2;
+	if (p.x == box.p0.x) return 2;
+	if (p.y == box.p0.y) return 2;
+	if (p.x == box.p1.x) return 2;
+	if (p.y == box.p1.y) return 2;
 
 	return 1;
+}
+
+int check_point_within_circle(xy_t p, xy_t circ_centre, double radius)
+{
+	if (hypot_xy2(p, circ_centre) <= sq(radius))
+		return 1;
+
+	return 0;
 }
 
 int plane_line_clip_far_z(xyz_t *p1, xyz_t *p2, double zplane)
@@ -242,6 +249,22 @@ rect_t rect_intersection(rect_t r1, rect_t r2)		// boolean intersection
 
 	ri.p0 = max_xy(r1.p0, r2.p0);
 	ri.p1 = min_xy(r1.p1, r2.p1);
+
+	return ri;
+}
+
+recti_t recti_intersection(recti_t r1, recti_t r2)		// boolean intersection
+{
+	recti_t ri;
+
+	if (check_box_box_intersection_int(r1, r2)==0)
+		return recti( XYI0 , XYI0 );
+
+	r1 = sort_recti(r1);
+	r2 = sort_recti(r2);
+
+	ri.p0 = max_xyi(r1.p0, r2.p0);
+	ri.p1 = min_xyi(r1.p1, r2.p1);
 
 	return ri;
 }

@@ -21,3 +21,4 @@ extern void draw_point_frgb(framebuffer_t fb, xy_t pos, double radius, frgb_t co
 extern void draw_point_cl(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity);
 extern void draw_point(framebuffer_t fb, xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_point_on_row(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
+extern void draw_mousecursor(xy_t pos);

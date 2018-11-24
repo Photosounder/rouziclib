@@ -95,6 +95,8 @@ char *sprint_fractional_12(char *string, double v)
 	}
 
 	d = nearbyint(v * 144.);
+	if (d==0)
+		neg = 0;
 	p2 = d % 12;
 	d /= 12;
 	p1 = d % 12;
@@ -182,21 +184,75 @@ char *sprint_duration(char *string, double sec)
 	return string;
 }
 
-char *text_to_multiline_c_literal(const char *text)
+char *sprint_timestamp(char *string, double t, int prec)
 {
-	const char line_start[] = "\t\t\"", line_end[] = "\",\n";
+	char *p=string;
+	int ti, ts, pm;
+
+	if (t < 0.)
+	{
+		p[0] = '-';
+		p = &p[1];
+		t = -t;
+	}
+
+	pm = pow(10., prec);		// precision modulo
+	ti = nearbyint(t * pm);		// time in integer format
+	ts = ti / pm;			// time in integer seconds
+
+	if (prec==0)
+		sprintf(string, "%02d:%02d:%02d", ts/3600, (ts/60)%60, ts%60, prec);
+	else
+		sprintf(string, "%02d:%02d:%02d.%0*d", ts/3600, (ts/60)%60, ts%60, prec, ti%pm);
+
+	return string;
+}
+
+char *sprint_timestamp_short(char *string, double t, int prec)
+{
+	char *p=string;
+	int ti, ts, pm;
+
+	if (t < 0.)
+	{
+		p[0] = '-';
+		p = &p[1];
+		t = -t;
+	}
+
+	pm = pow(10., prec);		// precision modulo
+	ti = nearbyint(t * pm);		// time in integer format
+	ts = ti / pm;			// time in integer seconds
+
+	if (ts >= 3600)
+		sprintf(string, "%d:%02d:%02d", ts/3600, (ts/60)%60, ts%60);
+	else if (ts >= 60)
+		sprintf(string, "%d:%02d", ts/60, ts%60);
+	else
+		sprintf(string, "%d", ts);
+	
+	if (prec > 0)
+		sprintf(&string[strlen(string)], ".%0*d", prec, ti%pm);
+
+	return string;
+}
+
+char *text_to_multiline_c_literal(const char *text, const int linebreak_mode)	// linebreak_mode, 0: every line, 1: every paragraph, 2: no breaks
+{
+	const char line_start[] = "\t\t\"", line_end[] = "\",\n", line_sep[] = "\",";
 	char *lit=NULL;
 	uint8_t mb_char[5];
-	int i, j, lit_as=0, len=0, text_len = strlen(text), line_is_new=1, cp0, cp1=-1;
+	int i, j, lit_as=0, len=0, text_len = strlen(text), line_is_new=1, cp0=0, cp1=-1, cpp;
 
 	for (i=0; i < text_len+1; i++)
 	{
 		if (line_is_new)
 		{
-			sprintf_realloc(&lit, &lit_as, 1, "%s", line_start);
+			sprintf_realloc(&lit, &lit_as, 1, "%s", line_is_new==1 ? line_start : " \"");
 			line_is_new = 0;
 		}
 
+		cpp = cp0;
 		cp0 = cp1;
 		cp1 = utf8_to_unicode32(&text[i], &i);
 
@@ -204,23 +260,70 @@ char *text_to_multiline_c_literal(const char *text)
 		{
 			if (cp0 == '\n')		// if there's a line break
 			{
-				sprintf_realloc(&lit, &lit_as, 1, "%s", line_end);
-				line_is_new = 1;
+				if (linebreak_mode==0 || (linebreak_mode==1 && cpp=='\n'))
+				{
+					sprintf_realloc(&lit, &lit_as, 1, "%s", line_end);
+					line_is_new = 1;
+				}
+				else
+				{
+					sprintf_realloc(&lit, &lit_as, 1, "%s", line_sep);
+					line_is_new = 2;
+				}
 			}
-			else if (cp0 < 128)			// if it's a one-byte character
+			else if (cp0 == '\\' || cp0 == '\"' || (cp0 == '?' && cp1 == '?'))	// if it's a printable character that simply must be escaped
+				sprintf_realloc(&lit, &lit_as, 1, "\\%c", cp0);
+			else if ((cp0 >= 32 && cp0 < 127) || cp0 == '\t')			// if it's a one-byte character
 				sprintf_realloc(&lit, &lit_as, 1, "%c", cp0);
-			else					// if it's a multi-byte character that must be escaped
+			else									// if it's a multi-byte character or control code that must be escaped into an octal sequence
 			{
 				sprint_unicode(mb_char, cp0);
 
 				for (j=0; j < strlen(mb_char); j++)
-					sprintf_realloc(&lit, &lit_as, 1, "\\x%02x", mb_char[j]);
-
-				if ((cp1 >= '0' && cp1 <= '9') || (cp1 >= 'a' && cp1 <= 'f') || (cp1 >= 'A' && cp1 <= 'F'))	// if the next character would be confused for part of the escaped characters
-					sprintf_realloc(&lit, &lit_as, 1, "\"\"");						// add "" as a delimitation
+					sprintf_realloc(&lit, &lit_as, 1, "\\%03o", mb_char[j]);
 			}
 		}
 	}
 
 	return lit;
+}
+
+void fprint_escaped_byte(FILE *fout, unsigned char c0, unsigned char c1)
+{
+	if (c1 == '\n')
+		fprintf(fout, "\\n");
+	else if (c1 == '\t')
+		fprintf(fout, "\\t");
+	else if (c1 == '\\' || c1 == '\"' || (c0 == '?' && c1 == '?'))
+		fprintf(fout, "\\%c", c1);
+	else if (c1 >= 32 && c1 < 127)
+		fprintf(fout, "%c", c1);
+	else
+		fprintf(fout, "\\%03o", c1);
+}
+
+void convert_file_to_header_const_string(const char *in_path)
+{
+	int ret;
+	FILE *fin, *fout;
+	uint8_t out_path[PATH_MAX*4], c0=0, c1;
+
+	fin = fopen_utf8(in_path, "rb");
+	sprintf(out_path, "%s.h", in_path);	// the output path is in_path + '.h'
+	fout = fopen_utf8(out_path, "wb");
+
+	fprintf(fout, "\"");
+
+	ret = 1;
+	while (ret==1)
+	{
+		ret = fread(&c1, 1, 1, fin);
+
+		if (ret)
+			fprint_escaped_byte(fout, c0, c1);
+	}
+
+	fprintf(fout, "\";");
+	fclose (fin);
+	fclose (fout);
 }

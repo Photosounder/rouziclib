@@ -159,7 +159,7 @@ raster_t load_image_mem_libjpeg(uint8_t *raw_data, size_t size, const int mode)
 	{
 		jpeg_calc_output_dimensions(&cinfo);
 
-		im = make_raster_srgb(NULL, cinfo.output_width, cinfo.output_height);
+		im = make_raster(NULL, xyi(cinfo.output_width, cinfo.output_height), XYI0, IMAGE_USE_SRGB);
 		scanline = malloc(cinfo.output_width * cinfo.output_components);
 
 		jpeg_start_decompress(&cinfo);

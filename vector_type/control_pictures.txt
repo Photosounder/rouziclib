@@ -18,3 +18,32 @@ glyph 2421
 	copy 20DF
 	bounds	-3	3
 
+glyph 240A
+	copy 'L'
+	move	-5;6
+	copy 'F'
+	move	2;9
+	scale	0;3 0;3	0 3
+	copy 20DF
+	bounds	-3	3
+
+glyph 2400
+	copy 'N'
+	move	-5;6
+	copy 'U'
+	move	-5;6
+	copy 'L'
+	move	6
+	scale	0;2;6 0;2;6	0 3
+	copy 20DF
+	bounds	-3	3
+
+glyph 2409
+	copy 'H'
+	move	-5;6
+	copy 'T'
+	move	2;9
+	scale	0;3 0;3	0 3
+	copy 20DF
+	bounds	-3	3
+

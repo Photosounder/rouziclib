@@ -8,15 +8,18 @@
 ****************/
 
 // C files
-	
+
 #include "general/xyz.c"
 #include "general/time.c"
 #include "general/estimates.c"
 #include "general/mouse.c"
+#include "general/keyboard.c"
 #include "general/noop.c"
+#include "general/hashing.c"
 
 #include "memory/alloc.c"
 #include "memory/circular_buffer.c"
+#include "memory/generic_buffer.c"
 
 #include "geometry/rect.c"
 #include "geometry/intersection.c"
@@ -57,6 +60,7 @@
 #include "text/string.c"
 #include "text/edit.c"
 #include "text/undo.c"
+#include "text/history.c"
 #include "vector_type/vector_type.c"
 
 #include "gui/zoom.c"
@@ -68,17 +72,24 @@
 #include "gui/inputprocessing.c"
 #include "gui/knob_functions.c"
 #include "gui/controls.c"
+#include "gui/controls_secondary.c"
 #include "gui/control_array.c"
 #include "gui/selection.c"
 #include "gui/make_gui.c"
+#include "gui/editor_toolbar.c"
 
 #include "fileio/open.c"
+#include "fileio/endian.c"
 #include "fileio/image.c"
 #include "fileio/image_bmp.c"
+#include "fileio/sound_format.c"
+#include "fileio/sound_aiff.c"
+#include "fileio/sound_wav.c"
 #include "fileio/path.c"
 #include "fileio/dir.c"
 #include "fileio/file_management.c"
 #include "fileio/process.c"
+#include "fileio/fileball.c"
 
 #include "network/network.c"
 #include "network/http.c"
@@ -92,7 +103,13 @@
 #include "libraries/libsndfile.c"
 #include "libraries/libraw.c"
 #include "libraries/libjpeg.c"
+#include "libraries/libstb_image.c"
+#include "libraries/libminimp3.c"
+#include "libraries/libdr_flac.c"
 #include "libraries/zlib.c"
 #include "libraries/fftpack.c"
+#include "libraries/cfftpack.c"
 #include "libraries/tinycthread.c"
 #include "libraries/threading.c"
+
+#include "general/globals.c"

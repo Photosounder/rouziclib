@@ -1,0 +1,19 @@
+cfftpack:
+	https://github.com/zywina/cfftpack
+	May 5, 2018
+	only put fftpack.[ch] into libraries/cfttpack/
+
+stb_image:
+	https://github.com/nothings/stb/blob/master/stb_image.h
+	Feb 11, 2018
+	when updating do %s/\<pi\>/ip/g
+
+dr_flac:
+	https://github.com/mackron/dr_libs/blob/master/dr_flac.h
+	Sep 11, 2018
+	when updating delete the whole drflac__fopen() function
+
+miniz:
+	https://github.com/richgel999/miniz/releases
+	release 2.0.8, Sep 19, 2018
+	only download miniz.[ch], the versions found in miniz-2.0.x.zip

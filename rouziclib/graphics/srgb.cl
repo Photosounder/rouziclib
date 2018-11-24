@@ -35,6 +35,19 @@ float lsrgb(float linear)	// converts a [0.0, 1.0] linear value into a [0.0, 1.0
 		return 1.055f * pow(linear, 1.f/2.4f) - 0.055f;
 }
 
+float slrgb(float s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] linear value
+{
+	if (s <= 0.04045f)
+		return s * (1.f/12.92f);
+	else
+		return pow((s + 0.055f) * (1.f/1.055f), 2.4f);
+}
+
+float s8lrgb(float s8)
+{
+	return slrgb(s8 * (1.f/255.f));
+}
+
 float apply_dithering(float pv, float dv)
 {
 	const float threshold = 1.2f / 255.f;

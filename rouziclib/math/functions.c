@@ -8,6 +8,11 @@ double sq(double x)
 	return x*x;
 }
 
+float sqf(float x)
+{
+	return x*x;
+}
+
 double gaussian(double x)	// gaussian(x) = e^-x²
 {
 	return exp(-x*x);
@@ -231,4 +236,46 @@ double fabs_max(double a, double b)
 int get_bit_32(const uint32_t word, const int pos)
 {
 	return (word >> pos) & 1;
+}
+
+int find_largest_prime_factor(int n)
+{
+	int i = 2;
+
+	while (n > 1)
+	{
+		if (n % i == 0)
+			n /= i;
+		else
+			i++;
+	}
+
+	return i;
+}
+
+int ceil_rshift(int v, int sh)	// does the ceiling version of a right shift, for instance ceil_rshift(65, 3) => 9
+{
+	int mask = (1 << sh) - 1;
+
+	return (v >> sh) + ((v & mask)!=0);
+}
+
+float u32_as_float(uint32_t i)
+{
+	return *((float *) &i);
+}
+
+double u64_as_double(uint64_t i)
+{
+	return *((double *) &i);
+}
+
+uint32_t float_as_u32(float f)
+{
+	return *((uint32_t *) &f);
+}
+
+uint64_t double_as_u64(double f)
+{
+	return *((uint64_t *) &f);
 }

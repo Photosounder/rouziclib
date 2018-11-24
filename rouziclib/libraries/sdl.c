@@ -18,6 +18,7 @@ SDL_Rect recti_to_sdl_rect(recti_t ri)
 	return make_sdl_rect(ri.p0.x, ri.p0.y, ri.p1.x - ri.p0.x + 1, ri.p1.y - ri.p0.y + 1);
 }
 
+// Display/window
 int sdl_get_window_hz(SDL_Window *window)
 {
 	SDL_DisplayMode mode;
@@ -47,9 +48,25 @@ recti_t sdl_get_window_rect(SDL_Window *window)
 
 	SDL_GetWindowSize(window, &r.p1.x, &r.p1.y);
 	SDL_GetWindowPosition(window, &r.p0.x, &r.p0.y);
-	r.p1 = add_xyi(r.p0, r.p1);
+	r.p1 = sub_xyi(add_xyi(r.p0, r.p1), set_xyi(1));
 
 	return r;
+}
+
+void sdl_set_window_rect(SDL_Window *window, recti_t r)
+{
+	SDL_SetWindowSize(window, get_recti_dim(r).x, get_recti_dim(r).y);
+	SDL_SetWindowPosition(window, r.p0.x, r.p0.y);
+}
+
+xyi_t sdl_get_display_dim(int display_id)
+{
+	SDL_DisplayMode mode={0};
+
+	if (SDL_GetCurrentDisplayMode(display_id, &mode)==0)
+		return xyi(mode.w, mode.h);
+	
+	return xyi(-1, -1);
 }
 
 recti_t sdl_get_display_rect(int display_id)
@@ -103,18 +120,72 @@ recti_t sdl_get_window_border(SDL_Window *window)
 	return r;
 }
 
-void mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
+int sdl_find_point_within_display(xyi_t p)
 {
-	double mouse_speed = 1.;	// mouse-on-screen speed is about 0.032
+	int i;
+
+	for (i=0; i < SDL_GetNumVideoDisplays(); i++)
+		if (check_point_within_box_int(p, sdl_get_display_rect(i)))
+			return i;
+
+	return -1;
+}
+
+int sdl_get_window_cur_display()	// determined by the max pixel area in a display
+{
+	int i, area, max_area=0, display_index=0;
+
+	for (i=0; i < SDL_GetNumVideoDisplays(); i++)
+	{
+		area = mul_x_by_y_xyi(get_recti_dim(recti_intersection(sdl_get_window_rect(fb.window), sdl_get_display_rect(i))));
+
+		if (max_area < area)
+		{
+			max_area = area;
+			display_index = i;
+		}
+	}
+
+	return display_index;
+}
+
+// Mouse/keyboard input
+void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse position wrt the window coordinates, even outside the window
+{
+	xyi_t mpos, wpos, wdim;
+	recti_t wr;
+	int inside_window, but_state;
+
+	but_state = SDL_GetGlobalMouseState(&mpos.x, &mpos.y);	// 1 = lmb, 2 = mmb, 4 = rmb
+	wr = sdl_get_window_rect(fb.window);
+
+	inside_window = check_point_within_box_int(mpos, wr);
+
+	if (inside_window && mouse->mouse_focus_flag <= 0)	// if the mouse just entered the window
+			mouse->mouse_focus_flag = 2;
+
+	if (inside_window==0 && mouse->mouse_focus_flag >= 0)	// if the mouse just left the window
+			mouse->mouse_focus_flag = -2;
+	
+	mouse->a = xyi_to_xy(sub_xyi(mpos, wr.p0));
+
+	mouse_button_update(&mouse->b.lmb, &mouse->b.quick_lmb, get_bit(but_state, 0), 0, mouse);
+	mouse_button_update(&mouse->b.mmb, &mouse->b.quick_mmb, get_bit(but_state, 1), 1, mouse);
+	mouse_button_update(&mouse->b.rmb, &mouse->b.quick_rmb, get_bit(but_state, 2), 2, mouse);
+}
+
+void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
+{
 	SDL_Keymod mod_state;
 
 	if (event.type==SDL_WINDOWEVENT)
 	{
-		if (event.window.event==SDL_WINDOWEVENT_ENTER)
+		// SDL bug: SDL_WINDOWEVENT_ENTER and SDL_WINDOWEVENT_LEAVE aren't always triggered when holding the mouse button down
+		/*if (event.window.event==SDL_WINDOWEVENT_ENTER)
 			mouse->mouse_focus_flag = 2;
 
 		if (event.window.event==SDL_WINDOWEVENT_LEAVE)
-			mouse->mouse_focus_flag = -2;
+			mouse->mouse_focus_flag = -2;*/
 
 		if (event.window.event==SDL_WINDOWEVENT_FOCUS_GAINED)
 			mouse->window_focus_flag = 2;
@@ -130,50 +201,34 @@ void mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	}
 
 	if (event.type==SDL_MOUSEMOTION)
-	{
-		mouse->a = xy(event.motion.x, event.motion.y);
-		mouse->u = to_world_coord_xy(*zc, mouse->a);
-		mouse->d = mul_xy(xy(event.motion.xrel, event.motion.yrel), set_xy(mouse_speed));
-		mouse->du = mul_xy(xy(event.motion.xrel, -event.motion.yrel), set_xy(zc->iscrscale));
+		mouse->d = add_xy(mouse->d, xy(event.motion.xrel, event.motion.yrel));	// only works when the cursor is inside the window or with mouse.warp
 
-		if (mouse->zoom_flag)	// if we're scrolling the zoom
-		{
-			zc->offset_u = add_xy(zc->offset_u, mul_xy(mouse->du, set_xy(2.)));
-			calc_screen_limits(zc);
-		}
-	}
-
+	// Mouse button events
 	if (event.type==SDL_MOUSEBUTTONDOWN)
 	{
 		if (mouse->window_focus_flag != 2)	// if the window wasn't just clicked on to gain its focus
 		{
 			if (event.button.button==SDL_BUTTON_LEFT)
-				mouse->b.lmb = 2;
+				mouse_button_event(&mouse->b.lmb, &mouse->b.quick_lmb, 1);
 
 			if (event.button.button==SDL_BUTTON_RIGHT)
-				mouse->b.rmb = 2;
+				mouse_button_event(&mouse->b.rmb, &mouse->b.quick_rmb, 1);
 		}
 
 		if (event.button.button==SDL_BUTTON_MIDDLE)
-		{
-			mouse->b.mmb = 2;
-			zc->zoom_key_time = SDL_GetTicks();
-		}
+			mouse_button_event(&mouse->b.mmb, &mouse->b.quick_mmb, 1);
 	}
 
 	if (event.type==SDL_MOUSEBUTTONUP)
 	{
 		if (event.button.button==SDL_BUTTON_LEFT)
-			mouse->b.lmb = -2;
+			mouse_button_event(&mouse->b.lmb, &mouse->b.quick_lmb, -1);
 
 		if (event.button.button==SDL_BUTTON_RIGHT)
-			mouse->b.rmb = -2;
+			mouse_button_event(&mouse->b.rmb, &mouse->b.quick_rmb, -1);
 
 		if (event.button.button==SDL_BUTTON_MIDDLE)
-		{
-			mouse->b.mmb = -2;
-			zoom_key_released(zc, &mouse->zoom_flag, 1);
-		}
+			mouse_button_event(&mouse->b.mmb, &mouse->b.quick_mmb, -1);
 	}
 
 	if (event.type==SDL_MOUSEWHEEL)
@@ -198,6 +253,19 @@ void mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	mouse->mod_key[mouse_mod_gui] = mod_state & KMOD_GUI;
 }
 
+void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event)
+{
+	if (event.type == SDL_KEYDOWN)
+		keyboard_button_event(&mouse->key_state[event.key.keysym.scancode], &mouse->key_quick[event.key.keysym.scancode], 1, event.key.repeat);
+
+	if (event.type == SDL_KEYUP)
+		keyboard_button_event(&mouse->key_state[event.key.keysym.scancode], &mouse->key_quick[event.key.keysym.scancode], -1, event.key.repeat);
+
+	if (event.type == SDL_TEXTINPUT)
+		textedit_add(cur_textedit, event.text.text);
+}
+
+// Window/graphics
 int get_sdl_renderer_index(const char *name)
 {
 	int i, n;
@@ -263,6 +331,7 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 	static int init=1;
 	SDL_DisplayMode dm;
 	SDL_GLContext gl_ctx;
+	int fmt_mode;
 
 	if (init)
 	{
@@ -274,8 +343,7 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 	fb->w = dim.x;
 	fb->h = dim.y;
 
-	fb->maxdim.x = sdl_screen_max_window_size().x;
-	fb->maxdim.y = sdl_screen_max_window_size().y;
+	fb->maxdim = sdl_screen_max_window_size();
 
 	fb->window = SDL_CreateWindow (	window_name,			// window title
 					-fb->maxdim.x-100,			// initial x position
@@ -285,8 +353,6 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 					SDL_WINDOW_OPENGL | flags);	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
 	if (fb->window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-
-	SDL_GetWindowSize(fb->window, &fb->maxdim.x, &fb->maxdim.y);
 
 	if (fb->use_cl)
 	{
@@ -310,13 +376,13 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 
 	if (fb->use_cl==0)
 	{
-		// fb->srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
-		fb->r.srgb = NULL;//calloc (fb->maxdim.x*fb->maxdim.y, sizeof(srgb_t));
-
 		if (fb->r.use_frgb==0)
-			fb->r.l = calloc (fb->maxdim.x*fb->maxdim.y, sizeof(lrgb_t));
+			fmt_mode = IMAGE_USE_LRGB;
 		else
-			fb->r.f = calloc (fb->maxdim.x*fb->maxdim.y, sizeof(frgb_t));
+			fmt_mode = IMAGE_USE_FRGB;
+
+		fb->r = make_raster(NULL, XYI0, fb->maxdim, fmt_mode);
+		// fb->r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
 	}
 
 	#ifdef RL_OPENCL
@@ -328,6 +394,22 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	SDL_SetWindowPosition(fb->window, pos.x, pos.y);
 	fb->r.dim = xyi(fb->w, fb->h);
+
+	// focus flags, useless since SDL_WINDOW_INPUT_FOCUS is always on when it shouldn't be
+/*	mouse.mouse_focus_flag = 1;
+	mouse.window_focus_flag = 1;
+	mouse.window_minimised_flag = -1;
+
+	if ((SDL_GetWindowFlags(fb->window) & SDL_WINDOW_MOUSE_FOCUS)==0)
+		mouse.mouse_focus_flag = -1;
+
+	if ((SDL_GetWindowFlags(fb->window) & SDL_WINDOW_INPUT_FOCUS)==0)
+		mouse.window_focus_flag = -1;
+
+	if (SDL_GetWindowFlags(fb->window) & SDL_WINDOW_MINIMIZED)
+		mouse.window_minimised_flag = 1;
+
+	fprintf_rl(stdout, "mouse %d focus %d minimised %d\n", mouse.mouse_focus_flag, mouse.window_focus_flag, mouse.window_minimised_flag);*/
 }
 
 void sdl_graphics_init_autosize(framebuffer_t *fb, const char *window_name, int flags, int window_index)
@@ -343,6 +425,160 @@ void sdl_graphics_init_autosize(framebuffer_t *fb, const char *window_name, int 
 	sdl_graphics_init_full(fb, window_name, get_recti_dim(r), r.p0, flags);	// initialise SDL as well as the framebuffer
 }
 
+int sdl_handle_window_resize(framebuffer_t *fb, zoom_t *zc)
+{
+	int w, h;
+
+	SDL_GetWindowSize(fb->window, &w, &h);
+	
+	if (fb->w == w && fb->h == h)
+		return 0;
+
+	#ifdef RL_OPENCL
+	clFinish(fb->clctx.command_queue);	// wait for end of queue
+	#endif
+
+	fb->w = w;
+	fb->h = h;
+	fb->r.dim = xyi(fb->w, fb->h);
+
+	if (fb->use_cl==0)
+	{
+		SDL_DestroyTexture(fb->texture);
+
+		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
+		if (fb->texture==NULL)
+			printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
+	}
+
+	calc_screen_limits(zc);
+
+	return 1;
+}
+
+void sdl_flip_fb(int *first_frame)
+{
+	if (fb.use_cl)
+	{
+		if (first_frame==NULL)
+		{
+			fprintf_rl(stderr, "first_frame NULL in sdl_flip_fb()\n");
+			return ;
+		}
+#ifdef RL_OPENCL
+		if (*first_frame==0 && mouse.window_minimised_flag <= 0)
+		{
+			// display srgb
+			cl_int ret=0;
+			ret = clFinish(fb.clctx.command_queue);
+			CL_ERR_NORET("clFinish in main()", ret);
+			ret = clEnqueueReleaseGLObjects(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
+			CL_ERR_NORET("clEnqueueReleaseGLObjects in main()", ret);
+
+			float hoff = 2. * (fb.h - fb.maxdim.y) / (double) fb.maxdim.y;
+			glLoadIdentity();             // Reset the projection matrix
+			glViewport(0, 0, fb.maxdim.x, fb.maxdim.y);
+
+			glBegin(GL_QUADS);
+			float tscale = 1.f;
+			glTexCoord2f(0.f, 0.f);			glVertex2f(-1., 1.+hoff);
+			glTexCoord2f(tscale*1.f, 0.f);		glVertex2f(1., 1.+hoff);
+			glTexCoord2f(tscale*1.f, tscale*1.f);	glVertex2f(1., -1.+hoff);
+			glTexCoord2f(0.f, tscale*1.f);		glVertex2f(-1., -1.+hoff);
+			glEnd();
+
+			SDL_GL_SwapWindow(fb.window);
+		}
+		*first_frame = 0;
+
+		if (mouse.window_minimised_flag <= 0)
+			drawq_run(&fb);
+		else				// if the window is minimised just don't do any OpenCL/OpenGL stuff
+		{
+			drawq_reinit(&fb);
+			SDL_Delay(80);		// there's no more vsync therefore the loop can easily run at 500+ FPS without the delay
+		}
+#endif
+	}
+	else
+	{
+		// Blits framebuffer to screen
+		int pitch;
+		SDL_Rect rs;
+		rs = make_sdl_rect(0, 0, fb.w, fb.h);
+		SDL_LockTexture(fb.texture, &rs, &fb.r.srgb, &pitch);
+		convert_linear_rgb_to_srgb(fb, DITHER);
+		SDL_UnlockTexture(fb.texture);
+		//SDL_UpdateTexture(fb.texture, NULL, fb.srgb, fb.w * 4);
+
+		SDL_RenderClear(fb.renderer);
+		SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
+		SDL_RenderPresent(fb.renderer);
+
+		screen_blank(fb);
+	}
+}
+
+void sdl_flip_fb_srgb(srgb_t *sfb)
+{
+	// Blits framebuffer to screen
+	int pitch;
+	SDL_Rect rs;
+	rs = make_sdl_rect(0, 0, fb.w, fb.h);
+	SDL_LockTexture(fb.texture, &rs, &fb.r.srgb, &pitch);
+	memcpy(fb.r.srgb, sfb, mul_x_by_y_xyi(fb.r.dim) * sizeof(srgb_t));
+	//convert_linear_rgb_to_srgb(fb, DITHER);
+	SDL_UnlockTexture(fb.texture);
+
+	SDL_RenderClear(fb.renderer);
+	SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
+	SDL_RenderPresent(fb.renderer);
+
+	screen_blank(fb);
+}
+
+int sdl_toggle_borderless_fullscreen()
+{
+	fb.fullscreen_on ^= 1;
+
+	if (fb.fullscreen_on)
+	{
+		fb.wind_rect = sdl_get_window_rect(fb.window);
+
+		SDL_SetWindowResizable(fb.window, SDL_FALSE);
+		SDL_SetWindowBordered(fb.window, SDL_TRUE);
+		sdl_set_window_rect(fb.window, sdl_get_display_rect(sdl_get_window_cur_display()));
+	}
+	else
+	{
+		sdl_set_window_rect(fb.window, fb.wind_rect);
+
+		SDL_SetWindowResizable(fb.window, SDL_TRUE);
+		SDL_SetWindowBordered(fb.window, SDL_TRUE);
+	}
+
+	sdl_handle_window_resize(&fb, &zc);
+
+	return fb.fullscreen_on;
+}
+
+// Audio
+void sdl_init_audio_not_wasapi()
+{
+	int i;
+
+	SDL_AudioQuit();	// quit the current audio driver, probably wasapi
+
+	// Init the first driver that isn't wasapi
+	for (i = 0; i < SDL_GetNumAudioDrivers(); ++i)
+		if (strcmp("wasapi", SDL_GetAudioDriver(i)))	// if the driver isn't called "wasapi"
+		{
+			SDL_AudioInit(SDL_GetAudioDriver(i));	// initialise it
+			return ;
+		}
+}
+
+// Clipboard
 char *sdl_get_clipboard_dos_conv()
 {
 	char *orig, *edited, byte0, byte1=0;
@@ -371,6 +607,67 @@ char *sdl_get_clipboard_dos_conv()
 	SDL_free(orig);
 
 	return edited;
+}
+
+// Misc
+void sdl_print_sdl_version()
+{
+	SDL_version compiled, linked;
+
+	SDL_VERSION(&compiled);
+	SDL_GetVersion(&linked);
+	fprintf_rl(stdout, "Compilation SDL version %d.%d.%d\n", compiled.major, compiled.minor, compiled.patch);
+	fprintf_rl(stdout, "Linked SDL version %d.%d.%d %s\n", linked.major, linked.minor, linked.patch, SDL_GetRevision());
+}
+
+// Drag and drop
+dropfile_t dropfile={0};
+
+void dropfile_event_proc(SDL_Event event)
+{
+	if (dropfile.path_as==0)
+		dropfile.id_last = -1;
+
+	if (event.type==SDL_DROPFILE)
+	{
+
+		dropfile.id_last++;
+		alloc_enough(&dropfile.path, dropfile.id_last+1, &dropfile.path_as, sizeof(char *), 1.5);
+
+		dropfile.path[dropfile.id_last] = make_string_copy(event.drop.file);
+		SDL_free(event.drop.file);
+	}
+}
+
+int dropfile_check_present()
+{
+	int i;
+
+	if (dropfile.path)
+		for (i=0; i <= dropfile.id_last; i++)
+			if (dropfile.path[i])
+				return 1;
+
+	return 0;
+}
+
+char *dropfile_pop_first()
+{
+	int i;
+	char *p=NULL;
+
+	if (dropfile.path)
+		for (i=0; i <= dropfile.id_last; i++)
+			if (dropfile.path[i])
+			{
+				p = dropfile.path[i];
+				dropfile.path[i] = NULL;
+
+				if (i==dropfile.id_last)
+					dropfile.id_last = -1;
+			}
+
+	return p;
 }
 
 #endif

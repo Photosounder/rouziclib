@@ -38,3 +38,15 @@ glyph F2612
 	copy 2610
 	copy '-'	
 
+glyph F0100
+	p1	0	5
+	p2	0	0
+	p3	5	0
+	p4	4	1
+	p5	1	1
+	p6	1	4
+	lines p1 to p6 p1
+	rotate	-1;6
+	scale	0;9
+	move	0	1;4
+

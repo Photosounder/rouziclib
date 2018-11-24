@@ -67,9 +67,10 @@ double get_time_day_fraction(time_t t, int gmt)
 
 time_t parse_date_time_string(const char *string)	// expected format is "YYYY-MM-DD hh.mm.ss"
 {
-	struct tm ts;
+	struct tm ts={0};
 
-	memset(&ts, 0, sizeof(ts));
+	if (string==NULL)
+		return 0;
 
 	sscanf(string, "%d-%d-%d %d.%d.%d", &ts.tm_year, &ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &ts.tm_sec);
 

@@ -13,3 +13,7 @@ extern void blend_alphablend		(lrgb_t *bg, lrgb_t fg, int32_t p);
 extern void blend_alphablendfg		(lrgb_t *bg, lrgb_t fg, int32_t p);
 extern void blend_blendalphaonly	(lrgb_t *bg, lrgb_t fg, int32_t p);
 extern blend_func_fl_t get_blend_fl_equivalent(const blend_func_t bf);
+
+extern blend_func_t cur_blend;
+
+extern lrgb_t blend_alphablend_sep_alpha(lrgb_t Cb, lrgb_t Ca, int Ab, int Aa);

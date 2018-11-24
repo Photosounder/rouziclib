@@ -1,6 +1,14 @@
 // in fileio/dir_struct.h:
 // DIR_CHAR, fs_file_t, fs_dir_t
 
+#ifdef _WIN32
+#include "../libraries/dirent.h"
+#define DIR_CHAR '\\'
+#else
+#include <dirent.h>
+#define DIR_CHAR '/'
+#endif
+
 extern int dir_count(char *path, int *subdir_count, int *subfile_count);
 extern void load_dir(char *path, fs_dir_t *dir);
 extern void load_dir_depth(char *path, fs_dir_t *dir, int max_depth);

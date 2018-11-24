@@ -7,6 +7,14 @@
 #define ONE	(1<<LBD)	// Value of 1.0 in the linear pixel format (2^LBD)
 #define ONEF	((double) ONE)
 
+#if LBD == 15
+#define LBD_TO_Q15(x)	(x)
+#define Q15_TO_LBD(x)	(x)
+#else
+#define LBD_TO_Q15(x)	((x) << (15-LBD))
+#define Q15_TO_LBD(x)	((x) >> (15-LBD))
+#endif
+
 #ifndef GAUSSLIMIT
 #define GAUSSLIMIT	0.0002	// limit of intensity for drawing lines in the [0, 1) range (0.0002 == 0.66/255 in sRGB)
 #endif
@@ -23,15 +31,18 @@
 #define GAUSSRAD gaussrad	// this is much faster
 
 extern double gaussrad(double intensity, double radius);
-extern raster_t make_raster_srgb(srgb_t *srgb, int32_t w, int32_t h);
-extern raster_t make_raster_l(lrgb_t *l, int32_t w, int32_t h);
-extern raster_t make_raster_f(frgb_t *f, int32_t w, int32_t h);
-extern raster_t make_raster_sq(sqrgb_t *sq, int32_t w, int32_t h);
-extern raster_t make_raster(void *data, int32_t w, int32_t h, const int mode);
+extern size_t get_raster_mode_elem_size(const int mode);
+extern raster_t make_raster(void *data, const xyi_t dim, xyi_t maxdim, const int mode);
+extern raster_t make_raster_empty();
 extern raster_t copy_raster(raster_t r0);
+extern void **get_raster_buffer_for_mode_ptr(raster_t *r, const int mode);
 extern void *get_raster_buffer_for_mode(raster_t r, const int mode);
+extern void **get_raster_buffer_ptr(raster_t *r);
+extern void *get_raster_buffer(raster_t *r);
+extern int get_raster_mode(raster_t r);
 extern srgb_t get_raster_pixel_in_srgb(raster_t r, const int index);
 extern void free_raster(raster_t *r);
+extern framebuffer_t init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode);
 extern double intensity_scaling(double scale, double scale_limit);
 extern void thickness_limit(double *thickness, double *brightness, double limit);
 extern void screen_blank(framebuffer_t fb);

@@ -31,7 +31,7 @@ raster_t load_raw_thumb(libraw_data_t *rd)
 	if (ret)
 	{
 		fprintf_rl(stderr, "libraw %s\n", libraw_strerror(ret));
-		return make_raster_f(NULL, 0, 0);
+		return make_raster_empty();
 	}
 
 	proc_image = libraw_dcraw_make_mem_thumb(rd, &ret);
@@ -44,11 +44,11 @@ raster_t load_raw_thumb(libraw_data_t *rd)
 	else if (proc_image->colors!=3 || proc_image->bits!=8)
 	{
 		fprintf_rl(stderr, "Wrong decoded thumbnail format, %d %d-bit channels, type %d\n", proc_image->colors, proc_image->bits, proc_image->type);
-		r = make_raster_f(NULL, 0, 0);
+		r = make_raster_empty();
 	}
 	else
 	{
-		r = make_raster_f(NULL, proc_image->width, proc_image->height);
+		r = make_raster(NULL, xyi(proc_image->width, proc_image->height), XYI0, IMAGE_USE_FRGB);
 		convert_image_srgb8(&r, proc_image->data, IMAGE_USE_FRGB);
 	}
 
@@ -130,9 +130,9 @@ raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp)
 	double H, S, L;
 
 	if (rp.data==NULL)
-		return make_raster_f(NULL, 0, 0);
+		return make_raster_empty();
 	
-	r = make_raster_f(NULL, im_dim.x+1, im_dim.y+1);
+	r = make_raster(NULL, add_xyi(im_dim, set_xyi(1)), XYI0, IMAGE_USE_FRGB);
 
 	for (ip.y=im_p0.y; ip.y <= im_p1.y; ip.y++)
 		for (ip.x=im_p0.x; ip.x <= im_p1.x; ip.x++)

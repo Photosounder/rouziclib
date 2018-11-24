@@ -13,6 +13,8 @@ extern raster_t load_image_mem_libdevil(ILubyte *raw_data, ILuint size, const in
 
 #ifndef load_image_mem
 #define load_image_mem	load_image_mem_libdevil
+
+#define load_image_libdevil(path, mode)	load_image_lib(load_image_mem_libdevil, path, mode)
 #endif
 
 #endif

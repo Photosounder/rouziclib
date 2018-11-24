@@ -168,14 +168,18 @@ void check_closest_cursor(xy_t off, double scale, xy_t expected_pos, double *clo
 		}
 }
 
+col_t text_sel_col={0};
+
 void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
 {
-	col_t sel_col = make_colour(0.0033, 0.028, (bidi == -2 ? 0.1 : 0.1), 1.);
 	static int32_t sel0=0, sel1=0, newline=0;
 	static xy_t p0, p1;
 	rect_t box;
 	int isa = is + string - cur_textedit->string;
 	double wc1;
+
+	if (is0_col(text_sel_col))
+		text_sel_col = make_colour(0.0033, 0.028, 0.1, 1.);
 
 	if (recur==0 && is==0)		// if it's the first run of this function for this string in this loop
 	{
@@ -205,7 +209,7 @@ void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint
 
 			box.p0 = add_xy(p0, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
 			box.p1 = add_xy(p1, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), -8.*scale));
-		//	draw_rect_full(fb, box, line_thick, sel_col, 1.);
+		//	draw_rect_full(fb, box, line_thick, text_sel_col, 1.);
 
 			if (c=='\n')
 				newline = 1;
@@ -220,7 +224,7 @@ void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint
 		wc1 = glyph_width(font, off.x, c, scale, mode);
 		box.p0 = add_xy(add_xy(p, off), xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
 		box.p1 = add_xy(box.p0, xy(wc1 * (bidi == -2 ? -1. : 1.), -10.*scale));
-		draw_rect_full(fb, box, line_thick, sel_col, 1.);
+		draw_rect_full(fb, box, line_thick, text_sel_col, cur_blend, 1.);
 	}
 
 	if (cur_textedit->click_on==0 && is==curpos)		// if the cursor is on the current character
@@ -357,7 +361,7 @@ void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t 
 			if (drawline && recur==0)
 			if (c==' ' || c=='\t' || c=='\n')	// if c is whitespace char
 			if (equal_xy(off, off_ls)==0)
-				draw_line_thin(fb, add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, blend_add, intensity*3.);
+				draw_line_thin(fb, add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
 
 			c_bidi = bidicat_direction(ucd.bidicat);
 
@@ -399,7 +403,7 @@ void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t 
 
 	if (drawline && recur==0)
 	if (equal_xy(off, off_ls)==0)
-		draw_line_thin(fb, add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, blend_add, intensity*3.);
+		draw_line_thin(fb, add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
 }
 
 void draw_string_len(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)
@@ -412,7 +416,7 @@ void draw_string(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, do
 	draw_string_len(fb, font, string, p, scale, colour, intensity, line_thick, mode, -1, tp);
 }
 
-void print_to_screen_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, double line_thick, const char *format, ...)
+void print_to_screen(xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, const char *format, ...)
 {
 	va_list args;
 	char string[4096];
@@ -422,5 +426,5 @@ void print_to_screen_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, x
 	vsprintf (string, format, args);		// print new text to a
 	va_end (args);
 
-	draw_string(fb, font, string, sc_xy(pos), scale*zc.scrscale, colour, intensity, line_thick, mode, NULL);
+	draw_string(fb, font, string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, mode, NULL);
 }

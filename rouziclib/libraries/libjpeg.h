@@ -10,7 +10,7 @@
 typedef struct
 {
 	xyi_t image_dim, block_dim;	// number of end pixels and blocks
-	uint16_t quant[DCTSIZE2];	// 8x8 quantisation table
+	uint16_t quant[64];	// 8x8 quantisation table
 	int16_t **dct_block;	// array of DCT blocks, each block an 8x8 DCT coef table
 } jpeg_comp_dct_t;
 
@@ -20,11 +20,11 @@ extern void copy_convert_8x8_block(float *im, xyi_t dim, xyi_t ib, double *block
 extern void paste_convert_8x8_block(float *im, xyi_t dim, xyi_t ib, double *block);
 extern raster_t load_image_mem_libjpeg(uint8_t *raw_data, size_t size, const int mode);
 
-extern int check_data_is_jpeg(uint8_t *raw_data, size_t size);
-extern raster_t load_image_mem_libjpeg_if_possible(uint8_t *raw_data, size_t size, const int mode);
-
 #ifndef load_image_mem
 #define load_image_mem	load_image_mem_libjpeg
 #endif
 
 #endif
+
+extern int check_data_is_jpeg(uint8_t *raw_data, size_t size);
+extern raster_t load_image_mem_libjpeg_if_possible(uint8_t *raw_data, size_t size, const int mode);

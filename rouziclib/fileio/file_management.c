@@ -5,7 +5,7 @@
 int create_symlink(const char *oldname, const char *newname, const int is_dir)	// returns 0 if successful
 {
 	#ifdef _WIN32
-	wchar_t oldname_wc[PATH_MAX*4], newname_wc[PATH_MAX*4];
+	wchar_t oldname_wc[PATH_MAX*2], newname_wc[PATH_MAX*2];
 
 	utf8_to_wchar(oldname, oldname_wc);
 	utf8_to_wchar(newname, newname_wc);
@@ -20,7 +20,7 @@ int create_symlink(const char *oldname, const char *newname, const int is_dir)	/
 int create_dir(const char *path)	// returns 0 if successful
 {
 	#ifdef _WIN32
-	wchar_t wpath[PATH_MAX*4];
+	wchar_t wpath[PATH_MAX*2];
 
 	utf8_to_wchar(path, wpath);
 	return CreateDirectoryW(wpath, NULL) == 0;
@@ -31,10 +31,40 @@ int create_dir(const char *path)	// returns 0 if successful
 	#endif
 }
 
+int create_dir_recursive(const char *path)
+{
+	char parent_path[PATH_MAX*4];
+
+	if (path==NULL)
+		return -1;
+	if (path[0]=='\0')
+		return -1;
+
+	if (check_dir_exists(path))
+		return 0;
+
+	if (create_dir(path) == 0)			// if successful
+		return 0;
+
+	remove_name_from_path(parent_path, path);
+	if (create_dir_recursive(parent_path))		// if creating the parents failed
+		return -1;
+
+	return create_dir(path);			// create the dir after the parents have been created
+}
+
+int create_dirs_for_file(const char *filepath)
+{
+	char parent_path[PATH_MAX*4];
+
+	remove_name_from_path(parent_path, filepath);
+	return create_dir_recursive(parent_path);
+}
+
 int move_file(const char *path, const char *newpath)	// returns 0 if successful
 {
 	#ifdef _WIN32
-	wchar_t wpath[PATH_MAX*4], wnewpath[PATH_MAX*4];
+	wchar_t wpath[PATH_MAX*2], wnewpath[PATH_MAX*2];
 
 	utf8_to_wchar(path, wpath);
 	utf8_to_wchar(newpath, wnewpath);
@@ -49,7 +79,7 @@ int move_file(const char *path, const char *newpath)	// returns 0 if successful
 int copy_file(const char *path, const char *newpath, const int overwrite)	// returns 0 if successful
 {
 	#ifdef _WIN32
-	wchar_t wpath[PATH_MAX*4], wnewpath[PATH_MAX*4];
+	wchar_t wpath[PATH_MAX*2], wnewpath[PATH_MAX*2];
 
 	utf8_to_wchar(path, wpath);
 	utf8_to_wchar(newpath, wnewpath);
@@ -66,7 +96,7 @@ int copy_file(const char *path, const char *newpath, const int overwrite)	// ret
 int remove_file(const char *path)	// returns 0 if successful
 {
 	#ifdef _WIN32
-	wchar_t wpath[PATH_MAX*4];
+	wchar_t wpath[PATH_MAX*2];
 
 	utf8_to_wchar(path, wpath);
 	return _wremove(wpath);
@@ -80,7 +110,7 @@ int remove_file(const char *path)	// returns 0 if successful
 int remove_empty_dir(const char *path)
 {
 	#ifdef _WIN32
-	wchar_t wpath[PATH_MAX*4];
+	wchar_t wpath[PATH_MAX*2];
 
 	utf8_to_wchar(path, wpath);
 	return RemoveDirectoryW(wpath);
@@ -138,7 +168,7 @@ int remove_dir(const char *path)
 void system_open(const char *path)
 {
 	#ifdef _WIN32
-	wchar_t path_w[PATH_MAX];
+	wchar_t path_w[PATH_MAX*2];
 
 	utf8_to_wchar(path, path_w);
 	ShellExecuteW(NULL, L"open", path_w, NULL, NULL, SW_SHOWNORMAL);

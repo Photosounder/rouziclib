@@ -70,16 +70,16 @@ glyph '''
 	lines p1 p2
 
 glyph '('
-	p1	0;8	6
-	p2	-0;8	4;8
+	p1	0;10	7
+	p2	-0;10	5;4
 	mirror	h 3	p1 p2	p3
 	lines p1 p2 p4 p3
-	bounds	-0;8	0;2
+	bounds	-0;10	0;6
 
 glyph ')'
 	copy '('
 	scale	-1	1
-	bounds	-0;2	0;8
+	bounds	-0;6	0;10
 
 glyph '*'
 	circle	p1 p6	6 1;5	0 4;4	0
@@ -464,12 +464,12 @@ glyph 'V'
 	bounds -1;6 1;6
 
 glyph 'W'
-	p1	-2	6
+	p1	-2;6	6
 	p2	-1	0
 	p3	0	3
 	mirror	v0	p1 p2	p4
 	lines p1 p2 p3 p5 p4
-	bounds	-1;9	1;9
+	bounds	-2;3	2;3
 
 glyph 'X'
 	p1	-2	6

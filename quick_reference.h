@@ -17,7 +17,7 @@
 	// Rectangles
 		// pixel coordinates
 		draw_rect(fb, sc_rect(box), drawing_thickness, colour, blend_add, intensity);
-		draw_rect_full(fb, sc_rect(box), drawing_thickness, colour, intensity);
+		draw_rect_full(fb, sc_rect(box), drawing_thickness, colour, blend_add, intensity);
 		draw_black_rect(fb, sc_rect(box), drawing_thickness);
 
 	// Circle (HOLLOWCIRCLE or FULLCIRCLE)
@@ -34,11 +34,14 @@
 		// returns 1 when released
 		if (ctrl_button_chamf("Load", offset_scale_rect(box, offset, sm), colour))
 		// invisible version
-		ctrl_button_invis(offset_scale_rect(box, offset, sm))
+		ctrl_button_invis(offset_scale_rect(box, offset, sm), NULL)
+		// or
+		ctrl_button_state_t butt_state={0};
+		ctrl_button_invis(offset_scale_rect(box, offset, sm), &butt_state)
 
 	// Single checkbox
 		// returns 1 if state changed
-		// state = ptr to single int8_t value
+		// state = ptr to single int value
 		ctrl_checkbox(&state, "Tick this", offset_scale_rect(box, offset, sm), colour);
 
 		if (ctrl_checkbox(&state, "Tick this", offset_scale_rect(box, offset, sm), colour))
@@ -61,17 +64,23 @@
 		static textedit_t te={0};
 
 		if (te.string==NULL)		// if te.string is NULL it's not initialised
-			textedit_init(&te);	// not needed as ctrl_textedit() can do it too
-			// or
 			te = string_to_textedit(make_string_copy(string));
+			// or (not needed as ctrl_textedit() can do it too)
+			textedit_init(&te, 1);
 
-			// at initialisation some options can be specified like:
+			// some options can be specified like:
 			te.edit_mode = te_mode_value;
 			te.max_scale = 1./6.;
 			te.rect_brightness = 0.25;
 
-		// returns 1 if Enter (or sometimes Tab) is pressed
+		// returns 1 if Enter (or sometimes Tab) is pressed, 2 when clicked out of it
 		if (ctrl_textedit(&te, offset_scale_rect(box, offset, sm), colour))
+
+		// set next text while saving the previous one in the undo
+		textedit_set_new_text(&te, "Label");
+
+		// remove all the undo history then set the next text
+		textedit_clear_then_set_new_text(&te, "Label");
 
 	// Resizing rectangle
 		static ctrl_resize_rect_t resize_state={0};
@@ -92,11 +101,19 @@
 	// Label
 		draw_label_fromlayout(&layout, id, ALIG_CENTRE | MONODIGITS);
 
+	// Rect
+		// the first argument is 0 for outline rect, 1 for full rect, 2 for black rect
+		draw_rect_fromlayout(0, &layout, id);
+
 	// Button
 		if (ctrl_button_fromlayout(&layout, id))
+		if (ctrl_button_invis_fromlayout(NULL, &layout, id))
+
+		ctrl_button_state_t butt_state={0};
+		if (ctrl_button_invis_fromlayout(&butt_state, &layout, id))
 
 	// Checkbox
-		static int8_t state=0;
+		static int state=0;
 		ctrl_checkbox_fromlayout(&state, &layout, id);
 
 	// Knob
@@ -104,8 +121,30 @@
 		ctrl_knob_fromlayout(&value, &layout, id);
 
 	// Text editor
-		static textedit_t te={0};
-		ctrl_textedit_fromlayout(&te, &layout, id);
+		ctrl_textedit_fromlayout(&layout, id);
+		// set text
+		// the third argument is clear_undo
+		print_to_layout_textedit(&layout, id, 1, "");
+		// get textedit string
+		string = get_textedit_string_fromlayout(&layout, id);
+
+//**** Keyboard input ****
+
+	// Get state by scancode
+		// 0 = nothing, 1 = down, 2 = newly down, 3 = repeated down event
+		mouse.key_state[RL_SCANCODE_?]
+		// and by name (see https://wiki.libsdl.org/SDL_Keycode for names)
+		get_key_state_by_name("a")
+		// compare with >= 2 for once and repeating, == 2 for once and no repeating, != 0 for down at all
+		if (mouse.key_state[RL_SCANCODE_?] >= 2)
+
+	// Get modifier keys
+		get_kb_shift() (also ctrl, guikey, alt)
+		// all of the above put together
+		get_kb_all_mods()
+
+	// Get all the return keys at once
+		get_kb_enter()
 
 //**** Images ****
 
@@ -117,6 +156,8 @@
 		image_mm = load_mipmap_from_http(url, IMAGE_USE_SQRGB);
 
 	// Displaying
+		// penultimate argument set to 1 keeps the pixel aspect ratio
+		blit_in_rect(&fb, &r, sc_rect(image_frame), 1, LINEAR_INTERP);
 		blit_mipmap_in_rect(&fb, image_mm, sc_rect(image_frame), 1, LINEAR_INTERP);
 
 //**** Layout ****
@@ -139,11 +180,6 @@
 
 	// check if a box is on screen or not
 		if (check_box_on_screen(box_os))
-
-	// Turn on the tool that generates rectangle code using a right-click drag
-		rect_code_tool(offset, sm);
-		// or if no offset/sm
-		rect_code_tool(XY0, 1.);
 
 	// Coordinates
 		// for a xy_t point:
@@ -170,10 +206,25 @@
 		// the 3rd argument works just like the offset in make_rect_off()
 		frame = fit_rect_in_area(im_rect, area, xy(0.5, 0.5));
 
+	// Subdividing an area into a smaller one by ratio and offset
+		sub_area = get_subdiv_area(area, xy(1., 1./8.), xy(0.5, 1.));
+
+	// How to make a new layout
+		static gui_layout_t layout={0};
+		const char *layout_src[] = {""};
+	
+		layout.sm = 1.;
+		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
+
+	// Get the rect of a layout element
+		// the last argument is the provided offset
+		gui_layout_elem_comp_area_os(&layout, id, XY0)
+
 //**** Parsing ****
 
 	// Load a file and have an array of lines out of it
 		// only array[0] then array need to be freed, since array[0] points to the original buffer
+		// free_2d(array, 1); does it
 		char **filename_array = arrayise_text(load_raw_file_dos_conv(full_list_path, NULL), &linecount);
 	
 	// Parse a dozenal fractional notation number
@@ -202,25 +253,34 @@
 		// Arg 3 is 0 for no appending (normal sprintf() behaviour) or 1 for appending, like sprintf(&string[strlen(string)], 
 		sprintf_realloc(&string, &alloc_count, 1, "%g", value);
 
+	// vsprintf equivalent but with allocation
+		va_start(args, format);
+		string = vsprintf_alloc(format, args);
+		va_end(args);
+		free(string);
+
 //**** Threading ****
 
 	// Init thread handle (not for detached threads)
 		static thrd_t thread_handle=NULL;
+	// Declare the thread data
+		my_thread_data_t data={0};
 
 	// before thrd_join the caller should signal to the thread function to quit using this element in the data struct
 		volatile int thread_on;
-		data_struct.thread_on = 0;
+		data.thread_on = 0;
 	
 	// Wait for thread to end (not for detached threads, use mutex instead)
-		thrd_join(thread_handle, NULL);
+		if (thread_handle) 
+			thrd_join_and_null(&thread_handle, NULL);
 
 		// and before creating the thread:
-		data_struct.thread_on = 1;
+		data.thread_on = 1;
 
 	// Create thread
-		thrd_create(&thread_handle, thread_function, &data_struct);
+		thrd_create(&thread_handle, thread_function, &data);
 		// or detached:
-		thrd_create_detached(thread_function, &data_struct);
+		thrd_create_detached(thread_function, &data);
 
 	// Thread function prototype
 		int thread_function(void *ptr)
@@ -232,7 +292,7 @@
 		mtx_lock(&my_mutex);
 		mtx_unlock(&my_mutex);
 		mtx_destroy(&my_mutex);
-		
+
 		// or
 		mtx_t *mutex_ptr;
 		mutex_ptr = mtx_init_alloc(mtx_plain);
@@ -244,3 +304,31 @@
 	
 	// Getting a file from HTTP
 		data_size = http_get("http://www.charbase.com/images/glyph/11910", -1, ONE_RETRY, &data, &data_alloc);
+
+//**** Misc ****
+
+	// Timing
+		uint32_t td=0;
+		get_time_diff(&td);
+		function_to_time();
+		fprintf_rl(stdout, "function_to_time() took %d ms\n\n", get_time_diff(&td));
+
+	// Paths
+		append_name_to_path(fullpath, path, name);	// puts 'path/name' into char fullpath[PATH_MAX*4], fullpath can be NULL in which case the function returns the allocated string
+		remove_name_from_path(dirpath, fullpath);	// makes dirpath from fullpath without the final name (can be a folder) nor the last /. Any trailing input / is ignored
+		remove_extension_from_path(outpath, fullpath);	// removes the extension
+		create_dirs_for_file(filepath);			// create the necessary folders, good to call before writing a file
+
+	// Folders
+		// This loads a folder, the 3rd argument is -1 for full tree loading, 0 for excluding subfolders, >0 for a given depth level
+		fs_dir_t dir={0};
+		load_dir_depth(dir_path, &dir, 0);
+		free_dir(&dir);
+		// Go through each file of a subfolder and create the full path
+		for (i=0; i < dir->subfile_count; i++)
+			full_path[i] = append_name_to_path(NULL, dir->path, dir->subfile[i].name);
+
+//**** C syntax I can't ever remember ****
+
+	// Function pointers as function arguments
+		 void some_function(int (*func_ptr_name)(void*,int))

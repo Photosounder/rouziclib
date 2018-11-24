@@ -1,5 +1,4 @@
-int ctrl_polyline_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
-		polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
+int ctrl_polyline(polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
 {
 	xy_t pos;
 	int i, j, k, lmb, rmb, ds_alloc;
@@ -72,7 +71,7 @@ int ctrl_polyline_fullarg(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_fon
 	}
 
 	for (i=0; i < pl->line_count; i++)
-		draw_line_thin(fb, sc_xy(offset_scale(pl->pv[pl->line[i].x], offset, sm)), sc_xy(offset_scale(pl->pv[pl->line[i].y], offset, sm)), drawing_thickness, GUI_COL_DEF, blend_add, 1.);
+		draw_line_thin(fb, sc_xy(offset_scale(pl->pv[pl->line[i].x], offset, sm)), sc_xy(offset_scale(pl->pv[pl->line[i].y], offset, sm)), drawing_thickness, GUI_COL_DEF, cur_blend, 1.);
 
 	return 0;
 }

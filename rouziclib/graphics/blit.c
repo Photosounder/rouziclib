@@ -37,6 +37,16 @@ int sprite_offsets(framebuffer_t fb, raster_t r, xyi_t *pos, xyi_t *offset, xyi_
 	return 0;
 }
 
+int calc_blit_bounds(xyi_t in_dim, xyi_t out_dim, xyi_t offset, recti_t *bounds)
+{
+	bounds->p0 = max_xyi(neg_xyi(offset), XYI0);
+	bounds->p1 = min_xyi(sub_xyi(out_dim, offset), in_dim);
+
+	if (bounds->p1.x <= bounds->p0.x || bounds->p1.y <= bounds->p0.y)
+		return 1;
+	return 0;
+}
+
 #include <string.h>	// for memcpy
 void blit_sprite(framebuffer_t fb, raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vmode)
 {
@@ -117,49 +127,6 @@ double blit_scale_func_modlin(double x, double unit_inv, interp_param_t p)
 	else
 		return p.c1*x + p.c0;
 }
-
-/*interp_param_t calc_interp_param_modlin(double n)
-{
-	interp_param_t p;
-	double a, b, middle, peak, trough;
-	double ni = 1./n;	// n = ]0 , 1], ni >= 1
-
-	if (ni == floor(ni))				// if ni is an integer like 1.0, 2.0, 3.0...
-		p.func = blit_scale_func_linear;	// this means regular linear filtering should be used
-	else
-		p.func = blit_scale_func_modlin;	// this means my modified filtering should be used
-
-	// Knee position
-	p.knee = 0.5 - fabs(fmod(ni, 1.) - 0.5);	// p.knee = [0 , 0.5]
-
-	// Uncorrected trough height
-	a = floor(ni-0.5) + 0.5;
-	b = a + 1.;
-	middle = 0.5*(a+b);
-	trough = 2.*middle - n*middle*middle;
-p.trough = trough;
-	trough = (1. - p.knee*n) / trough;	// corrected
-
-	// Uncorrected peak height
-	a = floor(ni);
-	b = a + 1.;
-	peak = (2.*b - 1.) - a*b*n;
-p.peak = peak;
-	peak = trough;		// corrected
-
-	// uncorrected_peak = 1. + k*trough
-	// old troughs part = uncorrected_peak - 1.
-	// old troughs ratio = (uncorrected_peak - 1.) / uncorrected_peak
-	// new troughs part = (uncorrected_peak - 1.) * new trough / old trough
-
-	p.ac1 = (trough-peak) / p.knee;
-	p.ac0 = peak;
-
-	p.bc1 = (0.-trough) / (ni-p.knee);
-	p.bc0 = 0. - p.bc1*ni;
-
-	return p;
-}*/
 
 interp_param_t calc_interp_param_modlin(double n)
 {
@@ -341,7 +308,7 @@ void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int in
 	recti_t bbi;
 	int flattop=0;
 
-	if (r->f==NULL && r->sq==NULL)
+	if (r->f==NULL && r->sq==NULL && r->srgb==NULL && r->buf==NULL)
 		return ;
 
 	rad = max_xy(set_xy(1.), pscale);	// for interp == LINEAR_INTERP where the radius is 1 * pscale
@@ -352,7 +319,7 @@ void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int in
 	//if (pscale.x < 1. || pscale.y < 1.)
 		flattop = 1;
 
-	clbuf_da = cl_add_raster_to_data_table(fb, *r);
+	clbuf_da = cl_add_raster_to_data_table(fb, r);
 	r->referencing_fb = fb;
 
 	// store the drawing parameters in the main drawing queue
@@ -365,7 +332,10 @@ void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int in
 	df[5] = 1./pscale.y;
 	df[6] = -pos.x;
 	df[7] = -pos.y;
-	di[8] = r->sq!=NULL;
+	if (r->buf)
+		di[8] = r->buf_fmt;
+	else
+		di[8] = r->sq ? 1 : (r->srgb ? 2 : 0);
 	pscale = min_xy(pscale, set_xy(1.));
 	if (flattop)
 	{
@@ -391,9 +361,13 @@ void blit_scale(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int inter
 void blit_in_rect(framebuffer_t *fb, raster_t *raster, rect_t r, int keep_aspect_ratio, int interp)
 {
 	xy_t pscale, pos;
+	rect_t image_frame = r;
 
-	pscale = div_xy(get_rect_dim(r), xyi_to_xy(raster->dim));
-	pos = add_xy(rect_p01(r), mul_xy(pscale, set_xy(0.5)));
+	if (keep_aspect_ratio)
+		image_frame = fit_rect_in_area( xyi_to_xy(raster->dim), image_frame, xy(0.5, 0.5) );
+
+	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(raster->dim));
+	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
 	blit_scale(fb, raster, pscale, pos, interp);
 }

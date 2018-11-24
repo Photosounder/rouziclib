@@ -81,7 +81,8 @@ void check_compilation_log(clctx_t *c, cl_program program)
 
 cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform)
 {
-	cl_int ret;
+	cl_int ret=0;
+	#ifdef RL_OPENCL_GL
 
 	#if defined(_WIN32)		// Windows	from http://stackoverflow.com/a/30529217/1675589
 	cl_context_properties properties[] =
@@ -115,16 +116,17 @@ cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform)
 	c->context = clCreateContextFromType(properties, CL_DEVICE_TYPE_GPU, NULL, NULL, &ret);
 	CL_ERR_RET("clCreateContextFromType (in init_cl_context_from_gl)", ret);
 
+	#endif
 	return ret;
 }
 
 cl_int init_cl_context(clctx_t *c, const int from_gl)
 {
 	cl_int i, ret, pf_index=-1;
-	cl_platform_id	platform_id[16];
-	cl_device_id	device_id[16];
-	cl_uint		ret_num_platforms;
-	cl_uint		ret_num_devices;
+	cl_platform_id	platform_id[16]={0};
+	cl_device_id	device_id[16]={0};
+	cl_uint		ret_num_platforms=0;
+	cl_uint		ret_num_devices=0;
 
 	ret = clGetPlatformIDs(sizeof(platform_id)/sizeof(*platform_id), platform_id, &ret_num_platforms);	// get all the platforms
 	CL_ERR_RET("clGetPlatformIDs (in init_cl_context)", ret);
@@ -206,7 +208,7 @@ cl_int build_cl_program_from_file(clctx_t *c, cl_program *program, char *cl_src_
 	FILE *fp;
 	char *kernel_src_str;
 
-	fp = fopen(cl_src_path, "rb");
+	fp = fopen_utf8(cl_src_path, "rb");
 	kernel_src_str = malloc(max_src_size);
 	kernel_code_size = fread(kernel_src_str, 1, max_src_size, fp);
 	fclose(fp);
@@ -309,6 +311,7 @@ void init_raster_cl(framebuffer_t *fb, const clctx_t *clctx)		// inits the linea
 void make_gl_tex(framebuffer_t *fb)
 {
 	cl_int ret=0;
+	#ifdef RL_OPENCL_GL
 
 	// create an OpenGL 2D texture normally
 	glEnable(GL_TEXTURE_2D);
@@ -324,6 +327,7 @@ void make_gl_tex(framebuffer_t *fb)
 
 	fb->cl_srgb = clCreateFromGLTexture(fb->clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb->gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
 	CL_ERR_NORET("clCreateFromGLTexture (in make_gl_tex, for fb->cl_srgb)", ret);
+	#endif
 }
 
 cl_int init_fb_cl(framebuffer_t *fb)

@@ -15,4 +15,8 @@ extern char **arrayise_text(char *text, int *linecount);
 extern char *strstr_i (char *fullstr, char *substr);
 extern char *bstrchr(const char *s, int c, int l);
 extern char *bstrstr(const char *s1, int l1, const char *s2, int l2);
+extern void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len);
 extern int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix);
+extern char *find_pattern_in_string(const char *str, const char *pat);
+extern char *find_date_time_in_string(const char *str);
+extern double parse_timestamp(const char *ts);

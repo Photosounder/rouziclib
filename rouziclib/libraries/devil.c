@@ -8,7 +8,7 @@ raster_t load_image_mem_libdevil(ILubyte *raw_data, ILuint size, const int mode)
 	raster_t im={0};
 
 	if (raw_data==NULL || size==0)
-		return make_raster_l(NULL, 0, 0);
+	return make_raster_empty();
 
 	// Initialize DevIL.
 	ilInit();
@@ -21,7 +21,7 @@ raster_t load_image_mem_libdevil(ILubyte *raw_data, ILuint size, const int mode)
 	if (!ilLoadL(IL_TYPE_UNKNOWN, raw_data, size))
 	{
 		fprintf_rl(stderr, "Could not open image from the %d byte buffer in memory\n", size);
-		return make_raster_l(NULL, 0, 0);
+		return make_raster_empty();
 	}
  
 	im.dim.x = ilGetInteger(IL_IMAGE_WIDTH);

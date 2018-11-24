@@ -211,7 +211,7 @@ rect_t vobj_bounding_rect(vobj_t *o)
 	return r;
 }
 
-void draw_vobj_fullarg(framebuffer_t fb, vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, col_t colour, const blend_func_t bf)
+void draw_vobj_fullarg(framebuffer_t fb, vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, col_t colour)
 {
 	int32_t i;
 	seg_t rs;
@@ -224,9 +224,9 @@ void draw_vobj_fullarg(framebuffer_t fb, vobj_t *o, xy_t p, xy_t scale, double a
 		rs = rot_seg(o->seg[i], scale.x, angle);
 
 		if (rs.p1.x==rs.p2.x && rs.p1.y==rs.p2.y)	// gaussian dot
-			draw_point(fb, xy(rs.p1.x+p.x, -rs.p1.y+p.y), line_thick, colour, bf, o->seg[i].m);
+			draw_point(fb, xy(rs.p1.x+p.x, -rs.p1.y+p.y), line_thick, colour, cur_blend, o->seg[i].m);
 		else
-			draw_line_thin(fb, xy(rs.p1.x+p.x, -rs.p1.y+p.y), xy(rs.p2.x+p.x, -rs.p2.y+p.y), line_thick, colour, bf, o->seg[i].m);
+			draw_line_thin(fb, xy(rs.p1.x+p.x, -rs.p1.y+p.y), xy(rs.p2.x+p.x, -rs.p2.y+p.y), line_thick, colour, cur_blend, o->seg[i].m);
 	}
 }
 

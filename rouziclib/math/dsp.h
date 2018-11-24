@@ -1,3 +1,5 @@
-extern int32_t is_composite(int32_t x);
-extern int32_t next_composite(int32_t x);
-extern int32_t next_fast_fft_size(int32_t x);
+extern int is_composite(int x);
+extern int next_composite(int x);
+extern int next_fast_fft_size(int x);
+extern xyi_t calc_2D_fast_convolution_dim(xyi_t a, xyi_t b);
+extern float root_mean_squaref(float *s, const size_t n);

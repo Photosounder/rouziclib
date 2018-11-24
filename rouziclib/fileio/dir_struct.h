@@ -1,11 +1,3 @@
-#ifdef _WIN32
-#include "../libraries/dirent.h"
-#define DIR_CHAR '\\'
-#else
-#include <dirent.h>
-#define DIR_CHAR '/'
-#endif
-
 typedef struct fs_file_n
 {
 	char *name;

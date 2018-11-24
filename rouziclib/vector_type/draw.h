@@ -19,7 +19,8 @@ extern int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uin
 extern void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp);
 extern void draw_string_len(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp);
 extern void draw_string(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);
-extern void print_to_screen_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, double line_thick, const char *format, ...);
+extern void print_to_screen(xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, const char *format, ...);
 
-#define print_to_screen(pos, scale, colour, intensity, mode, format, ...)	print_to_screen_fullarg(fb, zc, font, pos, scale, colour, intensity, mode, drawing_thickness, format, __VA_ARGS__)
+extern col_t text_sel_col;
+
 //#define print_to_screen(pos, scale, colour, intensity, mode, format, ...)

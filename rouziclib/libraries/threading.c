@@ -41,4 +41,15 @@ void mtx_destroy_free(mtx_t **mtx)
 	}
 }
 
+int thrd_join_and_null(thrd_t *thr, int *res)
+{
+	int ret;
+
+	ret = thrd_join(*thr, res);
+
+	memset(thr, 0, sizeof(thrd_t));
+
+	return ret;
+}
+
 #endif

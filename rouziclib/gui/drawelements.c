@@ -13,8 +13,7 @@ void draw_titled_roundrect_frame(framebuffer_t fb, xy_t pos, double radius, xy_t
 			9., 8., radius, colour, bf, 1.);
 }
 
-void draw_label_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, 
-		uint8_t *label, rect_t box, col_t colour, const int mode)
+void draw_label(uint8_t *label, rect_t box, col_t colour, const int mode)
 {
 	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
 
@@ -29,23 +28,21 @@ void draw_label_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, double
 	draw_string_bestfit(fb, font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
 }
 
-void display_dialog_enclosing_frame_fullarg(framebuffer_t fb, vector_font_t *font, double drawing_thickness, 
-		rect_t box_os, double scale, char *label, col_t colour)
+void display_dialog_enclosing_frame(rect_t box_os, double scale, char *label, col_t colour)
 {
 	rect_t label_box;
 	double intensity;
 
 	intensity = intensity_scaling(rect_max_side(box_os), 32.);
 
-	draw_rect(fb, box_os, drawing_thickness, colour, blend_add, intensity);
+	draw_rect(fb, box_os, drawing_thickness, colour, cur_blend, intensity);
 
 	label_box = rect_size_mul(box_os, set_xy(1. - 16./144.));
 
 	draw_string_bestfit(fb, font, label, label_box, 0., 1e30, colour, intensity * (0.5+0.5*erf((0.75-scale)*6.)), drawing_thickness, ALIG_CENTRE, NULL);
 }
 
-void draw_unit_grid_level_fullarg(framebuffer_t fb, zoom_t zc, double drawing_thickness, 
-		xy_t offset, double sm, double scale)
+void draw_unit_grid_level(xy_t offset, double sm, double scale, col_t colour)
 {
 	double p, size_px;
 	double thick, bright;
@@ -60,7 +57,7 @@ void draw_unit_grid_level_fullarg(framebuffer_t fb, zoom_t zc, double drawing_th
 		return ;
 
 	thick = 0.01 * sm*scale;
-	bright = 0.012;
+	bright = 1.;
 
 	if (size_px < 15.)
 		bright *= (size_px - 5.) / (15. - 5.);	// linear transition
@@ -75,19 +72,30 @@ void draw_unit_grid_level_fullarg(framebuffer_t fb, zoom_t zc, double drawing_th
 	end = zc.corners_dl.p1;
 
 	for (p=start.x; p<=end.x; p+=sm*scale)
-		draw_line_thin(fb, sc_xy(xy(p, zc.corners_dl.p0.y)), sc_xy(xy(p, zc.corners_dl.p1.y)), drawing_thickness, make_grey(1.), blend_add, bright);
+		draw_line_thin(fb, sc_xy(xy(p, zc.corners_dl.p0.y)), sc_xy(xy(p, zc.corners_dl.p1.y)), drawing_thickness, colour, cur_blend, bright);
 
 	for (p=start.y; p<=end.y; p+=sm*scale)
-		draw_line_thin(fb, sc_xy(xy(zc.corners_dl.p0.x, p)), sc_xy(xy(zc.corners_dl.p1.x, p)), drawing_thickness, make_grey(1.), blend_add, bright);
+		draw_line_thin(fb, sc_xy(xy(zc.corners_dl.p0.x, p)), sc_xy(xy(zc.corners_dl.p1.x, p)), drawing_thickness, colour, cur_blend, bright);
 }
 
-void draw_unit_grid_fullarg(framebuffer_t fb, zoom_t zc, double drawing_thickness, 
-		xy_t offset, double sm)
+void draw_unit_grid_col(xy_t offset, double sm, col_t colour)
 {
-	draw_unit_grid_level(offset, sm, 1000000.);
-	draw_unit_grid_level(offset, sm, 1000.);
-	draw_unit_grid_level(offset, sm, 1.);
-	draw_unit_grid_level(offset, sm, 1./12.);
-	draw_unit_grid_level(offset, sm, 1./144.);
-	draw_unit_grid_level(offset, sm, 1./1728.);
+	draw_unit_grid_level(offset, sm, 1000000., colour);
+	draw_unit_grid_level(offset, sm, 1000., colour);
+	draw_unit_grid_level(offset, sm, 1., colour);
+	draw_unit_grid_level(offset, sm, 1./12., colour);
+	draw_unit_grid_level(offset, sm, 1./144., colour);
+	draw_unit_grid_level(offset, sm, 1./1728., colour);
+}
+
+void draw_rangebox(rect_t box, const char *label, col_t colour)
+{
+	if (check_box_box_intersection(box, zc.corners_dl)==0 || rect_max_side(box)*zc.scrscale < 0.1)
+		return ;
+
+	const double bg_intensity = doztof("0;0;2");
+	draw_rect_full(fb, sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
+	draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.5 - bg_intensity*0.5);
+
+	draw_string_bestfit(fb, font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, 1. - bg_intensity, drawing_thickness, ALIG_CENTRE, NULL);
 }

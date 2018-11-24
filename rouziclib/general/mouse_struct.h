@@ -7,6 +7,7 @@ typedef struct
 typedef struct
 {
 	int lmb, mmb, rmb, wheel, clicks;
+	int quick_lmb, quick_mmb, quick_rmb;	// flag when a click is released as soon as it's pressed
 	xy_t orig;		// coordinates of the original click
 } mousebut_t;
 
@@ -21,9 +22,10 @@ enum
 
 typedef struct
 {
-	xy_t a, u, d, du, u_stored, prev_u;
-	int window_focus_flag, mouse_focus_flag, window_minimised_flag, zoom_flag;
-	int8_t mod_key[mouse_mod_count];
+	xy_t a, u, d, u_stored, prev_u;
+	int window_focus_flag, mouse_focus_flag, window_minimised_flag, zoom_flag, showcursor, warp, zoom_allowed;
+	int mod_key[mouse_mod_count];
 	mousebut_t b;
 	mouse_ctrl_id_t *ctrl_id;
+	int key_state[RL_NUM_SCANCODES], key_quick[RL_NUM_SCANCODES];	// keyboard state array, 0 = nothing, 1 = down, 2 = newly down, 3 = repeated down event
 } mouse_t;

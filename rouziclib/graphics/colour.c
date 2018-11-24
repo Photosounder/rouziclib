@@ -1,4 +1,4 @@
-lrgb_t make_colour_lin(double r, double g, double b, double a)
+lrgb_t make_colour_lin(const double r, const double g, const double b, const double a)
 {
 	lrgb_t c;
 
@@ -10,7 +10,7 @@ lrgb_t make_colour_lin(double r, double g, double b, double a)
 	return c;
 }
 
-frgb_t make_colour_frgb(double r, double g, double b, double a)
+frgb_t make_colour_frgb(const double r, const double g, const double b, const double a)
 {
 	frgb_t c;
 
@@ -43,6 +43,25 @@ lrgb_t frgb_to_lrgb(frgb_t cf)
 	c.g = MINN(1., cf.g) * ONEF + 0.5;
 	c.b = MINN(1., cf.b) * ONEF + 0.5;
 	c.a = MINN(1., cf.a) * ONEF + 0.5;
+
+	return c;
+}
+
+int is0_col(col_t col)
+{
+	if (col.r==0 && col.g==0 && col.b==0 && col.a==0)
+		return 1;
+	return 0;
+}
+
+srgb_t make_colour_srgb_s(int r, int g, int b, int a)
+{
+	srgb_t c;
+
+	c.r = r;
+	c.g = g;
+	c.b = b;
+	c.a = a;
 
 	return c;
 }
@@ -104,7 +123,7 @@ double frgb_to_grey_level(frgb_t p)
 
 double Lab_L_to_linear(double t)
 {
-	const double stn=6./29;
+	const double stn=6./29.;
 
 	t = (t+0.16) / 1.16;
 
@@ -116,10 +135,11 @@ double Lab_L_to_linear(double t)
 
 double linear_to_Lab_L(double t)
 {
-	const double thr = 6./29, thr3 = thr*thr*thr;
+	const double thr = 6./29., thr3 = thr*thr*thr;
 
 	if (t > thr3)
-		t = fastpow(t, 1./3.);
+		t = cbrt(t);
+		//t = fastpow(t, 1./3.);
 	else
 		t = t * 841./108. + 4./29.;
 
@@ -543,20 +563,34 @@ void rangelimit_frgb(frgb_t *c)
 	c->b = rangelimitf(c->b, 0., 1.);
 }
 
-col_t get_colour_seq(double x, xyz_t freq, xyz_t phase)
+col_t get_colour_seq_fullarg(double x, xyz_t freq, xyz_t phase, double m, double a)
 {
 	xyz_t c;
 
 	c = add_xyz(mul_xyz(freq, set_xyz(x)), phase);
-	c = add_xyz(set_xyz(0.5), mul_xyz(set_xyz(0.5), sin_xyz(mul_xyz(c, set_xyz(2.*pi)))));
+	c = add_xyz(set_xyz(a), mul_xyz(set_xyz(m), sin_xyz(mul_xyz(c, set_xyz(2.*pi)))));
 	c = func1_xyz(c, Lab_L_to_linear);
 
 	return make_colour(c.x, c.y, c.z, 1.);
 }
 
+col_t get_colour_seq(double x, xyz_t freq, xyz_t phase)
+{
+	return get_colour_seq_fullarg(x, freq, phase, 0.5, 0.5);
+}
+
 col_t colour_mul(col_t col, double m)
 {
 	return xyz_to_col(mul_xyz(col_to_xyz(col), set_xyz(m)));
+}
+
+col_t mix_colours(col_t a, col_t b, double t)
+{
+	return xyz_to_col(
+			add_xyz(
+				mul_xyz(col_to_xyz(a), set_xyz(1.-t)), 
+				mul_xyz(col_to_xyz(b), set_xyz(t))
+				));
 }
 
 col_t adjust_colour_lum(col_t col, double target_lum)
@@ -589,7 +623,7 @@ raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp)
 
 	if (make_new_raster)
 	{
-		r = make_raster_f(NULL, dim.x, dim.y);
+		r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 		if (rp)
 			*rp = r;
 	}

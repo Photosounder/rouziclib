@@ -1,5 +1,4 @@
-int dialog_enclosing_frame_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *font, double drawing_thickness, 
-		xy_t offset, double sm, rect_t main_frame, double margin, char *label, col_t colour)
+int dialog_enclosing_frame(xy_t offset, double sm, rect_t main_frame, double margin, char *label, col_t colour)
 {
 	rect_t full_frame, box_os;
 
@@ -13,11 +12,6 @@ int dialog_enclosing_frame_fullarg(framebuffer_t fb, zoom_t zc, vector_font_t *f
 	return 0;
 }
 
-xy_t fit_into_area(rect_t area, rect_t box, double margin, double *sm)
-{
-	return fit_unscaled_rect(area, rect_add_margin(box, set_xy(margin)), sm);
-}
-
 rect_t make_title_rect(rect_t main_frame, double title_pos, double title_height)
 {
 	return make_rect_off( xy(get_rect_centre(main_frame).x, title_pos), xy(get_rect_dim(main_frame).x, title_height), xy(0.5, 0.) );
@@ -26,9 +20,19 @@ rect_t make_title_rect(rect_t main_frame, double title_pos, double title_height)
 xy_t get_grid_position(xy_t orig, int index, xyi_t grid_count, xy_t step, int horizontal)
 {
 	if (horizontal)
+	{
+		if (grid_count.x==0)
+			grid_count.x = 1;
+
 		return add_xy( orig, mul_xy(step, xy( index % grid_count.x, index / grid_count.x )) );
+	}
 	else
+	{
+		if (grid_count.y==0)
+			grid_count.y = 1;
+
 		return add_xy( orig, mul_xy(step, xy( index / grid_count.y, index % grid_count.y )) );
+	}
 }
 
 rect_t get_grid_cell_rect(xyi_t ip, xy_t origin, xy_t cell_dim)

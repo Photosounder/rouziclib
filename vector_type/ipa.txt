@@ -215,12 +215,14 @@ glyph 0272
 	scale	1;6
 	move	-1;6	0
 	copy F006E
+	bounds	-1;9	1;6
 
 glyph 0273
 	copy 0321
 	scale	-1;6	1;6
 	move	1;6	0
 	copy F006E
+	bounds	-1;6	1;9
 
 glyph 0274
 	copy 'N'
@@ -270,7 +272,7 @@ glyph 027B
 	move	1;6
 	copy F0072
 	scale last	-1 -1	0 2;3
-	bounds	-1;6	2
+	bounds	-1;6	1;9
 
 glyph 027D
 	copy 0321
@@ -379,6 +381,7 @@ glyph 0290
 	copy 0322
 	scale last	1;6
 	move last	1;6
+	bounds	-1;6	1;9
 
 glyph 0293
 	p1	-2	6

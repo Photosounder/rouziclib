@@ -1,3 +1,4 @@
+// Tiling functions
 double fit_n_squares_in_area(xy_t area_dim, int count, xyi_t *grid_count_ptr)
 {
 	double n, size, max_size=0.;
@@ -86,19 +87,6 @@ xyi_t get_dim_of_tile(xyi_t fulldim, xyi_t tilesize, xyi_t index)
 	return rdim;
 }
 
-rect_t fit_rect_in_area(xy_t r_dim0, rect_t area, xy_t off)
-{
-	double scale;
-	xy_t area_dim, r_dim1, dim_diff;
-
-	area = sort_rect(area);
-	area_dim = get_rect_dim(area);
-	scale = min_of_xy(div_xy(area_dim, r_dim0));
-	r_dim1 = mul_xy(r_dim0, set_xy(scale));
-	dim_diff = sub_xy(area_dim, r_dim1);
-	return make_rect_off(add_xy(area.p0, mul_xy(dim_diff, off)), r_dim1, XY0);
-}
-
 // Hilbert curve functions
 // n means the space is n by n, n is a power of 2
 
@@ -148,4 +136,62 @@ void hilbert_curve_rotate(const int n, xyi_t *p, xyi_t r)	// rotate/flip a quadr
 
 		swap_i32(&p->x, &p->y);
 	}
+}
+
+// Fitting rectangles into rectangles
+
+void area_to_area_transform(rect_t a, rect_t b, xy_t *tmul, xy_t *tadd, const int keep_aspect_ratio)		// find how to multiply and add in order to fit area B into area A
+{
+	xy_t ad, bd;
+
+	a = sort_rect(a);
+	b = sort_rect(b);
+
+	ad = get_rect_dim(a);
+	bd = get_rect_dim(b);
+
+	*tmul = div_xy_0(ad, bd);
+	if (keep_aspect_ratio)
+		*tmul = set_xy(min_of_xy(*tmul));
+
+	*tadd = sub_xy(get_rect_centre(a), mul_xy(get_rect_centre(b), *tmul));
+}
+
+xy_t fit_unscaled_rect(rect_t a, rect_t f, double *sm)	// find the offset-scale so that full_frame 'f' can fit inside the container area 'a'
+{
+	xy_t tmul, tadd;
+
+	area_to_area_transform(a, f, &tmul, &tadd, 1);
+	*sm = min_of_xy(tmul);
+
+	return tadd;
+}
+
+xy_t fit_into_area(rect_t area, rect_t box, double margin, double *sm)
+{
+	return fit_unscaled_rect(area, rect_add_margin(box, set_xy(margin)), sm);
+}
+
+rect_t fit_rect_in_area(xy_t r_dim0, rect_t area, xy_t off)
+{
+	double scale;
+	xy_t area_dim, r_dim1, dim_diff;
+
+	area = sort_rect(area);
+	area_dim = get_rect_dim(area);
+	scale = min_of_xy(div_xy(area_dim, r_dim0));
+	r_dim1 = mul_xy(r_dim0, set_xy(scale));
+	dim_diff = sub_xy(area_dim, r_dim1);
+	return make_rect_off(add_xy(area.p0, mul_xy(dim_diff, off)), r_dim1, XY0);
+}
+
+rect_t get_subdiv_area(rect_t area, xy_t ratio, xy_t offset)
+{
+	xy_t area_dim, subdiv_dim, pos;
+
+	area_dim = get_rect_dim(area);
+	subdiv_dim = mul_xy(area_dim, ratio);
+
+	pos = add_xy(sort_rect(area).p0, mul_xy(offset, sub_xy(area_dim, subdiv_dim)));
+	return make_rect_off(pos, subdiv_dim, XY0);
 }

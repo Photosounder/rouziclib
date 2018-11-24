@@ -243,7 +243,7 @@ uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold ne
 	return str;
 }
 
-uint16_t *utf8_to_utf16(uint8_t *utf8, uint16_t *utf16)
+uint16_t *utf8_to_utf16(const uint8_t *utf8, uint16_t *utf16)
 {
 	int i, j, len;
 	uint32_t c;
@@ -266,7 +266,7 @@ uint16_t *utf8_to_utf16(uint8_t *utf8, uint16_t *utf16)
 	return utf16;
 }
 
-uint8_t *utf16_to_utf8(uint16_t *utf16, uint8_t *utf8)
+uint8_t *utf16_to_utf8(const uint16_t *utf16, uint8_t *utf8)
 {
 	int i, j, len;
 	uint32_t c;

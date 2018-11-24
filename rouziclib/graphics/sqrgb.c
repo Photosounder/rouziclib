@@ -1,3 +1,8 @@
+double ssqrgb(double s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] squared value
+{
+	return sqrt(slrgb(s));
+}
+
 lut_t get_lut_ssqrgb()		// table is 8-bit sRGB to 12-bit sqrt of linear
 {
 	int32_t i;

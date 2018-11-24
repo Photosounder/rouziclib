@@ -5,13 +5,15 @@ void draw_circle_lrgb(const int circlemode, framebuffer_t fb, xy_t pos, double c
 	int32_t p, ratio;	// 0.15
 	int64_t lowbound2, highbound2, dx, dy, d, circradf;
 
-	int32_t xf, yf, radf;
+	int32_t xf, yf, iradf;
 	const int32_t fp=16;
 	const double fpratio = (double) (1<<fp);
 
 	ratio = 32768. * intensity + 0.5;
+	if (ratio == 0)
+		return ;
 
-	radf = roundaway(1./radius * fpratio);
+	iradf = roundaway(1./radius * fpratio);
 	circradf = roundaway(circrad * fpratio);
 
 	lboundx = (int32_t) ceil (pos.x - circrad - grad);	if (lboundx<0) lboundx = 0; if (lboundx>=fb.w) lboundx = fb.w-1;
@@ -50,7 +52,7 @@ void draw_circle_lrgb(const int circlemode, framebuffer_t fb, xy_t pos, double c
 			
 			if (d>lowbound2 && d<highbound2)
 			{
-				d = (circradf - isqrt_d1i(d)) * radf >> fp;
+				d = (circradf - isqrt_d1i(d)) * iradf >> fp;
 
 				if (circlemode==FULLCIRCLE)
 					p = fperfr_d0(d) >> 15;
@@ -92,13 +94,14 @@ void draw_circle_cl(const int circlemode, framebuffer_t fb, xy_t pos, double cir
 
 	// calculate the drawing parameters
 	circum = circrad/radius;
-	intensity *= (0.5 + 0.5 * erf(circum)) - (0.5 + 0.5 * erf(-circum));
+	if (circlemode==FULLCIRCLE)
+		intensity *= (0.5 + 0.5 * erf(circum)) - (0.5 + 0.5 * erf(-circum));	// why is this needed?
 	colour.r *= intensity;
 	colour.g *= intensity;
 	colour.b *= intensity;
 
 	// store the drawing parameters in the main drawing queue
-	df = drawq_add_to_main_queue(fb, DQT_CIRCLE_FULL);
+	df = drawq_add_to_main_queue(fb, circlemode==FULLCIRCLE ? DQT_CIRCLE_FULL : DQT_CIRCLE_HOLLOW);
 	df[0] = pos.x;
 	df[1] = pos.y;
 	df[2] = circrad;
@@ -173,12 +176,12 @@ void draw_circle_with_lines(framebuffer_t fb, xy_t pos, double circrad, double r
 
 void draw_circle(const int circlemode, framebuffer_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
-	if (circlemode!=HOLLOWCIRCLE)
-		radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
+	//if (circlemode!=HOLLOWCIRCLE)
+		radius = drawing_focus_adjust(focus_rlg, radius, circlemode==FULLCIRCLE ? NULL : &intensity, 0);	// adjusts the focus
 
-	if (circlemode==HOLLOWCIRCLE)
+	/*if (circlemode==HOLLOWCIRCLE)
 		draw_circle_with_lines(fb, pos, circrad, radius, colour, blend_add, intensity);
-	else
+	else*/
 		if (fb.use_cl)
 			draw_circle_cl(circlemode, fb, pos, circrad, radius, col_to_frgb(colour), blend_add, intensity);
 		else
@@ -296,13 +299,13 @@ void draw_roundrect(framebuffer_t fb, rect_t box, double corner, double radius, 
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
-	int32_t d, radf, x1f, y1f, x2f, y2f, ixf, iyf, cornerf;
+	int32_t d, iradf, x1f, y1f, x2f, y2f, ixf, iyf, cornerf;
 	const int32_t fp=16;
 	const double fpratio = (double) (1<<fp);
 
 	ratio = 32768. * intensity + 0.5;
 
-	radf = roundaway(1./radius * fpratio);
+	iradf = roundaway(1./radius * fpratio);
 	x1f = roundaway((box.p0.x+corner) * fpratio);
 	y1f = roundaway((box.p0.y+corner) * fpratio);
 	x2f = roundaway((box.p1.x-corner) * fpratio);
@@ -323,7 +326,7 @@ void draw_roundrect(framebuffer_t fb, rect_t box, double corner, double radius, 
 			fbi = iy*fb.w+ix;
 
 			ixf = ix << fp;
-			d = (int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, cornerf, ixf, iyf) * radf >> fp;
+			d = (int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, cornerf, ixf, iyf) * iradf >> fp;
 			p = fperfr_d0(-d) >> 15;
 			p = p * ratio >> 15;
 
@@ -336,13 +339,13 @@ void draw_roundrect_frame(framebuffer_t fb, rect_t box1, rect_t box2, double cor
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
-	int32_t din, dout, radf, x1f, y1f, x2f, y2f, x3f, y3f, x4f, y4f, ixf, iyf, corner1f, corner2f;
+	int32_t din, dout, iradf, x1f, y1f, x2f, y2f, x3f, y3f, x4f, y4f, ixf, iyf, corner1f, corner2f;
 	const int32_t fp=16;
 	const double fpratio = (double) (1<<fp);
 
 	ratio = 32768. * intensity + 0.5;
 
-	radf = roundaway(1./radius * fpratio);
+	iradf = roundaway(1./radius * fpratio);
 	x1f = roundaway((box1.p0.x+corner1) * fpratio);
 	y1f = roundaway((box1.p0.y+corner1) * fpratio);
 	x2f = roundaway((box1.p1.x-corner1) * fpratio);
@@ -368,8 +371,8 @@ void draw_roundrect_frame(framebuffer_t fb, rect_t box1, rect_t box2, double cor
 			fbi = iy*fb.w+ix;
 
 			ixf = ix << fp;
-			dout = (int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, corner1f, ixf, iyf) * radf >> fp;
-			din = (int64_t) get_dist_to_roundrect(x3f, y3f, x4f, y4f, corner2f, ixf, iyf) * radf >> fp;
+			dout = (int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, corner1f, ixf, iyf) * iradf >> fp;
+			din = (int64_t) get_dist_to_roundrect(x3f, y3f, x4f, y4f, corner2f, ixf, iyf) * iradf >> fp;
 			p = fperfr_d0(-dout) - fperfr_d0(-din) >> 15;
 			p = p * ratio >> 15;
 
@@ -575,13 +578,13 @@ void draw_point_on_row(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour,
 	int32_t p, ratio;	// 0.15
 	int32_t bstartx, bendx;
 
-	int32_t xf, ixf, radf;
+	int32_t xf, ixf, iradf;
 	const int32_t fp=16;
 	const double fpratio = (double) (1<<fp);
 
 	ratio = 32768. * intensity + 0.5;
 
-	radf = roundaway(1./radius * fpratio);
+	iradf = roundaway(1./radius * fpratio);
 
 	bstartx = (int32_t) ceil(pos.x - grad);	if (bstartx<0)	bstartx = 0;
 	bendx = (int32_t) floor(pos.x + grad);	if (bendx >= fb.w) bendx = fb.w-1;
@@ -594,11 +597,36 @@ void draw_point_on_row(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour,
 		ixf = ix << fp;
 
 		dp = xf - ixf;
-		dp = (int64_t) dp * radf >> fp;
+		dp = (int64_t) dp * iradf >> fp;
 
 		p = fpgauss_d0(dp) >> 15;
 		p = p * ratio >> 15;
 
 		bf(&fb.r.l[fbi], colour, p);
 	}
+}
+
+void draw_mousecursor(xy_t pos)
+{
+	col_t col = make_grey(0.5);
+	double sc = zc.iscrscale * 16.;
+
+	if (mouse.mouse_focus_flag < 0)	// if mouse is out of window
+		return ;
+
+	if (mouse.window_focus_flag < 0 && mouse.mouse_focus_flag > 0)	// if the window is out of focus but mouse is over the window
+	{
+		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		return ;
+	}
+
+	if (mouse.showcursor)
+		return ;
+
+	draw_line_thin(fb, sc_xy(pos), sc_xy(add_xy(pos, xy(0.64*sc, -0.76837*sc))), drawing_thickness, col, cur_blend, 1.);
+	draw_line_thin(fb, sc_xy(pos), sc_xy(add_xy(pos, xy(0.*sc, -1.*sc))), drawing_thickness, col, cur_blend, 1.);
+	draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, -1.*sc))), sc_xy(add_xy(pos, xy(0.64*sc, -0.76837*sc))), drawing_thickness, col, cur_blend, 1.);
 }

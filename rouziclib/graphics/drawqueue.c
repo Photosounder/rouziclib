@@ -99,6 +99,7 @@ void drawq_run(framebuffer_t *fb)
 	if (kernel==NULL)
 		return ;
 
+	#ifdef RL_OPENCL_GL
 	uint32_t z = 0;
 	glClearTexImage(fb->gltex, 0, GL_RGBA, GL_UNSIGNED_BYTE, &z);
 	
@@ -106,6 +107,7 @@ void drawq_run(framebuffer_t *fb)
 	CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run, for fb->cl_srgb)", ret);
 	glFlush();
 	glFinish();
+	#endif
 	
 	// enqueues copying result to fb->srgb FIXME not good if it was just resized up
 //	ret = clEnqueueReadBuffer (fb->clctx.command_queue, fb->cl_srgb, CL_FALSE, 0, fb->w*fb->h*4*sizeof(uint8_t), fb->srgb, 0, NULL, NULL);
@@ -168,6 +170,7 @@ int32_t drawq_entry_size(const int32_t type)
 		case DQT_RECT_BLACK:		return 5;
 		case DQT_PLAIN_FILL:		return 3;
 		case DQT_CIRCLE_FULL:		return 7;
+		case DQT_CIRCLE_HOLLOW:		return 7;
 		//case DQT_BLIT_BILINEAR:		return 8;
 		case DQT_BLIT_FLATTOP:		return 11;
 		//case DQT_BLIT_PHOTO:		return 13;
@@ -275,7 +278,7 @@ void drawq_bracket_open(framebuffer_t fb)
 			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
 }
 
-void drawq_bracket_close(framebuffer_t fb, int32_t blending_mode)
+void drawq_bracket_close(framebuffer_t fb, int32_t blending_mode)	// blending modes are listed in drawqueue_enums.h
 {
 	int32_t ix, iy;
 	int32_t *di;
