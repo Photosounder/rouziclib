@@ -14,11 +14,14 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 	}
 
 	// return if the button is off-screen
-	if (check_box_box_intersection(box, zc.corners_dl)==0)
+	if (check_box_on_screen(box)==0)
 	{
 		if (butt_state_ptr)
 			butt_state_ptr->out_of_screen = 1;
-		return 0;
+
+		if (mouse.b.lmb < 1)
+			if (check_point_within_box(mouse.b.orig, box)==0)	// only return if there's no held click originating from it
+				return 0;
 	}
 
 	if (zc.mouse->window_focus_flag > 0)
@@ -182,7 +185,7 @@ int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 		}
 	}
 
-	if (over_something==0 && mouse.b.lmb==2)
+	if (over_something==0 && butt_state.down==0 && mouse.b.lmb==2)
 		state->next_open = 0;
 
 	return ret;
@@ -343,7 +346,7 @@ int ctrl_knob(double *v_orig, knob_t knob, rect_t box, col_t colour)
 	if (total_scale < 1.)
 		return 0;
 
-	if (check_box_box_intersection(box, zc.corners_dl)==0)
+	if (check_box_on_screen(box)==0)
 		return 0;
 
 	// process input
@@ -375,7 +378,7 @@ int ctrl_knob(double *v_orig, knob_t knob, rect_t box, col_t colour)
 	// draw knob
 	intensity *= intensity_scaling(total_scale, 24.);
 
-	sprintf(str, knob.fmt_str, v);
+	sprintf(str, knob.fmt_str ? knob.fmt_str : VALFMT_DEFAULT, v);
 	valbox = make_rect_centred(centre, set_xy(0.707*scale));
 	draw_string_bestfit(fb, font, str, sc_rect(valbox), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 
@@ -420,7 +423,7 @@ int ctrl_draggable(ctrl_drag_state_t *state, xy_t dim)
 
 	box = make_rect_off( state->pos, dim, xy(0.5, 0.5) );
 
-	if (check_box_box_intersection(box, zc.corners_dl)==0 && state->down==0)
+	if (check_box_on_screen(box)==0 && state->down==0)
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
@@ -440,7 +443,7 @@ int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_i
 		return -10;
 
 	box = make_rect_off( *pos, set_xy(2.*radius), xy(0.5, 0.5) );
-	if (check_box_box_intersection(box, zc.corners_dl)==0 && *dragged != cur_id)
+	if (check_box_on_screen(box)==0 && *dragged != cur_id)
 		return -10;
 
 	if (mouse.window_focus_flag > 0)
@@ -570,7 +573,7 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 	aspect_ratio = min_of_xy(dim) / max_of_xy(dim);
 	cdim = scale / (9.*aspect_ratio + 3.);		// size of the controls, from 1/12*scale for a square towards 1/3*scale
 
-	if (check_box_box_intersection(rect_add_margin(*box, set_xy(cdim*0.5)), zc.corners_dl)==0 && state->dragged==0)
+	if (check_box_on_screen(rect_add_margin(*box, set_xy(cdim*0.5)))==0 && state->dragged==0)
 		return 0;
 
 	intensity *= intensity_scaling(total_scale, 48.);

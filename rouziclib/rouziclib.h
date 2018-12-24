@@ -47,8 +47,7 @@ extern "C" {
 #endif
 
 // Structs and includes needed elsewhere
-#include "libraries/tinycthread.h"		// used if RL_TINYCTHREAD is defined
-#include "libraries/threading.h"		// used if RL_TINYCTHREAD is defined
+#include "general/threading.h"
 #include "general/structs.h"
 #include "general/xyz_struct.h"
 #include "geometry/rect_struct.h"		// needs xyz
@@ -120,6 +119,12 @@ extern "C" {
 #include "text/undo.h"
 #include "text/history.h"
 #include "vector_type/vector_type.h"
+#include "vector_type/make_font.h"
+#include "vector_type/draw.h"
+#include "vector_type/stats.h"
+#include "vector_type/fit.h"
+#include "vector_type/cjk.h"
+#include "vector_type/insert_rect.h"
 
 #include "gui/zoom.h"
 #include "gui/focus.h"
@@ -140,6 +145,7 @@ extern "C" {
 #include "fileio/endian.h"
 #include "fileio/image.h"
 #include "fileio/image_bmp.h"
+#include "fileio/image_tiff.h"
 #include "fileio/sound_format.h"
 #include "fileio/sound_aiff.h"
 #include "fileio/sound_wav.h"
@@ -151,14 +157,14 @@ extern "C" {
 
 // used if RL_INCL_NETWORK is defined
 #include "network/network.h"
-#include "network/http.h"	// may need RL_ZLIB
+#include "network/http.h"
 
 #include "libraries/opencl.h"		// used if RL_OPENCL is defined
-#include "libraries/opencv.h"		// used if RL_OPENCV is defined
 #include "libraries/sdl.h"		// used if RL_SDL is defined
 #include "libraries/devil.h"		// used if RL_DEVIL is defined
 #include "libraries/clfft.h"		// used if RL_CLFFT is defined
 #include "libraries/ffmpeg.h"		// used if RL_FFMPEG is defined
+#include "libraries/opencv.h"		// used if RL_OPENCV is defined
 #include "libraries/libsndfile.h"	// used if RL_LIBSNDFILE is defined
 #include "libraries/libraw.h"		// used if RL_LIBRAW is defined
 #include "libraries/libjpeg.h"		// used if RL_LIBJPEG is defined

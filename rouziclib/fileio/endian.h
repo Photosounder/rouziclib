@@ -2,6 +2,7 @@ extern uint16_t fread_LE16(FILE *file);
 extern uint16_t fread_BE16(FILE *file);
 extern uint32_t fread_LE32(FILE *file);
 extern uint32_t fread_BE32(FILE *file);
+extern void fwrite_byte8(FILE *file, uint8_t s);
 extern void fwrite_LE16(FILE *file, uint16_t s);
 extern void fwrite_BE16(FILE *file, uint16_t s);
 extern void fwrite_LE32(FILE *file, uint32_t w);
@@ -22,6 +23,7 @@ extern int32_t read_LE24s(const uint8_t *buf, size_t *index);
 extern int32_t read_BE24s(const uint8_t *buf, size_t *index);
 extern uint32_t read_LE32(const uint8_t *buf, size_t *index);
 extern uint32_t read_BE32(const uint8_t *buf, size_t *index);
+extern uint64_t read_LE64(const uint8_t *buf, size_t *index);
 extern uint64_t read_BE64(const uint8_t *buf, size_t *index);
 
 extern void print_LE16(uint8_t *buf, uint16_t data);

@@ -11,6 +11,8 @@ extern char *sprint_large_num_simple(char *string, double number);
 extern char *sprint_fractional_12(char *string, double v);
 extern char *sprint_compile_date(char *string, const char *location);
 extern void fprint_indent(FILE *file, char *indent, int ind_lvl, char *string);
+extern char *sprint_localtime_now(char *string);
+extern void fprint_localtime_now(FILE *stream);
 extern char *sprint_duration(char *string, double sec);
 extern char *sprint_timestamp(char *string, double t, int prec);
 extern char *sprint_timestamp_short(char *string, double t, int prec);

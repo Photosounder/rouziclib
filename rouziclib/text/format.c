@@ -164,6 +164,23 @@ void fprint_indent(FILE *file, char *indent, int ind_lvl, char *string)
 	}
 }
 
+char *sprint_localtime_now(char *string)
+{
+	time_t t;
+
+	time(&t);
+	strftime(string, 9, "%H.%M.%S", localtime(&t));
+
+	return string;
+}
+
+void fprint_localtime_now(FILE *stream)
+{
+	char str[9];
+
+	fprintf_rl(stream, "%s", sprint_localtime_now(str));
+}
+
 char *sprint_duration(char *string, double sec)
 {
 	if (sec < 60.)
@@ -321,6 +338,8 @@ void convert_file_to_header_const_string(const char *in_path)
 
 		if (ret)
 			fprint_escaped_byte(fout, c0, c1);
+
+		c0 = c1;
 	}
 
 	fprintf(fout, "\";");

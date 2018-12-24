@@ -793,7 +793,7 @@ int ctrl_knob_fromlayout(double *v, gui_layout_t *layout, const int id)
 	return ret;
 }
 
-int ctrl_textedit_fromlayout(gui_layout_t *layout, const int id)
+int ctrl_textedit_fromlayout_in_rect(gui_layout_t *layout, const int id, rect_t box_os)
 {
 	int ret;
 	layout_elem_t *cur_elem=NULL;
@@ -802,12 +802,16 @@ int ctrl_textedit_fromlayout(gui_layout_t *layout, const int id)
 		return 0;
 	cur_elem = &layout->elem[id];
 
-	rect_t box_os = gui_layout_elem_comp_area_os(layout, id, XY0);
 	ret = ctrl_textedit(cur_elem->data, box_os, cur_elem->colour);
 	draw_rect(fb, sc_rect(box_os), drawing_thickness, cur_elem->colour, cur_blend, 0.25 * intensity_scaling(rect_min_side(sc_rect(box_os)), 24.));
 
 	ctrl_fromlayout_resizing(layout, id, 2);
 	return ret;
+}
+
+int ctrl_textedit_fromlayout(gui_layout_t *layout, const int id)
+{
+	return ctrl_textedit_fromlayout_in_rect(layout, id, gui_layout_elem_comp_area_os(layout, id, XY0));
 }
 
 // Selection menu functions

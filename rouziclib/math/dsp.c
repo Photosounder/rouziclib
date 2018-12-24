@@ -48,3 +48,13 @@ float root_mean_squaref(float *s, const size_t n)
 
 	return sqrtf(sum / (float) n);
 }
+
+double db_to_vol(double db)
+{
+	return pow(10., db / 20.);
+}
+
+double vol_to_db(double vol)
+{
+	return 20. * log10(vol);
+}

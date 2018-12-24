@@ -16,6 +16,8 @@ extern double lsrgb(double linear);
 extern double slrgb(double s);
 extern lut_t get_lut_lsrgb();
 extern lut_t get_lut_slrgb();
+extern lut_t get_lut_s16lrgb();
+extern float s16lrgb(uint16_t v16);
 extern lut_t get_lut_lsrgb_fl();
 extern int32_t lsrgb_fl(float v, int32_t *lut);
 extern lut_t dither_lut_init();

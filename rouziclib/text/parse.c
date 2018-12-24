@@ -234,6 +234,7 @@ char *bstrstr(const char *s1, int l1, const char *s2, int l2)	// find first occu
 	return NULL;
 }
 
+#ifdef _WIN32
 void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// like strstr but binary
 {
 	int i;
@@ -251,6 +252,7 @@ void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// 
 
 	return NULL;
 }
+#endif
 
 int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix)		// returns 1 if the words are equal
 {

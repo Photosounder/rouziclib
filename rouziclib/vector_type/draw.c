@@ -71,20 +71,20 @@ int draw_vector_char(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, 
 	return found;
 }
 
-int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
+int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t *off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
 	double fixoff, wc1, wc2;
 	unicode_data_t ucd1, ucd2;
 	int i=0, ir=0, found = 0;
 	uint32_t cn;
-	xy_t noff=off;
+	xy_t noff=*off;
 	double scale_mod=1., offb=0., offt=0.;
 	letter_t *ldom;
 	int lowerscale_dom, bidi1, onscreen=1;
 	rect_t bound_box;
 
-	bound_box = make_rect_off( add_xy(p, off), set_xy(24. * scale), xy(0.5, 0.5) );
+	bound_box = make_rect_off( add_xy(p, *off), set_xy(24. * scale), xy(0.5, 0.5) );
 	if (check_box_box_intersection(fb.window_dl, bound_box)==0)
 		onscreen = 0;
 
@@ -92,12 +92,19 @@ int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c
 	{
 		ucd1 = get_unicode_data(c);
 		//bidi1 = bidicat_direction(ucd1.bidicat);
-		wc1 = glyph_width(font, off.x, c, scale, mode);
+		wc1 = glyph_width(font, off->x, c, scale, mode);
 
-		draw_vector_char(fb, font, c, p, off, scale, colour, line_thick, mode, bidi);
+		draw_vector_char(fb, font, c, p, *off, scale, colour, line_thick, mode, bidi);
 
 		if (ucd1.uccat == uccat_Ll)	// if character is lowercase
 			scale_mod = LOWERCASESCALE;
+	}
+
+	// Check for insert rect sequence
+	if (c >= cp_ins_start && c < cp_ins_end)	// if c is a custom spacing character and cn is a variation selector that indicates its index
+	{
+		ir = parse_insert_rect_charseq(p, off, scale, bidi, c, string);
+		return ir;
 	}
 
 	do	// loop through all following non-spacing (combining) marks
@@ -109,25 +116,17 @@ int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c
 		{
 			ir = i+1;
 
-			if (c >= cp_ins_start && c < cp_ins_end)	// if c is a custom spacing character and cn is a variation selector that indicates its index
-			{
-				l = get_letter(font, c);
-				if (l)
-				if (l->obj)
-					report_insert_rect_pos(add_xy(p, off), mul_xy(xy(l->width, -6.), set_xy(scale)), bidi, c, cn);
-			}
-
 			if (onscreen)
 			{
 				ldom = get_dominant_letter(font, cn, &lowerscale_dom);
 
 				if (ucd1.uccat == uccat_Ll)	// if character is lowercase
-					wc2 = ((glyph_width(font, off.x, cn, 1., mode) - LETTERSPACING) * LOWERCASESCALE + LETTERSPACING) * scale;
+					wc2 = ((glyph_width(font, off->x, cn, 1., mode) - LETTERSPACING) * LOWERCASESCALE + LETTERSPACING) * scale;
 				else
-					wc2 = glyph_width(font, off.x, cn, scale, mode);
+					wc2 = glyph_width(font, off->x, cn, scale, mode);
 
-				noff.x = off.x + (wc1 - wc2) * 0.5 * (bidi == -2 ? -1. : 1.);
-				noff.y = off.y;
+				noff.x = off->x + (wc1 - wc2) * 0.5 * (bidi == -2 ? -1. : 1.);
+				noff.y = off->y;
 
 				if (ldom)
 				{
@@ -387,7 +386,7 @@ void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t 
 
 				default:
 					if (drawline==0)
-						i += draw_vector_char_lookahead(fb, font, c, &string[i+1], p, off, scale, colm, line_thick, mode, bidi);
+						i += draw_vector_char_lookahead(fb, font, c, &string[i+1], p, &off, scale, colm, line_thick, mode, bidi);
 
 					off.x += letter_width(font, off.x, c, scale, mode) * (bidi == -2 ? -1. : 1.);
 			}

@@ -65,14 +65,14 @@ void convert_image_srgb16(raster_t *im, const uint16_t *data, const int mode)
 	{
 		im->l = calloc(im->dim.x * im->dim.y, sizeof(lrgb_t));
 		for (i=0; i<im->dim.x*im->dim.y*4; i++)
-			((uint16_t *) im->l)[i] = slrgb((double) data[i] * ratio) * ONEF + 0.5;
+			((uint16_t *) im->l)[i] = s16lrgb(data[i]) * ONEF + 0.5;
 	}
 
 	if (mode & IMAGE_USE_FRGB)
 	{
 		im->f = calloc(im->dim.x * im->dim.y, sizeof(frgb_t));
 		for (i=0; i<im->dim.x*im->dim.y*4; i++)
-			((float *) im->f)[i] = slrgb((double) data[i] * ratio);
+			((float *) im->f)[i] = s16lrgb(data[i]);
 	}
 
 	if (mode & IMAGE_USE_SQRGB)

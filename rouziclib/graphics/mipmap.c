@@ -334,12 +334,16 @@ void blit_mipmap(framebuffer_t *fb, mipmap_t m, xy_t pscale, xy_t pos, int inter
 void blit_mipmap_in_rect(framebuffer_t *fb, mipmap_t m, rect_t r, int keep_aspect_ratio, int interp)
 {
 	xy_t pscale, pos;
+	rect_t image_frame = r;
 
 	if (m.lvl_count < 1 || m.lvl==NULL)
 		return ;
 
-	pscale = div_xy(get_rect_dim(r), xyi_to_xy(m.fulldim));
-	pos = add_xy(rect_p01(r), mul_xy(pscale, set_xy(0.5)));
+	if (keep_aspect_ratio)
+		image_frame = fit_rect_in_area( xyi_to_xy(m.fulldim), image_frame, xy(0.5, 0.5) );
+
+	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(m.fulldim));
+	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
 	blit_mipmap(fb, m, pscale, pos, interp);
 }

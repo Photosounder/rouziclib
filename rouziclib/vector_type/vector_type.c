@@ -1,10 +1,3 @@
-#include "make_font.c"
-#include "draw.c"
-#include "stats.c"
-#include "fit.c"
-#include "cjk.c"
-#include "insert_rect.c"
-
 int32_t get_letter_index(vector_font_t *font, uint32_t c)
 {
 	if (c > 0x10FFFF)

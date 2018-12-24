@@ -2,6 +2,9 @@ char *make_string_copy(const char *orig)
 {
 	char *copy;
 
+	if (orig==NULL)
+		return NULL;
+
 	copy = calloc(strlen(orig)+1, sizeof(char));
 	strcpy(copy, orig);
 

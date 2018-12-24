@@ -7,14 +7,12 @@
 
 #include <SDL.h>
 #include <SDL_audio.h>
-#include <GL/glew.h>
-#include <GL/glut.h>
 #include <SDL_opengl.h>
 
 typedef struct
 {
 	char **path;
-	int path_as, paths_left, id_last;
+	int path_as, id_last;
 } dropfile_t;
 
 extern dropfile_t dropfile;
@@ -51,7 +49,7 @@ extern void sdl_init_audio_not_wasapi();
 extern char *sdl_get_clipboard_dos_conv();
 extern void sdl_print_sdl_version();
 extern void dropfile_event_proc(SDL_Event event);
-extern int dropfile_check_present();
+extern int dropfile_get_count();
 extern char *dropfile_pop_first();
 
 #endif

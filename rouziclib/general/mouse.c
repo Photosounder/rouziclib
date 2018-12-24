@@ -27,9 +27,11 @@ void mouse_pre_event_proc(mouse_t *mouse)
 	mouse->d = XY0;
 	mouse->prev_u = mouse->u_stored;
 	mouse->b.wheel = 0;
-	mouse->ctrl_id->hover = mouse->ctrl_id->hover_new;
+	if (mouse->b.lmb <= 0)						// if LMB is being pressed the hovered ID stays the same as before no matter what
+		mouse->ctrl_id->hover = mouse->ctrl_id->hover_new;
 	memset(&mouse->ctrl_id->hover_new, 0, sizeof(ctrl_id_t));
 	memset(&mouse->ctrl_id->current, 0, sizeof(ctrl_id_t));
+	mouse->ctrl_id->hover_box_matched = 0;
 
 	flag_update_mouse_button(&mouse->b.lmb, &mouse->b.quick_lmb);
 	flag_update_mouse_button(&mouse->b.mmb, &mouse->b.quick_mmb);
@@ -58,8 +60,7 @@ void mouse_button_update(int *mb, int *quick_mb, int new_state, int button_index
 
 	if (new_state && *mb <= 0)		// if the button is pressed
 		if (mouse->mouse_focus_flag >= 0 && mouse->window_focus_flag >= 0)	// make sure the click is in the window
-			if (button_index==1 || mouse->window_focus_flag != 2)		// if it's the mmb or the window wasn't just clicked to gain focus
-				*mb = 2;
+			*mb = 2;
 }
 
 // see libraries/sdl.c for sdl_mouse_event_proc()
@@ -112,7 +113,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 			mouse->b.orig = set_xy(FLT_MAX); // set the click location far out so it doesn't click on any control
 	}
 
-	if (mouse->window_focus_flag < 0)		// if focus was regained through a click
+	if (mouse->window_focus_flag == 2)		// if focus was regained through a click
 		mouse->b.orig = set_xy(FLT_MAX);	// set the click location far out so it doesn't click on any control
 
 	if (mouse->b.lmb==2)				// on click unselect any text editor

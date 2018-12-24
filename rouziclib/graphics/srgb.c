@@ -60,6 +60,36 @@ lut_t get_lut_slrgb()
 	return slrgb_l;
 }
 
+lut_t get_lut_s16lrgb()
+{
+	int32_t i;
+	static int init=1;
+	static lut_t slrgb_l;
+
+	if (init)
+	{
+		init = 0;
+
+		slrgb_l.lut_size = 65536;
+	
+		slrgb_l.flut = calloc (slrgb_l.lut_size, sizeof(float));
+	
+		for (i=0; i<slrgb_l.lut_size; i++)
+		{
+			slrgb_l.flut[i] = slrgb(((double) i * (1. / 65535.)));
+		}
+	}
+
+	return slrgb_l;
+}
+
+float s16lrgb(uint16_t v16)
+{
+	float *flut = get_lut_s16lrgb().flut;
+
+	return flut[v16];
+}
+
 lut_t get_lut_lsrgb_fl()
 {
 	int32_t i;

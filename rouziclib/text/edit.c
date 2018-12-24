@@ -242,7 +242,7 @@ void textedit_add(textedit_t *te, char *str)
 			else
 			{
 				textedit_erase_selection(te, &orig_len);
-				textedit_add(te, "\t", 0, 0);
+				textedit_add(te, "\t");
 			}
 		}
 
@@ -255,7 +255,7 @@ void textedit_add(textedit_t *te, char *str)
 				else
 				{
 					textedit_erase_selection(te, &orig_len);
-					textedit_add(te, "\n", 0, 0);
+					textedit_add(te, "\n");
 				}
 				te->return_flag = 1;
 			}
@@ -284,6 +284,10 @@ void textedit_add(textedit_t *te, char *str)
 				else
 					textedit_erase_selection(te, &orig_len);
 			}
+			else if (mouse.key_state[RL_SCANCODE_ESCAPE] == 2)	// Escape gets you out of the editor
+			{
+				cur_textedit = NULL;
+			}
 		}
 		else if (get_kb_ctrl())
 		{
@@ -298,7 +302,7 @@ void textedit_add(textedit_t *te, char *str)
 					if (te->edit_mode == te_mode_value)
 						replace_char(clipboard, '\n', ' ');
 
-					textedit_add(te, clipboard, 0, 0);
+					textedit_add(te, clipboard);
 					free(clipboard);
 				}
 			}

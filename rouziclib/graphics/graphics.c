@@ -262,7 +262,7 @@ void thickness_limit(double *thickness, double *brightness, double limit)	// sam
 void screen_blank(framebuffer_t fb)
 {
 	if (fb.use_cl)
-		return ;//zero_cl_mem(&fb.clctx, fb.clbuf, fb.w*fb.h*sizeof(frgb_t));
+		return ;
 	else if (fb.r.use_frgb)
 		memset (fb.r.f, 0, fb.w*fb.h*sizeof(frgb_t));
 	else

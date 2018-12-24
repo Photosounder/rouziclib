@@ -282,3 +282,9 @@ glyph 2A09
 	lines p3 p4
 	bounds	-2;6	2;6
 
+glyph 200A
+	bounds 0;3 -0;3
+
+glyph 2009
+	bounds -0;3 0;3
+

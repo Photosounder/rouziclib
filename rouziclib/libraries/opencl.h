@@ -1,12 +1,7 @@
 // in libraries/opencl_struct.h:
-// clctx_t
+// clctx_t, clew.h
 
 #ifdef RL_OPENCL
-
-#ifdef RL_OPENCL_GL
-#include <GL/glew.h>
-#include <GL/glut.h>
-#endif
 
 extern const char *get_cl_error_string(cl_int err);
 extern void check_compilation_log(clctx_t *c, cl_program program);
@@ -17,8 +12,7 @@ extern cl_int build_cl_program(clctx_t *c, cl_program *program, const char *src)
 extern cl_int build_cl_program_from_file(clctx_t *c, cl_program *program, char *cl_src_path);
 extern cl_int create_cl_kernel(clctx_t *c, cl_program program, cl_kernel *kernel, const char *name);
 extern cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size);
-extern void init_raster_cl(framebuffer_t *fb, const clctx_t *clctx);
-//extern uint64_t get_clmem_device_address(clctx_t *clctx, cl_mem buf);
+extern void init_framebuffer_cl(framebuffer_t *fb, const clctx_t *clctx);
 extern void make_gl_tex(framebuffer_t *fb);
 extern cl_int init_fb_cl(framebuffer_t *fb);
 

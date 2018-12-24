@@ -115,49 +115,6 @@ void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)
 	*bg = blend_alphablend_sep_alpha(*bg, fg, LBD_TO_Q15(bg->a), LBD_TO_Q15(fg.a) * p >> 15);
 }
 
-/*void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)	// proper alpha blending when both pixels might have any possible alpha value
-{
-	int32_t r, g, b, a, pinv, fba;
-	int64_t ai;
-
-	p = p * fg.a >> LBD;	// apply fb's alpha to p
-	pinv = 32768 - p;
-
-	#if LBD == 15
-	a = bg->a;
-	#else
-	a = 32768 * bg->a >> LBD;		// 1.15
-	#endif
-
-	bg->a = ONE * p + bg->a * pinv >> 15;
-
-	if (bg->a > 0)
-	{
-		#if LBD == 15
-		fba = bg->a;
-		#else
-		fba = 32768 * bg->a >> LBD;
-		#endif
-
-		//ai = fpdiv_d2(32768, fba, 15);
-		ai = (1L<<30) / fba;
-
-		r = (fg.r*p + (bg->r * a >> 15)*pinv) * ai >> 15;
-		g = (fg.g*p + (bg->g * a >> 15)*pinv) * ai >> 15;
-		b = (fg.b*p + (bg->b * a >> 15)*pinv) * ai >> 15;
-
-		if (r>ONE) bg->r = ONE; else bg->r = r;
-		if (g>ONE) bg->g = ONE; else bg->g = g;
-		if (b>ONE) bg->b = ONE; else bg->b = b;
-	}
-	else
-	{
-		bg->r = 0;
-		bg->g = 0;
-		bg->b = 0;
-	}
-}*/
-
 void blend_alphablendfg(lrgb_t *bg, lrgb_t fg, int32_t p)	// alpha blending (doesn't take framebuffer's alpha into account though, assumed to be 1.0)
 {
 	int32_t pinv;

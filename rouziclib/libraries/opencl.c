@@ -1,5 +1,13 @@
 #ifdef RL_OPENCL
 
+#include "libraries/clew.c"
+
+#ifdef RL_OPENCL_GL
+#ifdef RL_BUILTIN_GLEW
+#include "libraries/glew.c"
+#endif
+#endif
+
 const char *get_cl_error_string(cl_int err)
 {
 	switch(err)
@@ -63,6 +71,10 @@ const char *get_cl_error_string(cl_int err)
 		case 4103: return "CLFFT_DEVICE_NO_DOUBLE";
 		case 4104: return "CLFFT_DEVICE_MISMATCH";
 		#endif
+
+		// Personnal codes
+		case -1024: return "clew initialisation failed";
+
 		default: return "Unknown OpenCL error";
 	}
 }
@@ -82,6 +94,14 @@ void check_compilation_log(clctx_t *c, cl_program program)
 cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform)
 {
 	cl_int ret=0;
+
+	ret = clewInit();
+	if (ret)
+	{
+		fprintf_rl(stderr, "clewInit() failed with code %d\n", ret);
+		return -1024;
+	}
+
 	#ifdef RL_OPENCL_GL
 
 	#if defined(_WIN32)		// Windows	from http://stackoverflow.com/a/30529217/1675589
@@ -127,6 +147,13 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 	cl_device_id	device_id[16]={0};
 	cl_uint		ret_num_platforms=0;
 	cl_uint		ret_num_devices=0;
+
+	ret = clewInit();
+	if (ret)
+	{
+		fprintf_rl(stderr, "clewInit() failed with code %d\n", ret);
+		return -1024;
+	}
 
 	ret = clGetPlatformIDs(sizeof(platform_id)/sizeof(*platform_id), platform_id, &ret_num_platforms);	// get all the platforms
 	CL_ERR_RET("clGetPlatformIDs (in init_cl_context)", ret);
@@ -242,71 +269,13 @@ cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size)
 	return ret;
 }
 
-void init_raster_cl(framebuffer_t *fb, const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
+void init_framebuffer_cl(framebuffer_t *fb, const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
 {
 	cl_int ret;
 
 	if (fb->clctx.command_queue==NULL)
-	{
 		fb->clctx = *clctx;		// copy the original cl context
-	}
-
-	/*fb->clbuf = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, fb->w*fb->h*4*sizeof(float), fb->f, &ret);
-	CL_ERR_RET("clCreateBuffer (in init_fb_cl, for fb->clbuf)", ret);
-
-	fb->clbuf_da = get_clmem_device_address(&fb->clctx, fb->clbuf);*/
 }
-
-/*uint64_t get_clmem_device_address(clctx_t *clctx, cl_mem buf)
-{
-	const char kernel_source[] =
-"kernel void get_global_ptr_address(global void *ptr, global ulong *devaddr)		\n"
-"{											\n"
-"	*devaddr = (ulong) ptr;								\n"
-"}											\n";
-
-	int32_t i;
-	cl_int ret;
-	static int init=1;
-	static cl_program program;
-	static cl_kernel kernel;
-	size_t global_work_size[1];
-	static cl_mem ret_buffer;
-	uint64_t devaddr;
-
-	if (init)
-	{
-		init=0;
-		ret = build_cl_program(clctx, &program, kernel_source);
-		CL_ERR_RET("build_cl_program (in get_clmem_device_address)", ret);
-
-		ret = create_cl_kernel(clctx, program, &kernel, "get_global_ptr_address");
-		CL_ERR_RET("create_cl_kernel (in get_clmem_device_address)", ret);
-
-		ret_buffer = clCreateBuffer(clctx->context, CL_MEM_WRITE_ONLY, 1*sizeof(uint64_t), NULL, &ret);
-		CL_ERR_RET("clCreateBuffer (in get_clmem_device_address, for ret_buffer)", ret);
-	}
-	if (kernel==NULL)
-		return 0;
-
-	// Run the kernel
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buf);		CL_ERR_RET("clSetKernelArg (in get_clmem_device_address, for buf)", ret);
-	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), &ret_buffer);	CL_ERR_RET("clSetKernelArg (in get_clmem_device_address, for ret_buffer)", ret);
-
-	global_work_size[0] = 1;
-	ret = clEnqueueNDRangeKernel(clctx->command_queue, kernel, 1, NULL, global_work_size, NULL, 0, NULL, NULL);			// enqueue the kernel
-	CL_ERR_RET("clEnqueueNDRangeKernel (in get_clmem_device_address)", ret);
-
-	ret = clEnqueueReadBuffer(clctx->command_queue, ret_buffer, CL_FALSE, 0, 1*sizeof(uint64_t), &devaddr, 0, NULL, NULL);		// copy the value
-	CL_ERR_RET("clEnqueueReadBuffer (in get_clmem_device_address, for ret_buffer)", ret);
-
-	ret = clFlush(clctx->command_queue);
-	CL_ERR_RET("clFlush (in get_clmem_device_address)", ret);
-
-	clFinish(clctx->command_queue);
-
-	return devaddr;
-}*/
 
 void make_gl_tex(framebuffer_t *fb)
 {

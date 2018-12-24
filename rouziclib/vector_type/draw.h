@@ -15,7 +15,7 @@ enum		// custom unicode colours
 };
 
 extern int draw_vector_char(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi);
-extern int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi);
+extern int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t *off, double scale, col_t colour, double line_thick, const int mode, const int bidi);
 extern void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp);
 extern void draw_string_len(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp);
 extern void draw_string(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);

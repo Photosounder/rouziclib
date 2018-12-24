@@ -90,10 +90,10 @@ void draw_unit_grid_col(xy_t offset, double sm, col_t colour)
 
 void draw_rangebox(rect_t box, const char *label, col_t colour)
 {
-	if (check_box_box_intersection(box, zc.corners_dl)==0 || rect_max_side(box)*zc.scrscale < 0.1)
+	if (check_box_on_screen(box)==0 || rect_max_side(box)*zc.scrscale < 0.1)
 		return ;
 
-	const double bg_intensity = doztof("0;0;2");
+	const double bg_intensity = 2./144.;
 	draw_rect_full(fb, sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
 	draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.5 - bg_intensity*0.5);
 

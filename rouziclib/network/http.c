@@ -18,8 +18,7 @@ int http_request(char *domain, char *port, char *request, int timeout, int retry
 	{
 		if (mode==MULTI_GZ_CAT)	// we decompress all the gzip packets and concatenate them together
 		{
-			#ifdef RL_ZLIB
-			/*p = tcpdata;
+			p = tcpdata;
 			pe = NULL;
 			defli = 0;
 			while (pe != &tcpdata[datasize])
@@ -36,10 +35,6 @@ int http_request(char *domain, char *port, char *request, int timeout, int retry
 
 				ret = defli;
 			}
-			#else
-			fprintf_rl(stderr, "Cannot use mode MULTI_GZ_CAT in http_request(). RL_ZLIB needs to be defined.\n");
-			goto jump_end;*/
-			#endif
 		}
 		else
 		{

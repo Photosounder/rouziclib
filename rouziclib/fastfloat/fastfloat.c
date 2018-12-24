@@ -177,23 +177,17 @@ double fastsqrt(double x)
 	return endsign * (((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0]);
 }*/
 
-double fastcos(double x)
+uint32_t fastcos_get_param(double *xp, double *endsign)
 {
-	static const double lut[] = 
-	#include "fastcos_d5.h"
-	const double *c;
-	const uint32_t ish=19-lutsp;
-	const double inv_2pi = 0.159154943091895335768883763372514362034;
-	double endsign = 1.;
-	double xfloor = 0.;
-	double xoff;
+	const double inv_2pi = 0.15915494309189533576888;
+	double x, xoff, xfloor = 0.;
 	uint64_t *xint = (uint64_t *) &x;		// top 8 bytes of x
 	uint32_t *xhi4 = &((uint32_t *) &x)[1];		// top 4 bytes of x
 	uint64_t *xfint = (uint64_t *) &xfloor;		// top 8 bytes of xfloor
 	uint32_t exp, lutind;
 	uint64_t xfmask;
 
-	x *= inv_2pi;				// convert from radians to turns
+	x = *xp * inv_2pi;			// convert from radians to turns
 	*xint &= 0x7FFFFFFFFFFFFFFF;		// x = |x|
 
 	// x = [0 , +inf[ --> x = [0 , 1[
@@ -204,7 +198,7 @@ double fastcos(double x)
 		xfmask = 0xFFFFFFFFFFFFFFFF << (52-exp);	// mask to exclude bits of the mantissa that are fractional
 		*xfint = *xint & xfmask;
 
-		x -= xfloor;						// |x| = fractional part of |x|
+		x -= xfloor;					// |x| = fractional part of |x|
 	}
 
 	// x = [0 , 1[ --> x = [0 , 0.5]
@@ -214,13 +208,95 @@ double fastcos(double x)
 	// x = [0 , 0.5] --> x = [0 , 0.25]
 	if (*xhi4 > 0x3FD00000)		// if x > 0.25
 	{
-		endsign = -1.;
+		*endsign = -1.;
 		x = 0.5 - x;
 	}
 
+	*xp = x;
 	xoff = x + 0.5;		// the mantissa for xoff is [1.0 , 1.5]
 
-	lutind = (((uint32_t *) &xoff)[3] & 0x000FFFFF) >> ish;		// top bits of the mantissa form the LUT index
+	lutind = (((uint32_t *) &xoff)[1] & 0x000FFFFF);		// top bits of the mantissa form the LUT index
+	return lutind;
+}
+
+uint32_t fastcosf_get_param(float *xp, float *endsign)
+{
+	const float inv_2pi = 0.159154943f;
+	float x, xoff, xfloor = 0.f;
+	uint32_t *xint = (uint32_t *) &x;
+	uint32_t *xfint = (uint32_t *) &xfloor;
+	uint32_t exp, lutind, xfmask;
+
+	x = *xp * inv_2pi;		// convert from radians to turns
+	*xint &= 0x7FFFFFFF;		// x = |x|
+
+	// x = [0 , +inf[ --> x = [0 , 1[
+	if (*xint >= 0x3F800000)		// if |x| >= 1.0
+	{
+		exp = (*xint >> 23) - 127;
+
+		xfmask = 0xFFFFFFFF << (23-exp);	// mask to exclude bits of the mantissa that are fractional
+		*xfint = *xint & xfmask;
+
+		x -= xfloor;				// |x| = fractional part of |x|
+	}
+
+	// x = [0 , 1[ --> x = [0 , 0.5]
+	if (*xint > 0x3F000000)		// if x > 0.5
+		x = 1.f - x;
+
+	// x = [0 , 0.5] --> x = [0 , 0.25]
+	if (*xint > 0x3E800000)		// if x > 0.25
+	{
+		*endsign = -1.f;
+		x = 0.5f - x;
+	}
+
+	*xp = x;
+	xoff = x + 0.5f;	// the mantissa for xoff is [1.0 , 1.5]
+
+	lutind = (*((uint32_t *) &xoff) & 0x007FFFFF);	// top bits of the mantissa form the LUT index
+	return lutind;
+}
+
+float fastcosf_d2(float x)	// max error: 4.79042e-007 (compare with 1.52017e-007 for cosf())
+{
+	static const float lut[] = 
+	#include "fastcos_d2.h"		// 780 bytes
+	const uint32_t ish=22-lutsp;
+	const float *c;
+	float endsign = 1.f;
+	uint32_t lutind;
+
+	lutind = fastcosf_get_param(&x, &endsign) >> ish;
+	c = &lut[lutind*3];
+	return endsign * ((c[2]*x + c[1])*x + c[0]);
+}
+
+double fastcos_d2(double x)	// max error: 7.70006e-008
+{
+	static const double lut[] = 
+	#include "fastcos_d2.h"		// 1560 bytes
+	const uint32_t ish=19-lutsp;
+	const double *c;
+	double endsign = 1.;
+	uint32_t lutind;
+
+	lutind = fastcos_get_param(&x, &endsign) >> ish;
+	c = &lut[lutind*3];
+	return endsign * ((c[2]*x + c[1])*x + c[0]);
+}
+
+double fastcos_d5(double x)	// max error: 9.62572e-015 (compare with 3.41596e-016 for cos())
+{
+	static const double lut[] = 
+	#include "fastcos_d5.h"		// 1584 bytes
+	const uint32_t ish=19-lutsp;
+	const double *c;
+	double endsign = 1.;
+	uint32_t lutind;
+
+	lutind = fastcos_get_param(&x, &endsign) >> ish;
 	c = &lut[lutind*6];
 	return endsign * (((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0]);
 }

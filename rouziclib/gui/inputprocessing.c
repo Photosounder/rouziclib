@@ -32,38 +32,43 @@ int check_ctrl_id(rect_t box, xy_t pos, double radius, mouse_t mouse, int type)	
 	mouse.ctrl_id->current.pos = pos;
 	mouse.ctrl_id->current.radius = radius;
 
+	// Increment current.id if needed to separate controls with the same box or circle
 	if (mouse.ctrl_id->hover.type == type)
-		if (			// if this control has the same box or position and size and type as the previously hovered control
-				(type==0 && equal_rect(mouse.ctrl_id->hover_new.box, box)) ||
-				(type==0 && equal_rect(mouse.ctrl_id->hover.box, box)) ||
-				(type==1 && equal_xy(mouse.ctrl_id->hover_new.pos, pos) && mouse.ctrl_id->hover_new.radius == radius) ||
-				(type==1 && equal_xy(mouse.ctrl_id->hover.pos, pos) && mouse.ctrl_id->hover.radius == radius)
-				)
-			mouse.ctrl_id->current.id++;				// increment the ID to differentiate between stacked same-box controls
-
-	if (mouse.b.lmb > 0)						// if LMB is being pressed
-		mouse.ctrl_id->hover_new = mouse.ctrl_id->hover;	// the hovered ID stays the same as before no matter what
-	else
 	{
-		switch (type)	// find if the mouse hovers the control
+		// if this control has the same box or position and size and type as the previous hovered control in this frame
+		if ((type==0 && equal_rect(mouse.ctrl_id->hover_new.box, box)) || (type==1 && equal_xy(mouse.ctrl_id->hover_new.pos, pos) && mouse.ctrl_id->hover_new.radius == radius))
+			mouse.ctrl_id->current.id++;				// increment the ID to differentiate between stacked same-box controls
+		// else if it matches the previous frame's hovered control
+		else if ((type==0 && equal_rect(mouse.ctrl_id->hover.box, box)) || (type==1 && equal_xy(mouse.ctrl_id->hover.pos, pos) && mouse.ctrl_id->hover.radius == radius))
 		{
-			case 0:
-				mouse_hovers = check_point_within_box(mouse.u, box);
-				break;
-
-			case 1:
-				d_current = hypot_xy(mouse.u, pos);
-				d_hovnew = (mouse.ctrl_id->hover_new.type == type) ? hypot_xy(mouse.u, mouse.ctrl_id->hover_new.pos) : FLT_MAX;
-
-				if (d_current <= radius && d_current <= d_hovnew)
-					mouse_hovers = 1;
-				break;
+			if (mouse.ctrl_id->hover_box_matched==0)	// if this control is the first one that matches the previous frame's hover control
+				mouse.ctrl_id->hover_box_matched = 1;	// only mark it as matched to avoid incrementing once too many
+			else
+				mouse.ctrl_id->current.id++;		// otherwise increment
 		}
-
-		if (mouse_hovers)						// if the mouse hovers the control
-			mouse.ctrl_id->hover_new = mouse.ctrl_id->current;	// the hovered ID becomes the ID of the current control
 	}
 
+	// Find if the mouse hovers the control (all this is ultimately discarded in mouse_pre_event_proc() if the lmb is down)
+	switch (type)
+	{
+		case 0:
+			mouse_hovers = check_point_within_box(mouse.u, box);
+			break;
+
+		case 1:
+			d_current = hypot_xy(mouse.u, pos);
+			d_hovnew = (mouse.ctrl_id->hover_new.type == type) ? hypot_xy(mouse.u, mouse.ctrl_id->hover_new.pos) : FLT_MAX;
+
+			if (d_current <= radius && d_current <= d_hovnew)
+				mouse_hovers = 1;
+			break;
+	}
+
+	// Set hover_new to current if the mouse is hovering
+	if (mouse_hovers)						// if the mouse hovers the control
+		mouse.ctrl_id->hover_new = mouse.ctrl_id->current;	// the hovered ID becomes the ID of the current control
+
+	// Compare current and hover
 	if (equal_ctrl_id(mouse.ctrl_id->current, mouse.ctrl_id->hover))
 		return 1;
 	return 0;

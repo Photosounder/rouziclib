@@ -40,6 +40,11 @@ uint32_t fread_BE32(FILE *file)
 }
 
 // File write
+void fwrite_byte8(FILE *file, uint8_t s)
+{
+	fwrite(&s, 1, 1, file);
+}
+
 void fwrite_LE16(FILE *file, uint16_t s)
 {
 	uint8_t byte;
@@ -181,6 +186,14 @@ uint32_t read_BE32(const uint8_t *buf, size_t *index)
 		*index += sizeof(uint32_t);
 
 	return (uint32_t) (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+}
+
+uint64_t read_LE64(const uint8_t *buf, size_t *index)
+{
+	if (index)
+		*index += sizeof(uint64_t);
+
+	return ((uint64_t) read_LE32(&buf[4], NULL) << 32) | read_LE32(buf, NULL);
 }
 
 uint64_t read_BE64(const uint8_t *buf, size_t *index)

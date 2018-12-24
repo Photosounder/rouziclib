@@ -55,7 +55,7 @@ double letter_width(vector_font_t *font, double pos, uint32_t c, double scale, c
 double calc_strwidth_len(vector_font_t *font, uint8_t *string, double scale, const int mode, int32_t len)
 {
 	int32_t i, con_prev=0;
-	uint32_t c, co;
+	uint32_t c, co, c_prev=0;
 	double w = 0.;
 	unicode_data_t ucd;
 
@@ -65,12 +65,21 @@ double calc_strwidth_len(vector_font_t *font, uint8_t *string, double scale, con
 	for (i=0; i<len; i++)
 	{
 		co = utf8_to_unicode32(&string[i], &i);
+
+		// Arabic form substitution
 		c = get_arabic_form(co, &string[i+1], len-(i+1), con_prev);	// substitute for Arabic form if needed
 		ucd = get_unicode_data(c);
 		if (ucd.bidicat!=bidicat_NSM)				// if character that is not a combining mark
 			con_prev = unicode_arabic_can_connect(co, 1);	// if the current character connects with the next (in Arabic)
 
+		// Ligature exceptions
+		if (c >= cp_ins_start && c < cp_ins_end)
+			if (c_prev >= cp_ins_start && c_prev < cp_ins_end)	// there's no LETTERSPACING between two cp_ins spaces
+				w -= LETTERSPACING * scale;
+
 		w += letter_width(font, w, c, scale, mode);
+
+		c_prev = c;
 	}
 
 	w -= LETTERSPACING * scale;	// removes the end space
@@ -87,7 +96,7 @@ double calc_strwidth(vector_font_t *font, uint8_t *string, double scale, const i
 word_stats_t make_word_stats(vector_font_t *font, uint8_t *string, const int mode)
 {
 	int i, is, iw, prev_was_space=1, len = strlen(string);
-	uint32_t c;
+	uint32_t c, c_prev=0;
 	word_stats_t ws;
 
 	ws.full_length = calc_strwidth(font, string, 1., mode);
@@ -120,6 +129,12 @@ word_stats_t make_word_stats(vector_font_t *font, uint8_t *string, const int mod
 		else
 		{
 			ws.word_length[iw] += letter_width(font, 0., c, 1., mode);
+
+			// Ligature exceptions
+			if (c >= cp_ins_start && c < cp_ins_end)
+				if (c_prev >= cp_ins_start && c_prev < cp_ins_end)	// there's no LETTERSPACING between two cp_ins spaces
+					ws.word_length[iw] -= LETTERSPACING;
+
 			if (i == len-1)		// if we've reached the end
 			{
 				ws.word_length[iw] -= LETTERSPACING;	// removes the end space
@@ -132,6 +147,8 @@ word_stats_t make_word_stats(vector_font_t *font, uint8_t *string, const int mod
 				ws.word_start[iw] = is;
 			prev_was_space = 0;
 		}
+
+		c_prev = c;
 	}
 
 	return ws;

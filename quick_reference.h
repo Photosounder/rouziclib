@@ -91,10 +91,11 @@
 		ctrl_resizing_rect(&resize_state, &resize_box);
 
 	// Disable input processing for some controls
-		// this works by saving hover_new and restoring it to ignore any controls in between
-		ctrl_id_t hover_save = mouse.ctrl_id->hover_new;
+		// this works by saving the whole state of the control identification and restoring it to ignore any controls in between
+		static mouse_ctrl_id_t ctrl_id_save={0};
+		ctrl_id_save = *mouse.ctrl_id;
 		ctrl_something();
-		mouse.ctrl_id->hover_new = hover_save;
+		*mouse.ctrl_id = ctrl_id_save;
 
 //**** Controls from text layout ****
 
@@ -190,6 +191,7 @@
 
 	// Insert-spacing rect in text
 		// An insert-spacing codepoint can be inserted into a text using "\xee\x80\x90" for cp_ins_w0 and "\xf3\xa0\x84\x80" for an index of 0 (can increment last byte up to 63)
+		// if there are more than one cp_ins_w* characters the widths are summed
 		sprintf(string, "Inserted element goes -> ""\xee\x80\x96""\xf3\xa0\x84\x80"" <- here");
 
 		// reset the insert_rect array to clear outdated or bogus values
@@ -262,43 +264,50 @@
 //**** Threading ****
 
 	// Init thread handle (not for detached threads)
-		static thrd_t thread_handle=NULL;
+		static rl_thread_t thread_handle=NULL;
 	// Declare the thread data
 		my_thread_data_t data={0};
 
-	// before thrd_join the caller should signal to the thread function to quit using this element in the data struct
+	// before rl_thread_join the caller should signal to the thread function to quit using this element in the data struct
 		volatile int thread_on;
 		data.thread_on = 0;
 	
 	// Wait for thread to end (not for detached threads, use mutex instead)
 		if (thread_handle) 
-			thrd_join_and_null(&thread_handle, NULL);
+			rl_thread_join_and_null(&thread_handle);
 
 		// and before creating the thread:
 		data.thread_on = 1;
 
 	// Create thread
-		thrd_create(&thread_handle, thread_function, &data);
+		rl_thread_create(&thread_handle, thread_function, &data);
 		// or detached:
-		thrd_create_detached(thread_function, &data);
+		rl_thread_create_detached(thread_function, &data);
 
 	// Thread function prototype
 		int thread_function(void *ptr)
 
 	// Mutexes
-		mtx_t my_mutex;
+		rl_mutex_t my_mutex;
 
-		mtx_init(&my_mutex, mtx_plain);
-		mtx_lock(&my_mutex);
-		mtx_unlock(&my_mutex);
-		mtx_destroy(&my_mutex);
+		rl_mutex_init(&my_mutex);
+		rl_mutex_lock(&my_mutex);
+		rl_mutex_unlock(&my_mutex);
+		rl_mutex_destroy(&my_mutex);
 
 		// or
-		mtx_t *mutex_ptr;
-		mutex_ptr = mtx_init_alloc(mtx_plain);
-		mtx_lock(mutex_ptr);
-		mtx_unlock(mutex_ptr);
-		mtx_destroy_free(&mutex_ptr);
+		rl_mutex_t *mutex_ptr;
+		mutex_ptr = rl_mutex_init_alloc();
+		rl_mutex_lock(mutex_ptr);
+		rl_mutex_unlock(mutex_ptr);
+		rl_mutex_destroy_free(&mutex_ptr);
+
+	// Set priority for the current thread
+		rl_thread_set_priority_low();
+		rl_thread_set_priority_high();
+	
+	// Yield
+		rl_thread_yield();
 
 //**** Network ****
 	

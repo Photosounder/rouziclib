@@ -1,7 +1,7 @@
 typedef struct
 {
 	ctrl_id_t hover, hover_new, current;
-	rect_t box;
+	int hover_box_matched;
 } mouse_ctrl_id_t;
 
 typedef struct

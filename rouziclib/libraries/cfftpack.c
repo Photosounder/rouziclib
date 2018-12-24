@@ -16,6 +16,30 @@ void cfft_plan_free(cfft_plan_t *plan)
 	memset(plan, 0, sizeof(cfft_plan_t));
 }
 
+cfft_plan_t cfft_1D_create_plan(int n)
+{
+	cfft_plan_t plan={0};
+	int ret = 0;
+
+	if (n == 0)
+		return plan;
+
+	plan.lensav = n*2 + (int) log2((double) n) + 8;
+	plan.save = calloc(plan.lensav, sizeof(fft_real_t));
+	plan.lenwork = 2 * n;
+	plan.work = calloc(plan.lenwork, sizeof(fft_real_t));
+	plan.dim = xyi(n, 1);
+
+	cfft1i_(&n, plan.save, &plan.lensav, &ret);
+	if (ret)
+	{
+		fprintf_rl(stderr, "cfft1i_() returned %d in cfft_1D_create_plan()\n", ret);
+		cfft_plan_free(&plan);
+	}
+
+	return plan;
+}
+
 cfft_plan_t cfft_2D_create_plan(xyi_t dim)
 {
 	cfft_plan_t plan={0};
@@ -38,6 +62,21 @@ cfft_plan_t cfft_2D_create_plan(xyi_t dim)
 	}
 
 	return plan;
+}
+
+int cfft_1D(cfft_plan_t *plan, fft_real_t *data, const int way)
+{
+	int ret = 0, inc=1;
+
+	if (plan==NULL || data==NULL)
+		return -1;
+
+	if (way==0)
+		cfft1f_(&plan->dim.x, &inc, data, &plan->dim.x, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
+	else
+		cfft1b_(&plan->dim.x, &inc, data, &plan->dim.x, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
+
+	return ret;
 }
 
 int cfft_2D(cfft_plan_t *plan, fft_real_t *data, const int way)
@@ -101,7 +140,25 @@ void cfft_copy_c2r(fft_real_t *in, fft_real_t *out, xyi_t dim)
 		out[i] = cin[i].r;
 }
 
-void cfft_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, void **pout, size_t *out_as, xyi_t in_dim, xyi_t out_dim)	// every arg besides in and *_dim can be uninitialised
+void cfft_1D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, void **pout, size_t *out_as, int in_n, int out_n)	// every arg besides in and *_n can be uninitialised
+{
+	xyi_t in_dim, out_dim;
+
+	in_dim = xyi(in_n, 1);
+	out_dim = xyi(out_n, 1);
+
+	cfft_copy_r2c_pad(in, pout, out_as, in_dim, out_dim);	// 2D real -> 2D complex and padded
+
+	if (equal_xyi(plan->dim, out_dim)==0)			// if we must recreate the plan
+	{
+		cfft_plan_free(plan);
+		*plan = cfft_1D_create_plan(out_dim.x);
+	}
+
+	cfft_1D(plan, *pout, 0);
+}
+
+void cfft_2D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, void **pout, size_t *out_as, xyi_t in_dim, xyi_t out_dim)	// every arg besides in and *_dim can be uninitialised
 {
 	cfft_copy_r2c_pad(in, pout, out_as, in_dim, out_dim);	// 2D real -> 2D complex and padded
 

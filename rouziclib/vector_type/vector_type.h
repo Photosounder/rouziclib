@@ -13,13 +13,6 @@
 #define LINEVSPACING	10.	// offset for each line
 #define LOWERCASESCALE	0.75
 
-#include "make_font.h"
-#include "draw.h"
-#include "stats.h"
-#include "fit.h"
-#include "cjk.h"
-#include "insert_rect.h"
-
 extern int get_letter_index(vector_font_t *font, uint32_t c);
 extern letter_t *get_letter(vector_font_t *font, uint32_t c);
 extern vobj_t *get_letter_obj(vector_font_t *font, uint32_t c);

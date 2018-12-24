@@ -306,10 +306,10 @@ int get_sdl_opengl_renderer_index()
 SDL_GLContext init_sdl_gl(SDL_Window *window)
 {
 	SDL_GLContext ctx=NULL;
-#ifdef RL_OPENCL
+#ifdef RL_OPENCL_GL
 	GLenum glewError;
 
-	ctx = SDL_GL_CreateContext(window);		//Create context
+	ctx = SDL_GL_CreateContext(window);		// Create context
 	if (ctx==NULL)
 	{
 		fprintf_rl(stderr, "OpenGL context could not be created. SDL Error: %s\n", SDL_GetError());
@@ -356,7 +356,7 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 
 	if (fb->use_cl)
 	{
-		#ifdef RL_OPENCL
+		#ifdef RL_OPENCL_GL
 		gl_ctx = init_sdl_gl(fb->window);
 		fb->renderer = SDL_CreateRenderer(fb->window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
 		if (fb->renderer==NULL)
@@ -385,14 +385,16 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 		// fb->r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
 	}
 
-	#ifdef RL_OPENCL
+	#ifdef RL_OPENCL_GL
 	if (fb->use_cl)
 		init_fb_cl(fb);
 	#endif
 
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
+	#ifndef __APPLE__	// see https://bugzilla.libsdl.org/show_bug.cgi?id=4401
 	SDL_SetWindowPosition(fb->window, pos.x, pos.y);
+	#endif
 	fb->r.dim = xyi(fb->w, fb->h);
 
 	// focus flags, useless since SDL_WINDOW_INPUT_FOCUS is always on when it shouldn't be
@@ -434,7 +436,7 @@ int sdl_handle_window_resize(framebuffer_t *fb, zoom_t *zc)
 	if (fb->w == w && fb->h == h)
 		return 0;
 
-	#ifdef RL_OPENCL
+	#ifdef RL_OPENCL_GL
 	clFinish(fb->clctx.command_queue);	// wait for end of queue
 	#endif
 
@@ -465,7 +467,7 @@ void sdl_flip_fb(int *first_frame)
 			fprintf_rl(stderr, "first_frame NULL in sdl_flip_fb()\n");
 			return ;
 		}
-#ifdef RL_OPENCL
+#ifdef RL_OPENCL_GL
 		if (*first_frame==0 && mouse.window_minimised_flag <= 0)
 		{
 			// display srgb
@@ -630,7 +632,6 @@ void dropfile_event_proc(SDL_Event event)
 
 	if (event.type==SDL_DROPFILE)
 	{
-
 		dropfile.id_last++;
 		alloc_enough(&dropfile.path, dropfile.id_last+1, &dropfile.path_as, sizeof(char *), 1.5);
 
@@ -639,16 +640,16 @@ void dropfile_event_proc(SDL_Event event)
 	}
 }
 
-int dropfile_check_present()
+int dropfile_get_count()
 {
-	int i;
+	int i, count=0;
 
 	if (dropfile.path)
 		for (i=0; i <= dropfile.id_last; i++)
 			if (dropfile.path[i])
-				return 1;
+				count++;
 
-	return 0;
+	return count;
 }
 
 char *dropfile_pop_first()
@@ -665,6 +666,8 @@ char *dropfile_pop_first()
 
 				if (i==dropfile.id_last)
 					dropfile.id_last = -1;
+
+				break;
 			}
 
 	return p;

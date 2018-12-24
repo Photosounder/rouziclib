@@ -90,6 +90,7 @@ extern int ctrl_button_invis_fromlayout_offset(ctrl_button_state_t *butt_state_p
 extern int ctrl_checkbox_fromlayout(int *state, gui_layout_t *layout, const int id);
 extern int ctrl_radio_fromlayout_offset(int *state, gui_layout_t *layout, const int id, const int id_off, const xy_t offset);
 extern int ctrl_knob_fromlayout(double *v, gui_layout_t *layout, const int id);
+extern int ctrl_textedit_fromlayout_in_rect(gui_layout_t *layout, const int id, rect_t box_os);
 extern int ctrl_textedit_fromlayout(gui_layout_t *layout, const int id);
 extern void gui_layout_selmenu_set_count(const int count, gui_layout_t *layout, const int id);
 extern int ctrl_selmenu_fromlayout(gui_layout_t *layout, const int id);

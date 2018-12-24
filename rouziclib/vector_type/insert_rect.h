@@ -14,8 +14,27 @@ enum		// inserting-spacing codepoints (must match font in ../vector_type/private
 	cp_ins_w10,
 	cp_ins_w11,
 	cp_ins_w12,
+	cp_ins_w0_1,
+	cp_ins_w0_2,
+	cp_ins_w0_3,
+	cp_ins_w0_4,
+	cp_ins_w0_5,
+	cp_ins_w0_6,
+	cp_ins_w24,
+	cp_ins_w36,
+	cp_ins_w48,
+	cp_ins_w60,
+	cp_ins_w72,
+	cp_ins_w84,
+	cp_ins_w96,
+	cp_ins_w108,
+	cp_ins_w120,
+	cp_ins_w240,
+	cp_ins_w360,
+	cp_ins_w480,
+	cp_ins_w600,
 
-	cp_ins_nul=0xE020,
+	cp_ins_nul=0xE030,
 
 	cp_ins_end,
 
@@ -23,7 +42,8 @@ enum		// inserting-spacing codepoints (must match font in ../vector_type/private
 };
 
 extern void reset_insert_rect_array();
-extern void report_insert_rect_pos(xy_t pos, xy_t dim, int bidi, uint32_t cp, int index);
+extern void report_insert_rect_pos(xy_t pos, xy_t dim, int bidi, int index);
+extern int parse_insert_rect_charseq(xy_t p, xy_t *off, double scale, int bidi, int cp0, char *string);
 extern rect_t get_insert_rect_zc(zoom_t zc, int index);
 extern rect_t insert_rect_change_height(rect_t r, double low, double high);
 

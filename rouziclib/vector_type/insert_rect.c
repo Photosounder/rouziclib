@@ -7,22 +7,49 @@ void reset_insert_rect_array()
 		memset(rect_insert, 0xFF, insert_rect_alloc*sizeof(rect_t));
 }
 
-void report_insert_rect_pos(xy_t pos, xy_t dim, int bidi, uint32_t cp, int index)
+void report_insert_rect_pos(xy_t pos, xy_t dim, int bidi, int index)
 {
-	if (rect_insert==NULL)
-		rect_insert = calloc(insert_rect_alloc=4, sizeof(rect_t));
-
-	index -= cp_ins_index_base;
-
-	if (index < 0 || index > 239)	// limiting index to the range of supplemental variation selectors
-		return ;
-
 	alloc_enough(&rect_insert, index+1, &insert_rect_alloc, sizeof(rect_t), 2);
 
-	if (cp==cp_ins_nul)
-		dim.x = 0.;
-
 	rect_insert[index] = make_rect_off( pos, dim, xy(bidi==-2 ? 1. : 0., 0.) );
+}
+
+int parse_insert_rect_charseq(xy_t p, xy_t *off, double scale, int bidi, int cp0, char *string)
+{
+	int i, ir=0, cn;
+	double width=0.;
+	letter_t *l;
+	xy_t pos = add_xy(p, *off);
+
+	if (l = get_letter(font, cp0))
+		if (l->obj)
+			width = l->width;
+
+	for (i=0; string[i]!='\0'; i++)
+	{
+		cn = utf8_to_unicode32(&string[i], &i);
+
+		if (cn >= cp_ins_start && cn < cp_ins_end)	// extra space characters add to the width
+		{
+			ir = i+1;
+
+			if (l = get_letter(font, cn))
+				if (l->obj)
+				{
+					width += l->width;
+					off->x += l->width * scale;
+				}
+		}
+		else if (cn >= cp_ins_index_base && cn <= cp_ins_index_base+239)	// index, meaning the end of a valid sequence
+		{
+			report_insert_rect_pos(pos, mul_xy(xy(width, -6.), set_xy(scale)), bidi, cn - cp_ins_index_base);
+			return i+1;
+		}
+		else
+			return ir;
+	}
+
+	return ir;
 }
 
 rect_t get_insert_rect_zc(zoom_t zc, int index)
