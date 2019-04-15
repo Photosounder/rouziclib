@@ -228,3 +228,33 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 
 	return path;
 }
+
+int check_path_against_extension_list(char *path, const char *list_ext[], size_t list_count)
+{
+	int i;
+	char ext[32];		// file extension
+
+	extract_file_extension(path, ext);
+	if (ext[0] == '\0')
+		return 0;
+
+	for (i=0; i < list_count; i++)
+		if (strcmp(ext, list_ext[i])==0)
+			return 1;			// indicate it's a valid extension
+
+	return 0;
+}
+
+int is_path_image_file(char *path)
+{
+	const char *list_ext[] = {"jpg", "jpeg", "png", "tga", "targa", "bmp", "psd", "gif", "tif", "tiff"};
+
+	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
+}
+
+int is_path_video_file(char *path)
+{
+	const char *list_ext[] = {"avi", "mp4", "mkv", "mov"};
+
+	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
+}

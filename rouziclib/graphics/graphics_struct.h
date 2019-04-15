@@ -29,7 +29,7 @@ typedef struct
 	sqrgb_t *sq;
 	uint8_t *buf;		// generic pointer for other image formats like planar YUV
 	size_t buf_size;
-	int buf_fmt;		// format of the buffer, 10 for YUV 8-bit, 11 for YUV 10-bit
+	int buf_fmt;		// format of the buffer, 10 for YUV 8-bit, 11 for YUV 10-bit, 12 for YUV 12-bit
 	int use_frgb;
 	int as;			// alloc size in pixels
 	// TODO consider a flag to indicate that the host-side raster has been updated since the last copy to the device to trigger a new copy
@@ -79,7 +79,7 @@ typedef struct
 {
 	raster_t r;
 	int32_t w, h;
-	rect_t window_dl;	// window draw limit (based on the usual drawing size)
+	rect_t window_dl;	// window draw limit (based on the usual drawing thickness)
 	xyi_t maxdim;		// formerly max[wh]
 	int use_cl;
 	
@@ -97,7 +97,13 @@ typedef struct
 	clctx_t clctx;		// contains the context and the command queue
 
 	// Draw queue data
-	int32_t *drawq_data, *sector_pos, *entry_list, *sector_list, *sector_count;
+	int32_t *drawq_data;		// main queue where the full data for each entry is stored, with type ID as the first element and the number of following elements depending on the type
+	int32_t *sector_pos;		// for each sector: the position in entry_list
+	int32_t *entry_list;		// for each sector: the list of entries, the first element is the number of entries for the sector, positions in the main queue are what follow
+	int32_t *sector_list;		// for each entry index: the list of sectors, the first element is the number of sectors for the entry, sector IDs follow
+	int32_t *sector_count;		// for each sector: the count of entries
+	int32_t *pending_bracket;	// for each sector: the number of pending open brackets, between 0 and 3
+	int32_t *entry_pos;		// for each entry: the list of start positions in sector_list, so that sector_list may be randomly accessed by entry ID
 	cl_mem drawq_data_cl, sector_pos_cl, entry_list_cl;
 
 	int drawq_size;		// number of floats/ints in the queue
@@ -107,6 +113,7 @@ typedef struct
 	int sectors;		// number of subdivisions (and separate drawing queues) on the screen
 	int sector_size;	// size of the sectors in powers of two. sector_size==6 means 64x64 sized sectors
 	int sector_w;		// number of sectors per row (for instance rows of 30 64x64 sectors for 1920x1080)
+	int *entry_count;	// number of entries in the main queue
 
 	// CL data (for images and what not)
 	cl_mem data_cl;				// device buffer that contains all the needed data

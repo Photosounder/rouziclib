@@ -1,12 +1,26 @@
 // File read
+
+uint8_t fread_byte8(FILE *file)
+{
+	uint8_t	b;
+	fread(&b, 1, 1, file);
+	return b;
+}
+
 uint16_t fread_LE16(FILE *file)
 {
+#ifdef ASS_LE
+	uint16_t v;
+	fread(&v, sizeof(v), 1, file);
+	return v;
+#else
 	uint8_t	b0, b1;
 
 	fread(&b0, 1, 1, file);
 	fread(&b1, 1, 1, file);
 
 	return (uint16_t) (b1<<8) | b0;
+#endif
 }
 
 uint16_t fread_BE16(FILE *file)
@@ -21,12 +35,18 @@ uint16_t fread_BE16(FILE *file)
 
 uint32_t fread_LE32(FILE *file)
 {
+#ifdef ASS_LE
+	uint32_t v;
+	fread(&v, sizeof(v), 1, file);
+	return v;
+#else
 	uint16_t b0, b1;
 
 	b0 = fread_LE16(file);
 	b1 = fread_LE16(file);
 
 	return (uint32_t) (b1<<16) | b0;
+#endif
 }
 
 uint32_t fread_BE32(FILE *file)
@@ -47,12 +67,16 @@ void fwrite_byte8(FILE *file, uint8_t s)
 
 void fwrite_LE16(FILE *file, uint16_t s)
 {
+#ifdef ASS_LE
+	fwrite(&s, sizeof(s), 1, file);
+#else
 	uint8_t byte;
 
 	byte = s;
 	fwrite(&byte, 1, 1, file);
 	byte = s >> 8;
 	fwrite(&byte, 1, 1, file);
+#endif
 }
 
 void fwrite_BE16(FILE *file, uint16_t s)
@@ -67,8 +91,12 @@ void fwrite_BE16(FILE *file, uint16_t s)
 
 void fwrite_LE32(FILE *file, uint32_t w)
 {
+#ifdef ASS_LE
+	fwrite(&w, sizeof(w), 1, file);
+#else
 	fwrite_LE16(file, w);
 	fwrite_LE16(file, w >> 16);
+#endif
 }
 
 void fwrite_BE32(FILE *file, uint32_t w)
@@ -79,8 +107,12 @@ void fwrite_BE32(FILE *file, uint32_t w)
 
 void fwrite_LE64(FILE *file, uint64_t w)
 {
+#ifdef ASS_LE
+	fwrite(&w, sizeof(w), 1, file);
+#else
 	fwrite_LE32(file, w);
 	fwrite_LE32(file, w >> 32);
+#endif
 }
 
 void fwrite_BE64(FILE *file, uint64_t w)
@@ -113,7 +145,11 @@ uint16_t read_LE16(const uint8_t *buf, size_t *index)
 	if (index)
 		*index += sizeof(uint16_t);
 
+#ifdef ASS_LE
+	return *((uint16_t *) buf);
+#else
 	return (uint16_t) (buf[1] << 8) | buf[0];
+#endif
 }
 
 uint16_t read_BE16(const uint8_t *buf, size_t *index)
@@ -177,7 +213,11 @@ uint32_t read_LE32(const uint8_t *buf, size_t *index)
 	if (index)
 		*index += sizeof(uint32_t);
 
+#ifdef ASS_LE
+	return *((uint32_t *) buf);
+#else
 	return (uint32_t) (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
+#endif
 }
 
 uint32_t read_BE32(const uint8_t *buf, size_t *index)
@@ -193,7 +233,11 @@ uint64_t read_LE64(const uint8_t *buf, size_t *index)
 	if (index)
 		*index += sizeof(uint64_t);
 
+#ifdef ASS_LE
+	return *((uint64_t *) buf);
+#else
 	return ((uint64_t) read_LE32(&buf[4], NULL) << 32) | read_LE32(buf, NULL);
+#endif
 }
 
 uint64_t read_BE64(const uint8_t *buf, size_t *index)

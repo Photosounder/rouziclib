@@ -46,11 +46,11 @@ char *string_tolower(char *str)
 	return str;
 }
 
-char *sprintf_realloc(char **string, int *alloc_count, const int append, const char *format, ...)	// like sprintf but expands the string alloc if needed
+char *vsprintf_realloc(char **string, int *alloc_count, const int append, const char *format, va_list args)
 {
-	va_list args;
 	int len0=0, len1, zero=0;
 	char *p=NULL;
+	va_list args_copy;
 
 	if (string==NULL)				// if there's no string then we create one
 		string = &p;				// so that ultimately it's p that will be returned
@@ -58,9 +58,9 @@ char *sprintf_realloc(char **string, int *alloc_count, const int append, const c
 	if (alloc_count==NULL)				// if alloc_count isn't provided
 		alloc_count = &zero;			// use 0 which will realloc string to an adequate size
 
-	va_start(args, format);
-	len1 = vsnprintf(NULL, 0, format, args);	// gets the printed length without actually printing
-	va_end(args);
+	va_copy(args_copy, args);
+	len1 = vsnprintf(NULL, 0, format, args_copy);	// gets the printed length without actually printing
+	va_end(args_copy);
 
 	if (string)
 		if (append && *string)
@@ -68,8 +68,21 @@ char *sprintf_realloc(char **string, int *alloc_count, const int append, const c
 
 	alloc_enough(string, len0+len1+1, alloc_count, sizeof(char), (*alloc_count)==0 ? 1. : 1.5);
 
-	va_start(args, format);
 	vsnprintf(&(*string)[len0], *alloc_count - len0, format, args);
+
+	return *string;
+}
+
+char *sprintf_realloc(char **string, int *alloc_count, const int append, const char *format, ...)	// like sprintf but expands the string alloc if needed
+{
+	va_list args;
+	char *p=NULL;
+
+	if (string==NULL)				// if there's no string then we create one
+		string = &p;
+
+	va_start(args, format);
+	vsprintf_realloc(string, alloc_count, append, format, args);
 	va_end(args);
 
 	return *string;
@@ -87,6 +100,17 @@ char *vsprintf_alloc(const char *format, va_list args)	// like vsprintf but allo
 
 	str = calloc(len+1, sizeof(char));
 	vsnprintf(str, len+1, format, args);
+
+	return str;
+}
+
+char *sprintf_ret(char *str, const char *format, ...)	// like sprintf but returns the string
+{
+	va_list args;
+
+	va_start(args, format);
+	vsprintf(str, format, args);
+	va_end(args);
 
 	return str;
 }

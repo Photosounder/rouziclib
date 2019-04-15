@@ -1,0 +1,54 @@
+cfftpack:
+	https://github.com/zywina/cfftpack
+	May 5, 2018
+	only download fftpack.[ch]
+
+glew:
+	download source zip from http://glew.sourceforge.net/
+	release 2.1.0, July 31, 2017
+	only take include/GL/glew.h and src/glew.c
+
+clew:
+	https://github.com/martijnberger/clew/blob/master/include/clew.h
+	https://github.com/martijnberger/clew/blob/master/src/clew.c
+	Sep 12, 2016
+
+stb_image:
+	https://github.com/nothings/stb/blob/master/stb_image.h
+	v2.20, Feb 7, 2019
+
+stb_image_write:
+	https://github.com/nothings/stb/blob/master/stb_image_write.h
+	v1.10, Feb 7, 2019
+
+stb_vorbis:
+	https://github.com/nothings/stb/blob/master/stb_vorbis.c
+	v1.15, Feb 7, 2019
+
+minimp3:
+	https://github.com/lieff/minimp3/blob/master/minimp3.h
+	Sep 8, 2018
+
+dr_flac:
+	https://github.com/mackron/dr_libs/blob/master/dr_flac.h
+	Sep 11, 2018
+	when updating delete the whole drflac__fopen() function
+thread.h:
+	https://github.com/mattiasgustavsson/libs/blob/master/thread.h
+	v0.3, Nov 28, 2017
+	in thread_create() we need a #ifdef _MSC_VER to keep MinGW happy with __try and __except
+
+tinyexpr:
+	https://github.com/codeplea/tinyexpr/tree/logic
+	Jul 10, 2018
+	only download tinyexpr.[ch]
+
+xxhash:
+	https://github.com/Cyan4973/xxHash/blob/dev/xxhash.c
+	https://github.com/Cyan4973/xxHash/blob/dev/xxhash.h
+	Fed 4, 2019
+
+miniz:
+	https://github.com/richgel999/miniz/releases
+	release 2.0.8, Sep 19, 2018
+	only download miniz.[ch], the versions found in miniz-2.0.x.zip

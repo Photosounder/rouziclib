@@ -7,3 +7,8 @@ typedef struct
 {
 	xyi_t p0, p1;
 } recti_t;
+
+typedef struct
+{
+	xy_t a, b, c;
+} triangle_t;

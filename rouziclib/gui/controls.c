@@ -40,6 +40,7 @@ int ctrl_button_chamf(uint8_t *name, rect_t box, col_t colour)
 	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 	rect_t boxb;
+	xy_t dim;
 
 	ctrl_button_invis(box, &butt_state);
 	if (butt_state.too_small || butt_state.out_of_screen)
@@ -57,7 +58,8 @@ int ctrl_button_chamf(uint8_t *name, rect_t box, col_t colour)
 		draw_rect_chamfer(fb, sc_rect(boxb), drawing_thickness, colour, cur_blend, 0.5*intensity, 1./12.*9./12.);
 	}
 
-	box = rect_add_margin(box, set_xy(-scale/6.));
+	dim = get_rect_dim(box);
+	box = rect_add_margin(box, xy(MINN(-dim.x/10., -dim.y/6.), -dim.y/6.));
 	draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
 	return butt_state.uponce;
@@ -230,6 +232,7 @@ knob_t make_knob(char *main_label, double default_value, const knob_func_t func,
 	knob.min = min;
 	knob.max = max;
 	knob.fmt_str = fmt_str;
+	textedit_init(&knob.edit, 0);
 
 	return knob;
 }
@@ -318,76 +321,142 @@ int ctrl_knob_value_buttons(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_f
 	return ret;
 }
 
-int ctrl_knob(double *v_orig, knob_t knob, rect_t box, col_t colour)
+int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 {
+	int ret, val_set_by_edit=0;
 	double intensity = 1.;
 	double scale = rect_min_side(box);
 	double total_scale = scale*zc.scrscale;
 	ctrl_knob_state_t knob_state={0};
 	char str[64];
 	double v=NAN, t, t_off=0., th;
-	rect_t valbox;
+	static double t_rate=0.;
 	xy_t p0, p1, centre = get_rect_centre(box);
+	static gui_layout_t layout={0};
+	const char *layout_src[] = {
+		"elem 0", "type none", "pos	0	0", "dim	2", "off	0;6", "",
+		"elem 10", "type none", "pos	0	0", "dim	1;6	0;8", "off	0;6", "",
+		"elem 11", "type none", "pos	0	0", "dim	1;5	0;9", "off	0;6", "",
+		"elem 20", "type none", "pos	0	-0;10", "dim	1;2	0;6", "off	0;6", "",
+		"elem 21", "type none", "pos	0	-0;6;4", "dim	0;10	0;4", "off	0;6", "",
+	};
+
+	layout.offset = fit_into_area(box, make_rect_off(XY0, xy(2., 2.), xy(0.5, 0.5)), 0., &layout.sm);
+	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), NULL);
+
+/*	ctrl_textedit_fromlayout(&layout, 10);
+	//draw_label_fromlayout(&layout, 10, ALIG_CENTRE | MONODIGITS);
+	*/
 
 	if (v_orig)
 		v = *v_orig;
 
 	if (isnan(v))	// initialise the value
 	{
-		v = knob.default_value;
+		v = knob->default_value;
 		if (v_orig)
 			*v_orig = v;
 	}
 
-	v = rangelimit(v, knob.min, knob.max);
+	if (knob->circular)
+		v = rangewrap(v, knob->min, knob->max);
+	else
+		v = rangelimit(v, knob->min, knob->max);
 	if (v_orig)
 		*v_orig = v;
 
 	if (total_scale < 1.)
 		return 0;
 
-	if (check_box_on_screen(box)==0)
+	if (check_box_on_screen(box)==0)	// TODO extend box so that it covers the whole label
 		return 0;
 
 	// process input
 	if (mouse.window_focus_flag > 0)
 	{
 		knob_state = proc_mouse_knob_ctrl(box, mouse);
-		t_off = knob_state.vert_delta * 0.25;
+		t_off = knob_state.vert_delta * 3./1728.;
+
+		if (knob_state.downonce)
+			t_rate = 0.;
+
+		if (get_kb_alt() && knob_state.down)
+		{
+			t_rate += t_off * 1./144.;
+			t_off = t_rate;
+		}
+
+		if (knob_state.rightclick && knob->edit_open==0)
+		{
+			knob->edit_open = 1;
+			sprintf(str, "%g", v);
+			textedit_set_new_text(&knob->edit, str);
+			knob->edit.rect_brightness = 0.125;
+			cur_textedit = &knob->edit;
+		}
+	}
+
+	if (knob_state.down)
+	{
+		mouse.warp_if_move = 1;
+		mouse.zoom_scroll_freeze = 1;
+	}
+
+	if (knob_state.uponce || knob_state.doubleclick)
+	{
+		mouse.warp_if_move = 0;
+		mouse.zoom_scroll_freeze = 0;
 	}
 
 	// reset on doubleclick
 	if (knob_state.doubleclick)
-	{
-		v = knob.default_value;
-		if (v_orig)
-			*v_orig = v;
-	}
+		v = knob->default_value;
 
 	// calculate new position and value
-	t = knob.func(v, knob.min, knob.max, 1);
+	t = knob->func(v, knob->min, knob->max, 1);
 
-	t = rangelimit(t+t_off, 0., 1.);
-	v = knob.func(t, knob.min, knob.max, 0);
+	if (knob->circular)
+		t = rangewrap(t+t_off, 0., 1.);
+	else
+		t = rangelimit(t+t_off, 0., 1.);
+	v = knob->func(t, knob->min, knob->max, 0);
 
 	// show value buttons
 	/*if (total_scale > 96.)
 		if (ctrl_knob_value_buttons(fb, zc, mouse, font, drawing_thickness, &v, knob, centre, scale, colour))
 			knob_state.uponce = 1;*/
 
-	// draw knob
+	// Draw knob
 	intensity *= intensity_scaling(total_scale, 24.);
 
-	sprintf(str, knob.fmt_str ? knob.fmt_str : VALFMT_DEFAULT, v);
-	valbox = make_rect_centred(centre, set_xy(0.707*scale));
-	draw_string_bestfit(fb, font, str, sc_rect(valbox), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+	// Draw value
+	sprintf(str, knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
+	if (knob->edit_open==0)
+		draw_string_bestfit(fb, font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+	else
+	{
+		ret = ctrl_textedit(&knob->edit, gui_layout_elem_comp_area_os(&layout, 10, XY0), colour);
 
-	valbox = make_rect_centred(add_xy(centre, xy(0., -5./12.*scale)), xy(7./12.*scale, 0.25*scale));
-	draw_string_bestfit(fb, font, knob.main_label, sc_rect(valbox), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+		if (ret==1 || ret==2 || ret==3)
+		{
+			v = te_interp(knob->edit.string, NULL);
+			val_set_by_edit = 1;
+			knob->edit_open = 0;
+			cur_textedit = NULL;
+		}
+	}
 
-	draw_circle_arc(fb, sc_xy(centre), set_xy(0.5*total_scale), -0.375, 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
+	// Draw bottom label
+	//valbox = make_rect_centred(add_xy(centre, xy(0., -5./12.*scale)), xy(7./12.*scale, 0.25*scale));
+	draw_string_bestfit(fb, font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
-	th = (t * 0.75 - 0.375) * -2.*pi;
+	// Draw arc circle
+	draw_circle_arc(fb, sc_xy(centre), set_xy(0.5*total_scale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
+
+	if (knob->circular)
+		th = t * -2.*pi;
+	else
+		th = (t * 0.75 - 0.375) * -2.*pi;
 	p0 = rotate_xy2(xy(0., 0.5*scale), th);
 	p1 = rotate_xy2(xy(0., 0.4*scale), th);
 	draw_line_thin(fb, sc_xy(add_xy(centre, p0)), sc_xy(add_xy(centre, p1)), drawing_thickness, colour, cur_blend, 2.*intensity);
@@ -395,9 +464,9 @@ int ctrl_knob(double *v_orig, knob_t knob, rect_t box, col_t colour)
 	if (v_orig)
 		*v_orig = v;
 
-	if (knob_state.uponce || knob_state.doubleclick)	// the final value change when the mouse button is released
+	if (knob_state.uponce || knob_state.doubleclick || val_set_by_edit)	// the final value change when the mouse button is released
 		return 1;
-	if (knob_state.down)					// an ongoing value change when the mouse button is held down
+	if (knob_state.down)							// an ongoing value change when the mouse button is held down
 		return 2;
 	return 0;
 }
@@ -408,20 +477,32 @@ ctrl_drag_state_t make_drag_state(xy_t pos, xy_t freedom)
 
 	state.pos = pos;
 	state.freedom = freedom;
+	state.click_offset = set_xy(0.5);
 
 	return state;
 }
 
-int ctrl_draggable(ctrl_drag_state_t *state, xy_t dim)
+void ctrl_drag_set_dim(ctrl_drag_state_t *state, xy_t dim1)
+{
+	if (state->down==0)
+		state->click_offset = set_xy(0.5);
+
+	rect_t r = resize_rect_around_offset(make_rect_centred(state->pos, state->dim), dim1, state->click_offset);
+
+	state->pos = get_rect_centre(r);
+	state->dim = dim1;
+}
+
+int ctrl_draggable(ctrl_drag_state_t *state)
 {
 	int ret=0;
-	double total_scale = min_of_xy(dim)*zc.scrscale;
+	double total_scale = min_of_xy(state->dim)*zc.scrscale;
 	rect_t box;
 
 	if (total_scale < 3. && state->down==0)
 		return 0;
 
-	box = make_rect_off( state->pos, dim, xy(0.5, 0.5) );
+	box = make_rect_off( state->pos, state->dim, xy(0.5, 0.5) );
 
 	if (check_box_on_screen(box)==0 && state->down==0)
 		return 0;
@@ -594,9 +675,12 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 	update_ctrl_resizing_rect_positions(state, *box);
 
 	// Input processing and dragging
+	state->prev_dragged = state->dragged;
+	state->dragged = 0;
 	for (i=0; i<9; i++)
 	{
-		ret = ctrl_draggable(&state->drag[i], i==0 ? dim : set_xy(cdim));
+		ctrl_drag_set_dim(&state->drag[i], i==0 ? dim : set_xy(cdim));
+		ret = ctrl_draggable(&state->drag[i]);
 		if (ret)
 		{
 			state->dragged = 1;
@@ -621,6 +705,9 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 		}
 	}
 
+	if (state->prev_dragged && state->dragged==0)
+		*box = sort_rect(*box);		// sort when the dragging just stopped
+
 	// Draw controls
 	for (i=0; i<9; i++)
 	{
@@ -628,5 +715,5 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 		draw_rect(fb, sc_rect(cbox), drawing_thickness, GUI_COL_DEF, cur_blend, intensity);
 	}
 
-	return state->dragged;
+	return state->dragged || state->prev_dragged;	// signal when the dragging just stopped so the final sorting is taken into account
 }

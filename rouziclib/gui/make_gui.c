@@ -221,11 +221,7 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 				case gui_type_knob:
 					cur_elem->data = calloc(1, sizeof(knob_t));
 					knob_data = (knob_t *) cur_elem->data;
-					knob_data->min = 0.f;
-					knob_data->default_value = 0.f;
-					knob_data->max = 1.f;
-					knob_data->func = knobf_linear;
-					knob_data->main_label = cur_elem->label;
+					*knob_data = make_knob(cur_elem->label, 0., knobf_linear, 0., 1., NULL);
 					break;
 
 				case gui_type_textedit:
@@ -672,7 +668,7 @@ int ctrl_fromlayout_resizing(gui_layout_t *layout, const int id, const int phase
 	return 0;
 }
 
-void draw_label_fromlayout(gui_layout_t *layout, const int id, const int mode)
+void draw_label_fromlayout_in_rect(gui_layout_t *layout, const int id, const int mode, rect_t box_os)
 {
 	int ret;
 	layout_elem_t *cur_elem=NULL;
@@ -681,9 +677,14 @@ void draw_label_fromlayout(gui_layout_t *layout, const int id, const int mode)
 		return ;
 	cur_elem = &layout->elem[id];
 
-	draw_label(cur_elem->label, gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour, mode);
+	draw_label(cur_elem->label, box_os, cur_elem->colour, mode);
 
 	ctrl_fromlayout_resizing(layout, id, 2);
+}
+
+void draw_label_fromlayout(gui_layout_t *layout, const int id, const int mode)
+{
+	draw_label_fromlayout_in_rect(layout, id, mode, gui_layout_elem_comp_area_os(layout, id, XY0));
 }
 
 void draw_rect_fromlayout_blending(const int type, const blend_func_t bf, gui_layout_t *layout, const int id)
@@ -787,7 +788,7 @@ int ctrl_knob_fromlayout(double *v, gui_layout_t *layout, const int id)
 		return 0;
 	cur_elem = &layout->elem[id];
 
-	ret = ctrl_knob(v, *((knob_t *) cur_elem->data), gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour);
+	ret = ctrl_knob(v, (knob_t *) cur_elem->data, gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour);
 
 	ctrl_fromlayout_resizing(layout, id, 2);
 	return ret;
@@ -803,7 +804,7 @@ int ctrl_textedit_fromlayout_in_rect(gui_layout_t *layout, const int id, rect_t 
 	cur_elem = &layout->elem[id];
 
 	ret = ctrl_textedit(cur_elem->data, box_os, cur_elem->colour);
-	draw_rect(fb, sc_rect(box_os), drawing_thickness, cur_elem->colour, cur_blend, 0.25 * intensity_scaling(rect_min_side(sc_rect(box_os)), 24.));
+	draw_rect(fb, sc_rect(box_os), drawing_thickness, cur_elem->colour, cur_blend, 0.25 * intensity_scaling(rect_min_side(sc_rect(box_os)), 24.));	// FIXME maybe use te.rect_brightness instead?
 
 	ctrl_fromlayout_resizing(layout, id, 2);
 	return ret;
@@ -826,6 +827,18 @@ void gui_layout_selmenu_set_count(const int count, gui_layout_t *layout, const i
 
 	if (cur_elem->data)
 		((ctrl_selectmenu_state_t *) cur_elem->data)->count = count;
+}
+
+void gui_layout_selmenu_set_entry_id(const int entry_id, gui_layout_t *layout, const int id)
+{
+	layout_elem_t *cur_elem=NULL;
+
+	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
+		return ;
+	cur_elem = &layout->elem[id];
+
+	if (cur_elem->data)
+		((ctrl_selectmenu_state_t *) cur_elem->data)->sel_id = entry_id;
 }
 
 int ctrl_selmenu_fromlayout(gui_layout_t *layout, const int id)
@@ -982,6 +995,21 @@ void gui_set_control_label(const char *new_label, gui_layout_t *layout, const in
 	//cur_elem->label_set = 1;
 }
 
+void gui_printf_to_label(gui_layout_t *layout, const int id, const int append, const char *format, ...)
+{
+	int ret;
+	layout_elem_t *cur_elem=NULL;
+	va_list args;
+
+	if (check_elem_id_validity(layout, id, 0)==0)	// if id isn't a valid layout element
+		return ;
+	cur_elem = &layout->elem[id];
+
+	va_start(args, format);
+	vsprintf_realloc(&cur_elem->label, &cur_elem->label_as, append, format, args);
+	va_end(args);
+}
+
 void gui_round_elem_posdim(gui_layout_t *layout, const int id, const double rounding)
 {
 	int ret;
@@ -1055,9 +1083,18 @@ int print_to_layout_textedit(gui_layout_t *layout, const int id, const int clear
 
 	free(string);
 
-
-
 	return ret;
+}
+
+textedit_t *get_textedit_fromlayout(gui_layout_t *layout, const int id)
+{
+	textedit_t *te;
+
+	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
+		return NULL;
+
+	te = (textedit_t *) layout->elem[id].data;
+	return te;
 }
 
 char *get_textedit_string_fromlayout(gui_layout_t *layout, const int id)
@@ -1069,6 +1106,17 @@ char *get_textedit_string_fromlayout(gui_layout_t *layout, const int id)
 
 	te = (textedit_t *) layout->elem[id].data;
 	return te->string;
+}
+
+void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const int id)
+{
+	knob_t *knob_data;
+
+	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
+		return NULL;
+
+	knob_data = (knob_t *) layout->elem[id].data;
+	knob_data->circular = circular;
 }
 
 int get_selmenu_selid_fromlayout(gui_layout_t *layout, const int id)
@@ -1102,4 +1150,29 @@ void gui_layout_registry_reset()
 {
 	memset(layout_reg.reg, 0, layout_reg.reg_count * sizeof(layout_reg_entry_t));
 	layout_reg.reg_count = 0;
+}
+
+rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_layout_t *sublayout, int main_area_id, xy_t offset)
+{
+	rect_t area0={0}, area1;
+
+	if (check_elem_id_validity(toplayout, rect_id, 0)==0)
+	{
+		fprintf_rl(stderr, "Invalid element #%d for toplayout in fit_sublayout_into_layout_rect()\n", rect_id);
+		return area0;
+	}
+
+	if (check_elem_id_validity(sublayout, main_area_id, 0)==0)
+	{
+		fprintf_rl(stderr, "Invalid element #%d for sublayout in fit_sublayout_into_layout_rect()\n", main_area_id);
+		return area0;
+	}
+
+	area0 = gui_layout_elem_comp_area_os(toplayout, rect_id, XY0);
+	area1 = gui_layout_elem_comp_area(sublayout, main_area_id);
+
+	area0 = fit_rect_in_area(get_rect_dim(area1), area0, offset);
+	sublayout->offset = fit_into_area(area0, area1, 0., &sublayout->sm);
+
+	return area0;
 }

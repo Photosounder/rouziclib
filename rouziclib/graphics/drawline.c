@@ -383,12 +383,13 @@ void draw_line_thin_cl(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t
 	df[5] = colour.r * intensity;
 	df[6] = colour.g * intensity;
 	df[7] = colour.b * intensity;
+	df[8] = colour.a * intensity;
 
 	bb_dim = get_recti_dim(bb);
 	if (bb_dim.x <= 0 || bb_dim.y <= 0)
 		return ;
 
-	if (bb_dim.x * bb_dim.y < 9)	// if there's less than 9 possible sectors then just do them all anyway, very few sectors will turn out to be superfluous
+	if (mul_x_by_y_xyi(bb_dim) < 9)	// if there's less than 9 possible sectors then just do them all anyway, very few sectors will turn out to be superfluous
 		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 			for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
 				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
@@ -420,94 +421,6 @@ void draw_line_thin_cl(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t
 	}
 #endif
 }
-
-/*void draw_line_thin_cl(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
-{
-#ifdef RL_OPENCL
-	double grad, iradius, th;
-	cl_float r1x, r1y, r2x, costh, sinth;
-	int32_t i, ix, iy;
-	float *df;
-	xyi_t bb0, bb1;
-	xy_t l1, l2, b1, b2;
-if(gv[1]==1.) return;
-	
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
-
-	border_clip(fb.w-1, fb.h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen
-	if (p1.x==p2.x && p1.y==p2.y)			// if there's no line to display
-		return ;
-
-	// calculate the bounding box for a first rectangular estimate of the sectors needed
-	bb0.x = ceil (MINN(p1.x, p2.x) - grad);	bb0.x = MAXN(bb0.x, 0);
-	bb0.y = ceil (MINN(p1.y, p2.y) - grad);	bb0.y = MAXN(bb0.y, 0);
-	bb1.x = floor(MAXN(p1.x, p2.x) + grad);	bb1.x = MINN(bb1.x, fb.w-1);
-	bb1.y = floor(MAXN(p1.y, p2.y) + grad);	bb1.y = MINN(bb1.y, fb.h-1);
-
-	bb0.x >>= fb.sector_size;
-	bb0.y >>= fb.sector_size;
-	bb1.x >>= fb.sector_size;
-	bb1.y >>= fb.sector_size;
-
-	// calculate the drawing parameters
-	iradius = 1./radius;
-	th = atan2(p2.y-p1.y, p2.x-p1.x);	// TODO optimise atan2, cos and sin
-	costh = cos(-th) * iradius;
-	sinth = sin(-th) * iradius;
-	r1x = p1.x * costh - p1.y * sinth;
-	r1y = p1.x * sinth + p1.y * costh;
-	r2x = p2.x * costh - p2.y * sinth;
-	colour.r *= intensity;
-	colour.g *= intensity;
-	colour.b *= intensity;
-
-	// store the drawing parameters in the main drawing queue
-if (gv[1]!=1.){
-	df = drawq_add_to_main_queue(fb, DQT_LINE_THIN_ADD);
-	if (df==NULL)
-		return;
-	df[0] = r1x;
-	df[1] = r1y;
-	df[2] = r2x;
-	df[3] = costh;
-	df[4] = sinth;
-	df[5] = colour.r;
-	df[6] = colour.g;
-	df[7] = colour.b;
-}
-
-	// find the affected sectors
-	for (iy=bb0.y; iy<=bb1.y; iy++)
-	{
-		b1.y = iy << fb.sector_size;
-		b2.y = b1.y + (1<<fb.sector_size) - 1;
-		b1.y -= grad;
-		b2.y += grad;
-
-		for (ix=bb0.x; ix<=bb1.x; ix++)
-		{
-			// test if sector is actually needed
-			b1.x = ix << fb.sector_size;
-			b2.x = b1.x + (1<<fb.sector_size) - 1;
-			b1.x -= grad;
-			b2.x += grad;
-
-			l1 = xy(p1.x, p1.y);
-			l2 = xy(p2.x, p2.y);
-
-			line_rect_clip(&l1, &l2, rect(b1, b2));	// TODO optimise this
-
-			// if sector is needed
-			if (l1.x!=l2.x || l1.y!=l2.y)
-			{
-if (gv[1]!=1.){
-				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
-}
-			}
-		}
-	}
-#endif
-}*/
 
 void draw_line_thin(framebuffer_t fb, xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {

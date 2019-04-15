@@ -348,6 +348,28 @@ xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int))
 	return a;
 }
 
+xy_t func3_xy(xy_t a, xy_t b, xy_t c, double (*f)(double,double,double))
+{
+	a.x = f(a.x, b.x, c.x);
+	a.y = f(a.y, b.y, c.y);
+	return a;
+}
+
+xyz_t func3_xyz(xyz_t a, xyz_t b, xyz_t c, double (*f)(double,double,double))
+{
+	a.x = f(a.x, b.x, c.x);
+	a.y = f(a.y, b.y, c.y);
+	a.z = f(a.z, b.z, c.z);
+	return a;
+}
+
+xyi_t func3_xyi(xyi_t a, xyi_t b, xyi_t c, int (*f)(int,int,int))
+{
+	a.x = f(a.x, b.x, c.x);
+	a.y = f(a.y, b.y, c.y);
+	return a;
+}
+
 xyi_t rshift_xyi(xyi_t a, int sh)
 {
 	a.x >>= sh;
@@ -451,31 +473,24 @@ double max_of_xyi(xyi_t a)
 	return MAXN(a.x, a.y);
 }
 
-int mul_x_by_y_xyi(xyi_t a)
+double mul_x_by_y_xy(xy_t a)
 {
 	return a.x * a.y;
 }
 
-xy_t rangelimit_xy(xy_t v, xy_t l0, xy_t l1)
+double div_x_by_y_xy(xy_t a)
 {
-	return xy(	rangelimit( v.x, l0.x, l1.x ), 
-			rangelimit( v.y, l0.y, l1.y ) 
-		 );
+	return a.x / a.y;
 }
 
-xyz_t rangelimit_xyz(xyz_t v, xyz_t l0, xyz_t l1)
+double div_y_by_x_xy(xy_t a)
 {
-	return xyz(	rangelimit( v.x, l0.x, l1.x ), 
-			rangelimit( v.y, l0.y, l1.y ), 
-			rangelimit( v.z, l0.z, l1.z )
-		 );
+	return a.y / a.x;
 }
 
-xyi_t rangelimit_xyi(xyi_t v, xyi_t l0, xyi_t l1)
+int mul_x_by_y_xyi(xyi_t a)
 {
-	return xyi(	rangelimit_i32( v.x, l0.x, l1.x ), 
-			rangelimit_i32( v.y, l0.y, l1.y ) 
-		 );
+	return a.x * a.y;
 }
 
 xy_t fma_xy(xy_t pos, xy_t tmul, xy_t tadd)

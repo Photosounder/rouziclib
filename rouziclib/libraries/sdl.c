@@ -166,8 +166,15 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 
 	if (inside_window==0 && mouse->mouse_focus_flag >= 0)	// if the mouse just left the window
 			mouse->mouse_focus_flag = -2;
+
+	if (mouse->warp_if_move && is0_xy(mouse->d)==0)
+	{
+		mouse->showcursor = -1;
+		mouse->warp = 1;
+	}
 	
-	mouse->a = xyi_to_xy(sub_xyi(mpos, wr.p0));
+	if (mouse->warp==0)
+		mouse->a = xyi_to_xy(sub_xyi(mpos, wr.p0));
 
 	mouse_button_update(&mouse->b.lmb, &mouse->b.quick_lmb, get_bit(but_state, 0), 0, mouse);
 	mouse_button_update(&mouse->b.mmb, &mouse->b.quick_mmb, get_bit(but_state, 1), 1, mouse);
@@ -217,6 +224,9 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 
 		if (event.button.button==SDL_BUTTON_MIDDLE)
 			mouse_button_event(&mouse->b.mmb, &mouse->b.quick_mmb, 1);
+
+		if (event.button.clicks)
+			mouse->b.clicks = event.button.clicks;
 	}
 
 	if (event.type==SDL_MOUSEBUTTONUP)
@@ -241,9 +251,6 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 		zoom_wheel(zc, mouse->zoom_flag, event.wheel.y);
 	}
 
-	if (event.button.clicks)
-		mouse->b.clicks = event.button.clicks;
-
 	// state of modifier keys
 	mod_state = SDL_GetModState();
 
@@ -263,6 +270,17 @@ void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event)
 
 	if (event.type == SDL_TEXTINPUT)
 		textedit_add(cur_textedit, event.text.text);
+}
+
+void sdl_set_mouse_pos_screen(xy_t pos)
+{
+	SDL_WarpMouseInWindow(NULL, nearbyint(pos.x), nearbyint(pos.y));
+}
+
+void sdl_set_mouse_pos_world(xy_t world_pos)
+{
+	sdl_set_mouse_pos_screen(sc_xy(world_pos));
+	mouse.u = world_pos;
 }
 
 // Window/graphics
@@ -339,6 +357,8 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 		if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 			fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
 	}
+
+	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
 
 	fb->w = dim.x;
 	fb->h = dim.y;

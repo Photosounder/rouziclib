@@ -40,7 +40,7 @@ int32_t log2_ffo32(uint32_t x)	// returns the number of bits up to the most sign
 	   3 iterations, 11-bit index (2 kB)	<---
 	   2 iterations, 16-bit index (64 kB)
 	*/
-	int32_t y;
+	uint32_t y;
 
 	y = x>>21;	if (y)	return ffo_lut[y]+21;
 	y = x>>10;	if (y)	return ffo_lut[y]+10;
@@ -57,7 +57,7 @@ int32_t log2_ffo64(uint64_t x)	// returns the number of bits up to the most sign
 	   5 iterations, 13-bit index (8 kB)
 	   4 iterations, 16-bit index (64 kB)
 	*/
-	int32_t y;
+	uint32_t y;
 
 	y = x>>53;	if (y)	return ffo_lut[y]+53;
 	y = x>>42;	if (y)	return ffo_lut[y]+42;

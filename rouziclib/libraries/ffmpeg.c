@@ -1,18 +1,5 @@
 #ifdef RL_FFMPEG
 
-void ffmpeg_init()
-{
-	static int init=1;
-
-	if (init)
-	{
-		init = 0;
-		#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
-		av_register_all();
-		#endif
-	}
-}
-
 static char *const ffmpeg_get_error_text(const int error)
 {
 	static char error_buffer[255];
@@ -67,8 +54,6 @@ ffstream_t ff_load_stream_init(char const *path, const int stream_type)
 	int i, ret;
 	ffstream_t s={0};
 
-	ffmpeg_init();
-
 	s.stream_id = -1;
 
 	if (path == NULL)
@@ -113,7 +98,7 @@ int ff_load_stream_packet(ffstream_t *s)
 			else
 			{
 				if (ret != AVERROR(EAGAIN))
-					fprintf_rl(stdout, "err at timestamp %.3f s\n", ff_get_timestamp(s, packet.dts));
+					fprintf_rl(stderr, "err at timestamp %.3f s\n", ff_get_timestamp(s, packet.dts));
 			}
 		}
 
@@ -122,6 +107,21 @@ int ff_load_stream_packet(ffstream_t *s)
 		if (result)
 			break;
 	}
+	
+	/*if (result==0)
+	{
+		avcodec_send_packet(s->codec_ctx, NULL);
+		ffmpeg_retval(ret);
+
+		while (ret==0)
+		{
+			ret = avcodec_receive_frame(s->codec_ctx, s->frame);	// return decoded output data (in frame) from a decoder
+			ffmpeg_retval(ret);
+
+			if (ret >= 0)
+				result = 1;
+		}
+	}*/
 
 	return result;
 }
@@ -201,25 +201,87 @@ get_time_diff(&td);
 	return im;
 }
 
+int ff_pix_fmt_byte_count(int pix_fmt)
+{
+	if (	(pix_fmt >= AV_PIX_FMT_YUV420P9BE  && pix_fmt <= AV_PIX_FMT_YUV422P9LE ) ||
+		(pix_fmt >= AV_PIX_FMT_YUV420P16LE && pix_fmt <= AV_PIX_FMT_YUV444P16BE) ||
+	  	(pix_fmt >= AV_PIX_FMT_YUV420P12BE && pix_fmt <= AV_PIX_FMT_YUV444P14LE) )
+		return 2;
+
+	return 1;
+}
+
+int ff_pix_fmt_bit_depth(int pix_fmt)
+{
+	switch (pix_fmt)
+	{
+		case AV_PIX_FMT_YUV420P9LE:
+		case AV_PIX_FMT_YUV420P9BE:
+			return 9;
+
+		case AV_PIX_FMT_YUV420P10LE:
+		case AV_PIX_FMT_YUV420P10BE:
+			return 10;
+
+		case AV_PIX_FMT_YUV420P12LE:
+		case AV_PIX_FMT_YUV420P12BE:
+			return 12;
+
+		case AV_PIX_FMT_YUV420P14LE:
+		case AV_PIX_FMT_YUV420P14BE:
+			return 14;
+
+		case AV_PIX_FMT_YUV420P16LE:
+		case AV_PIX_FMT_YUV420P16BE:
+			return 16;
+
+		default:
+			return 8;
+	}
+}
+
+int ff_pix_fmt_to_buf_fmt(int pix_fmt)
+{
+	switch (pix_fmt)
+	{
+		case AV_PIX_FMT_YUV420P:
+			return 10;
+
+		case AV_PIX_FMT_YUV420P10LE:
+			return 11;
+
+		case AV_PIX_FMT_YUV420P12LE:
+			return 12;
+	}
+
+	return -1;
+}
+
+int ff_buf_fmt_to_pix_fmt(int buf_fmt)
+{
+	switch (buf_fmt)
+	{
+		case 10:
+			return AV_PIX_FMT_YUV420P;
+
+		case 11:
+			return AV_PIX_FMT_YUV420P10LE;
+
+		case 12:
+			return AV_PIX_FMT_YUV420P12LE;
+	}
+
+	return -1;
+}
+
 raster_t ff_frame_to_buffer(ffstream_t *s)
 {
 	int i, ip, bpc = 1;
 	raster_t im={0};
 	uint8_t *plane[3];
 
-	if (	s->codec_ctx->pix_fmt >= AV_PIX_FMT_YUV420P9BE && s->codec_ctx->pix_fmt <= AV_PIX_FMT_YUV422P9LE ||
-		s->codec_ctx->pix_fmt >= AV_PIX_FMT_YUV420P16LE && s->codec_ctx->pix_fmt <= AV_PIX_FMT_YUV444P16BE )
-		bpc = 2;
-
-	switch (s->codec_ctx->pix_fmt)
-	{
-		case AV_PIX_FMT_YUV420P10LE:
-			im.buf_fmt = 11;
-			break;
-
-		default:
-			im.buf_fmt = 10;	// AV_PIX_FMT_YUV420P is the default
-	}
+	bpc = ff_pix_fmt_byte_count(s->codec_ctx->pix_fmt);
+	im.buf_fmt = ff_pix_fmt_to_buf_fmt(s->codec_ctx->pix_fmt);
 
 	im.dim = xyi(s->codec_ctx->width, s->codec_ctx->height);
 	im.buf_size = av_image_get_buffer_size(s->codec_ctx->pix_fmt, s->codec_ctx->width, s->codec_ctx->height, 1);

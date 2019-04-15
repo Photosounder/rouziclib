@@ -38,18 +38,16 @@ int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int32_t 
 			return 0;
 }
 
-double point_line_distance(xy_t p1, xy_t p2, xy_t p3)	// nearest point on the line
+double point_line_distance(xy_t l1, xy_t l2, xy_t p3)	// nearest point on the line
 {
 	double u;
 	xy_t p;
 
-	u = hypot(p2.x-p1.x, p2.y-p1.y);
-	u = ((p3.x-p1.x)*(p2.x-p1.x) + (p3.y-p1.y)*(p2.y-p1.y)) / (u * u);
+	u = ((p3.x-l1.x)*(l2.x-l1.x) + (p3.y-l1.y)*(l2.y-l1.y)) / sq(hypot_xy(l2, l1));
 
-	p.x = p1.x + u * (p2.x-p1.x);
-	p.y = p1.y + u * (p2.y-p1.y);
+	p = interpolate_xy(l1, l2, u);
 
-	return hypot(p.x-p3.x, p.y-p3.y);
+	return hypot_xy(p, p3);
 }
 
 // Limits a line to the insides of a bounding box

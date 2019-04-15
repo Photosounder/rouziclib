@@ -135,6 +135,56 @@ char *remove_after_char_copy(char *string, char c)	// makes a cut copy of a stri
 	return cut;
 }
 
+int get_string_linecount(char *text, int len)
+{
+	int i, linecount=0;
+
+	if (text==NULL)
+		return linecount;
+
+	if (text[0]=='\0')
+		return linecount;
+
+	if (len <= 0)
+		len = strlen(text);
+
+	linecount = 1;
+	for (i=0; i < len-1; i++)
+		if (text[i] == '\n')
+			linecount++;
+
+	return linecount;
+}
+
+int string_find_start_nth_line(char *text, int len, int n)	// n is the index of the line to find, the char index is returned
+{
+	int i, il;
+
+	if (text==NULL)
+		return -1;
+
+	if (text[0]=='\0')
+		return -1;
+
+	if (n <= 0)
+		return 0;
+
+	if (len <= 0)
+		len = strlen(text);
+
+	il = 0;
+	for (i=0; i < len-1; i++)
+	{
+		if (n == il)
+			return i;
+
+		if (text[i] == '\n')
+			il++;
+	}
+
+	return i;
+}
+
 char **arrayise_text(char *text, int *linecount)	// turns line breaks into null chars, makes an array of pointers to the beginning of each lines
 {
 	int i, ia, len;
@@ -153,23 +203,20 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 		return array;
 	}
 
-	*linecount = 1;
-	for (i=0; i<len-1; i++)
-		if (text[i]=='\n')
-			(*linecount)++;
+	*linecount = get_string_linecount(text, len);
 
 	array = calloc(*linecount, sizeof(char *));
 	array[0] = text;
 
-	for (ia=1, i=0; i<len-1; i++)
-		if (text[i]=='\n')
+	for (ia=1, i=0; i < len-1; i++)
+		if (text[i] == '\n')
 		{
 			array[ia] = &text[i+1];
 			text[i] = '\0';
 			ia++;
 		}
 
-	if (text[len-1]=='\n')
+	if (text[len-1] == '\n')
 		text[len-1] = '\0';
 
 	return array;

@@ -635,6 +635,15 @@ raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp)
 	return r;
 }
 
+frgb_t add_frgb(frgb_t a, frgb_t b)
+{
+	a.r += b.r;
+	a.g += b.g;
+	a.b += b.b;
+
+	return a;
+}
+
 frgb_t add_frgba(frgb_t a, frgb_t b)
 {
 	a.r += b.r;
@@ -643,6 +652,43 @@ frgb_t add_frgba(frgb_t a, frgb_t b)
 	a.a += b.a;
 
 	return a;
+}
+
+frgb_t sub_frgb(frgb_t a, frgb_t b)
+{
+	a.r -= b.r;
+	a.g -= b.g;
+	a.b -= b.b;
+
+	return a;
+}
+
+frgb_t mul_frgb(frgb_t a, frgb_t b)
+{
+	a.r *= b.r;
+	a.g *= b.g;
+	a.b *= b.b;
+
+	return a;
+}
+
+frgb_t div_frgb(frgb_t a, frgb_t b)
+{
+	a.r /= b.r;
+	a.g /= b.g;
+	a.b /= b.b;
+
+	return a;
+}
+
+float min_of_frgb(frgb_t a)
+{
+	return MINN(MINN(a.r, a.g), a.b);
+}
+
+float max_of_frgb(frgb_t a)
+{
+	return MAXN(MAXN(a.r, a.g), a.b);
 }
 
 frgb_t mul_scalar_frgb(frgb_t a, float m)
@@ -664,6 +710,15 @@ frgb_t mul_scalar_frgba(frgb_t a, float m)
 	return a;
 }
 
+frgb_t func1_frgb(frgb_t a, float (*f)(float))
+{
+	a.r = f(a.r);
+	a.g = f(a.g);
+	a.b = f(a.b);
+
+	return a;
+}
+
 frgb_t clamp_frgba(frgb_t a)
 {
 	a.r = rangelimitf(a.r, 0.f, 1.f);
@@ -672,4 +727,28 @@ frgb_t clamp_frgba(frgb_t a)
 	a.a = rangelimitf(a.a, 0.f, 1.f);
 
 	return a;
+}
+
+frgb_t frgb_diff(frgb_t a, frgb_t b)
+{
+	int ic;
+	frgb_t d;
+	float *af=&a, *bf=&b, *df=&d;
+
+	for (ic=0; ic < 4; ic++)
+		df[ic] = fabs(af[ic] - bf[ic]);
+
+	return d;
+}
+
+frgb_t frgb_perceptual_diff(frgb_t a, frgb_t b)
+{
+	int ic;
+	frgb_t d;
+	float *af=&a, *bf=&b, *df=&d;
+
+	for (ic=0; ic < 4; ic++)
+		df[ic] = fabs(linear_to_Lab_L(af[ic]) - linear_to_Lab_L(bf[ic]));
+
+	return d;
 }

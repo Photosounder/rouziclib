@@ -6,13 +6,13 @@ typedef struct
 typedef struct
 {
 	double vert_delta;
-	int down, uponce, doubleclick;
+	int down, downonce, uponce, doubleclick, rightclick;
 } ctrl_knob_state_t;
 
 typedef struct
 {
-	xy_t pos, offset, freedom;
-	int down;
+	xy_t pos, dim, offset, freedom, click_offset;
+	int down, over;
 } ctrl_drag_state_t;
 
 typedef struct
@@ -31,6 +31,6 @@ typedef struct
 
 typedef struct
 {
-	int init, dragged;
+	int init, dragged, prev_dragged;
 	ctrl_drag_state_t drag[9];
 } ctrl_resize_rect_t;

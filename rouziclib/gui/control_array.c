@@ -60,7 +60,7 @@ int ctrl_array_radio(int *sel, int count, char **label, col_t *col, int col_coun
 	return change;
 }
 
-int ctrl_checkbox_subknob(double *v_orig, double step, double ctrl_num, double subknob_num, knob_t knob, rect_t topbox, col_t colour)
+int ctrl_checkbox_subknob(double *v_orig, double step, double ctrl_num, double subknob_num, knob_t *knob, rect_t topbox, col_t colour)
 {
 	rect_t box;
 
@@ -75,7 +75,7 @@ int ctrl_array_knob(double *knob_value, knob_t *knob_data, int count, col_t *col
 
 	for (i=0; i<count; i++)
 	{
-		change |= ctrl_knob(&knob_value[i], knob_data[i], box, col[i%col_count]);
+		change |= ctrl_knob(&knob_value[i], &knob_data[i], box, col[i%col_count]);
 		box = add_rect_xy(box, pos_inc);
 	}
 

@@ -82,15 +82,19 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 	mouse->u = to_world_coord_xy(*zc, mouse->a);
 	xy_t du = mul_xy(neg_y(mouse->d), set_xy(zc->iscrscale));
 
-	if (mouse->zoom_flag)	// if we're scrolling the zoom
+	if (mouse->zoom_flag && mouse->zoom_scroll_freeze==0)	// if we're scrolling the zoom
 	{
 		zc->offset_u = add_xy(zc->offset_u, mul_xy(du, set_xy(2.)));	// the factor of 2 is arbitrary, doesn't have to be integer
 		calc_screen_limits(zc);
 	}
 
 	// post-input logic
-	mouse->showcursor = 0;
-	mouse->warp = 0;
+	mouse->warp_prev = mouse->warp;
+	if (mouse->warp_if_move==0)
+	{
+		mouse->showcursor = 0;
+		mouse->warp = 0;
+	}
 
 	if (mouse->b.mmb > 0 && mouse->zoom_allowed)		// when to reset the zoom (when MMB is held down)
 		zoom_key_released(zc, &mouse->zoom_flag, 2);
@@ -105,7 +109,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 		mouse->u = zc->offset_u;
 	mouse->u_stored = mouse->u;			// store mouse->u before it gets changed by temporary zoom changes
 
-	if (mouse->b.lmb==2 || mouse->b.rmb==2)		// store the origin of a click
+	if (mouse->b.clicks==1 && (mouse->b.lmb==2 || mouse->b.rmb==2))		// store the origin of a click
 	{
 		mouse->b.orig = mouse->u;
 
@@ -129,12 +133,17 @@ void mousecursor_logic_and_draw()
 		#ifdef RL_SDL
 		SDL_SetRelativeMouseMode(1);
 		#endif
-		mouse.showcursor = 0;
+
+		if (mouse.showcursor == 1)
+			mouse.showcursor = 0;
 	}
 	else
 	{
 		#ifdef RL_SDL
 		SDL_SetRelativeMouseMode(mouse.warp);
+
+		if (mouse.warp_prev && mouse.warp==0)		// set the mouse position after exiting warp mode
+			sdl_set_mouse_pos_world(mouse.b.orig);
 		#endif
 	}
 
@@ -142,7 +151,7 @@ void mousecursor_logic_and_draw()
 	//	mouse.showcursor = 0;
 
 	#ifdef RL_SDL
-	SDL_ShowCursor(mouse.showcursor);
+	SDL_ShowCursor(mouse.showcursor==1);
 	#endif
 	draw_mousecursor(mouse.u);
 }

@@ -6,12 +6,26 @@ double lsrgb(double linear)	// converts a [0.0, 1.0] linear value into a [0.0, 1
 		return 1.055 * pow(linear, 1.0/2.4) - 0.055;
 }
 
+frgb_t lsrgb_fast_frgb(frgb_t v)
+{
+	v.r = fast_lsrgbf(v.r);
+	v.g = fast_lsrgbf(v.g);
+	v.b = fast_lsrgbf(v.b);
+
+	return v;
+}
+
 double slrgb(double s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] linear value
 {
 	if (s <= 0.04045)
 		return s / 12.92;
 	else
 		return pow((s + 0.055) / 1.055, 2.4);
+}
+
+double s8lrgb(double s8)
+{
+	return slrgb(s8 * (1./255.));
 }
 
 lut_t get_lut_lsrgb()

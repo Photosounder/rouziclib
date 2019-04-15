@@ -1,6 +1,6 @@
 #define DR_FLAC_IMPLEMENTATION
 #define drflac__fopen(path)	fopen_utf8(path, "rb")
-#include "dr_flac.h"
+#include "orig/dr_flac.h"
 
 float *load_sound_flac_file(const char *path, size_t *sample_count, int *channels, int *samplerate)
 {

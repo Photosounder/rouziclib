@@ -204,6 +204,17 @@ void free_raster(raster_t *r)
 	memset(r, 0, sizeof(raster_t));
 }
 
+void cl_unref_raster(raster_t *r)
+{
+	void **ptr;
+
+	ptr = get_raster_buffer_ptr(r);
+
+	#ifdef RL_OPENCL
+	cl_data_table_remove_entry_by_host_ptr(r->referencing_fb, *ptr);	// remove reference from cl data table
+	#endif
+}
+
 framebuffer_t init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode)
 {
 	framebuffer_t fb={0};
@@ -217,6 +228,18 @@ framebuffer_t init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode)
 	fb.maxdim = maxdim;
 
 	return fb;
+}
+
+void init_tls_fb(xyi_t dim)	// initalisation of thread-local fb and zc in fRGB mode, used for video generation. Just free_raster(&fb.r); at the end
+{
+	fb.w = dim.x;
+	fb.h = dim.y;
+	fb.r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
+	fb.r.use_frgb = 1;
+	fb.use_cl = 0;
+
+	zc = init_zoom(&fb, &mouse, drawing_thickness);
+	calc_screen_limits(&zc);
 }
 
 void enlarge_framebuffer(framebuffer_t *fb, xyi_t newdim)
@@ -267,4 +290,28 @@ void screen_blank(framebuffer_t fb)
 		memset (fb.r.f, 0, fb.w*fb.h*sizeof(frgb_t));
 	else
 		memset (fb.r.l, 0, fb.w*fb.h*sizeof(lrgb_t));
+}
+
+void draw_gain(framebuffer_t fb, double gain)
+{
+#ifdef RL_OPENCL
+	float *df = drawq_add_to_main_queue(fb, DQT_GAIN);
+	if (df==NULL)
+		return;
+	df[0] = gain;
+
+	drawq_add_sectors_for_already_set_sectors(fb);
+#endif
+}
+
+void draw_luma_compression(framebuffer_t fb, double factor)
+{
+#ifdef RL_OPENCL
+	float *df = drawq_add_to_main_queue(fb, DQT_LUMA_COMPRESS);
+	if (df==NULL)
+		return;
+	df[0] = factor;
+
+	drawq_add_sectors_for_already_set_sectors(fb);
+#endif
 }

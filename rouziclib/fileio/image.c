@@ -1,41 +1,37 @@
 void convert_image_srgb8(raster_t *im, const uint8_t *data, const int mode)
 {
-	int32_t i;
+	int i;
 	lut_t lut = get_lut_slrgb();
 	lut_t sqlut = get_lut_ssqrgb();
+	size_t pix_count = mul_x_by_y_xyi(im->dim);
 
 	if (mode & IMAGE_USE_SRGB)
 	{
 		if (im->srgb != data)
 		{
-			im->srgb = calloc(im->dim.x * im->dim.y, sizeof(srgb_t));
-			memcpy(im->srgb, data, im->dim.x * im->dim.y * sizeof(srgb_t));
+			im->srgb = calloc(pix_count, sizeof(srgb_t));
+			memcpy(im->srgb, data, pix_count * sizeof(srgb_t));
 		}
 	}
 
 	if (mode & IMAGE_USE_LRGB)
 	{
-		im->l = calloc(im->dim.x * im->dim.y, sizeof(lrgb_t));
-		for (i=0; i<im->dim.x*im->dim.y*4; i++)
+		im->l = calloc(pix_count, sizeof(lrgb_t));
+		for (i=0; i < pix_count*4; i++)
 			((uint16_t *) im->l)[i] = lut.lutint[data[i]];
 	}
 
 	if (mode & IMAGE_USE_FRGB)
 	{
-		im->f = calloc(im->dim.x * im->dim.y, sizeof(frgb_t));
-		for (i=0; i<im->dim.x*im->dim.y; i++)
-		{
-			im->f[i].r = lut.flut[((srgb_t *)data)[i].r];
-			im->f[i].g = lut.flut[((srgb_t *)data)[i].g];
-			im->f[i].b = lut.flut[((srgb_t *)data)[i].b];
-			im->f[i].a = lut.flut[((srgb_t *)data)[i].a];
-		}
+		im->f = calloc(pix_count, sizeof(frgb_t));
+		for (i=0; i < pix_count*4; i++)
+			((float *) im->f)[i] = s8lrgb(data[i]);
 	}
 
 	if (mode & IMAGE_USE_SQRGB)
 	{
-		im->sq = calloc(im->dim.x * im->dim.y, sizeof(sqrgb_t));
-		for (i=0; i<im->dim.x*im->dim.y; i++)
+		im->sq = calloc(pix_count, sizeof(sqrgb_t));
+		for (i=0; i < pix_count; i++)
 		{
 			im->sq[i].r = sqlut.lutint[((srgb_t *)data)[i].r] >> 2;
 			im->sq[i].g = sqlut.lutint[((srgb_t *)data)[i].g];
@@ -43,48 +39,128 @@ void convert_image_srgb8(raster_t *im, const uint8_t *data, const int mode)
 		}
 	}
 
-	if (mode & IMAGE_USE_SRGB == 0)
+	if (mode & IMAGE_USE_SRGB == 0)		// free srgb in case it's there but isn't needed
 		free_null(&im->srgb);
 }
 
 void convert_image_srgb16(raster_t *im, const uint16_t *data, const int mode)
 {
-	int32_t i;
+	int i;
 	lut_t lut = get_lut_slrgb();
 	lut_t sqlut = get_lut_ssqrgb();
 	const double ratio = 1./65535.;
+	size_t pix_count = mul_x_by_y_xyi(im->dim);
 
 	if (mode & IMAGE_USE_SRGB)
 	{
-		im->srgb = calloc(im->dim.x * im->dim.y, sizeof(srgb_t));
-		for (i=0; i<im->dim.x*im->dim.y*4; i++)
+		im->srgb = calloc(pix_count, sizeof(srgb_t));
+		for (i=0; i < pix_count*4; i++)
 			((uint8_t *) im->srgb)[i] = data[i] >> 8;
 	}
 
 	if (mode & IMAGE_USE_LRGB)
 	{
-		im->l = calloc(im->dim.x * im->dim.y, sizeof(lrgb_t));
-		for (i=0; i<im->dim.x*im->dim.y*4; i++)
+		im->l = calloc(pix_count, sizeof(lrgb_t));
+		for (i=0; i < pix_count*4; i++)
 			((uint16_t *) im->l)[i] = s16lrgb(data[i]) * ONEF + 0.5;
 	}
 
 	if (mode & IMAGE_USE_FRGB)
 	{
-		im->f = calloc(im->dim.x * im->dim.y, sizeof(frgb_t));
-		for (i=0; i<im->dim.x*im->dim.y*4; i++)
+		im->f = calloc(pix_count, sizeof(frgb_t));
+		for (i=0; i < pix_count*4; i++)
 			((float *) im->f)[i] = s16lrgb(data[i]);
 	}
 
 	if (mode & IMAGE_USE_SQRGB)
 	{
-		im->sq = calloc(im->dim.x * im->dim.y, sizeof(sqrgb_t));
-		for (i=0; i<im->dim.x*im->dim.y; i++)
+		im->sq = calloc(pix_count, sizeof(sqrgb_t));
+		for (i=0; i < pix_count; i++)
 		{
 			im->sq[i].r = ssqrgb((double) data[i*4+0] * ratio) * 1023. + 0.5;
 			im->sq[i].g = ssqrgb((double) data[i*4+1] * ratio) * 4092. + 0.5;
 			im->sq[i].b = ssqrgb((double) data[i*4+2] * ratio) * 1023. + 0.5;
 		}
 	}
+}
+
+void convert_image_frgb(raster_t *im, const float *data, const int mode)
+{
+	int i;
+	size_t pix_count = mul_x_by_y_xyi(im->dim);
+
+	if (mode & IMAGE_USE_SRGB)
+	{
+		lut_t lsrgb_fl_l = get_lut_lsrgb_fl();
+
+		im->srgb = calloc(pix_count, sizeof(srgb_t));
+		for (i=0; i < pix_count*4; i++)
+			((uint8_t *) im->srgb)[i] = lsrgb_fl(rangelimitf(data[i], 0.f, 1.f), lsrgb_fl_l.lutint) >> 5;
+	}
+
+	if (mode & IMAGE_USE_LRGB)
+	{
+		im->l = calloc(pix_count, sizeof(lrgb_t));
+		for (i=0; i < pix_count*4; i++)
+			((uint16_t *) im->l)[i] = rangelimitf(data[i], 0.f, 1.f) * ONEF + 0.5;
+	}
+
+	if (mode & IMAGE_USE_FRGB)
+	{
+		if (im->f != data)
+		{
+			im->f = calloc(pix_count, sizeof(frgb_t));
+			memcpy(im->f, data, pix_count * sizeof(frgb_t));
+		}
+	}
+
+	if (mode & IMAGE_USE_SQRGB)
+	{
+		im->sq = calloc(pix_count, sizeof(sqrgb_t));
+		for (i=0; i < pix_count; i++)
+		{
+			im->sq[i].r = sqrtf(rangelimitf(data[i*4+0], 0.f, 1.f)) * 1023. + 0.5;
+			im->sq[i].g = sqrtf(rangelimitf(data[i*4+1], 0.f, 1.f)) * 4092. + 0.5;
+			im->sq[i].b = sqrtf(rangelimitf(data[i*4+2], 0.f, 1.f)) * 1023. + 0.5;
+		}
+	}
+
+	if (mode & IMAGE_USE_FRGB == 0)		// free f in case it's there but isn't needed
+		free_null(&im->f);
+}
+
+void convert_image_to_srgb16(raster_t *im, uint16_t *data, const int mode, const int chan)
+{
+	int i, ic, v;
+	size_t pix_count = mul_x_by_y_xyi(im->dim);
+	const double lratio = 1./ONEF;
+	frgb_t fv;
+
+	if (mode & IMAGE_USE_SRGB)
+		for (i=0; i < pix_count; i++)
+			for (ic=0; ic < chan; ic++)
+			{
+				v = ((uint8_t *) im->srgb)[i*4+ic];
+				data[i*chan+ic] = (v << 8) | v;
+			}
+
+	if (mode & IMAGE_USE_LRGB)
+		for (i=0; i < pix_count; i++)
+			for (ic=0; ic < chan; ic++)
+				data[i*chan+ic] = 65535. * lsrgb(((uint16_t *) im->l)[i*4+ic] * lratio) + 0.5;	// could use the LUT
+
+	if (mode & IMAGE_USE_FRGB)
+		for (i=0; i < pix_count; i++)
+			for (ic=0; ic < chan; ic++)
+				data[i*chan+ic] = 65535. * lsrgb(((float *) im->f)[i*4+ic]) + 0.5;
+
+	if (mode & IMAGE_USE_SQRGB)
+		for (i=0; i < pix_count; i++)
+		{
+			fv = sqrgb_to_frgb(im->sq[i]);
+			for (ic=0; ic < chan; ic++)
+				data[i*chan+ic] = 65535. * ((float *) &fv)[ic] + 0.5;
+		}
 }
 
 raster_t load_image_mem_lib(image_load_mem_func_t load_func, uint8_t *raw_data, size_t size, const int mode)
@@ -131,12 +207,16 @@ raster_t load_image_lib(image_load_mem_func_t load_func, const char *path, const
 
 raster_t load_image_from_http_lib(image_load_mem_func_t load_func, char *url, const int mode)
 {
-#ifdef RL_INCL_NETWORK
-	int data_size, data_alloc=0;
+#if defined(RL_INCL_NETWORK) || defined(RL_LIBCURL)
+	size_t data_size, data_alloc=0;
 	uint8_t *data=NULL;
 	raster_t im={0};
 
+	#ifdef RL_LIBCURL
+	data_size = curl_https_get(url, -1, ONE_RETRY, &data, &data_alloc);
+	#else
 	data_size = http_get(url, -1, ONE_RETRY, &data, &data_alloc);
+	#endif
 
 	if (data_size > 0)
 		im = load_image_mem_lib(load_func, data, data_size, mode);
@@ -175,4 +255,19 @@ mipmap_t load_mipmap_lib(image_load_mem_func_t load_func, const char *path, cons
 	free_raster(&image);
 
 	return m;
+}
+
+raster_t load_image_mem_builtin(uint8_t *raw_data, size_t size, const int mode)
+{
+	raster_t im={0};
+
+	if (is_file_tiff_mem(raw_data))
+	{
+		im = load_tiff_mem_raster(raw_data);
+		convert_image_frgb(&im, im.f, mode);
+	}
+	else
+		im = load_image_mem_libstb_image(raw_data, size, mode);
+
+	return im;
 }

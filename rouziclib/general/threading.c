@@ -1,5 +1,5 @@
 #define THREAD_IMPLEMENTATION
-#include "../libraries/thread.h"
+#include "../libraries/orig/thread.h"
 
 int thread_detach(thread_ptr_t thread)
 {

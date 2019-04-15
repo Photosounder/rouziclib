@@ -11,6 +11,8 @@ extern xy_t doztof_xy(const char *str_x, const char *str_y);
 extern char *remove_after_char(char *string, char c);
 extern int strlen_until_after_char(char *string, char c);
 extern char *remove_after_char_copy(char *string, char c);
+extern int get_string_linecount(char *text, int len);
+extern int string_find_start_nth_line(char *text, int len, int n);
 extern char **arrayise_text(char *text, int *linecount);
 extern char *strstr_i (char *fullstr, char *substr);
 extern char *bstrchr(const char *s, int c, int l);

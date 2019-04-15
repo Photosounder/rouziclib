@@ -297,6 +297,14 @@ void blit_scale_lrgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int in
 	}
 }
 
+void blit_scale_frgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp)
+{
+	if (r.f==NULL || fb.r.f==NULL)
+		return ;
+
+	blit_scale_float(fb.r.f, fb.r.dim, r.f, r.dim, 4, pscale, pos, get_pixel_address_contig);
+}
+
 void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
 #ifdef RL_OPENCL
@@ -356,6 +364,8 @@ void blit_scale(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int inter
 		blit_scale_cl(fb, r, pscale, pos, interp);
 	else if (fb->r.use_frgb==0)
 		blit_scale_lrgb(*fb, *r, pscale, pos, interp);
+	else
+		blit_scale_frgb(*fb, *r, pscale, pos, interp);
 }
 
 void blit_in_rect(framebuffer_t *fb, raster_t *raster, rect_t r, int keep_aspect_ratio, int interp)

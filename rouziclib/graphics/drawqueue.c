@@ -2,13 +2,15 @@
 void drawq_reinit(framebuffer_t *fb)
 {
 	memset(fb->drawq_data, 0, fb->drawq_data[DQ_END] * sizeof(int32_t));
-	memset (fb->sector_count, 0, fb->sectors * sizeof(int32_t));
-	memset (fb->entry_list, 0, fb->entry_list_end * sizeof(int32_t));
-	memset (fb->sector_list, 0, fb->sector_list[DQ_END] * sizeof(int32_t));
+	memset(fb->sector_count, 0, fb->sectors * sizeof(int32_t));
+	memset(fb->pending_bracket, 0, fb->sectors * sizeof(int32_t));
+	memset(fb->entry_list, 0, fb->entry_list_end * sizeof(int32_t));
+	memset(fb->sector_list, 0, fb->sector_list[DQ_END] * sizeof(int32_t));
 
 	fb->sector_list[DQ_END] = DQ_END_HEADER_SL;
 	fb->sector_list[DQ_ENTRY_START] = DQ_END_HEADER_SL;
 	fb->drawq_data[DQ_END] = 1;
+	*fb->entry_count = 0;
 
 	cl_data_table_prune_unused(fb);
 }
@@ -44,7 +46,10 @@ ss_calc:
 	fb->sector_pos = calloc (fb->max_sector_count, sizeof(int32_t));
 	fb->entry_list = calloc (fb->list_alloc_size, sizeof(int32_t));
 	fb->sector_list = calloc (fb->list_alloc_size, sizeof(int32_t));
+	fb->entry_pos = calloc (fb->list_alloc_size, sizeof(int32_t));
 	fb->sector_count = calloc (fb->max_sector_count, sizeof(int32_t));
+	fb->pending_bracket = calloc (fb->max_sector_count, sizeof(int32_t));
+	fb->entry_count = calloc (1, sizeof(int));
 
 	fb->drawq_data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->drawq_size*sizeof(int32_t), NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->drawq_data_cl)", ret);
@@ -65,6 +70,9 @@ void drawq_free(framebuffer_t *fb)
 		free (fb->entry_list);
 		free (fb->sector_list);
 		free (fb->sector_count);
+		free (fb->pending_bracket);
+		free (fb->entry_pos);
+		free (fb->entry_count);
 
 		clReleaseMemObject(fb->drawq_data_cl);
 		clReleaseMemObject(fb->sector_pos_cl);
@@ -164,11 +172,13 @@ int32_t drawq_entry_size(const int32_t type)
 	{
 		case DQT_BRACKET_OPEN:		return 0;
 		case DQT_BRACKET_CLOSE:		return 1;
-		case DQT_LINE_THIN_ADD:		return 8;
+		case DQT_LINE_THIN_ADD:		return 9;
 		case DQT_POINT_ADD:		return 6;
 		case DQT_RECT_FULL:		return 8;
 		case DQT_RECT_BLACK:		return 5;
 		case DQT_PLAIN_FILL:		return 3;
+		case DQT_GAIN:			return 1;
+		case DQT_LUMA_COMPRESS:		return 1;
 		case DQT_CIRCLE_FULL:		return 7;
 		case DQT_CIRCLE_HOLLOW:		return 7;
 		//case DQT_BLIT_BILINEAR:		return 8;
@@ -198,11 +208,13 @@ void *drawq_add_to_main_queue(framebuffer_t fb, const int dqtype)
 
 	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
 	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+	fb.entry_pos[*fb.entry_count] = fb.sector_list[DQ_ENTRY_START];	// reference the start of this entry in sector_list
+	(*fb.entry_count)++;
 
 	return &di[end];
 }
 
-void drawq_add_sector_id(framebuffer_t fb, int32_t sector_id)
+void drawq_add_sector_id_nopending(framebuffer_t fb, int32_t sector_id)
 {
 	if (fb.sector_list[DQ_END]+1 >= fb.list_alloc_size)
 	{
@@ -215,6 +227,32 @@ void drawq_add_sector_id(framebuffer_t fb, int32_t sector_id)
 	fb.sector_list[fb.sector_list[DQ_END]] = sector_id;	// add the sector to the list
 	fb.sector_list[fb.sector_list[DQ_ENTRY_START]]++;	// increment the sector count for this entry
 	fb.sector_list[DQ_END]++;				// sector_list becomes 1 larger
+}
+
+void drawq_add_sector_id(framebuffer_t fb, int32_t sector_id)	// like drawq_add_sector_id_nopending but clears the pending bracket count
+{
+	drawq_add_sector_id_nopending(fb, sector_id);
+	fb.pending_bracket[sector_id] = 0;
+}
+
+void drawq_add_sectors_for_already_set_sectors(framebuffer_t fb)	// adds sectors for the current main queue entry only if the sectors already had something to draw (useful for applied effects, such as multiplication)
+{
+	int sector_id;
+	xyi_t ip, bb0, bb1;
+
+	bb0 = xyi(0, 0);
+	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
+
+	// go through the affected sectors
+	for (ip.y=bb0.y; ip.y<=bb1.y; ip.y++)
+		for (ip.x=bb0.x; ip.x<=bb1.x; ip.x++)
+		{
+			sector_id = ip.y*fb.sector_w + ip.x;
+
+			// if the sector contains something at the current bracket level
+			if (fb.sector_count[sector_id] > 0 && fb.pending_bracket[sector_id] == 0)
+				drawq_add_sector_id(fb, sector_id);
+		}
 }
 
 void drawq_compile_lists(framebuffer_t *fb)		// makes entry_list and sector_pos
@@ -247,10 +285,14 @@ void drawq_compile_lists(framebuffer_t *fb)		// makes entry_list and sector_pos
 
 			if (sector >= 0)			// negative sector id indicates a removed sector
 			{
-				secpos = fb->sector_pos[sector];
-				count = &fb->entry_list[secpos];		// count of entry references for this sector
-				(*count)++;
-				fb->entry_list[secpos + *count] = main_i;	// store the position of this entry in the main queue
+				secpos = fb->sector_pos[sector];		// sector position in the entry list for each sector
+
+				if (secpos >= 0)
+				{
+					count = &fb->entry_list[secpos];		// count of entry references for this sector
+					(*count)++;
+					fb->entry_list[secpos + *count] = main_i;	// store the position of this entry in the main queue
+				}
 			}
 		}
 
@@ -259,42 +301,6 @@ void drawq_compile_lists(framebuffer_t *fb)		// makes entry_list and sector_pos
 		// increment the main queue entry position by the size of the entry for its type + 1 (its type takes 1)
 		main_i += drawq_entry_size(fb->drawq_data[main_i]) + 1;
 	}
-}
-
-void drawq_bracket_open(framebuffer_t fb)
-{
-	int32_t ix, iy;
-	xyi_t bb0, bb1;
-
-	bb0 = xyi(0, 0);
-	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
-	
-	// store the drawing parameters in the main drawing queue
-	drawq_add_to_main_queue(fb, DQT_BRACKET_OPEN);
-
-	// go through the affected sectors
-	for (iy=bb0.y; iy<=bb1.y; iy++)
-		for (ix=bb0.x; ix<=bb1.x; ix++)
-			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
-}
-
-void drawq_bracket_close(framebuffer_t fb, int32_t blending_mode)	// blending modes are listed in drawqueue_enums.h
-{
-	int32_t ix, iy;
-	int32_t *di;
-	xyi_t bb0, bb1;
-
-	bb0 = xyi(0, 0);
-	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
-	
-	// store the drawing parameters in the main drawing queue
-	di = drawq_add_to_main_queue(fb, DQT_BRACKET_CLOSE);
-	di[0] = blending_mode;
-
-	// go through the affected sectors
-	for (iy=bb0.y; iy<=bb1.y; iy++)
-		for (ix=bb0.x; ix<=bb1.x; ix++)
-			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
 }
 
 void drawq_test1(framebuffer_t fb)		// BRDF test
@@ -334,4 +340,112 @@ int drawq_get_bounding_box(framebuffer_t fb, rect_t box, xy_t rad, recti_t *bbi)
 	return 1;
 }
 
+void drawq_remove_prev_entry_for_sector(framebuffer_t fb, int32_t sector_id, int bracket_search, xyi_t pix_coord)
+{
+	int i, is, sector_count_for_entry, sector_count, cur_sector_w;
+	int32_t *sector_list_for_entry;
+
+	// Bracket search looks only for entries that cover every sector, like brackets do
+	// since bracket sectors are written sequentially the sector can be found quickly
+	if (bracket_search)
+	{
+		sector_count = mul_x_by_y_xyi(add_xyi(set_xyi(1), xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size)));
+		cur_sector_w = (fb.w-1 >> fb.sector_size) + 1;
+
+		for (i=*fb.entry_count-1; i >= 0; i--)			// go through each main queue entry in sector_list from the last
+		{
+			sector_count_for_entry = fb.sector_list[ fb.entry_pos[i] ];
+
+			if (sector_count_for_entry == sector_count)
+			{
+				sector_list_for_entry = &fb.sector_list[ fb.entry_pos[i]+1 ];	// point to the first sector of this entry's list of sectors
+
+				is = pix_coord.y * cur_sector_w + pix_coord.x;		// sequential position of the pixel
+
+				if (sector_list_for_entry[is] == sector_id)		// if we found the previous entry for this sector
+				{
+					sector_list_for_entry[is] = -1;			// remove it
+					fb.sector_count[sector_id] -= 1;		// decrement the number of entries for this sector
+					return ;
+				}
+			}
+		}
+
+		fprintf_rl(stderr, "Bracket entry for sector_id %d not found in drawq_remove_prev_entry_for_sector()\n", sector_id);
+	}
+
+	// Slow search, probably shouldn't be used
+	for (i=*fb.entry_count-1; i >= 0; i--)			// go through each main queue entry in sector_list from the last
+	{
+		sector_count_for_entry = fb.sector_list[ fb.entry_pos[i] ];
+		sector_list_for_entry = &fb.sector_list[ fb.entry_pos[i]+1 ];	// point to the first sector of this entry's list of sectors
+
+		for (is=0; is < sector_count_for_entry; is++)
+			if (sector_list_for_entry[is] == sector_id)	// if we found the previous entry for this sector
+			{
+				sector_list_for_entry[is] = -1;		// remove it
+				fb.sector_count[sector_id] -= 1;	// decrement the number of entries for this sector
+				return ;
+			}
+	}
+
+	fprintf_rl(stderr, "Entry to remove for sector_id %d not found in drawq_remove_prev_entry_for_sector()\n", sector_id);
+}
+
 #endif
+
+void drawq_bracket_open(framebuffer_t fb)
+{
+#ifdef RL_OPENCL
+	int sector_id;
+	xyi_t ip, bb0, bb1;
+
+	bb0 = xyi(0, 0);
+	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
+	
+	// store the drawing parameters in the main drawing queue
+	drawq_add_to_main_queue(fb, DQT_BRACKET_OPEN);
+
+	// go through the affected sectors
+	for (ip.y=bb0.y; ip.y<=bb1.y; ip.y++)
+		for (ip.x=bb0.x; ip.x<=bb1.x; ip.x++)
+		{
+			sector_id = ip.y*fb.sector_w + ip.x;
+
+			fb.pending_bracket[sector_id]++;		// increment the pending open bracket count
+			drawq_add_sector_id_nopending(fb, sector_id);	// add sector reference
+		}
+#endif
+}
+
+void drawq_bracket_close(framebuffer_t fb, int32_t blending_mode)	// blending modes are listed in drawqueue_enums.h
+{
+#ifdef RL_OPENCL
+	int sector_id;
+	int32_t *di;
+	xyi_t ip, bb0, bb1;
+
+	bb0 = xyi(0, 0);
+	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
+	
+	// store the drawing parameters in the main drawing queue
+	di = drawq_add_to_main_queue(fb, DQT_BRACKET_CLOSE);
+	di[0] = blending_mode;
+
+	// go through the affected sectors
+	for (ip.y=bb0.y; ip.y<=bb1.y; ip.y++)
+		for (ip.x=bb0.x; ip.x<=bb1.x; ip.x++)
+		{
+			sector_id = ip.y*fb.sector_w + ip.x;
+
+			if (fb.pending_bracket[sector_id])					// if there's a pending open bracket
+				drawq_remove_prev_entry_for_sector(fb, sector_id, 1, ip);	// remove the DQT_BRACKET_OPEN entry for this sector
+			else
+				drawq_add_sector_id_nopending(fb, sector_id);			// add sector reference
+
+			fb.pending_bracket[sector_id]--;		// decrement the pending open bracket count
+			if (fb.pending_bracket[sector_id] < 0)
+				fb.pending_bracket[sector_id] = 0;
+		}
+#endif
+}

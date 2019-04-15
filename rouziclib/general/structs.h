@@ -12,6 +12,6 @@ typedef struct
 
 typedef struct
 {
-	char *buf;
-	size_t as, len;
+	uint8_t *buf;
+	size_t as, len;		// len for strings excludes the nul end character
 } buffer_t;

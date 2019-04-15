@@ -13,7 +13,9 @@ enum
 };
 
 extern double lsrgb(double linear);
+extern frgb_t lsrgb_fast_frgb(frgb_t v);
 extern double slrgb(double s);
+extern double s8lrgb(double s8);
 extern lut_t get_lut_lsrgb();
 extern lut_t get_lut_slrgb();
 extern lut_t get_lut_s16lrgb();

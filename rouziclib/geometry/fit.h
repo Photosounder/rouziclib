@@ -12,3 +12,4 @@ extern xy_t fit_unscaled_rect(rect_t a, rect_t f, double *sm);
 extern xy_t fit_into_area(rect_t area, rect_t box, double margin, double *sm);
 extern rect_t fit_rect_in_area(xy_t r_dim0, rect_t area, xy_t off);
 extern rect_t get_subdiv_area(rect_t area, xy_t ratio, xy_t offset);
+extern xy_t make_dim_from_area_and_aspect_ratio(double area, xy_t aspect_dim);

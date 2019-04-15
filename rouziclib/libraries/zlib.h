@@ -5,8 +5,8 @@
 
 #else
 
-#define assert(ignore) ((void)0)        // this suppresses assert() used by miniz
-#include "miniz.h"
+#define NDEBUG        // this suppresses assert() used by miniz
+#include "orig/miniz.h"
 
 #endif
 

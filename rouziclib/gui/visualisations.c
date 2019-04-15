@@ -72,4 +72,3 @@ draw_graph_bar_ret_t draw_graph_data_bar(rect_t area, float *data, float *label_
 
 	return rets;
 }
-

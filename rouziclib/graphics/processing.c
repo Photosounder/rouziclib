@@ -31,7 +31,7 @@ void gaussian_blur(float *a, float *b, xyi_t dim, const int channels, double rad
 	{
 		gk[i] = gaussian((double) i / radius);
 		//gk[i] = gaussian((double) i / radius) / radius / sqrt(pi);
-		//gk[i] = sinc((double) i, 0.6/4.) * blackman((double) i, gks);
+		//gk[i] = sinc((double) i, 0.3/4.) * blackman((double) i, gks);
 		//fprintf_rl(stdout, "gk[%d] = %g\n", i, gk[i]);
 	}
 
@@ -141,21 +141,21 @@ void gaussian_blur(float *a, float *b, xyi_t dim, const int channels, double rad
 	}
 }
 
-float *get_pixel_address_contig(void *ptr, xyi_t dim, xyi_t ip)
+float *get_pixel_address_contig(void *ptr, xyi_t dim, xyi_t ip, int channels)
 {
 	float *array = ptr;
 
-	return &array[ip.y * dim.x + ip.x];
+	return &array[(ip.y * dim.x + ip.x)*channels];
 }
 
-float *get_pixel_address_2d(void *ptr, xyi_t dim, xyi_t ip)
+float *get_pixel_address_2d(void *ptr, xyi_t dim, xyi_t ip, int channels)
 {
 	float **array = ptr;
 
-	return &array[ip.y][ip.x];
+	return &array[ip.y][ip.x*channels];
 }
 
-void blit_scale_float(void *bg, xyi_t bg_dim, void *fg, xyi_t fg_dim, const int channels, xy_t pscale, xy_t pos, float * (*get_pix_f)(void*,xyi_t,xyi_t))
+void blit_scale_float(void *bg, xyi_t bg_dim, void *fg, xyi_t fg_dim, const int channels, xy_t pscale, xy_t pos, float * (*get_pix_f)(void*,xyi_t,xyi_t,int))
 {
 	int32_t ic;
 	xyi_t ip, jp, start, stop, jstart, jstop;
@@ -217,13 +217,13 @@ void blit_scale_float(void *bg, xyi_t bg_dim, void *fg, xyi_t fg_dim, const int 
 					iw.x = param_x.func((double) jp.x - pin.x, ikr0.x, param_x);
 					iw_xy = iw.x * iw.y;			// interpolation weight
 
-					fg_p = get_pix_f(fg, fg_dim, jp);	// get the pixel pointer
+					fg_p = get_pix_f(fg, fg_dim, jp, channels);	// get the pixel pointer
 					for (ic=0; ic<channels; ic++)
 						sumf[ic] += fg_p[ic] * iw_xy;
 				}
 			}
 
-			bg_p = get_pix_f(bg, bg_dim, ip);	// get the pixel pointer
+			bg_p = get_pix_f(bg, bg_dim, ip, channels);	// get the pixel pointer
 			for (ic=0; ic<channels; ic++)
 				bg_p[ic] += sumf[ic];
 		}

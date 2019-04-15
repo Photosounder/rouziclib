@@ -9,6 +9,7 @@ extern "C" {
 
 #define LBD	12
 #define GAUSSLIMIT 0.0002
+#define RL_INCL_NETWORK
 
 #include <rouziclib/rouziclib.h>
 
@@ -19,6 +20,7 @@ extern "C" {
 
 
  * with MinGW's GCC make sure to use -lwinmm, and probably -w to turn off pointless warnings
+ * create a hard link like `mklink /J C:\<usual libs location>\include\rouziclib C:\msys\home\rouziclib` to include using <>
 
 ****************/
 
@@ -51,13 +53,14 @@ extern "C" {
 #include "general/structs.h"
 #include "general/xyz_struct.h"
 #include "geometry/rect_struct.h"		// needs xyz
+#include "general/textedit_struct.h"		// needs xyz
 #include "fileio/dir_struct.h"
-#include "gui/controls_struct.h"
+#include "gui/controls_struct.h"		// needs textedit
 #include "gui/inputprocessing_struct.h"
 #include "gui/focus_struct.h"
 #include "libraries/opencl_struct.h"		// used if RL_OPENCL is defined
 
-#include "graphics/graphics_struct.h"		// needs opencl, xyz, tinycthread
+#include "graphics/graphics_struct.h"		// needs opencl, xyz
 #include "graphics/blending_struct.h"		// needs graphics
 #include "general/keyboard_struct.h"
 #include "general/mouse_struct.h"		// needs rect, xyz, controls, keyboard
@@ -75,6 +78,7 @@ extern "C" {
 #include "general/hashing.h"
 
 #include "memory/alloc.h"
+#include "memory/fill.h"
 #include "memory/circular_buffer.h"
 #include "memory/generic_buffer.h"
 
@@ -83,7 +87,9 @@ extern "C" {
 #include "geometry/rotation.h"
 #include "geometry/fit.h"
 #include "geometry/distance.h"
+#include "geometry/misc.h"
 #include "math/functions.h"
+#include "math/ieee754.h"
 #include "math/rand.h"
 #include "math/dsp.h"
 #include "math/dct.h"
@@ -95,6 +101,7 @@ extern "C" {
 #include "graphics/graphics.h"
 #include "graphics/srgb.h"
 #include "graphics/sqrgb.h"
+#include "graphics/yuv.h"
 #include "graphics/colour.h"
 #include "graphics/blending.h"
 #include "graphics/blit.h"
@@ -135,17 +142,19 @@ extern "C" {
 #include "gui/inputprocessing.h"
 #include "gui/knob_functions.h"
 #include "gui/controls.h"
-#include "gui/controls_secondary.h"
 #include "gui/control_array.h"
 #include "gui/selection.h"
 #include "gui/make_gui.h"
 #include "gui/editor_toolbar.h"
+#include "gui/controls_secondary.h"
 
+#include "fileio/bits.h"
 #include "fileio/open.h"
 #include "fileio/endian.h"
 #include "fileio/image.h"
 #include "fileio/image_bmp.h"
 #include "fileio/image_tiff.h"
+#include "fileio/image_tiff_lzw.h"
 #include "fileio/sound_format.h"
 #include "fileio/sound_aiff.h"
 #include "fileio/sound_wav.h"
@@ -164,17 +173,21 @@ extern "C" {
 #include "libraries/devil.h"		// used if RL_DEVIL is defined
 #include "libraries/clfft.h"		// used if RL_CLFFT is defined
 #include "libraries/ffmpeg.h"		// used if RL_FFMPEG is defined
+#include "libraries/ffmpeg_enc.h"	// used if RL_FFMPEG is defined
 #include "libraries/opencv.h"		// used if RL_OPENCV is defined
 #include "libraries/libsndfile.h"	// used if RL_LIBSNDFILE is defined
 #include "libraries/libraw.h"		// used if RL_LIBRAW is defined
 #include "libraries/libjpeg.h"		// used if RL_LIBJPEG is defined
 #include "libraries/libstb_image.h"
+#include "libraries/libstb_vorbis.h"
 #include "libraries/libminimp3.h"
 #include "libraries/libdr_flac.h"
 #include "libraries/zlib.h"		// used if RL_ZLIB is defined, otherwise miniz is used
 #include "libraries/mpfr.h"		// used if RL_MPFR is defined
 #include "libraries/fftpack.h"		// used unless RL_EXCL_FFTPACK is defined
 #include "libraries/cfftpack.h"		// used unless RL_EXCL_CFFTPACK is defined
+#include "libraries/tinyexpr.h"
+#include "libraries/libcurl.h"		// used if RL_LIBCURL is defined
 
 #include "general/noop.h"
 #include "general/globals.h"

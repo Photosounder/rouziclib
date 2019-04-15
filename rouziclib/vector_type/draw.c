@@ -228,7 +228,8 @@ void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint
 
 	if (cur_textedit->click_on==0 && is==curpos)		// if the cursor is on the current character
 	{
-		draw_textedit_cursor(fb, add_xy(p, off), scale, bidi, bidi_change, line_thick);
+		if (cur_textedit->read_only==0)
+			draw_textedit_cursor(fb, add_xy(p, off), scale, bidi, bidi_change, line_thick);
 		cur_textedit->cur_screen_pos = div_xy(off, set_xy(scale));
 	}
 

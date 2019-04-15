@@ -1,7 +1,9 @@
 #define MINIMP3_FLOAT_OUTPUT
 #define MINIMP3_ONLY_MP3
 #define MINIMP3_IMPLEMENTATION
-#include "minimp3.h"
+#define get_bits get_bits_minimp3
+#include "orig/minimp3.h"
+#undef get_bits
 
 void *load_full_mp3_fullarg(char *in_path, size_t *sample_count, int *channel_count, int *samplerate, int (*bytes_per_sample_func)(int), int (*conv_func)(void*,void*,size_t,int))
 {

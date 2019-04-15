@@ -26,6 +26,7 @@
 #define r_mul(x,y)	mpfr_mul(x, x, y, MPFR_RNDN)
 #define r_rmul(r,x,y)	mpfr_mul(r, x, y, MPFR_RNDN)
 #define r_muld(x,y)	mpfr_mul_d(x, x, y, MPFR_RNDN)
+#define r_rmuld(r,x,y)	mpfr_mul_d(r, x, y, MPFR_RNDN)
 #define r_muli(x,y)	mpfr_mul_si(x, x, y, MPFR_RNDN)
 #define r_div(x,y)	mpfr_div(x, x, y, MPFR_RNDN)
 #define r_rdiv(r,x,y)	mpfr_div(r, x, y, MPFR_RNDN)
@@ -36,5 +37,14 @@
 #define r_powi(x,y)	mpfr_pow_si(x, x, y, MPFR_RNDN)
 #define r_rpowi(r,x,y)	mpfr_pow_si(r, x, y, MPFR_RNDN)
 #define r_todouble(x)	mpfr_get_d(x, MPFR_RNDN)
+#define r_pi(x)		mpfr_const_pi(x, MPFR_RNDN)
+#define r_cos(r,x)	mpfr_cos(r, x, MPFR_RNDN)
+#define r_sin(r,x)	mpfr_sin(r, x, MPFR_RNDN)
+#define r_sq(r,x)	mpfr_sqr(r, x, MPFR_RNDN)
+#define r_sqrt(r,x)	mpfr_sqrt(r, x, MPFR_RNDN)
+#define r_exp(r,x)	mpfr_exp(r, x, MPFR_RNDN)
+
+extern void r_flipsign(real y, real x);
+extern void r_gaussian(real y, real x);
 
 #endif

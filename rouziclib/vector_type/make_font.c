@@ -613,9 +613,7 @@ void make_fallback_font(vector_font_t *font)
 {
 	#include "fallback_font.h"		// contains const char *fallback_font[]
 
-	int i;
-
-	for (i=0; i < sizeof(fallback_font)/sizeof(char *); i++)
+	for (int i=0; i < sizeof(fallback_font)/sizeof(char *); i++)
 		font_block_process_line(fallback_font[i], font);
 }
 
@@ -785,9 +783,7 @@ vector_font_t *remake_font(char *index_path, vector_font_t *oldfont)
 	if (index_path)		// copy the path for possible later use
 	{
 		free(old_path);
-		old_path = calloc (strlen(index_path)+1, sizeof(char));
-
-		strcpy(old_path, index_path);
+		old_path = make_string_copy(index_path);
 	}
 
 	free_font(oldfont);

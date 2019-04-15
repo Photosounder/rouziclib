@@ -111,7 +111,7 @@ static void  XXH_free  (void* p)  { free(p); }
 #include <string.h>
 static void* XXH_memcpy(void* dest, const void* src, size_t size) { return memcpy(dest,src,size); }
 
-//#include <assert.h>   /* assert */
+#include <assert.h>   /* assert */
 
 #define XXH_STATIC_LINKING_ONLY
 #include "xxhash.h"
@@ -122,16 +122,16 @@ static void* XXH_memcpy(void* dest, const void* src, size_t size) { return memcp
 ***************************************/
 #ifdef _MSC_VER    /* Visual Studio */
 #  pragma warning(disable : 4127)      /* disable: C4127: conditional expression is constant */
-#  define FORCE_INLINE static __forceinline
+#  define XXH_FORCE_INLINE static __forceinline
 #else
 #  if defined (__cplusplus) || defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L   /* C99 */
 #    ifdef __GNUC__
-#      define FORCE_INLINE static inline __attribute__((always_inline))
+#      define XXH_FORCE_INLINE static inline __attribute__((always_inline))
 #    else
-#      define FORCE_INLINE static inline
+#      define XXH_FORCE_INLINE static inline
 #    endif
 #  else
-#    define FORCE_INLINE static
+#    define XXH_FORCE_INLINE static
 #  endif /* __STDC_VERSION__ */
 #endif
 
@@ -191,8 +191,8 @@ static U32 XXH_read32(const void* memPtr)
 #  define XXH_rotl32(x,r) _rotl(x,r)
 #  define XXH_rotl64(x,r) _rotl64(x,r)
 #else
-#  define XXH_rotl32(x,r) ((x << r) | (x >> (32 - r)))
-#  define XXH_rotl64(x,r) ((x << r) | (x >> (64 - r)))
+#  define XXH_rotl32(x,r) (((x) << (r)) | ((x) >> (32 - (r))))
+#  define XXH_rotl64(x,r) (((x) << (r)) | ((x) >> (64 - (r))))
 #endif
 
 #if defined(_MSC_VER)     /* Visual Studio */
@@ -231,7 +231,8 @@ static int XXH_isLittleEndian(void)
 *****************************/
 typedef enum { XXH_aligned, XXH_unaligned } XXH_alignment;
 
-FORCE_INLINE U32 XXH_readLE32_align(const void* ptr, XXH_endianess endian, XXH_alignment align)
+XXH_FORCE_INLINE U32
+XXH_readLE32_align(const void* ptr, XXH_endianess endian, XXH_alignment align)
 {
     if (align==XXH_unaligned)
         return endian==XXH_littleEndian ? XXH_read32(ptr) : XXH_swap32(XXH_read32(ptr));
@@ -239,7 +240,7 @@ FORCE_INLINE U32 XXH_readLE32_align(const void* ptr, XXH_endianess endian, XXH_a
         return endian==XXH_littleEndian ? *(const U32*)ptr : XXH_swap32(*(const U32*)ptr);
 }
 
-FORCE_INLINE U32 XXH_readLE32(const void* ptr, XXH_endianess endian)
+XXH_FORCE_INLINE U32 XXH_readLE32(const void* ptr, XXH_endianess endian)
 {
     return XXH_readLE32_align(ptr, endian, XXH_unaligned);
 }
@@ -260,11 +261,11 @@ XXH_PUBLIC_API unsigned XXH_versionNumber (void) { return XXH_VERSION_NUMBER; }
 /* *******************************************************************
 *  32-bit hash functions
 *********************************************************************/
-static const U32 PRIME32_1 = 2654435761U;
-static const U32 PRIME32_2 = 2246822519U;
-static const U32 PRIME32_3 = 3266489917U;
-static const U32 PRIME32_4 =  668265263U;
-static const U32 PRIME32_5 =  374761393U;
+static const U32 PRIME32_1 = 2654435761U;   /* 0b10011110001101110111100110110001 */
+static const U32 PRIME32_2 = 2246822519U;   /* 0b10000101111010111100101001110111 */
+static const U32 PRIME32_3 = 3266489917U;   /* 0b11000010101100101010111000111101 */
+static const U32 PRIME32_4 =  668265263U;   /* 0b00100111110101001110101100101111 */
+static const U32 PRIME32_5 =  374761393U;   /* 0b00010110010101100110011110110001 */
 
 static U32 XXH32_round(U32 seed, U32 input)
 {
@@ -293,9 +294,9 @@ XXH32_finalize(U32 h32, const void* ptr, size_t len,
 
 {
     const BYTE* p = (const BYTE*)ptr;
-#define PROCESS1             \
-    h32 += (*p) * PRIME32_5; \
-    p++;                     \
+
+#define PROCESS1               \
+    h32 += (*p++) * PRIME32_5; \
     h32 = XXH_rotl32(h32, 11) * PRIME32_1 ;
 
 #define PROCESS4                         \
@@ -343,12 +344,12 @@ XXH32_finalize(U32 h32, const void* ptr, size_t len,
                     /* fallthrough */
       case 0:       return XXH32_avalanche(h32);
     }
-    //assert(0);
+    assert(0);
     return h32;   /* reaching this point is deemed impossible */
 }
 
 
-FORCE_INLINE U32
+XXH_FORCE_INLINE U32
 XXH32_endian_align(const void* input, size_t len, U32 seed,
                     XXH_endianess endian, XXH_alignment align)
 {
@@ -448,12 +449,9 @@ XXH_PUBLIC_API XXH_errorcode XXH32_reset(XXH32_state_t* statePtr, unsigned int s
 }
 
 
-FORCE_INLINE
-XXH_errorcode XXH32_update_endian (XXH32_state_t* state, const void* input, size_t len, XXH_endianess endian)
+XXH_FORCE_INLINE XXH_errorcode
+XXH32_update_endian(XXH32_state_t* state, const void* input, size_t len, XXH_endianess endian)
 {
-    const BYTE* p = (const BYTE*)input;
-    const BYTE* const bEnd = p + len;
-
     if (input==NULL)
 #if defined(XXH_ACCEPT_NULL_INPUT_POINTER) && (XXH_ACCEPT_NULL_INPUT_POINTER>=1)
         return XXH_OK;
@@ -461,50 +459,54 @@ XXH_errorcode XXH32_update_endian (XXH32_state_t* state, const void* input, size
         return XXH_ERROR;
 #endif
 
-    state->total_len_32 += (unsigned)len;
-    state->large_len |= (len>=16) | (state->total_len_32>=16);
+    {   const BYTE* p = (const BYTE*)input;
+        const BYTE* const bEnd = p + len;
 
-    if (state->memsize + len < 16)  {   /* fill in tmp buffer */
-        XXH_memcpy((BYTE*)(state->mem32) + state->memsize, input, len);
-        state->memsize += (unsigned)len;
-        return XXH_OK;
-    }
+        state->total_len_32 += (unsigned)len;
+        state->large_len |= (len>=16) | (state->total_len_32>=16);
 
-    if (state->memsize) {   /* some data left from previous update */
-        XXH_memcpy((BYTE*)(state->mem32) + state->memsize, input, 16-state->memsize);
-        {   const U32* p32 = state->mem32;
-            state->v1 = XXH32_round(state->v1, XXH_readLE32(p32, endian)); p32++;
-            state->v2 = XXH32_round(state->v2, XXH_readLE32(p32, endian)); p32++;
-            state->v3 = XXH32_round(state->v3, XXH_readLE32(p32, endian)); p32++;
-            state->v4 = XXH32_round(state->v4, XXH_readLE32(p32, endian));
+        if (state->memsize + len < 16)  {   /* fill in tmp buffer */
+            XXH_memcpy((BYTE*)(state->mem32) + state->memsize, input, len);
+            state->memsize += (unsigned)len;
+            return XXH_OK;
         }
-        p += 16-state->memsize;
-        state->memsize = 0;
-    }
 
-    if (p <= bEnd-16) {
-        const BYTE* const limit = bEnd - 16;
-        U32 v1 = state->v1;
-        U32 v2 = state->v2;
-        U32 v3 = state->v3;
-        U32 v4 = state->v4;
+        if (state->memsize) {   /* some data left from previous update */
+            XXH_memcpy((BYTE*)(state->mem32) + state->memsize, input, 16-state->memsize);
+            {   const U32* p32 = state->mem32;
+                state->v1 = XXH32_round(state->v1, XXH_readLE32(p32, endian)); p32++;
+                state->v2 = XXH32_round(state->v2, XXH_readLE32(p32, endian)); p32++;
+                state->v3 = XXH32_round(state->v3, XXH_readLE32(p32, endian)); p32++;
+                state->v4 = XXH32_round(state->v4, XXH_readLE32(p32, endian));
+            }
+            p += 16-state->memsize;
+            state->memsize = 0;
+        }
 
-        do {
-            v1 = XXH32_round(v1, XXH_readLE32(p, endian)); p+=4;
-            v2 = XXH32_round(v2, XXH_readLE32(p, endian)); p+=4;
-            v3 = XXH32_round(v3, XXH_readLE32(p, endian)); p+=4;
-            v4 = XXH32_round(v4, XXH_readLE32(p, endian)); p+=4;
-        } while (p<=limit);
+        if (p <= bEnd-16) {
+            const BYTE* const limit = bEnd - 16;
+            U32 v1 = state->v1;
+            U32 v2 = state->v2;
+            U32 v3 = state->v3;
+            U32 v4 = state->v4;
 
-        state->v1 = v1;
-        state->v2 = v2;
-        state->v3 = v3;
-        state->v4 = v4;
-    }
+            do {
+                v1 = XXH32_round(v1, XXH_readLE32(p, endian)); p+=4;
+                v2 = XXH32_round(v2, XXH_readLE32(p, endian)); p+=4;
+                v3 = XXH32_round(v3, XXH_readLE32(p, endian)); p+=4;
+                v4 = XXH32_round(v4, XXH_readLE32(p, endian)); p+=4;
+            } while (p<=limit);
 
-    if (p < bEnd) {
-        XXH_memcpy(state->mem32, p, (size_t)(bEnd-p));
-        state->memsize = (unsigned)(bEnd-p);
+            state->v1 = v1;
+            state->v2 = v2;
+            state->v3 = v3;
+            state->v4 = v4;
+        }
+
+        if (p < bEnd) {
+            XXH_memcpy(state->mem32, p, (size_t)(bEnd-p));
+            state->memsize = (unsigned)(bEnd-p);
+        }
     }
 
     return XXH_OK;
@@ -522,7 +524,7 @@ XXH_PUBLIC_API XXH_errorcode XXH32_update (XXH32_state_t* state_in, const void* 
 }
 
 
-FORCE_INLINE U32
+XXH_FORCE_INLINE U32
 XXH32_digest_endian (const XXH32_state_t* state, XXH_endianess endian)
 {
     U32 h32;
@@ -641,7 +643,8 @@ static U64 XXH_swap64 (U64 x)
 }
 #endif
 
-FORCE_INLINE U64 XXH_readLE64_align(const void* ptr, XXH_endianess endian, XXH_alignment align)
+XXH_FORCE_INLINE U64
+XXH_readLE64_align(const void* ptr, XXH_endianess endian, XXH_alignment align)
 {
     if (align==XXH_unaligned)
         return endian==XXH_littleEndian ? XXH_read64(ptr) : XXH_swap64(XXH_read64(ptr));
@@ -649,7 +652,7 @@ FORCE_INLINE U64 XXH_readLE64_align(const void* ptr, XXH_endianess endian, XXH_a
         return endian==XXH_littleEndian ? *(const U64*)ptr : XXH_swap64(*(const U64*)ptr);
 }
 
-FORCE_INLINE U64 XXH_readLE64(const void* ptr, XXH_endianess endian)
+XXH_FORCE_INLINE U64 XXH_readLE64(const void* ptr, XXH_endianess endian)
 {
     return XXH_readLE64_align(ptr, endian, XXH_unaligned);
 }
@@ -662,11 +665,11 @@ static U64 XXH_readBE64(const void* ptr)
 
 /*======   xxh64   ======*/
 
-static const U64 PRIME64_1 = 11400714785074694791ULL;
-static const U64 PRIME64_2 = 14029467366897019727ULL;
-static const U64 PRIME64_3 =  1609587929392839161ULL;
-static const U64 PRIME64_4 =  9650029242287828579ULL;
-static const U64 PRIME64_5 =  2870177450012600261ULL;
+static const U64 PRIME64_1 = 11400714785074694791ULL;   /* 0b1001111000110111011110011011000110000101111010111100101010000111 */
+static const U64 PRIME64_2 = 14029467366897019727ULL;   /* 0b1100001010110010101011100011110100100111110101001110101101001111 */
+static const U64 PRIME64_3 =  1609587929392839161ULL;   /* 0b0001011001010110011001111011000110011110001101110111100111111001 */
+static const U64 PRIME64_4 =  9650029242287828579ULL;   /* 0b1000010111101011110010100111011111000010101100101010111001100011 */
+static const U64 PRIME64_5 =  2870177450012600261ULL;   /* 0b0010011111010100111010110010111100010110010101100110011111000101 */
 
 static U64 XXH64_round(U64 acc, U64 input)
 {
@@ -703,9 +706,8 @@ XXH64_finalize(U64 h64, const void* ptr, size_t len,
 {
     const BYTE* p = (const BYTE*)ptr;
 
-#define PROCESS1_64          \
-    h64 ^= (*p) * PRIME64_5; \
-    p++;                     \
+#define PROCESS1_64            \
+    h64 ^= (*p++) * PRIME64_5; \
     h64 = XXH_rotl64(h64, 11) * PRIME64_1;
 
 #define PROCESS4_64          \
@@ -803,11 +805,11 @@ XXH64_finalize(U64 h64, const void* ptr, size_t len,
     }
 
     /* impossible to reach */
-    //assert(0);
+    assert(0);
     return 0;  /* unreachable, but some compilers complain without it */
 }
 
-FORCE_INLINE U64
+XXH_FORCE_INLINE U64
 XXH64_endian_align(const void* input, size_t len, U64 seed,
                 XXH_endianess endian, XXH_alignment align)
 {
@@ -908,12 +910,9 @@ XXH_PUBLIC_API XXH_errorcode XXH64_reset(XXH64_state_t* statePtr, unsigned long 
     return XXH_OK;
 }
 
-FORCE_INLINE
-XXH_errorcode XXH64_update_endian (XXH64_state_t* state, const void* input, size_t len, XXH_endianess endian)
+XXH_FORCE_INLINE XXH_errorcode
+XXH64_update_endian (XXH64_state_t* state, const void* input, size_t len, XXH_endianess endian)
 {
-    const BYTE* p = (const BYTE*)input;
-    const BYTE* const bEnd = p + len;
-
     if (input==NULL)
 #if defined(XXH_ACCEPT_NULL_INPUT_POINTER) && (XXH_ACCEPT_NULL_INPUT_POINTER>=1)
         return XXH_OK;
@@ -921,47 +920,51 @@ XXH_errorcode XXH64_update_endian (XXH64_state_t* state, const void* input, size
         return XXH_ERROR;
 #endif
 
-    state->total_len += len;
+    {   const BYTE* p = (const BYTE*)input;
+        const BYTE* const bEnd = p + len;
 
-    if (state->memsize + len < 32) {  /* fill in tmp buffer */
-        XXH_memcpy(((BYTE*)state->mem64) + state->memsize, input, len);
-        state->memsize += (U32)len;
-        return XXH_OK;
-    }
+        state->total_len += len;
 
-    if (state->memsize) {   /* tmp buffer is full */
-        XXH_memcpy(((BYTE*)state->mem64) + state->memsize, input, 32-state->memsize);
-        state->v1 = XXH64_round(state->v1, XXH_readLE64(state->mem64+0, endian));
-        state->v2 = XXH64_round(state->v2, XXH_readLE64(state->mem64+1, endian));
-        state->v3 = XXH64_round(state->v3, XXH_readLE64(state->mem64+2, endian));
-        state->v4 = XXH64_round(state->v4, XXH_readLE64(state->mem64+3, endian));
-        p += 32-state->memsize;
-        state->memsize = 0;
-    }
+        if (state->memsize + len < 32) {  /* fill in tmp buffer */
+            XXH_memcpy(((BYTE*)state->mem64) + state->memsize, input, len);
+            state->memsize += (U32)len;
+            return XXH_OK;
+        }
 
-    if (p+32 <= bEnd) {
-        const BYTE* const limit = bEnd - 32;
-        U64 v1 = state->v1;
-        U64 v2 = state->v2;
-        U64 v3 = state->v3;
-        U64 v4 = state->v4;
+        if (state->memsize) {   /* tmp buffer is full */
+            XXH_memcpy(((BYTE*)state->mem64) + state->memsize, input, 32-state->memsize);
+            state->v1 = XXH64_round(state->v1, XXH_readLE64(state->mem64+0, endian));
+            state->v2 = XXH64_round(state->v2, XXH_readLE64(state->mem64+1, endian));
+            state->v3 = XXH64_round(state->v3, XXH_readLE64(state->mem64+2, endian));
+            state->v4 = XXH64_round(state->v4, XXH_readLE64(state->mem64+3, endian));
+            p += 32-state->memsize;
+            state->memsize = 0;
+        }
 
-        do {
-            v1 = XXH64_round(v1, XXH_readLE64(p, endian)); p+=8;
-            v2 = XXH64_round(v2, XXH_readLE64(p, endian)); p+=8;
-            v3 = XXH64_round(v3, XXH_readLE64(p, endian)); p+=8;
-            v4 = XXH64_round(v4, XXH_readLE64(p, endian)); p+=8;
-        } while (p<=limit);
+        if (p+32 <= bEnd) {
+            const BYTE* const limit = bEnd - 32;
+            U64 v1 = state->v1;
+            U64 v2 = state->v2;
+            U64 v3 = state->v3;
+            U64 v4 = state->v4;
 
-        state->v1 = v1;
-        state->v2 = v2;
-        state->v3 = v3;
-        state->v4 = v4;
-    }
+            do {
+                v1 = XXH64_round(v1, XXH_readLE64(p, endian)); p+=8;
+                v2 = XXH64_round(v2, XXH_readLE64(p, endian)); p+=8;
+                v3 = XXH64_round(v3, XXH_readLE64(p, endian)); p+=8;
+                v4 = XXH64_round(v4, XXH_readLE64(p, endian)); p+=8;
+            } while (p<=limit);
 
-    if (p < bEnd) {
-        XXH_memcpy(state->mem64, p, (size_t)(bEnd-p));
-        state->memsize = (unsigned)(bEnd-p);
+            state->v1 = v1;
+            state->v2 = v2;
+            state->v3 = v3;
+            state->v4 = v4;
+        }
+
+        if (p < bEnd) {
+            XXH_memcpy(state->mem64, p, (size_t)(bEnd-p));
+            state->memsize = (unsigned)(bEnd-p);
+        }
     }
 
     return XXH_OK;
@@ -977,7 +980,7 @@ XXH_PUBLIC_API XXH_errorcode XXH64_update (XXH64_state_t* state_in, const void* 
         return XXH64_update_endian(state_in, input, len, XXH_bigEndian);
 }
 
-FORCE_INLINE U64 XXH64_digest_endian (const XXH64_state_t* state, XXH_endianess endian)
+XXH_FORCE_INLINE U64 XXH64_digest_endian (const XXH64_state_t* state, XXH_endianess endian)
 {
     U64 h64;
 

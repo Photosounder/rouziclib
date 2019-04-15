@@ -12,6 +12,80 @@
 	fastsqrt(x)	~21.5	~12.5	9e-10	3 kB	sqrt(x), disregards the sign of x
  */
 
+float polynomial_from_lutf(const float *lut, const int lutind, const int order, const float x)
+{
+	const float *c;
+
+	switch (order)
+	{
+		case 0:
+			return lut[lutind];
+
+		case 1:
+			c = &lut[lutind<<1];
+			return c[1]*x + c[0];
+
+		case 2:
+			c = &lut[lutind*3];
+			return (c[2]*x + c[1])*x + c[0];
+
+		case 3:
+			c = &lut[lutind<<2];
+			return (((c[3])*x + c[2])*x + c[1])*x + c[0];
+
+		case 4:
+			c = &lut[lutind*5];
+			return (((c[4]*x + c[3])*x + c[2])*x + c[1])*x + c[0];
+
+		case 5:
+			c = &lut[lutind*6];
+			return ((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0];
+
+		case 6:
+			c = &lut[lutind*7];
+			return (((((c[6]*x + c[5])*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0];
+	}
+
+	return NAN;
+}
+
+double polynomial_from_lut(const double *lut, const int lutind, const int order, const double x)
+{
+	const double *c;
+
+	switch (order)
+	{
+		case 0:
+			return lut[lutind];
+
+		case 1:
+			c = &lut[lutind<<1];
+			return c[1]*x + c[0];
+
+		case 2:
+			c = &lut[lutind*3];
+			return (c[2]*x + c[1])*x + c[0];
+
+		case 3:
+			c = &lut[lutind<<2];
+			return (((c[3])*x + c[2])*x + c[1])*x + c[0];
+
+		case 4:
+			c = &lut[lutind*5];
+			return (((c[4]*x + c[3])*x + c[2])*x + c[1])*x + c[0];
+
+		case 5:
+			c = &lut[lutind*6];
+			return ((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0];
+
+		case 6:
+			c = &lut[lutind*7];
+			return (((((c[6]*x + c[5])*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0];
+	}
+
+	return NAN;
+}
+
 // log2 approximation, returns slightly bogus values for 0, subnormals, inf and NaNs, returns the real value only for negative x
 // max error of 7.098e-09 for lutsp of 7, lut takes 3 kB
 double fastlog2(double x)
@@ -180,33 +254,22 @@ double fastsqrt(double x)
 uint32_t fastcos_get_param(double *xp, double *endsign)
 {
 	const double inv_2pi = 0.15915494309189533576888;
-	double x, xoff, xfloor = 0.;
-	uint64_t *xint = (uint64_t *) &x;		// top 8 bytes of x
-	uint32_t *xhi4 = &((uint32_t *) &x)[1];		// top 4 bytes of x
-	uint64_t *xfint = (uint64_t *) &xfloor;		// top 8 bytes of xfloor
-	uint32_t exp, lutind;
-	uint64_t xfmask;
+	double x, xoff;
+	uint64_t *xint = (uint64_t *) &x;
+	uint32_t lutind;
 
 	x = *xp * inv_2pi;			// convert from radians to turns
 	*xint &= 0x7FFFFFFFFFFFFFFF;		// x = |x|
 
 	// x = [0 , +inf[ --> x = [0 , 1[
-	if (*xhi4 >= 0x3FF00000)		// if |x| >= 1.0
-	{
-		exp = (*xhi4 >> 20) - 1023;
-
-		xfmask = 0xFFFFFFFFFFFFFFFF << (52-exp);	// mask to exclude bits of the mantissa that are fractional
-		*xfint = *xint & xfmask;
-
-		x -= xfloor;					// |x| = fractional part of |x|
-	}
+	x = get_fractional_part(x);
 
 	// x = [0 , 1[ --> x = [0 , 0.5]
-	if (*xhi4 > 0x3FE00000)		// if x > 0.5
+	if (*xint > 0x3FE0000000000000)		// if x > 0.5
 		x = 1. - x;
 
 	// x = [0 , 0.5] --> x = [0 , 0.25]
-	if (*xhi4 > 0x3FD00000)		// if x > 0.25
+	if (*xint > 0x3FD0000000000000)		// if x > 0.25
 	{
 		*endsign = -1.;
 		x = 0.5 - x;
@@ -222,24 +285,15 @@ uint32_t fastcos_get_param(double *xp, double *endsign)
 uint32_t fastcosf_get_param(float *xp, float *endsign)
 {
 	const float inv_2pi = 0.159154943f;
-	float x, xoff, xfloor = 0.f;
+	float x, xoff;
 	uint32_t *xint = (uint32_t *) &x;
-	uint32_t *xfint = (uint32_t *) &xfloor;
-	uint32_t exp, lutind, xfmask;
+	uint32_t lutind;
 
 	x = *xp * inv_2pi;		// convert from radians to turns
 	*xint &= 0x7FFFFFFF;		// x = |x|
 
 	// x = [0 , +inf[ --> x = [0 , 1[
-	if (*xint >= 0x3F800000)		// if |x| >= 1.0
-	{
-		exp = (*xint >> 23) - 127;
-
-		xfmask = 0xFFFFFFFF << (23-exp);	// mask to exclude bits of the mantissa that are fractional
-		*xfint = *xint & xfmask;
-
-		x -= xfloor;				// |x| = fractional part of |x|
-	}
+	x = get_fractional_partf(x);
 
 	// x = [0 , 1[ --> x = [0 , 0.5]
 	if (*xint > 0x3F000000)		// if x > 0.5
@@ -299,6 +353,52 @@ double fastcos_d5(double x)	// max error: 9.62572e-015 (compare with 3.41596e-01
 	lutind = fastcos_get_param(&x, &endsign) >> ish;
 	c = &lut[lutind*6];
 	return endsign * (((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0]);
+}
+
+float fastwsincf(float x)		// max error: 1.32633e-006 (order 2, lutsp 5), 1.06102e-005 (order 2, lutsp 4), 1.22179e-007 (order 3, lutsp 4)
+{
+	static const float lut[] = 
+	#include "fastwsinc.h"		// 1272 bytes, contains order, lutsp, ish, wsinc_range and ind_off
+	const float *c;
+	uint32_t lutind;
+
+	ffabsf(&x);						// x = |x|
+	if (x >= wsinc_range)
+		return 0.;
+
+	lutind = float_get_mantissa(x + ind_off) >> (ish-29);	// x + index offset (8.0) so that we can use the top 7 bits of xoff's mantissa as LUT index
+
+	return polynomial_from_lutf(lut, lutind, order, x);
+}
+
+double fastwsinc(double x)	// use fastwsincf instead, takes less memory and gives about the same precision
+{
+	static const double lut[] = 
+	#include "fastwsinc.h"		// 5088 bytes, contains order, lutsp, ish, wsinc_range and ind_off
+	const double *c;
+	uint32_t lutind;
+
+	ffabs(&x);						// x = |x|
+	if (x >= wsinc_range)
+		return 0.;
+
+	lutind = double_get_mantissa(x + ind_off) >> ish;	// x + index offset (8.0) so that we can use the top 7 bits of xoff's mantissa as LUT index
+
+	return polynomial_from_lut(lut, lutind, order, x);
+}
+
+float fast_lsrgbf(float x)
+{
+	static const float lut[] = 
+	#include "fastlsrgb.h"		// 396 bytes, contains order, ish
+	const float offset = 0.0031308f;
+	uint32_t lutind;
+
+	x = rangelimitf(x, 0.f, 1.f);
+
+	lutind = float_as_u32(x + offset) - float_as_u32(offset) >> ish;
+
+	return polynomial_from_lutf(lut, lutind, order, x);
 }
 
 float fastgaussianf_d0(float x)

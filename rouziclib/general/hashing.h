@@ -1,5 +1,5 @@
 #define XXH_INLINE_ALL			// this makes xxhash.c be included inside xxhash.h
-#include "../libraries/xxhash.h"
+#include "../libraries/orig/xxhash.h"
 
 extern uint64_t get_pointer_hash(const void *ptr);
 extern uint64_t get_buffer_hash(const void *ptr, size_t size);

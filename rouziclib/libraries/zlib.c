@@ -1,6 +1,6 @@
 // uses either zlib or miniz depending on RL_ZLIB
 
-#include "miniz.c"
+#include "orig/miniz.c"
 
 int gz_decompress(const uint8_t *src, const size_t src_len, uint8_t **dst, size_t *dst_alloc)
 {

@@ -18,6 +18,17 @@ recti_t recti(const xyi_t p0, const xyi_t p1)
 	return r;
 }
 
+triangle_t triangle(const xy_t a, const xy_t b, const xy_t c)
+{
+	triangle_t tr;
+
+	tr.a = a;
+	tr.b = b;
+	tr.c = c;
+
+	return tr;
+}
+
 recti_t rect_to_recti(const rect_t r)
 {
 	return recti(xy_to_xyi(r.p0), xy_to_xyi(r.p1));
@@ -129,7 +140,8 @@ rect_t make_rect_off(const xy_t pos, const xy_t dim, const xy_t off)
 
 void rect_to_pos_dim(rect_t r, xy_t *pos, xy_t *dim, xy_t off)
 {
-	*dim = get_rect_dim(r);
+	//*dim = get_rect_dim(r);
+	*dim = sub_xy(r.p1, r.p0);
 	*pos = add_xy(r.p0, mul_xy(off, *dim));
 }
 
@@ -239,4 +251,14 @@ int equal_rect(rect_t r1, rect_t r2)
 xy_t pos_in_rect_by_ratio(rect_t r, xy_t ratio)
 {
 	return add_xy(r.p0, mul_xy(ratio, sub_xy(r.p1, r.p0)));
+}
+
+xy_t pos_to_rect_ratio(xy_t pos, rect_t r)
+{
+	return div_xy(sub_xy(pos, r.p0), sub_xy(r.p1, r.p0));
+}
+
+rect_t resize_rect_around_offset(rect_t r, xy_t dim1, xy_t offset)
+{
+	return make_rect_off(pos_in_rect_by_ratio(r, offset), dim1, offset);
 }

@@ -1,3 +1,8 @@
+#ifndef RL_DONT_ASSUME_LITTLE_ENDIAN
+#define ASS_LE
+#endif
+
+extern uint8_t fread_byte8(FILE *file);
 extern uint16_t fread_LE16(FILE *file);
 extern uint16_t fread_BE16(FILE *file);
 extern uint32_t fread_LE32(FILE *file);

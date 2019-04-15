@@ -7,15 +7,17 @@ size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, siz
 	{
 		newsize = ceil((double) needed_count * inc_ratio);
 
+		// Try realloc to the new larger size
 		p = realloc(*buffer, newsize * size_elem);
 		if (p == NULL)
 		{
-			fprintf_rl(stderr, "realloc(*buffer=0x%08x, size=%d) failed.\n", *buffer, newsize * size_elem);
+			fprintf_rl(stderr, "realloc(*buffer=%p, size=%zu) failed.\n", (void *) *buffer, newsize * size_elem);
 			return alloc_count;
 		}
 		else
 			*buffer = p;
 
+		// Blank the new bytes
 		memset(&((uint8_t *)(*buffer))[alloc_count * size_elem], 0, (newsize-alloc_count) * size_elem);
 
 		alloc_count = newsize;
@@ -38,7 +40,7 @@ void free_null(void **ptr)
 
 void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t size_elem)
 {
-	int i;
+	size_t i;
 	uint8_t **array;
 
 	array = calloc(ptr_count, sizeof(uint8_t *));
@@ -51,9 +53,24 @@ void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t
 	return array;
 }
 
+void **copy_2d(void **ptr, const size_t ptr_count, const size_t size_buffers)
+{
+	size_t i;
+	void **array;
+
+	array = calloc(ptr_count, sizeof(void *));
+	if (array==NULL)
+		return NULL;
+
+	for (i=0; i < ptr_count; i++)
+		array[i] = copy_alloc(ptr[i], size_buffers);
+
+	return array;
+}
+
 void **memset_2d(void **ptr, const int word, const size_t size, const size_t count)
 {
-	int i;
+	size_t i;
 
 	for (i=0; i < count; i++)
 		memset(ptr[i], word, size);
@@ -63,7 +80,7 @@ void **memset_2d(void **ptr, const int word, const size_t size, const size_t cou
 
 void free_2d(void **ptr, const size_t count)
 {
-	int i;
+	size_t i;
 
 	if (ptr==NULL)
 		return ;
@@ -72,6 +89,15 @@ void free_2d(void **ptr, const size_t count)
 		free(ptr[i]);
 
 	free(ptr);
+}
+
+void free_null_2d(void ***ptr, const size_t count)
+{
+	if (ptr)
+	{
+		free_2d(*ptr, count);
+		*ptr = NULL;
+	}
 }
 
 void *copy_alloc(void *b0, size_t size)		// makes an allocated copy of a buffer

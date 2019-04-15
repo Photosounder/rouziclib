@@ -1,6 +1,6 @@
 #ifdef RL_INCL_NETWORK
 
-int http_request(char *domain, char *port, char *request, int timeout, int retry, uint8_t **data, int *data_alloc, int mode)
+size_t http_request(char *domain, char *port, char *request, int timeout, int retry, uint8_t **data, size_t *data_alloc, int mode)
 {
 	int error, ret=0;
 	uint8_t *tcpdata, *pe, *p;
@@ -73,7 +73,7 @@ jump_end:
 	return ret;
 }
 
-int http_get(char *url, int timeout, int retry, uint8_t **data, int *data_alloc)	// works both with or without http://
+size_t http_get(char *url, int timeout, int retry, uint8_t **data, size_t *data_alloc)	// works both with or without http://
 {
 	char *domain=NULL, *request=NULL, *p;
 	int ret, start_domain=0, start_path=0;
@@ -102,6 +102,13 @@ int http_get(char *url, int timeout, int retry, uint8_t **data, int *data_alloc)
 	free(request);
 
 	return ret;
+}
+
+size_t http_get_buf(char *url, int timeout, int retry, buffer_t *buf)
+{
+	buf->len = http_get(url, timeout, retry, &buf->buf, &buf->as);
+
+	return buf->len;
 }
 
 #endif

@@ -1,10 +1,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ASSERT(x)
-#include "stb_image.h"	// when updating do %s/\<pi\>/ip/g
+#undef pi
+#include "orig/stb_image.h"
+#define pi RL_PI
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define fopen	fopen_utf8
-#include "stb_image_write.h"
+#include "orig/stb_image_write.h"
 #undef fopen
 
 raster_t load_image_mem_libstb_image(uint8_t *raw_data, size_t size, const int mode)
@@ -34,7 +36,6 @@ raster_t load_image_mem_libstb_image(uint8_t *raw_data, size_t size, const int m
 			im.srgb = b8;
 
 		convert_image_srgb8(&im, b8, mode);
-
 		if (im.srgb != b8)
 			free(b8);
 	}

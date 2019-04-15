@@ -37,7 +37,7 @@ void textedit_erase_selection(textedit_t *te, int *len)
 	if (te==NULL)
 		return ;
 
-	if (te->sel0==te->sel1)
+	if (te->sel0==te->sel1 || te->sel0 < 0 || te->sel1 < 0)
 		return ;
 
 	textundo_update(te, 1);		// save the current state in undo
@@ -123,6 +123,17 @@ int textedit_find_next_wordstart(textedit_t *te)
 	}
 }
 
+int textedit_find_next_wordend(textedit_t *te)
+{
+	int i;
+
+	for (i=te->curpos; ; i++)
+	{
+		if (te->string[i]==' ' || te->string[i]=='\t' || te->string[i]=='\n' || te->string[i]=='\0')
+			return i;
+	}
+}
+
 void textedit_set_new_text(textedit_t *te, char *str)	// sets a whole new text from the string
 {
 	int sel0, sel1, len;
@@ -159,9 +170,12 @@ void textedit_clear_then_set_new_text(textedit_t *te, char *str)	// sets a whole
 		alloc_enough(&te->string, len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
 		strcpy(te->string, str);							// copying of str
 	}
-	
-	te->curpos = len;
-	te->sel0 = te->sel1 = 0;
+
+	if (te->read_only==0)
+	{
+		te->curpos = len;
+		te->sel0 = te->sel1 = 0;
+	}
 }
 
 void textedit_add(textedit_t *te, char *str)
@@ -169,7 +183,7 @@ void textedit_add(textedit_t *te, char *str)
 	int orig_len=0, ins_len, new_pos, char_len;
 	char *clipboard=NULL;
 
-	if (te==NULL)
+	if (te==NULL || te->read_only)
 		return ;
 
 	if (te->string)
@@ -182,9 +196,12 @@ void textedit_add(textedit_t *te, char *str)
 
 		ins_len = strlen(str);
 		alloc_enough(&te->string, orig_len+ins_len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
-		memmove(&te->string[te->curpos+ins_len], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift part of the text right of the cursor further right
-		memcpy(&te->string[te->curpos], str, ins_len);							// insertion of str
-		te->curpos += ins_len;
+		if (te->curpos >= 0)
+		{
+			memmove(&te->string[te->curpos+ins_len], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift part of the text right of the cursor further right
+			memcpy(&te->string[te->curpos], str, ins_len);							// insertion of str
+			te->curpos += ins_len;
+		}
 		te->return_flag = 4;	// indicates modification
 	}
 	else		// run commands (from keyboard shortcuts)
@@ -261,13 +278,14 @@ void textedit_add(textedit_t *te, char *str)
 			}
 			else if (mouse.key_state[RL_SCANCODE_BACKSPACE] >= 2)
 			{
-				if (te->sel0==te->sel1)
-				{
+				if (te->sel0==te->sel1)			// if there's no selection
+				{					// just erase the previous character
 					if (te->string[0])		// if the string isn't already empty
 						textundo_update(te, 0);
 					new_pos = find_prev_utf8_char(te->string, te->curpos);
 					memmove(&te->string[new_pos], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift right side of the text one utf8 character left
 					te->curpos = new_pos;
+					te->return_flag = 4;		// indicates modification
 				}
 				else
 					textedit_erase_selection(te, &orig_len);
@@ -280,6 +298,7 @@ void textedit_add(textedit_t *te, char *str)
 						textundo_update(te, 0);
 					char_len = utf8_char_size(&te->string[te->curpos]);
 					memmove(&te->string[te->curpos], &te->string[te->curpos+char_len], orig_len+1 - te->curpos - char_len);
+					te->return_flag = 4;		// indicates modification
 				}
 				else
 					textedit_erase_selection(te, &orig_len);
@@ -306,7 +325,7 @@ void textedit_add(textedit_t *te, char *str)
 					free(clipboard);
 				}
 			}
-			else if (get_key_state_by_name("c") >= 2 || get_key_state_by_name("x") >= 2)	// Copy/Cut
+			else if (get_key_state_by_name("c") >= 2 || get_key_state_by_name("x") >= 2)	// Copy/Cut TODO allow when read_only is on
 			{
 				textedit_copy_selection_clipboard(te);
 
@@ -337,13 +356,17 @@ void textedit_prev_next_logic(textedit_t *te)	// Logic for finding the next and 
 	if (te->tab_switch)
 	{
 		cur_textedit = te->tab_switch==1 ? next_textedit : prev_textedit;
-		cur_textedit->was_cur_te = 1;
 		te->tab_switch = 0;
 
-		// Select all the text
-		cur_textedit->sel0 = 0;
-		cur_textedit->sel1 = strlen(cur_textedit->string);
-		cur_textedit->curpos = cur_textedit->sel1;
+		if (cur_textedit)
+		{
+			cur_textedit->was_cur_te = 1;
+
+			// Select all the text
+			cur_textedit->sel0 = 0;
+			cur_textedit->sel1 = strlen(cur_textedit->string);
+			cur_textedit->curpos = cur_textedit->sel1;
+		}
 	}
 
 	if (next_textedit == NULL)
@@ -391,11 +414,11 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 		if (mouse.mod_key[mouse_mod_shift]==0)
 			if (mouse.b.clicks==1)
-				te->sel0 = te->sel1 = -1;	// single click: select nothing
+				te->sel0 = te->sel1 = 0;	// single click: select nothing
 			else if (mouse.b.clicks==2)		// double click: select word
 			{
 				te->sel0 = textedit_find_prev_wordstart(te);
-				te->sel1 = textedit_find_next_wordstart(te);
+				te->sel1 = textedit_find_next_wordend(te);
 			}
 			else if (mouse.b.clicks==3)		// triple click: select line
 			{
@@ -404,8 +427,11 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 				//if (te->string[te->sel1] != '\0')
 				//	te->sel1++;
 			}
+	}
 
-		if (te->was_cur_te==0 && te->edit_mode==te_mode_value)	// select all if te wasn't previously the cur_textedit
+	if (cur_textedit == te)
+	{
+		if (te->was_cur_te==0 && te->edit_mode==te_mode_value && te->first_click_no_sel==0)	// select all if te wasn't previously the cur_textedit
 		{
 			te->sel0 = 0;
 			te->sel1 = strlen(te->string);

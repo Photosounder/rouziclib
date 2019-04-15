@@ -1,7 +1,7 @@
 enum		// inserting-spacing codepoints (must match font in ../vector_type/private_use.txt)
 {
 	cp_ins_start=0xE010,
-	cp_ins_w0=cp_ins_start,
+	cp_ins_w0=cp_ins_start,		// \356\200\22_
 	cp_ins_w1,
 	cp_ins_w2,
 	cp_ins_w3,
@@ -9,7 +9,7 @@ enum		// inserting-spacing codepoints (must match font in ../vector_type/private
 	cp_ins_w5,
 	cp_ins_w6,
 	cp_ins_w7,
-	cp_ins_w8,
+	cp_ins_w8,			// \356\200\23_
 	cp_ins_w9,
 	cp_ins_w10,
 	cp_ins_w11,
@@ -17,7 +17,7 @@ enum		// inserting-spacing codepoints (must match font in ../vector_type/private
 	cp_ins_w0_1,
 	cp_ins_w0_2,
 	cp_ins_w0_3,
-	cp_ins_w0_4,
+	cp_ins_w0_4,			// \356\200\24_
 	cp_ins_w0_5,
 	cp_ins_w0_6,
 	cp_ins_w24,
@@ -25,7 +25,7 @@ enum		// inserting-spacing codepoints (must match font in ../vector_type/private
 	cp_ins_w48,
 	cp_ins_w60,
 	cp_ins_w72,
-	cp_ins_w84,
+	cp_ins_w84,			// \356\200\25_
 	cp_ins_w96,
 	cp_ins_w108,
 	cp_ins_w120,
@@ -34,11 +34,11 @@ enum		// inserting-spacing codepoints (must match font in ../vector_type/private
 	cp_ins_w480,
 	cp_ins_w600,
 
-	cp_ins_nul=0xE030,
+	cp_ins_nul=0xE030,		// \356\200\26_
 
 	cp_ins_end,
 
-	cp_ins_index_base=0xE0100	// variation selectors, represents index 0
+	cp_ins_index_base=0xE0100	// variation selectors, represents index 0, starts at \363\240\204\200
 };
 
 extern void reset_insert_rect_array();

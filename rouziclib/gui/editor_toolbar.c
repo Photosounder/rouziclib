@@ -96,7 +96,7 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 
 	if (pinned)
 	{
-		layout.offset = add_xy( rect_p01(zc.corners) , div_xy(mul_xy(set_xy(1.3), xy(1.25, -0.25)), set_xy(zc.zoomscale)) );
+		layout.offset = add_xy( rect_p01(zc.corners) , mul_xy(set_xy(1.3/zc.zoomscale), xy(1.25, -0.25)) );
 		layout.sm = 1.3 * 1. / zc.zoomscale;
 	}
 

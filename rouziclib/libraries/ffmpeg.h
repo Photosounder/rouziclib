@@ -35,7 +35,6 @@ typedef struct
 	int frame_count, frame_as;
 } ffstream_t;
 
-extern void ffmpeg_init();
 extern int ff_init_stream(ffstream_t *s, const int stream_type);
 extern ffstream_t ff_load_stream_init(char const *path, const int stream_type);
 extern int ff_load_stream_packet(ffstream_t *s);
@@ -44,6 +43,10 @@ extern double ff_get_timestamp(ffstream_t *s, int64_t timestamp);
 extern double ff_get_frame_timestamp(ffstream_t *s);
 extern int64_t ff_make_timestamp(ffstream_t *s, double t);
 extern raster_t ff_frame_to_raster(ffstream_t *s, const int mode);
+extern int ff_pix_fmt_byte_count(int pix_fmt);
+extern int ff_pix_fmt_bit_depth(int pix_fmt);
+extern int ff_pix_fmt_to_buf_fmt(int pix_fmt);
+extern int ff_buf_fmt_to_pix_fmt(int buf_fmt);
 extern raster_t ff_frame_to_buffer(ffstream_t *s);
 extern void ff_seek_timestamp(ffstream_t *s, double ts, int64_t pts, int flush);
 extern void ff_seek_byte(ffstream_t *s, int64_t pos, int flush);

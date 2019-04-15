@@ -116,10 +116,10 @@ void calc_screen_limits(zoom_t *zc)
 {
 	int x, y;
 
-	if (3*zc->fb->w > 4*zc->fb->h)				// if widescreen (more than 4:3 aka 12:9)
+	if (3*zc->fb->w > 3*zc->fb->h)				// if widescreen (more than 4:3 aka 12:9)
 		zc->scrscale = (double) zc->fb->h / 18.;	// for 1920x1080 srcscale would be 60
 	else
-		zc->scrscale = (double) zc->fb->w / 24.;
+		zc->scrscale = (double) zc->fb->w / 18.;
 	zc->scrscale_unzoomed = zc->scrscale;
 
 	zc->limit_u = mul_xy(xy(zc->fb->w, zc->fb->h), set_xy(0.5/zc->scrscale));
@@ -157,4 +157,16 @@ void toggle_guizoom(zoom_t *zc, int on)	// used for temporarily disabling zoomin
 	}
 
 	calc_screen_limits(zc);
+}
+
+void change_zoom_and_turn_off_zoom_mode(xy_t pos, double zoom_scale)
+{
+	zc.offset_u = pos;
+	zc.zoomscale = zoom_scale;
+	zc.zoom_key_time = get_time_ms();
+
+	if (mouse.zoom_flag)
+		zoom_key_released(&zc, &mouse.zoom_flag, 1);
+
+	calc_screen_limits(&zc);
 }

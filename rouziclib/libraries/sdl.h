@@ -35,6 +35,8 @@ extern int sdl_get_window_cur_display();
 extern void sdl_update_mouse(SDL_Window *window, mouse_t *mouse);
 extern void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc);
 extern void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event);
+extern void sdl_set_mouse_pos_screen(xy_t pos);
+extern void sdl_set_mouse_pos_world(xy_t world_pos);
 
 extern int get_sdl_renderer_index(const char *name);
 extern int get_sdl_opengl_renderer_index();

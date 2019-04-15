@@ -11,6 +11,7 @@ extern int codepoint_utf16_size(uint32_t c);
 extern uint32_t utf16_to_unicode32(uint16_t *c, int32_t *index);
 extern uint16_t *sprint_utf16(uint16_t *str, uint32_t c);
 extern uint16_t *utf8_to_utf16(const uint8_t *utf8, uint16_t *utf16);
+extern size_t strlen_utf16_to_utf8(const uint16_t *str);
 extern uint8_t *utf16_to_utf8(const uint16_t *utf16, uint8_t *utf8);
 
 #define utf8_to_wchar(utf8, wchar)	utf8_to_utf16(utf8, wchar)

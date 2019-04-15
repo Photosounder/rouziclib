@@ -58,7 +58,10 @@
 		// returns 2 if the value is being changed, 1 when the change is final
 		// knobf functions are knobf_linear, knobf_log, knobf_recip
 		static double value=NAN;
-		ctrl_knob(&value, make_knob("Knob name", default_value, knobf_linear, min_value, max_value, VALFMT_DEFAULT), box, colour);
+		static knob_t value_knob={0};
+		if (value_knob.main_label==NULL)
+			value_knob = make_knob("Knob name", default_value, knobf_linear, min_value, max_value, VALFMT_DEFAULT)
+		ctrl_knob(&value, &value_knob, box, colour);
 
 	// Text editor
 		static textedit_t te={0};
@@ -73,7 +76,7 @@
 			te.max_scale = 1./6.;
 			te.rect_brightness = 0.25;
 
-		// returns 1 if Enter (or sometimes Tab) is pressed, 2 when clicked out of it
+		// returns 1 if Enter (or sometimes Tab) is pressed, 2 when clicked out of it, 3 when tabbed out, 4 when modified
 		if (ctrl_textedit(&te, offset_scale_rect(box, offset, sm), colour))
 
 		// set next text while saving the previous one in the undo
@@ -85,7 +88,7 @@
 	// Resizing rectangle
 		static ctrl_resize_rect_t resize_state={0};
 		static rect_t resize_box={0};
-	
+
 		if (resize_state.init==0)
 			resize_box = make_rect_centred( XY0, XY1 );
 		ctrl_resizing_rect(&resize_state, &resize_box);
@@ -99,8 +102,25 @@
 
 //**** Controls from text layout ****
 
+	// How to make a new layout
+		static gui_layout_t layout={0};
+		const char *layout_src[] = {""};
+
+		layout.sm = 1.;
+		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
+
+	// Make it float
+		layout.offset = zc.offset_u;
+		layout.sm = 1./zc.zoomscale;
+
+	// Get the rect of a layout element
+		// the last argument is the provided offset
+		gui_layout_elem_comp_area_os(&layout, id, XY0)
+
 	// Label
 		draw_label_fromlayout(&layout, id, ALIG_CENTRE | MONODIGITS);
+		// optionally the label can be set prior to drawing using this:
+		gui_printf_to_label(&layout, id, 0, "value %d", some_value);	// the 3rd argument is append
 
 	// Rect
 		// the first argument is 0 for outline rect, 1 for full rect, 2 for black rect
@@ -129,6 +149,25 @@
 		// get textedit string
 		string = get_textedit_string_fromlayout(&layout, id);
 
+		// Example: using a text editor as a read-only log
+		get_textedit_fromlayout(&layout, id)->read_only = 1;
+		print_to_layout_textedit(&layout, id, 1, "");
+		ctrl_textedit_fromlayout(&layout, id);
+
+	// Selection menu
+		const char *menu_opts[] = { "Opt 1", "Opt 2" };
+		int menu_count = sizeof(menu_opts)/sizeof(char*);
+
+		gui_layout_selmenu_set_count(menu_count, &layout, id);
+		if (ctrl_selmenu_fromlayout(&layout, id))
+			opt = menu_opts[get_selmenu_selid_fromlayout(&layout, id)];
+
+		for (i=0; i < menu_count; i++)
+			draw_selmenu_entry_fromlayout(i, menu_opts[i], &layout, id);
+
+		// set the default option by id
+		gui_layout_selmenu_set_entry_id(7, &layout, id);
+
 //**** Keyboard input ****
 
 	// Get state by scancode
@@ -148,6 +187,10 @@
 		get_kb_enter()
 
 //**** Images ****
+
+	// Creating a raster
+		// the first arg can be an array if it already exists
+		make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 
 	// Loading an image as a tiled mipmap
 		mipmap_t image_mm={0};
@@ -190,9 +233,10 @@
 		offset_scale_rect(box, offset, sm)
 
 	// Insert-spacing rect in text
-		// An insert-spacing codepoint can be inserted into a text using "\xee\x80\x90" for cp_ins_w0 and "\xf3\xa0\x84\x80" for an index of 0 (can increment last byte up to 63)
+		// An insert-spacing codepoint can be inserted into a text using \356\200\220 for cp_ins_w0 and \363\240\204\200 for an index of 0
 		// if there are more than one cp_ins_w* characters the widths are summed
-		sprintf(string, "Inserted element goes -> ""\xee\x80\x96""\xf3\xa0\x84\x80"" <- here");
+		// see vector_type/insert_rect.h for reference
+		sprintf(string, "Inserted element goes -> \356\200\226\363\240\204\200 <- here");
 
 		// reset the insert_rect array to clear outdated or bogus values
 		reset_insert_rect_array();
@@ -206,29 +250,19 @@
 
 	// Fitting a rect inside a rect area
 		// the 3rd argument works just like the offset in make_rect_off()
-		frame = fit_rect_in_area(im_rect, area, xy(0.5, 0.5));
+		frame = fit_rect_in_area(get_rect_dim(im_rect), area, xy(0.5, 0.5));
 
 	// Subdividing an area into a smaller one by ratio and offset
 		sub_area = get_subdiv_area(area, xy(1., 1./8.), xy(0.5, 1.));
-
-	// How to make a new layout
-		static gui_layout_t layout={0};
-		const char *layout_src[] = {""};
-	
-		layout.sm = 1.;
-		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
-
-	// Get the rect of a layout element
-		// the last argument is the provided offset
-		gui_layout_elem_comp_area_os(&layout, id, XY0)
 
 //**** Parsing ****
 
 	// Load a file and have an array of lines out of it
 		// only array[0] then array need to be freed, since array[0] points to the original buffer
 		// free_2d(array, 1); does it
-		char **filename_array = arrayise_text(load_raw_file_dos_conv(full_list_path, NULL), &linecount);
-	
+		int linecount;
+		char **array = arrayise_text(load_raw_file_dos_conv(path, NULL), &linecount);
+
 	// Parse a dozenal fractional notation number
 		// from a string pointer p into a double v
 		// p is updated to point to after the number and its following whitespace
@@ -271,9 +305,9 @@
 	// before rl_thread_join the caller should signal to the thread function to quit using this element in the data struct
 		volatile int thread_on;
 		data.thread_on = 0;
-	
+
 	// Wait for thread to end (not for detached threads, use mutex instead)
-		if (thread_handle) 
+		if (thread_handle)
 			rl_thread_join_and_null(&thread_handle);
 
 		// and before creating the thread:
@@ -305,16 +339,19 @@
 	// Set priority for the current thread
 		rl_thread_set_priority_low();
 		rl_thread_set_priority_high();
-	
+
 	// Yield
 		rl_thread_yield();
 
 //**** Network ****
-	
-	// Getting a file from HTTP
+
+	// Getting a file from HTTP (needs #define RL_INCL_NETWORK and perhaps #define RL_LIBCURL)
 		data_size = http_get("http://www.charbase.com/images/glyph/11910", -1, ONE_RETRY, &data, &data_alloc);
 
 //**** Misc ****
+
+	// Reset zoom and offset
+		zoom_reset(&zc, &mouse.zoom_flag);
 
 	// Timing
 		uint32_t td=0;
@@ -337,7 +374,72 @@
 		for (i=0; i < dir->subfile_count; i++)
 			full_path[i] = append_name_to_path(NULL, dir->path, dir->subfile[i].name);
 
+	// Drag and drop of files
+		if (dropfile_get_count())
+			path = dropfile_pop_first();
+
+	// Generate a video from a raster struct
+		ff_videnc_t d = ff_video_enc_init_file(path, r.dim, 29.97, AV_CODEC_ID_H265, bit_depth, crf);
+
+		for (...)
+			ff_video_enc_write_raster(&d, &r);
+
+		ff_video_enc_finalise_file(&d);
+
+	// Generate a video from tls framebuffer and layout
+		static gui_layout_t layout={0};
+		const char *layout_src[] = {
+			"elem 10", "type none", "pos	0	0", "dim	32	18", "off	0.5", "",
+			"elem 20", "type label", "pos	-8	8", "dim	3	2", "off	0	1", "",
+		};
+
+		layout.sm = 1.;
+		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Video framebuffer layout");
+
+		init_tls_fb(xyi(960, 540));
+		ff_videnc_t d = ff_video_enc_init_file(path, fb.r.dim, 29.97, AV_CODEC_ID_H265, bit_depth, crf);
+
+		for (...)
+		{
+			gui_printf_to_label(&layout, 20, 0, "%d", i);
+			draw_label_fromlayout(&layout, 20, ALIG_RIGHT | MONODIGITS);
+
+			ff_video_enc_write_raster(&d, &fb.r);
+			memset(fb.r.f, 0, mul_x_by_y_xyi(fb.r.dim)*sizeof(frgb_t));
+		}
+
+		ff_video_enc_finalise_file(&d);
+		free_raster(&fb.r);
+
+	// FFTs
+		// Choose out_size this way
+		out_size = next_fast_fft_size(out_size);
+
+		// 1D real to complex. For size n the output layout is c0, c1, c2, ..., cn/2-2, cn/2-1, cn/2, c-(n/2-1), c-(n/2-2), ..., c-2, c-1
+		// therefore the positive frequency at c[i] is found at c[n-i]
+		static cfft_plan_t plan={0};
+		size_t out_as=0;
+		cfft_1D_r2c_padded_fft(&plan, in, sizeof(in[0]), &out, &out_as, in_size, out_size);
+
+		// Access positive frequency complex pairs this way, the negative frequencies are beyond out[out_size]
+		for (i=0; i <= out_size; i+=2)
+		{
+			real = out[i];
+			imag = out[i+1];
+		}
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments
 		 void some_function(int (*func_ptr_name)(void*,int))
+
+	// How to get one line from a string
+		n=0;
+		sscanf(p, "%[^\n]\n%n", line, &n);
+
+	// Adding some stack checking
+		#pragma strict_gs_check(on)
+		#pragma check_stack(on)
+
+		#pragma check_stack()
+		#pragma strict_gs_check()

@@ -38,12 +38,66 @@ xyi_t calc_2D_fast_convolution_dim(xyi_t a, xyi_t b)
 	return func1_xyi( sub_xyi(add_xyi(a, b), set_xyi(1)) , next_fast_fft_size );
 }
 
-float root_mean_squaref(float *s, const size_t n)
+float array_sumf(float *s, const size_t n)
 {
 	size_t i;
 	float sum=0.f;
 
 	for (i=0; i < n; i++)
+		sum += s[i];
+
+	return sum;
+}
+
+double array_sum(double *s, const size_t n)
+{
+	size_t i;
+	double sum=0.;
+
+	for (i=0; i < n; i++)
+		sum += s[i];
+
+	return sum;
+}
+
+float array_sum_sqf(float *s, const size_t n)
+{
+	size_t i;
+	float sum=0.f;
+
+	for (i=0; i < n; i++)
+		sum += sqf(s[i]);
+
+	return sum;
+}
+
+double array_sum_sq(double *s, const size_t n)
+{
+	size_t i;
+	double sum=0.;
+
+	for (i=0; i < n; i++)
+		sum += sq(s[i]);
+
+	return sum;
+}
+
+float root_mean_squaref(float *s, const size_t n)
+{
+	return sqrtf(array_sum_sqf(s, n) / (float) n);
+}
+
+double root_mean_square(double *s, const size_t n)
+{
+	return sqrt(array_sum_sq(s, n) / (double) n);
+}
+
+float root_mean_squaref_chan(float *s, const size_t n, const int ic, const int chan_count)
+{
+	size_t i;
+	float sum=0.f;
+
+	for (i=ic; i < n*chan_count; i+=chan_count)
 		sum += sqf(s[i]);
 
 	return sqrtf(sum / (float) n);
@@ -57,4 +111,63 @@ double db_to_vol(double db)
 double vol_to_db(double vol)
 {
 	return 20. * log10(vol);
+}
+
+double sinc(double x, double fc)		// fc is the cutoff frequency as a multiple of the sampling frequency
+{
+	double a;
+
+	if (x==0.)
+		return 1.;
+
+	a = 2.*pi * x*fc;
+	return sin(a)/(a);
+}
+
+double blackman(double x, double range)		// spans ]-range , +range[
+{
+	x /= range;
+	ffabs(&x);
+
+	if (x >= 1.)
+		return 0.;
+
+	x = pi * x;
+
+	return 0.42 + 0.5*cos(x) + 0.08*cos(2.*x);
+}
+
+double squared_gaussian_window(double x, double range, double w)	// x = ]-range , +range[, w is the sigma span of the gaussian, high w means more gaussian and thin
+{
+	x /= range;
+	ffabs(&x);
+
+	if (x >= 1.)
+		return 0.;
+
+	w *= 0.7071067811865475244;	// scale w so that the given value matches the sigma of a regular gaussian function
+
+	if (w < 1e-4)
+		return sq(1. - sq(x));
+
+	return sq(gaussian(x*w) - gaussian(w)) / sq(gaussian(0.) - gaussian(w));
+}
+
+double ramp_kernel(double x)
+{
+	if (x==0.)
+		return 0.25;
+
+	return 0.5*sin(pi*x)/(pi*x) - 0.25*sq(sin(pi*x*0.5)/(pi*x*0.5));
+}
+
+double ramp_kernel_discrete(int x)
+{
+	if (x==0)
+		return 0.25;
+
+	if (x&1)
+		return -1. / sq((double) x * pi);
+
+	return 0.;
 }

@@ -1,4 +1,4 @@
-// in vector_type/vector_type_struct.h:
+// in general/textedit_struct.h:
 // textedit_t, textundo_t, textundostate_t
 
 extern void textundo_remove_later_states(textedit_t *te);

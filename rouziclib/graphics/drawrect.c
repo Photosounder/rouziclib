@@ -263,7 +263,11 @@ void draw_black_rect_cl(framebuffer_t fb, rect_t box, double radius)
 	// find the affected sectors
 	for (ip.y=bbi.p0.y; ip.y<=bbi.p1.y; ip.y++)
 		for (ip.x=bbi.p0.x; ip.x<=bbi.p1.x; ip.x++)
-			drawq_add_sector_id(fb, ip.y*fb.sector_w + ip.x);	// add sector reference
+		{
+			int32_t sector_id = ip.y*fb.sector_w + ip.x;
+			if (fb.sector_count[sector_id] > 0 && fb.pending_bracket[sector_id] == 0)	// if the sector contains something at the current bracket level
+				drawq_add_sector_id(fb, sector_id);	// add sector reference
+		}
 
 	// TODO clear lists in obscured sectors, don't add to empty sectors
 #endif

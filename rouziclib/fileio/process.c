@@ -95,4 +95,17 @@ void send_SIGINT(HANDLE hProcess)	// probably better to use TerminateProcess(hPr
 	}
 }
 
+char **get_argv(int *argc)
+{
+	LPWSTR *argv_w = CommandLineToArgvW(GetCommandLineW(), argc);
+	char **argv = calloc(*argc, sizeof(char *));
+
+	for (int i=0; i < *argc; i++)
+		argv[i] = wchar_to_utf8(argv_w[i], NULL);
+
+	LocalFree(argv_w);
+
+	return argv;
+}
+
 #endif

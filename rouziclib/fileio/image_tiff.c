@@ -1,15 +1,8 @@
+_Thread_local uint16_t (*read16)(const uint8_t *, size_t *);
+_Thread_local uint32_t (*read32)(const uint8_t *, size_t *);
+
 // format documentation: https://www.adobe.io/content/dam/udp/en/open/standards/tiff/TIFF6.pdf
 // also https://github.com/GrokImageCompression/libtiff/blob/be9c1f7785dde43436be650c121a7b6377c04fc8/libtiff/tiff.h
-
-typedef struct
-{
-	xyi_t dim;
-	int chan, bpc;		// channel count, bits per channel
-	int compression;	// 1 for uncompressed
-	int photometric;	// 2 for RGB(A)
-	int sample_format;	// 1 for uint, 2 for int, 3 for float
-	size_t data_offset;
-} tiff_info_t;
 
 int tiff_tag_type_size(const int type)
 {
@@ -93,30 +86,30 @@ void print_tiff_tag(uint8_t *data, uint8_t *p, uint32_t value32, int tag, int ty
 
 		case 3:		// u16
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", read_LE16(p, &p));
+				fprintf_rl(stdout, " %d", read16(p, &p));
 			break;
 
 		case 8:		// s16
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", (int16_t) read_LE16(p, &p));
+				fprintf_rl(stdout, " %d", (int16_t) read16(p, &p));
 			break;
 
 		case 4:		// u32
 		case 13:	// u32
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", read_LE32(p, &p));
+				fprintf_rl(stdout, " %d", read32(p, &p));
 			break;
 
 		case 9:		// s32
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", (int32_t) read_LE32(p, &p));
+				fprintf_rl(stdout, " %d", (int32_t) read32(p, &p));
 			break;
 
 		case 5:		// u32 / u32 rational
 			for (i=0; i < disp_count; i++)
 			{
-				num = read_LE32(p, &p);
-				den = read_LE32(p, &p);
+				num = read32(p, &p);
+				den = read32(p, &p);
 				fprintf_rl(stdout, "  %g (%d/%d)", (double) num / (double) den, num, den);
 			}
 			break;
@@ -124,15 +117,15 @@ void print_tiff_tag(uint8_t *data, uint8_t *p, uint32_t value32, int tag, int ty
 		case 10:	// s32 / s32 rational
 			for (i=0; i < disp_count; i++)
 			{
-				num = read_LE32(p, &p);
-				den = read_LE32(p, &p);
+				num = read32(p, &p);
+				den = read32(p, &p);
 				fprintf_rl(stdout, "  %g (%d/%d)", (double) (int32_t) num / (double) (int32_t) den, (int32_t) num, (int32_t) den);
 			}
 			break;
 
 		case 11:	// float
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %g", u32_as_float(read_LE32(p, &p)));
+				fprintf_rl(stdout, " %g", u32_as_float(read32(p, &p)));
 			break;
 
 		case 12:	// double
@@ -147,13 +140,14 @@ void print_tiff_tag(uint8_t *data, uint8_t *p, uint32_t value32, int tag, int ty
 
 void load_tiff_ifd_entry(uint8_t *data, uint8_t *p, tiff_info_t *info)
 {
-	uint32_t tag, type, count, value16, value32, value;
+	uint32_t tag, type, count, value16, value32, value, *ptr_value;
 
-	tag = read_LE16(p, &p);
-	type = read_LE16(p, &p);	// 3 means u16, 4 means u32
-	count = read_LE32(p, &p);
-	value16 = read_LE16(p, NULL);
-	value32 = read_LE32(p, NULL);
+	tag = read16(p, &p);
+	type = read16(p, &p);	// 3 means u16, 4 means u32
+	count = read32(p, &p);
+	ptr_value = p;
+	value16 = read16(p, NULL);
+	value32 = read32(p, NULL);
 	value = tiff_tag_type_size(type)==2 ? value16 : value32;
 
 	//print_tiff_tag(data, p, value32, tag, type, count);
@@ -173,7 +167,7 @@ void load_tiff_ifd_entry(uint8_t *data, uint8_t *p, tiff_info_t *info)
 				info->chan = count;
 
 			if (count > 2)
-				info->bpc = read_LE16(&data[value32], NULL);
+				info->bpc = read16(&data[value32], NULL);
 			else
 				info->bpc = value;
 			break;
@@ -186,20 +180,25 @@ void load_tiff_ifd_entry(uint8_t *data, uint8_t *p, tiff_info_t *info)
 			info->photometric = value;
 			break;
 
-		case 273:	// offsets to data strips (can be more than one, we just reference the first one for now)
+		case 273:	// offsets to data strips (can be more than one, we just reference the first one for now) FIXME
+			info->offset_count = count;
 			if (count > 1)
-				info->data_offset = read_LE32(&data[value32], NULL);
+				info->data_offset = &data[value32];
 			else
-				info->data_offset = value32;
+				info->data_offset = ptr_value;
 			break;
 
 		case 277:	// channel count
 			info->chan = value;
 			break;
 
+		case 317:	// LZW Differencing Predictor
+			info->lzw_diff = value;
+			break;
+
 		case 339:	// sample format
 			if (count > 2)
-				info->sample_format = read_LE16(&data[value32], NULL);
+				info->sample_format = read16(&data[value32], NULL);
 			else
 				info->sample_format = value;
 			break;
@@ -211,7 +210,7 @@ size_t load_tiff_ifd(uint8_t *data, size_t ifd_index, tiff_info_t *info)
 	uint8_t *p = &data[ifd_index];
 	int i, entry_count;
 
-	entry_count = read_LE16(p, &p);
+	entry_count = read16(p, &p);
 
 	for (i=0; i < entry_count; i++)
 	{
@@ -219,7 +218,7 @@ size_t load_tiff_ifd(uint8_t *data, size_t ifd_index, tiff_info_t *info)
 		p = &p[12];
 	}
 
-	return read_LE32(p, NULL);
+	return read32(p, NULL);
 }
 
 float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
@@ -231,7 +230,7 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 	count = mul_x_by_y_xyi(info.dim);
 	im = calloc(count*out_chan, sizeof(float));
 
-	if (info.compression==1 && info.photometric<=2)
+	if ((info.compression==1 || info.compression==5) && info.photometric<=2)
 	{
 		// 8-bit unsigned int
 		if (info.bpc==8 && info.sample_format==1)
@@ -241,18 +240,63 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 
 		// 16-bit unsigned int
 		if (info.bpc==16 && info.sample_format==1)
-			for (i=0; i < count; i++)
-				for (ic=0; ic < info.chan; ic++)
-					im[i*out_chan + ic] = s16lrgb(((uint16_t *) im_data)[i*info.chan + ic]);
+			if (info.be)
+				for (i=0; i < count; i++)
+					for (ic=0; ic < info.chan; ic++)
+						im[i*out_chan + ic] = s16lrgb(read_BE16(&((uint16_t *) im_data)[i*info.chan + ic], NULL));
+			else
+				for (i=0; i < count; i++)
+					for (ic=0; ic < info.chan; ic++)
+						im[i*out_chan + ic] = s16lrgb(((uint16_t *) im_data)[i*info.chan + ic]);
 
 		// 32-bit float
 		if (info.bpc==32 && info.sample_format==3)
+			if (info.be)
+				for (i=0; i < count; i++)
+					for (ic=0; ic < info.chan; ic++)
+						im[i*out_chan + ic] = u32_as_float(read_BE32(&((uint32_t *) im_data)[i*info.chan + ic], NULL));
+			else
+				for (i=0; i < count; i++)
+					for (ic=0; ic < info.chan; ic++)
+						im[i*out_chan + ic] = ((float *) im_data)[i*info.chan + ic];
+
+		// If the output needs 3+ channels and the file has less than 3 (e.g. greyscale image)
+		if (out_chan >= 3 && info.chan < 3)
 			for (i=0; i < count; i++)
-				for (ic=0; ic < info.chan; ic++)
-					im[i*out_chan + ic] = ((float *) im_data)[i*info.chan + ic];
+				for (ic=info.chan; ic < out_chan; ic++)
+					im[i*out_chan + ic] = im[i*out_chan];		// copy from the first channel
+
+		// If the output needs an alpha channel and the file has none
+		if (out_chan==4 && info.chan < 4)
+			for (i=0; i < count; i++)
+				im[i*out_chan + 3] = 1.f;		// make the alpha opaque
 	}
 
 	return im;
+}
+
+void *load_tiff_pix_data_raw(void *im_data, tiff_info_t info)
+{
+	void *im;
+	size_t i, count, pix_size;
+	int ic;
+
+	pix_size = info.bpc / 8;
+	count = mul_x_by_y_xyi(info.dim);
+	im = calloc(count*info.chan, pix_size);
+
+	if (info.compression==1 && info.photometric<=2)
+		memcpy(im, im_data, count*info.chan*pix_size);
+
+	return im;
+}
+
+int is_file_tiff_mem(uint8_t *data)
+{
+	// Check that the file starts with the endianness TIFF tag
+	if (strcmp(data, "II*")==0 || strcmp(data, "MM")==0)
+		return 1;
+	return 0;
 }
 
 tiff_info_t load_tiff_info(uint8_t *data)
@@ -260,10 +304,21 @@ tiff_info_t load_tiff_info(uint8_t *data)
 	tiff_info_t info={0};
 	size_t ifd_index;
 
-	// Check that the file starts with the little endian TIFF tag
-	if (strcmp(data, "II*"))
+	// Check that the file starts with the endianness TIFF tag and set the reading functions
+	if (strcmp(data, "II*")==0)
 	{
-		fprintf_rl(stderr, "In load_tiff_mem_ifd(): not a little endian TIFF file\n");
+		read16 = read_LE16;
+		read32 = read_LE32;
+	}
+	else if (strcmp(data, "MM")==0)
+	{
+		read16 = read_BE16;
+		read32 = read_BE32;
+		info.be = 1;
+	}
+	else
+	{
+		fprintf_rl(stderr, "In load_tiff_info(): not a little or big endian TIFF file\n");
 		return info;
 	}
 
@@ -271,8 +326,8 @@ tiff_info_t load_tiff_info(uint8_t *data)
 	info.sample_format = 1;
 
 	// Load tags
-	ifd_index = read_LE32(&data[4], NULL);
-	while (info.compression != 1 && ifd_index)			// find an uncompressed IFD
+	ifd_index = read32(&data[4], NULL);
+	while (info.compression != 1 && info.compression != 5 && ifd_index)		// find an uncompressed or LZW-compressed IFD
 		ifd_index = load_tiff_ifd(data, ifd_index, &info);
 
 	return info;
@@ -280,6 +335,7 @@ tiff_info_t load_tiff_info(uint8_t *data)
 
 float *load_tiff_mem(uint8_t *data, xyi_t *dim, int *out_chan)
 {
+	int i;
 	float *im;
 	tiff_info_t info;
 
@@ -288,7 +344,34 @@ float *load_tiff_mem(uint8_t *data, xyi_t *dim, int *out_chan)
 	if (*out_chan <= 0)			// 0 loads whatever number of channels there is
 		*out_chan = info.chan;
 
-	im = load_tiff_pix_data_fl32(&data[info.data_offset], info, *out_chan);	// convert data
+	if (info.compression==5)	// LZW decompression
+	{
+		//print_lzw_contents(&data[info.data_offset], 352);
+
+		buffer_t dec={0};
+		
+		for (i=0; i < info.offset_count; i++)
+			tiff_lzw_decode(&data[read32(&info.data_offset[i], NULL)], &dec);
+
+		buf_alloc_enough(&dec, (size_t) mul_x_by_y_xyi(info.dim) * info.chan * info.bpc / 8);
+		if (info.lzw_diff==2)
+			tiff_lzw_diff_decode(dec.buf, info);
+		im = load_tiff_pix_data_fl32(dec.buf, info, *out_chan);
+		free_buf(&dec);
+	}
+	else
+		im = load_tiff_pix_data_fl32(&data[read32(&info.data_offset[0], NULL)], info, *out_chan);	// convert data
+
+	return im;
+}
+
+void *load_tiff_mem_raw(uint8_t *data, tiff_info_t *info)
+{
+	void *im;
+
+	*info = load_tiff_info(data);		// load info and find pixel data
+
+	im = load_tiff_pix_data_raw(&data[read32(&info->data_offset[0], NULL)], *info);	// copy data
 
 	return im;
 }
@@ -320,6 +403,22 @@ float *load_tiff_file(const char *path, xyi_t *dim, int *out_chan)	// *out_chan 
 	return im;
 }
 
+void *load_tiff_file_raw(const char *path, tiff_info_t *info)
+{
+	uint8_t *data;
+	size_t data_len;
+	void *im=NULL;
+
+	data = load_raw_file(path, &data_len);
+	if (data==NULL)
+		return im;
+
+	im = load_tiff_mem_raw(data, info);
+	free(data);
+
+	return im;
+}
+
 raster_t load_tiff_file_raster(const char *path)
 {
 	uint8_t *data;
@@ -335,6 +434,9 @@ raster_t load_tiff_file_raster(const char *path)
 
 	return r;
 }
+
+
+// Writing
 
 void write_tiff_ifd_entry(FILE *file, size_t *misc_start, int tag, int type, uint32_t count, int64_t value)
 {

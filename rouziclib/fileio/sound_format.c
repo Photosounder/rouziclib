@@ -162,6 +162,9 @@ float *load_sound_fl32_select_chan(char *in_path, size_t *sample_count, int *cha
 	if (strcmp(ext, "flac")==0 || strcmp(ext, "fla")==0)
 		s0 = load_sound_flac_file(in_path, sample_count, channel_count, samplerate);
 
+	if (strcmp(ext, "ogg")==0 || strcmp(ext, "oga")==0)
+		s0 = load_sound_vorbis_file(in_path, sample_count, channel_count, samplerate);
+
 	if (s0==NULL)
 		return s0;
 

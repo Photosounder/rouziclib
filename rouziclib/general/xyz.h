@@ -71,6 +71,13 @@ extern xy_t func2_xy(xy_t a, xy_t b, double (*f)(double,double));
 extern xyz_t func2_xyz(xyz_t a, xyz_t b, double (*f)(double,double));
 extern xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int));
 
+#define rangelimit_xy(a, b, c)	func3_xy(a, b, c, rangelimit)
+#define rangelimit_xyz(a, b, c)	func3_xyz(a, b, c, rangelimit)
+#define rangelimit_xyi(a, b, c)	func3_xyi(a, b, c, rangelimit_i32)
+extern xy_t func3_xy(xy_t a, xy_t b, xy_t c, double (*f)(double,double,double));
+extern xyz_t func3_xyz(xyz_t a, xyz_t b, xyz_t c, double (*f)(double,double,double));
+extern xyi_t func3_xyi(xyi_t a, xyi_t b, xyi_t c, int (*f)(int,int,int));
+
 extern xyi_t rshift_xyi(xyi_t a, int sh);
 
 extern xy_t min_xy(xy_t a, xy_t b);
@@ -88,10 +95,10 @@ extern double min_of_xyz(xyz_t a);
 extern double max_of_xyz(xyz_t a);
 extern double min_of_xyi(xyi_t a);
 extern double max_of_xyi(xyi_t a);
+extern double mul_x_by_y_xy(xy_t a);
+extern double div_x_by_y_xy(xy_t a);
+extern double div_y_by_x_xy(xy_t a);
 extern int mul_x_by_y_xyi(xyi_t a);
-extern xy_t rangelimit_xy(xy_t v, xy_t l0, xy_t l1);
-extern xyz_t rangelimit_xyz(xyz_t v, xyz_t l0, xyz_t l1);
-extern xyi_t rangelimit_xyi(xyi_t v, xyi_t l0, xyi_t l1);
 
 extern xy_t fma_xy(xy_t pos, xy_t tmul, xy_t tadd);
 extern double get_xyz_index(xyz_t v, const int index);

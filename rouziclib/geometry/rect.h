@@ -3,6 +3,7 @@
 
 extern rect_t rect(const xy_t p0, const xy_t p1);
 extern recti_t recti(const xyi_t p0, const xyi_t p1);
+extern triangle_t triangle(const xy_t a, const xy_t b, const xy_t c);
 extern recti_t rect_to_recti(const rect_t r);
 extern rect_t recti_to_rect(const recti_t ri);
 extern recti_t rect_to_recti_fixedpoint(const rect_t r, const double fpratio);
@@ -40,3 +41,5 @@ extern recti_t sort_recti(recti_t r);
 extern rect_t add_rect_xy(rect_t r, xy_t a);
 extern int equal_rect(rect_t r1, rect_t r2);
 extern xy_t pos_in_rect_by_ratio(rect_t r, xy_t ratio);
+extern xy_t pos_to_rect_ratio(xy_t pos, rect_t r);
+extern rect_t resize_rect_around_offset(rect_t r, xy_t dim1, xy_t offset);

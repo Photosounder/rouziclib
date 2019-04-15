@@ -17,6 +17,7 @@ extern void zoom_key_released(zoom_t *zc, int *flag_zoom_key, int source);
 extern void zoom_wheel(zoom_t *zc, int flag_zoom_key, int y);
 extern void calc_screen_limits(zoom_t *zc);
 extern void toggle_guizoom(zoom_t *zc, int on);
+extern void change_zoom_and_turn_off_zoom_mode(xy_t pos, double zoom_scale);
 
 #define sc_x(p) to_screen_coord_x(zc, p)
 #define sc_y(p) to_screen_coord_y(zc, p)

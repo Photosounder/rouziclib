@@ -176,6 +176,8 @@ int utf16_char_size(uint16_t *c)
 {
 	if (c[0] <= 0xD7FF || c[0] >= 0xE000)
 		return 1;
+	else if (c[1])			// if there's an abrupt mid-character stream end
+		return 1;
 	else
 		return 2;
 }
@@ -266,9 +268,24 @@ uint16_t *utf8_to_utf16(const uint8_t *utf8, uint16_t *utf16)
 	return utf16;
 }
 
+size_t strlen_utf16_to_utf8(const uint16_t *str)
+{
+	size_t i, count;
+	uint32_t c;
+
+	for (i=0, count=0; ; i++)
+	{
+		if (str[i]==0)
+			return count;
+
+		c = utf16_to_unicode32(&str[i], &i);
+		count += codepoint_utf8_size(c);
+	}
+}
+
 uint8_t *utf16_to_utf8(const uint16_t *utf16, uint8_t *utf8)
 {
-	int i, j, len;
+	size_t i, j, len;
 	uint32_t c;
 
 	if (utf16==NULL)
@@ -277,9 +294,9 @@ uint8_t *utf16_to_utf8(const uint16_t *utf16, uint8_t *utf8)
 	len = strlen_utf16(utf16);
 
 	if (utf8==NULL)
-		utf8 = calloc(len*4+1, sizeof(uint8_t));
+		utf8 = calloc(strlen_utf16_to_utf8(utf16) + 1, sizeof(uint8_t));
 
-	for (i=0, j=0; i <= len; i++)
+	for (i=0, j=0; i < len; i++)
 	{
 		c = utf16_to_unicode32(&utf16[i], &i);
 		sprint_unicode(&utf8[j], c);

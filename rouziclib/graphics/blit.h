@@ -29,6 +29,7 @@ extern int calc_blit_bounds(xyi_t in_dim, xyi_t out_dim, xyi_t offset, recti_t *
 extern void blit_sprite(framebuffer_t fb, raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vmode);
 extern void blit_layout(framebuffer_t fb, raster_t r);
 extern void blit_scale_lrgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp);
+extern void blit_scale_frgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp);
 extern void blit_in_rect(framebuffer_t *fb, raster_t *raster, rect_t r, int keep_aspect_ratio, int interp);

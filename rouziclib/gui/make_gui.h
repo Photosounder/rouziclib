@@ -81,6 +81,7 @@ extern rect_t gui_layout_elem_comp_area(gui_layout_t *layout, const int id);
 extern rect_t gui_layout_elem_comp_area_os(gui_layout_t *layout, const int id, const xy_t offset);
 extern int ctrl_fromlayout_resizing(gui_layout_t *layout, const int id, const int phase);
 
+extern void draw_label_fromlayout_in_rect(gui_layout_t *layout, const int id, const int mode, rect_t box_os);
 extern void draw_label_fromlayout(gui_layout_t *layout, const int id, const int mode);
 extern void draw_rect_fromlayout_blending(const int type, const blend_func_t bf, gui_layout_t *layout, const int id);
 extern void draw_rect_fromlayout(const int type, gui_layout_t *layout, const int id);
@@ -93,17 +94,22 @@ extern int ctrl_knob_fromlayout(double *v, gui_layout_t *layout, const int id);
 extern int ctrl_textedit_fromlayout_in_rect(gui_layout_t *layout, const int id, rect_t box_os);
 extern int ctrl_textedit_fromlayout(gui_layout_t *layout, const int id);
 extern void gui_layout_selmenu_set_count(const int count, gui_layout_t *layout, const int id);
+extern void gui_layout_selmenu_set_entry_id(const int entry_id, gui_layout_t *layout, const int id);
 extern int ctrl_selmenu_fromlayout(gui_layout_t *layout, const int id);
 extern void draw_selmenu_entry_fromlayout(const int i, const char *label, gui_layout_t *layout, const int id);
 extern char *gui_layout_make_code_for_unimp_elem(gui_layout_t *layout);
 extern void gui_layout_unimplemented_elems(gui_layout_t *layout);
 extern void gui_set_control_label(const char *new_label, gui_layout_t *layout, const int id);
+extern void gui_printf_to_label(gui_layout_t *layout, const int id, const int append, const char *format, ...);
 extern void gui_round_elem_posdim(gui_layout_t *layout, const int id, const double rounding);
 extern int print_to_layout_label(gui_layout_t *layout, const int id, const char *format, ...);
 extern int print_to_layout_textedit(gui_layout_t *layout, const int id, const int clear_undo, const char *format, ...);
+extern textedit_t *get_textedit_fromlayout(gui_layout_t *layout, const int id);
 extern char *get_textedit_string_fromlayout(gui_layout_t *layout, const int id);
+extern void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const int id);
 extern void gui_layout_registry_add(gui_layout_t *layout, const char *layout_name);
 extern void gui_layout_registry_reset();
+extern rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_layout_t *sublayout, int main_area_id, xy_t offset);
 
 #define ctrl_button_fromlayout(layout, id)	ctrl_button_fromlayout_offset(layout, id, XY0)
 #define ctrl_button_invis_fromlayout(state, layout, id)	ctrl_button_invis_fromlayout_offset(state, layout, id, XY0)

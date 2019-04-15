@@ -195,3 +195,13 @@ rect_t get_subdiv_area(rect_t area, xy_t ratio, xy_t offset)
 	pos = add_xy(sort_rect(area).p0, mul_xy(offset, sub_xy(area_dim, subdiv_dim)));
 	return make_rect_off(pos, subdiv_dim, XY0);
 }
+
+xy_t make_dim_from_area_and_aspect_ratio(double area, xy_t aspect_dim)
+{
+	xy_t dim;
+
+	dim.y = sqrt(area * aspect_dim.y / aspect_dim.x);
+	dim.x = area / dim.y;
+
+	return dim;
+}

@@ -1,4 +1,4 @@
-// in vector_type/vector_type_struct.h:
+// in general/textedit_struct.h:
 // textedit_t
 
 enum
@@ -16,6 +16,7 @@ extern int textedit_find_prev_linebreak(textedit_t *te);
 extern int textedit_find_next_linebreak(textedit_t *te);
 extern int textedit_find_prev_wordstart(textedit_t *te);
 extern int textedit_find_next_wordstart(textedit_t *te);
+extern int textedit_find_next_wordend(textedit_t *te);
 extern void textedit_set_new_text(textedit_t *te, char *str);
 extern void textedit_clear_then_set_new_text(textedit_t *te, char *str);
 extern void textedit_add(textedit_t *te, char *str);

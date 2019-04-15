@@ -149,7 +149,7 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 
 	if (check_ctrl_id_rect(box, mouse)==0)
 		return state;
-	
+
 	if (check_point_within_box(mouse.b.orig, box))	// check the click originated in the same box
 	{
 		if (mouse.b.clicks == 2)
@@ -161,7 +161,8 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 		{
 			if (mouse.b.lmb >= 1)
 			{
-				state.vert_delta = (mouse.u.y - mouse.prev_u.y) / get_rect_dim(box).y;
+				//state.vert_delta = (mouse.u.y - mouse.prev_u.y) / get_rect_dim(box).y;
+				state.vert_delta = -mouse.d.y;					
 
 				if (mouse.mod_key[mouse_mod_shift])
 				{
@@ -175,8 +176,14 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 			if (mouse.b.lmb > 0)
 				state.down = 1;
 
+			if (mouse.b.lmb == 2)
+				state.downonce = 1;
+
 			if (mouse.b.lmb == -2)
 				state.uponce = 1;
+
+			if (mouse.b.rmb == 2)
+				state.rightclick = 1;
 		}
 	}
 
@@ -192,17 +199,27 @@ int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mous
 	ctrl_id_check = check_ctrl_id_rect(box, mouse);
 	
 	if (mouse.b.lmb < 0)				// if LMB is released
+	{
 		state->down = 0;			// the control is deselected
+		state->click_offset = set_xy(0.5);
+	}
 
 	if (mouse.b.lmb==2 && ctrl_id_check)		// if LMB was just clicked and the control was hovered
+	{
 		state->down = 1;			// the control is now selected
+		state->click_offset = pos_to_rect_ratio(mouse.u, box);
+	}
 
 	if (mouse.b.lmb==1 && state->down)		// if the control is being dragged
 	{
-		state->offset = mul_xy(state->freedom, sub_xy(mouse.u, mouse.prev_u) );
+		xy_t new_pos = get_rect_centre(make_rect_off(mouse.u, state->dim, state->click_offset));
+		//state->offset = mul_xy(state->freedom, sub_xy(mouse.u, mouse.prev_u) );
+		state->offset = mul_xy(state->freedom, sub_xy(new_pos, state->pos) );
 		state->pos = add_xy(state->pos, state->offset);
 		ret = 1;
 	}
+
+	state->over = check_point_within_box(mouse.u, box) && ctrl_id_check && state->down==0;
 
 	return ret;
 }
@@ -235,7 +252,7 @@ ctrl_button_state_t proc_mouse_circular_ctrl(xy_t *pos, double radius, mouse_t m
 	butt = proc_mouse_circ_ctrl_lrmb(*pos, radius, mouse, dragged)[0];
 
 	if (butt.down)
-		*pos = add_xy(*pos, sub_xy(mouse.u, mouse.prev_u));
+		*pos = add_xy(*pos, sub_xy(mouse.u, mouse.prev_u));	// TODO maybe replicate changes done in proc_mouse_draggable_ctrl()
 
 	return butt;
 }

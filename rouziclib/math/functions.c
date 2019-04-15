@@ -18,59 +18,14 @@ double gaussian(double x)	// gaussian(x) = e^-x²
 	return exp(-x*x);
 }
 
-double sinc(double x, double fc)		// fc is the cutoff frequency as a multiple of the Nyquist frequency
-{
-	double a;
-
-	if (x==0.)
-		return 1.;
-
-	a = pi*x * fc;
-	return sin(a)/(a);
-}
-
-double blackman(double x, double range)		// spans [-range , +range]
-{
-	double a;
-
-	a = x / range;
-	ffabs(&a);
-
-	if (a >= 1.)
-		return 0.;
-
-	a = 2.*pi * (a*0.5 + 0.5);
-
-	return 0.42 - 0.5*cos(a) + 0.08*cos(2.*a);
-}
-
-/*double erf(double x)
-{
-	// constants
-	double t, y;
-	double a1 =  0.254829592;
-	double a2 = -0.284496736;
-	double a3 =  1.421413741;
-	double a4 = -1.453152027;
-	double a5 =  1.061405429;
-	double p  =  0.3275911;
-
-	// Save the sign of x
-	int sign = 1;
-	if (x < 0)
-		sign = -1;
-	x = fabs(x);
-
-	// Abramowitz & Stegun formula 7.1.26
-	t = 1. / (1. + p*x);
-	y = 1. - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp(-x*x);
-
-	return sign*y;
-}*/
-
 double erfr(double x)
 {
 	return 0.5 + 0.5*erf(x);
+}
+
+double gamma_dist(double x, double a, double b)
+{
+	return pow(b, a) * pow(x, a-1.) * exp(-b*x) / tgamma(a);
 }
 
 double roundaway(double x)	// round away from 0
@@ -84,6 +39,9 @@ double roundaway(double x)	// round away from 0
 double rangewrap(double x, double low, double high)
 {
 	double range;
+
+	if (isnan(x))
+		return x;
 
 	range = high-low;
 
@@ -157,37 +115,6 @@ void minmax_i32(int32_t *a, int32_t *b)
 		swap_i32(a, b);
 }
 
-double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a double
-{
-	uint64_t xi = *((uint64_t *) &x);
-	double r;
-
-	xi += ulp;
-	r = *((double *) &xi);
-
-	return r;
-}
-
-int64_t double_diff_ulp(double a, double b)	// gives the (signed) difference between two doubles in ulp
-{
-	uint64_t ai = *((uint64_t *) &a);
-	uint64_t bi = *((uint64_t *) &b);
-
-	return ai - bi;
-}
-
-double double_increment_minulp(const double v0, const double inc)	// guarantees a minimal incrementation if the increment is too small to increment anything
-{
-	double v1;
-
-	v1 = v0 + inc;
-
-	if (v1==v0)
-		v1 = double_add_ulp(v0, sign(inc));
-
-	return v1;
-}
-
 double normalised_notation_split(double number, double *m)	// splits number into m * 10^n
 {
 	int logv, neg=0;
@@ -233,9 +160,11 @@ double fabs_max(double a, double b)
 		return b;
 }
 
-int get_bit_32(const uint32_t word, const int pos)
+int ceil_rshift(int v, int sh)	// does the ceiling version of a right shift, for instance ceil_rshift(65, 3) => 9
 {
-	return (word >> pos) & 1;
+	int mask = (1 << sh) - 1;
+
+	return (v >> sh) + ((v & mask)!=0);
 }
 
 int find_largest_prime_factor(int n)
@@ -253,29 +182,43 @@ int find_largest_prime_factor(int n)
 	return i;
 }
 
-int ceil_rshift(int v, int sh)	// does the ceiling version of a right shift, for instance ceil_rshift(65, 3) => 9
+int is_prime(int n)
 {
-	int mask = (1 << sh) - 1;
+	int i;
 
-	return (v >> sh) + ((v & mask)!=0);
+	if (n <= 3)
+		return n > 1;
+	else if ((n % 2 == 0) || (n % 3) == 0)
+		return 0;
+
+	for (i=5; i*i <= n; i+=6)
+		if ((n % i == 0) || (n % (i+2) == 0))
+			return 0;
+
+	return 1;
 }
 
-float u32_as_float(uint32_t i)
+int next_prime(int n)
 {
-	return *((float *) &i);
+	while (is_prime(n)==0)
+		n++;
+
+	return n;
 }
 
-double u64_as_double(uint64_t i)
+int64_t next_power_of_2(int64_t n)
 {
-	return *((double *) &i);
+	return sign(n) * (1ULL << log2_ffo64(abs(n)));
 }
 
-uint32_t float_as_u32(float f)
+int modulo_euclidian(int a, int b)	// gives a modulo that is never negative, as needed for circular buffers
 {
-	return *((uint32_t *) &f);
-}
+	int m;
+	
+	m = a % b;
 
-uint64_t double_as_u64(double f)
-{
-	return *((uint64_t *) &f);
+	if (m < 0)
+		m = (b < 0) ? m - b : m + b;
+
+	return m;
 }

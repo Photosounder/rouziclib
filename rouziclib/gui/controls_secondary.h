@@ -1,0 +1,1 @@
+extern void draw_dialog_window_fromlayout(ctrl_drag_state_t *bar_drag, ctrl_drag_state_t *corner_drag, double bar_height, int *diag_on, gui_layout_t *layout, const int id, col_t bg_col, col_t bar_col, double shadow_strength);

@@ -54,7 +54,7 @@ float4 draw_line_thin_add(global float *le, float4 pv)
 	col.s0 = le[5];
 	col.s1 = le[6];
 	col.s2 = le[7];
-	col.s3 = 1.f;
+	col.s3 = le[8];
 
 	d12 = p2-p1;
 	d12s = d12.x*d12.x + d12.y*d12.y;	// square of the distance

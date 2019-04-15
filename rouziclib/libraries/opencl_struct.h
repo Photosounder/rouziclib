@@ -1,11 +1,11 @@
 #ifdef RL_OPENCL
 
-#include "libraries/clew.h"
+#include "libraries/orig/clew.h"
 
 #ifdef RL_OPENCL_GL
 	#ifdef RL_BUILTIN_GLEW
 		#define GLEW_STATIC
-		#include "libraries/glew.h"
+		#include "libraries/orig/glew.h"
 	#else
 		#include <GL/glew.h>
 	#endif
@@ -18,26 +18,6 @@
 		#endif
 	#endif
 #endif
-
-/*#ifdef _MSC_VER
-	#pragma comment (lib, "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.0\\lib\\x64\\OpenCL.lib")
-#endif
-
-#ifdef __EMSCRIPTEN__
-	#include <CL/opencl.h>
-	#include <CL/cl_gl.h>
-#else
-
-	#ifdef __APPLE__
-		#include <OpenCL/opencl.h>
-		#include <OpenCL/cl_gl.h>
-		#include <OpenGL/OpenGL.h>
-	#else
-		#include <CL/cl.h>
-		#include <CL/cl_gl.h>
-	#endif
-
-#endif*/
 
 typedef struct
 {

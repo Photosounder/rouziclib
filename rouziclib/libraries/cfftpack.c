@@ -1,8 +1,9 @@
 #ifndef RL_EXCL_CFFTPACK
 
 #undef pi
-#include "cfftpack/fftpack.c"
-#define pi 3.14159265358979323846264338327950288
+#include "orig/fftpack.c"
+#undef logical
+#define pi RL_PI
 #undef complex
 #define complex _Complex
 
@@ -117,7 +118,7 @@ void cfft_complex_mul_2D(void *va, void *vb, void *vr, xyi_t dim)
 		r[i] = cfft_complex_mul(a[i], b[i]);
 }
 
-void cfft_copy_r2c_pad(fft_real_t *in, void **pout, size_t *out_as, xyi_t in_dim, xyi_t out_dim)	// makes a 0-padded complex copy
+void cfft_copy_r2c_pad(fft_real_t *in, size_t in_elemsize, void **pout, size_t *out_as, xyi_t in_dim, xyi_t out_dim)	// makes a 0-padded complex copy
 {
 	xyi_t ip;
 	fft_complex_t *out;
@@ -126,9 +127,14 @@ void cfft_copy_r2c_pad(fft_real_t *in, void **pout, size_t *out_as, xyi_t in_dim
 	out = *pout;
 	memset(out, 0, mul_x_by_y_xyi(out_dim) * sizeof(fft_complex_t));
 
-	for (ip.y=0; ip.y < in_dim.y; ip.y++)
-		for (ip.x=0; ip.x < in_dim.x; ip.x++)
-			out[ip.y*out_dim.x + ip.x].r = in[ip.y*in_dim.x + ip.x];
+	if (in_elemsize == sizeof(float))
+		for (ip.y=0; ip.y < in_dim.y; ip.y++)
+			for (ip.x=0; ip.x < in_dim.x; ip.x++)
+				out[ip.y*out_dim.x + ip.x].r = ((float *) in)[ip.y*in_dim.x + ip.x];
+	else
+		for (ip.y=0; ip.y < in_dim.y; ip.y++)
+			for (ip.x=0; ip.x < in_dim.x; ip.x++)
+				out[ip.y*out_dim.x + ip.x].r = in[ip.y*in_dim.x + ip.x];
 }
 
 void cfft_copy_c2r(fft_real_t *in, fft_real_t *out, xyi_t dim)
@@ -140,27 +146,32 @@ void cfft_copy_c2r(fft_real_t *in, fft_real_t *out, xyi_t dim)
 		out[i] = cin[i].r;
 }
 
-void cfft_1D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, void **pout, size_t *out_as, int in_n, int out_n)	// every arg besides in and *_n can be uninitialised
+void cfft_1D_c2c_fft(cfft_plan_t *plan, fft_real_t *array, int n)	// when the input is already alloced, padded and complex
+{
+	if (equal_xyi(plan->dim, xyi(n, 1))==0)		// if we must recreate the plan
+	{
+		cfft_plan_free(plan);
+		*plan = cfft_1D_create_plan(n);
+	}
+
+	cfft_1D(plan, array, 0);
+}
+
+void cfft_1D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, size_t in_elemsize, void **pout, size_t *out_as, int in_n, int out_n)	// every arg besides in and *_n can be uninitialised
 {
 	xyi_t in_dim, out_dim;
 
 	in_dim = xyi(in_n, 1);
 	out_dim = xyi(out_n, 1);
 
-	cfft_copy_r2c_pad(in, pout, out_as, in_dim, out_dim);	// 2D real -> 2D complex and padded
+	cfft_copy_r2c_pad(in, in_elemsize, pout, out_as, in_dim, out_dim);	// 2D real -> 2D complex and padded
 
-	if (equal_xyi(plan->dim, out_dim)==0)			// if we must recreate the plan
-	{
-		cfft_plan_free(plan);
-		*plan = cfft_1D_create_plan(out_dim.x);
-	}
-
-	cfft_1D(plan, *pout, 0);
+	cfft_1D_c2c_fft(plan, *pout, out_n);
 }
 
-void cfft_2D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, void **pout, size_t *out_as, xyi_t in_dim, xyi_t out_dim)	// every arg besides in and *_dim can be uninitialised
+void cfft_2D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, size_t in_elemsize, void **pout, size_t *out_as, xyi_t in_dim, xyi_t out_dim)	// every arg besides in and *_dim can be uninitialised
 {
-	cfft_copy_r2c_pad(in, pout, out_as, in_dim, out_dim);	// 2D real -> 2D complex and padded
+	cfft_copy_r2c_pad(in, in_elemsize, pout, out_as, in_dim, out_dim);	// 2D real -> 2D complex and padded
 
 	if (equal_xyi(plan->dim, out_dim)==0)			// if we must recreate the plan
 	{
@@ -169,6 +180,21 @@ void cfft_2D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, void **pout, size
 	}
 
 	cfft_2D(plan, *pout, 0);
+}
+
+void cfft_1D_c2r_full_ifft(cfft_plan_t *plan, fft_real_t *in, fft_real_t *out, int n)	// the IFFT is still in-place for in
+{
+	xyi_t dim = xyi(n, 1);
+
+	if (equal_xyi(plan->dim, dim)==0)			// if we must recreate the plan
+	{
+		cfft_plan_free(plan);
+		*plan = cfft_1D_create_plan(n);
+	}
+
+	cfft_1D(plan, in, 1);
+
+	cfft_copy_c2r(in, out, dim);
 }
 
 void cfft_2D_c2r_full_ifft(cfft_plan_t *plan, fft_real_t *in, fft_real_t *out, xyi_t dim)	// the IFFT is still in-place for in
