@@ -8,6 +8,8 @@ typedef struct
 	int lzw_diff;		// 1 for no difference, 2 for horizontal difference
 	uint32_t *data_offset;	// points to the strip offsets
 	int offset_count;	// number of strip offsets
+	int rowsperstrip, planarconfig;
+	int bytesperstrip;	// number of decoded bytes per strip
 } tiff_info_t;
 
 extern int is_file_tiff_mem(uint8_t *data);

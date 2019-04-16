@@ -180,7 +180,7 @@ void load_tiff_ifd_entry(uint8_t *data, uint8_t *p, tiff_info_t *info)
 			info->photometric = value;
 			break;
 
-		case 273:	// offsets to data strips (can be more than one, we just reference the first one for now) FIXME
+		case 273:	// offsets to data strips
 			info->offset_count = count;
 			if (count > 1)
 				info->data_offset = &data[value32];
@@ -188,8 +188,16 @@ void load_tiff_ifd_entry(uint8_t *data, uint8_t *p, tiff_info_t *info)
 				info->data_offset = ptr_value;
 			break;
 
-		case 277:	// channel count
+		case 277:	// channel count aka samplesperpixel
 			info->chan = value;
+			break;
+
+		case 278:	// rows per strip
+			info->rowsperstrip = value;
+			break;
+
+		case 284:	// planar config (1 for interleaved, 2 for planar)
+			info->planarconfig = value;
 			break;
 
 		case 317:	// LZW Differencing Predictor
@@ -217,6 +225,11 @@ size_t load_tiff_ifd(uint8_t *data, size_t ifd_index, tiff_info_t *info)
 		load_tiff_ifd_entry(data, p, info);
 		p = &p[12];
 	}
+
+	// Calculate the size of decoded strips
+	info->bytesperstrip = info->rowsperstrip * info->dim.x * ceil_rshift(info->bpc, 3);
+	if (info->planarconfig == 1)				// if the channels are interleaved
+		info->bytesperstrip *= info->chan;
 
 	return read32(p, NULL);
 }
@@ -346,17 +359,17 @@ float *load_tiff_mem(uint8_t *data, xyi_t *dim, int *out_chan)
 
 	if (info.compression==5)	// LZW decompression
 	{
-		//print_lzw_contents(&data[info.data_offset], 352);
+		buffer_t dec={0};	// the decoded output
 
-		buffer_t dec={0};
-		
-		for (i=0; i < info.offset_count; i++)
-			tiff_lzw_decode(&data[read32(&info.data_offset[i], NULL)], &dec);
+		buf_alloc_enough(&dec, (size_t) mul_x_by_y_xyi(info.dim) * info.chan * info.bpc / 8);	// alloc the expected output size
 
-		buf_alloc_enough(&dec, (size_t) mul_x_by_y_xyi(info.dim) * info.chan * info.bpc / 8);
-		if (info.lzw_diff==2)
+		for (i=0; i < info.offset_count; i++)				// go through every LZW strip
+			tiff_lzw_decode(&data[read32(&info.data_offset[i], NULL)], &dec, info.bytesperstrip);
+
+		if (info.lzw_diff==2)						// horizontal difference decoding
 			tiff_lzw_diff_decode(dec.buf, info);
-		im = load_tiff_pix_data_fl32(dec.buf, info, *out_chan);
+
+		im = load_tiff_pix_data_fl32(dec.buf, info, *out_chan);		// convert decoded data
 		free_buf(&dec);
 	}
 	else

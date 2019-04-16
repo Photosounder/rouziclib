@@ -40,19 +40,20 @@ void tiff_lzw_calc_bpc(int new_index, int *bpc, int *maxcode)
 	}
 }
 
-void tiff_lzw_decode(uint8_t *coded, buffer_t *dec)
+void tiff_lzw_decode(uint8_t *coded, buffer_t *dec, int bytesperstrip)
 {
 	buffer_t word={0}, outstring={0};
 	size_t coded_pos;	// position in bits
-	int i, new_index, code, maxcode, bpc;
+	int i=0, new_index, code, maxcode, bpc, dec_limit;
 
 	buffer_t *dict={0};
 	size_t dict_as=0;
 
-	bpc = 9;			// starts with 9 bits per code, increases later
-	tiff_lzw_calc_maxcode(bpc, &maxcode);
-	new_index = 258;		// index at which new dict entries begin
-	coded_pos = 0;			// bit position
+	bpc = 9;				// starts with 9 bits per code, increases later
+	tiff_lzw_calc_maxcode(bpc, &maxcode);	// starts at 510, which indicates where new_index triggers an increment of bpc
+	new_index = 258;			// index at which new dict entries begin
+	coded_pos = 0;				// bit position
+	dec_limit = dec->len + bytesperstrip;	// we must stop decoding based on the number of decoded bytes per strip
 
 	lzw_dict_init(&dict, &dict_as);
 
@@ -60,11 +61,10 @@ void tiff_lzw_decode(uint8_t *coded, buffer_t *dec)
 	{
 		coded_pos += bpc;
 
-		//if (code >= dict_as)
 		if (code > new_index)
 		{
-			fprintf_rl(stdout, "Out of range code %d (new_index %d)\n", code, new_index);
-			//break;
+			fprintf_rl(stderr, "Out of range code %d (new_index %d)\n", code, new_index);
+			break;
 		}
 
 		if (code == 256)						// if (Code == ClearCode)
@@ -93,11 +93,6 @@ void tiff_lzw_decode(uint8_t *coded, buffer_t *dec)
 
 				lzw_add_to_dict(&dict, &dict_as, new_index, 0, word.buf, word.len, &bpc);
 				lzw_add_to_dict(&dict, &dict_as, new_index, 1, dict[code].buf, 1, &bpc);	// AddStringToTable
-				new_index++;
-				tiff_lzw_calc_bpc(new_index, &bpc, &maxcode);
-
-				clear_buf(&word);
-				append_buf(&word, &dict[code]);			// OldCode = Code;
 			}
 			else
 			{
@@ -108,14 +103,17 @@ void tiff_lzw_decode(uint8_t *coded, buffer_t *dec)
 				append_buf(dec, &outstring);			// WriteString(OutString);
 
 				lzw_add_to_dict(&dict, &dict_as, new_index, 0, outstring.buf, outstring.len, &bpc);	// AddStringToTable
-				new_index++;
-				tiff_lzw_calc_bpc(new_index, &bpc, &maxcode);
-
-				clear_buf(&word);
-				append_buf(&word, &dict[code]);			// OldCode = Code;
 			}
-		}
 
+			if (dec->len >= dec_limit)
+				break;
+
+			new_index++;
+			tiff_lzw_calc_bpc(new_index, &bpc, &maxcode);
+
+			clear_buf(&word);
+			append_buf(&word, &dict[code]);			// OldCode = Code;
+		}
 	}
 
 	free_buf(&word);
@@ -131,7 +129,7 @@ void tiff_lzw_diff_decode(uint8_t *d, tiff_info_t info)
 	int ic, prev;
 	int8_t *p8;
 
-	// 8-bit version
+	// 8-bit (and somehow 16-bit) version
 	for (ip.y=0; ip.y < info.dim.y; ip.y++)
 	{
 		for (ic=0; ic < info.chan; ic++)
