@@ -10,6 +10,8 @@ extern double to_world_coord_y(zoom_t zc, double y);
 extern xy_t to_world_coord_xy(zoom_t zc, xy_t p);
 extern rect_t to_screen_coord_rect(zoom_t zc, rect_t r);
 extern rect_t to_world_coord_rect(zoom_t zc, rect_t r);
+extern void pinned_os_to_world_os(xy_t pinned_offset, double pinned_sm, xy_t *world_offset, double *world_sm);
+extern void world_os_to_pinned_os(xy_t world_offset, double world_sm, xy_t *pinned_offset, double *pinned_sm);
 
 extern void zoom_toggle(zoom_t *zc, int *flag_zoom_key);
 extern void zoom_reset(zoom_t *zc, int *flag_zoom_key);

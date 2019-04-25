@@ -49,4 +49,5 @@ extern double intensity_scaling(double scale, double scale_limit);
 extern void thickness_limit(double *thickness, double *brightness, double limit);
 extern void screen_blank(framebuffer_t fb);
 extern void draw_gain(framebuffer_t fb, double gain);
+extern void draw_gain_parabolic(framebuffer_t fb, double gain);
 extern void draw_luma_compression(framebuffer_t fb, double factor);

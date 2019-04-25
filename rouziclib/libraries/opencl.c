@@ -4,7 +4,7 @@
 
 #ifdef RL_OPENCL_GL
 #ifdef RL_BUILTIN_GLEW
-#include "libraries/orig/glew.c"
+#include "libraries/glew_minimal.c"
 #endif
 #endif
 

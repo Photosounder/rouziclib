@@ -24,6 +24,7 @@ glyph 240A
 	copy 'F'
 	move	2;9
 	scale	0;3 0;3	0 3
+	move	0;1;6
 	copy 20DF
 	bounds	-3	3
 

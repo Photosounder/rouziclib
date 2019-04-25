@@ -178,6 +178,7 @@ int32_t drawq_entry_size(const int32_t type)
 		case DQT_RECT_BLACK:		return 5;
 		case DQT_PLAIN_FILL:		return 3;
 		case DQT_GAIN:			return 1;
+		case DQT_GAIN_PARAB:		return 1;
 		case DQT_LUMA_COMPRESS:		return 1;
 		case DQT_CIRCLE_FULL:		return 7;
 		case DQT_CIRCLE_HOLLOW:		return 7;

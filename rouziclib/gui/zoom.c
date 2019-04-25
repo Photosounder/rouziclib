@@ -55,6 +55,18 @@ rect_t to_world_coord_rect(zoom_t zc, rect_t r)
 	return rect( wc_xy(r.p0) , wc_xy(r.p1) );
 }
 
+void pinned_os_to_world_os(xy_t pinned_offset, double pinned_sm, xy_t *world_offset, double *world_sm)
+{
+	*world_sm = pinned_sm / zc.zoomscale;
+	*world_offset = add_xy(zc.offset_u, mul_xy(set_xy(*world_sm), pinned_offset));
+}
+
+void world_os_to_pinned_os(xy_t world_offset, double world_sm, xy_t *pinned_offset, double *pinned_sm)
+{
+	*pinned_sm = world_sm * zc.zoomscale;
+	*pinned_offset = div_xy(sub_xy(world_offset, zc.offset_u), set_xy(world_sm));
+}
+
 void zoom_toggle(zoom_t *zc, int *flag_zoom_key)
 {
 	*flag_zoom_key ^= 1;		// toggle zoom

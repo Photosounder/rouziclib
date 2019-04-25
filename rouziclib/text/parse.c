@@ -242,7 +242,7 @@ char *strstr_i(char *fullstr, char *substr)		// case insensitive substring searc
 	return ret;
 }
 
-char *bstrchr(const char *s, int c, int l)	// find first occurrence of c in char s[] for length l
+char *bstrchr(const char *s, int c, int l)	// find first occurrence of c in char s[] for length l, same as memchr?
 {
 	const char ch = c;
 
@@ -256,7 +256,7 @@ char *bstrchr(const char *s, int c, int l)	// find first occurrence of c in char
 	return (char*) s;
 }
 
-char *bstrstr(const char *s1, int l1, const char *s2, int l2)	// find first occurrence of s2[] in s1[] for length l1
+char *bstrstr(const char *s1, int l1, const char *s2, int l2)	// find first occurrence of s2[] in s1[] for length l1, same as memmem?
 {
 	const char *ss1 = s1;
 	const char *ss2 = s2;

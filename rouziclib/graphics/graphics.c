@@ -304,6 +304,18 @@ void draw_gain(framebuffer_t fb, double gain)
 #endif
 }
 
+void draw_gain_parabolic(framebuffer_t fb, double gain)
+{
+#ifdef RL_OPENCL
+	float *df = drawq_add_to_main_queue(fb, DQT_GAIN_PARAB);
+	if (df==NULL)
+		return;
+	df[0] = gain;
+
+	drawq_add_sectors_for_already_set_sectors(fb);
+#endif
+}
+
 void draw_luma_compression(framebuffer_t fb, double factor)
 {
 #ifdef RL_OPENCL

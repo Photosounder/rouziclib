@@ -13,7 +13,7 @@ double pos_on_line(xy_t p1, xy_t p2, xy_t p)
 	return ((p.x-p1.x)*(p2.x-p1.x) + (p.y-p1.y)*(p2.y-p1.y)) / ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
 }
 
-int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int32_t exclusive)
+int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int exclusive)
 {
 	double v;
 	xy_t p;
@@ -141,6 +141,26 @@ void line_rect_clip(xy_t *l1, xy_t *l2, rect_t br)
 		}
 		l2->y = br.p1.y;
 	}
+}
+
+int keep_box_inside_area(rect_t *box, rect_t area)
+{
+	xy_t box_centre, new_box_centre, area_centre, box_dim;
+	rect_t shrunk_area;
+
+	box_centre = get_rect_centre(*box);
+	area_centre = get_rect_centre(area);
+	box_dim = get_rect_dim(*box);
+	shrunk_area = rect_add_margin(area, mul_xy(box_dim, set_xy(-0.5)));		// shrink the area by the dim of the box
+	new_box_centre = rangelimit_xy(box_centre, shrunk_area.p0, shrunk_area.p1);	// limit the position of the box centre
+
+	if (equal_xy(box_centre, new_box_centre) == 0)					// if this has moved the box centre
+	{
+		*box = make_rect_centred(new_box_centre, box_dim);			// move the box
+		return 1;
+	}
+
+	return 0;
 }
 
 int check_point_within_box(xy_t p, rect_t box)

@@ -22,7 +22,6 @@ extern xyi_t set_xyi(const int v);
 extern int is0_xy(const xy_t v);
 extern int is0_xyz(const xyz_t v);
 extern int is0_xyi(const xyi_t v);
-extern int equal_xyi(const xyi_t a, const xyi_t b);
 extern int equal_xy(const xy_t a, const xy_t b);
 extern int equal_xyz(const xyz_t a, const xyz_t b);
 extern int equal_xyi(const xyi_t a, const xyi_t b);

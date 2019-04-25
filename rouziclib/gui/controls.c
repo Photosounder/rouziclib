@@ -96,6 +96,31 @@ int ctrl_checkbox(int *state, uint8_t *name, rect_t box, col_t colour)
 	return butt_state.uponce;
 }
 
+int ctrl_checkbox_pin(int *state, rect_t box, col_t colour)
+{
+	double intensity = 1.;
+	double scale = rect_min_side(box);
+	double total_scale = scale*zc.scrscale;
+	ctrl_button_state_t butt_state={0};
+
+	ctrl_button_invis(box, &butt_state);
+	if (butt_state.too_small || butt_state.out_of_screen)
+		return 0;
+
+	intensity *= intensity_scaling(total_scale, 24.);
+
+	if (butt_state.over && butt_state.down==0)
+		draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
+
+	if (butt_state.uponce && state)
+		*state = (*state & 1) ^ 1;
+
+	box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
+	draw_string_bestfit(fb, font, (*state) ? "\xE2\x98\x91\302\240\360\237\223\214" : "\xE2\x98\x90\302\240\360\237\223\214", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+
+	return butt_state.uponce;
+}
+
 int ctrl_radio(int state, uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;

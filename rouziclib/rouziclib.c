@@ -87,7 +87,7 @@
 #include "gui/selection.c"
 #include "gui/make_gui.c"
 #include "gui/editor_toolbar.c"
-#include "gui/controls_secondary.c"
+#include "gui/floating_window.c"
 
 #include "fileio/bits.c"
 #include "fileio/open.c"

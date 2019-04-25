@@ -8,3 +8,13 @@ typedef struct
 	textedit_t edit;
 	int edit_open, circular;
 } knob_t;
+
+typedef struct
+{
+	int pinned, hide_corner, hide_pin;
+	ctrl_drag_state_t bar_drag, corner_drag;
+	col_t bg_col, bar_col;
+	double bar_height, shadow_strength;
+	xy_t pinned_offset;
+	double pinned_sm;
+} flwindow_t;

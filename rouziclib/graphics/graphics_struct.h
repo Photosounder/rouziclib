@@ -20,6 +20,12 @@ typedef struct
 	float r, g, b, a;
 } frgb_t;			// linear RGB format
 
+#ifdef COL_FRGB
+	#define col_t 			frgb_t
+#else
+	#define col_t			lrgb_t
+#endif
+
 typedef struct
 {
 	xyi_t dim;		// formerly [wh]

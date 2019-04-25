@@ -10,7 +10,6 @@ enum
 #define WEIGHT_B 0.11
 
 #ifdef COL_FRGB
-	#define col_t 			frgb_t
 	#define make_colour		make_colour_frgb
 	#define frgb_to_col(x)		(x)
 	#define lrgb_to_col(x)		lrgb_to_frgb(x)
@@ -28,7 +27,6 @@ enum
 	#define col_invert_linear	col_invert_linear_f
 	#define col_invert_Lab		col_invert_Lab_f
 #else
-	#define col_t			lrgb_t
 	#define make_colour		make_colour_lin
 	#define frgb_to_col(x)		frgb_to_lrgb(x)
 	#define lrgb_to_col(x)		(x)

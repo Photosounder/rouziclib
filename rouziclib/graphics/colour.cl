@@ -22,6 +22,14 @@ float linear_to_Lab_L(float t)
 	return 1.16f * t - 0.16f;
 }
 
+float4 gain_parabolic(float4 pv, float gain)
+{
+	pv = min(pv, 1.f);
+	pv = 1.f - pow((1.f-pv), gain);
+
+	return pv;
+}
+
 float4 luma_compression(float4 pv0, float lvl_lin)
 {
 	float4 pv1;

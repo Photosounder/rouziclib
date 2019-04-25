@@ -103,6 +103,16 @@ buffer_t *append_buf(buffer_t *a, buffer_t *b)		// append b to a
 	return a;
 }
 
+buffer_t buf_copy_part(buffer_t src, size_t start, size_t len)
+{
+	buffer_t dst={0};
+
+	buf_alloc_enough(&dst, len+1);
+	bufwrite(&dst, &src.buf[start], len);
+
+	return dst;
+}
+
 void buf_remove_first_bytes(buffer_t *s, size_t n)
 {
 	if (s->buf==NULL || s->as <= 0)
@@ -146,6 +156,16 @@ buffer_t buf_load_raw_file(const char *path)
 	buffer_t s={0};
 
 	s.buf = load_raw_file(path, &s.len);
+	s.as = s.len + 1;
+
+	return s;
+}
+
+buffer_t buf_load_raw_file_dos_conv(const char *path)
+{
+	buffer_t s={0};
+
+	s.buf = load_raw_file_dos_conv(path, &s.len);
 	s.as = s.len + 1;
 
 	return s;

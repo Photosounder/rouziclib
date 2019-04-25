@@ -35,6 +35,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include <float.h>
 #include <limits.h>
@@ -55,13 +56,13 @@ extern "C" {
 #include "geometry/rect_struct.h"		// needs xyz
 #include "general/textedit_struct.h"		// needs xyz
 #include "fileio/dir_struct.h"
-#include "gui/controls_struct.h"		// needs textedit
 #include "gui/inputprocessing_struct.h"
 #include "gui/focus_struct.h"
 #include "libraries/opencl_struct.h"		// used if RL_OPENCL is defined
 
 #include "graphics/graphics_struct.h"		// needs opencl, xyz
 #include "graphics/blending_struct.h"		// needs graphics
+#include "gui/controls_struct.h"		// needs textedit, inputprocessing, graphics
 #include "general/keyboard_struct.h"
 #include "general/mouse_struct.h"		// needs rect, xyz, controls, keyboard
 #include "gui/zoom_struct.h"			// needs rect, xyz, mouse, graphics
@@ -146,7 +147,7 @@ extern "C" {
 #include "gui/selection.h"
 #include "gui/make_gui.h"
 #include "gui/editor_toolbar.h"
-#include "gui/controls_secondary.h"
+#include "gui/floating_window.h"
 
 #include "fileio/bits.h"
 #include "fileio/open.h"

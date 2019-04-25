@@ -5,7 +5,7 @@
 #ifdef RL_OPENCL_GL
 	#ifdef RL_BUILTIN_GLEW
 		#define GLEW_STATIC
-		#include "libraries/orig/glew.h"
+		#include "libraries/glew_minimal.h"
 	#else
 		#include <GL/glew.h>
 	#endif
