@@ -1113,7 +1113,7 @@ void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const i
 	knob_t *knob_data;
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
-		return NULL;
+		return ;
 
 	knob_data = (knob_t *) layout->elem[id].data;
 	knob_data->circular = circular;

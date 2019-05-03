@@ -5,7 +5,6 @@
 
 #else
 
-#define NDEBUG        // this suppresses assert() used by miniz
 #include "orig/miniz.h"
 
 #endif

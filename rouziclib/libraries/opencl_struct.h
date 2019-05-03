@@ -1,11 +1,11 @@
 #ifdef RL_OPENCL
 
-#include "libraries/orig/clew.h"
+#include "orig/clew.h"
 
 #ifdef RL_OPENCL_GL
 	#ifdef RL_BUILTIN_GLEW
 		#define GLEW_STATIC
-		#include "libraries/glew_minimal.h"
+		#include "glew_minimal.h"
 	#else
 		#include <GL/glew.h>
 	#endif

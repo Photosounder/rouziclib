@@ -1,10 +1,10 @@
 #ifdef RL_OPENCL
 
-#include "libraries/orig/clew.c"
+#include "orig/clew.c"
 
 #ifdef RL_OPENCL_GL
 #ifdef RL_BUILTIN_GLEW
-#include "libraries/glew_minimal.c"
+#include "glew_minimal.c"
 #endif
 #endif
 

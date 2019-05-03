@@ -169,6 +169,7 @@ extern "C" {
 #include "network/network.h"
 #include "network/http.h"
 
+#define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
 #include "libraries/opencl.h"		// used if RL_OPENCL is defined
 #include "libraries/sdl.h"		// used if RL_SDL is defined
 #include "libraries/devil.h"		// used if RL_DEVIL is defined
@@ -183,7 +184,7 @@ extern "C" {
 #include "libraries/libstb_vorbis.h"
 #include "libraries/libminimp3.h"
 #include "libraries/libdr_flac.h"
-#include "libraries/zlib.h"		// used if RL_ZLIB is defined, otherwise miniz is used
+#include "libraries/zlib.h"		// uses zlib if RL_ZLIB is defined, otherwise miniz is used
 #include "libraries/mpfr.h"		// used if RL_MPFR is defined
 #include "libraries/fftpack.h"		// used unless RL_EXCL_FFTPACK is defined
 #include "libraries/cfftpack.h"		// used unless RL_EXCL_CFFTPACK is defined

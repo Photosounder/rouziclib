@@ -33,7 +33,7 @@ void thread_set_low_priority()
 
 int rl_thread_create(rl_thread_t *thread_handle, int (*func)(void *), void *arg)
 {
-	*thread_handle = thread_create(func, arg, NULL, 0);
+	*thread_handle = th_thread_create(func, arg, NULL, 0);
 
 	if (*thread_handle==NULL)
 		return 0;

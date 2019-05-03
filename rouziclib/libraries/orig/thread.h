@@ -28,7 +28,7 @@ void thread_set_high_priority( void );
 void thread_exit( int return_code );
 
 typedef void* thread_ptr_t;
-thread_ptr_t thread_create( int (*thread_proc)( void* ), void* user_data, char const* name, int stack_size );
+thread_ptr_t th_thread_create( int (*thread_proc)( void* ), void* user_data, char const* name, int stack_size );
 void thread_destroy( thread_ptr_t thread );
 int thread_join( thread_ptr_t thread );
 
@@ -119,7 +119,7 @@ Here's a basic sample program which starts a second thread which just waits and 
         thread_atomic_int_t exit_flag;
         thread_atomic_int_store( &exit_flag, 0 );
 
-        thread_ptr_t thread = thread_create( thread_proc, &exit_flag, "Example thread", THREAD_STACK_SIZE_DEFAULT );
+        thread_ptr_t thread = th_thread_create( thread_proc, &exit_flag, "Example thread", THREAD_STACK_SIZE_DEFAULT );
 
         thread_timer_t timer;
         thread_timer_init( &timer );
@@ -199,16 +199,16 @@ thread_exit
 Exits the calling thread, as if you had done `return return_code;` from the main body of the thread function.
 
 
-thread_create
+th_thread_create
 -------------
 
-    thread_ptr_t thread_create( int (*thread_proc)( void* ), void* user_data, char const* name, int stack_size )
+    thread_ptr_t th_thread_create( int (*thread_proc)( void* ), void* user_data, char const* name, int stack_size )
 
 Creates a new thread running the `thread_proc` function, passing the `user_data` through to it. The thread will be 
 given the debug name given in the `name` parameter, if supported on the platform, and it will have the stack size
 specified in the `stack_size` parameter. To get the operating system default stack size, use the defined constant
 `THREAD_STACK_SIZE_DEFAULT`. When returning from the thread_proc function, the value you return can be received in
-another thread by calling thread_join. `thread_create` returns a pointer to the thread instance, which can be used 
+another thread by calling thread_join. `th_thread_create` returns a pointer to the thread instance, which can be used 
 as a parameter to the functions `thread_destroy` and `thread_join`.
 
 
@@ -217,7 +217,7 @@ thread_destroy
 
     void thread_destroy( thread_ptr_t thread )
 
-Destroys a thread that was created by calling `thread_create`. Make sure the thread has exited before you attempt to 
+Destroys a thread that was created by calling `th_thread_create`. Make sure the thread has exited before you attempt to 
 destroy it. This can be accomplished by calling `thread_join`. It is not possible for force termination of a thread by
 calling `thread_destroy`.
 
@@ -672,7 +672,7 @@ void thread_exit( int return_code )
     }
 
 
-thread_ptr_t thread_create( int (*thread_proc)( void* ), void* user_data, char const* name, int stack_size )
+thread_ptr_t th_thread_create( int (*thread_proc)( void* ), void* user_data, char const* name, int stack_size )
     {
     #if defined( _WIN32 )
 
