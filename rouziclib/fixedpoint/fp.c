@@ -264,7 +264,7 @@ int32_t fpcos_d2(uint32_t x)		// 13 cycles
 	c = &fpcos_lut[lutind*3];    c0 = c[0];    c1 = c[1];    c2 = c[2];
 	p = (((c2 * xl >> fmt) + c1) * xl >> fmt) + c0;		// does (c2*x + c1)*x + c0 instead of c2*x^2 + c1*x + c0
 
-	return p << osh;
+	return (int32_t) ((uint32_t) p << osh);
 }
 
 // takes 8.3 cycles compared to 94 cycles for cosf()

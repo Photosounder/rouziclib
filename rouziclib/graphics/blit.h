@@ -30,11 +30,9 @@ extern void blit_sprite(framebuffer_t fb, raster_t r, xyi_t pos, const blend_fun
 extern void blit_layout(framebuffer_t fb, raster_t r);
 extern void blit_scale_lrgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale_frgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp);
-extern void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp);
+extern void blit_scale_dq(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp);
 extern void blit_in_rect(framebuffer_t *fb, raster_t *raster, rect_t r, int keep_aspect_ratio, int interp);
-extern void blit_scale_photo_cl(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp, xy_t pc, double distortion, double gain);
-extern void blit_photo_in_rect(framebuffer_t fb, raster_t raster, rect_t r, int keep_aspect_ratio, int interp, xy_t pc, double distortion, double gain);
 
 extern double blit_scale_func_linear(double x, double unit_inv, interp_param_t p);
 extern double blit_scale_func_modlin(double x, double unit_inv, interp_param_t p);

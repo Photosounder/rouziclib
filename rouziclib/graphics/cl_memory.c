@@ -126,8 +126,11 @@ int hash_table_get_index(framebuffer_t *fb, void *buffer, int hash)
 	return hte->index;
 }
 
+#endif
+
 uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buffer_size, size_t align_size, int *table_index)
 {
+#ifdef RL_OPENCL
 	int i, hash;
 	size_t prev_end=0;
 	const int ht_size = 1 << 16;
@@ -193,6 +196,9 @@ uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buf
 
 	// TODO enlarge device buffer when needed
 	return 0;
+#else
+	return (uint64_t) buffer;
+#endif
 }
 
 uint64_t cl_add_raster_to_data_table(framebuffer_t *fb, raster_t *r)
@@ -211,5 +217,3 @@ uint64_t cl_add_raster_to_data_table(framebuffer_t *fb, raster_t *r)
 
 	return 0;
 }
-
-#endif

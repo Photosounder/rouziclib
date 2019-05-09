@@ -305,13 +305,12 @@ void blit_scale_frgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int in
 	blit_scale_float(fb.r.f, fb.r.dim, r.f, r.dim, 4, pscale, pos, get_pixel_address_contig);
 }
 
-void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp)
+void blit_scale_dq(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
-#ifdef RL_OPENCL
 	int ix, iy;
 	int32_t *di;
 	float *df;
-	uint64_t clbuf_da;
+	uint64_t dqbuf_da;
 	xy_t rad;
 	recti_t bbi;
 	int flattop=0;
@@ -327,13 +326,13 @@ void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int in
 	//if (pscale.x < 1. || pscale.y < 1.)
 		flattop = 1;
 
-	clbuf_da = cl_add_raster_to_data_table(fb, r);
+	dqbuf_da = cl_add_raster_to_data_table(fb, r);
 	r->referencing_fb = fb;
 
 	// store the drawing parameters in the main drawing queue
 	df = di = drawq_add_to_main_queue(*fb, flattop ? DQT_BLIT_FLATTOP : DQT_BLIT_BILINEAR);
-	di[0] = clbuf_da;
-	di[1] = clbuf_da >> 32;
+	di[0] = dqbuf_da;
+	di[1] = dqbuf_da >> 32;
 	di[2] = r->dim.x;
 	di[3] = r->dim.y;
 	df[4] = 1./pscale.x;
@@ -355,13 +354,12 @@ void blit_scale_cl(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int in
 	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
 		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
 			drawq_add_sector_id(*fb, iy*fb->sector_w + ix);	// add sector reference
-#endif
 }
 
 void blit_scale(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
-	if (fb->use_cl)
-		blit_scale_cl(fb, r, pscale, pos, interp);
+	if (fb->use_drawq)
+		blit_scale_dq(fb, r, pscale, pos, interp);
 	else if (fb->r.use_frgb==0)
 		blit_scale_lrgb(*fb, *r, pscale, pos, interp);
 	else
@@ -380,73 +378,4 @@ void blit_in_rect(framebuffer_t *fb, raster_t *raster, rect_t r, int keep_aspect
 	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
 	blit_scale(fb, raster, pscale, pos, interp);
-}
-
-void blit_scale_photo_cl(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp, xy_t pc, double distortion, double gain)
-{
-/*#ifdef RL_OPENCL
-	double grad;
-	int32_t ix, iy;
-	int32_t *di;
-	float *df;
-	xyi_t bb0, bb1;
-	uint64_t clbuf_da;
-
-	if (r.f==NULL)
-		return ;
-
-	grad = 1.;	// 1 for triangular filtering
-	
-/*	if (pos.x + grad < 0.)			return ;
-	if (pos.y + grad < 0.)			return ;
-	if (pos.x - grad > (double) (fb.r.dim.x-1))	return ;
-	if (pos.y - grad > (double) (fb.r.dim.y-1))	return ;
-
-	// calculate the bounding box
-	bb0.x = MAXN(ceil(x - grad), 0);
-	bb0.y = MAXN(ceil(y - grad), 0);
-	bb1.x = MINN(floor(x + grad), fb.r.dim.x-1);
-	bb1.y = MINN(floor(y + grad), fb.r.dim.y-1);*/
-/*bb0 = xyi(0, 0);
-bb1.x = MINN(fb.r.dim.x-1, fb.r.dim.x-1);
-bb1.y = MINN(fb.r.dim.y-1, fb.r.dim.y-1);
-
-	bb0.x >>= fb.sector_size;
-	bb0.y >>= fb.sector_size;
-	bb1.x >>= fb.sector_size;
-	bb1.y >>= fb.sector_size;
-
-	clbuf_da = cl_add_raster_to_data_table(*fb, r);
-
-	// store the drawing parameters in the main drawing queue
-	df = di = drawq_add_to_main_queue(fb, DQT_BLIT_PHOTO);
-	di[0] = clbuf_da;
-	di[1] = clbuf_da >> 32;
-	di[2] = r.dim.x;
-	di[3] = r.dim.y;
-	df[4] = 1./pscale.x;
-	df[5] = 1./pscale.y;
-	df[6] = -pos.x;
-	df[7] = -pos.y;
-	df[8] = pc.x;
-	df[9] = pc.y;
-	df[10] = distortion;
-	df[11] = 1. / (MINN(r.dim.x, r.dim.y)*0.5);
-	df[12] = gain;
-
-	// go through the affected sectors
-	for (iy=bb0.y; iy<=bb1.y; iy++)
-		for (ix=bb0.x; ix<=bb1.x; ix++)
-			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
-#endif*/
-}
-
-void blit_photo_in_rect(framebuffer_t fb, raster_t raster, rect_t r, int keep_aspect_ratio, int interp, xy_t pc, double distortion, double gain)
-{
-	xy_t pscale, pos;
-
-	pscale = div_xy(get_rect_dim(r), xy(raster.dim.x, raster.dim.y));
-	pos = add_xy(rect_p01(r), mul_xy(pscale, set_xy(0.5)));
-
-	blit_scale_photo_cl(fb, raster, pscale, pos, interp, pc, distortion, gain);
 }

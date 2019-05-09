@@ -363,7 +363,7 @@ void blit_lrgb_on_srgb(framebuffer_t fb, srgb_t *srgb0, srgb_t *srgb1)
 
 void convert_linear_rgb_to_srgb(framebuffer_t fb, int mode)
 {
-	if (fb.use_cl)
+	if (fb.use_drawq)
 		return ;
 	else if (fb.r.use_frgb)
 		convert_frgb_to_srgb(fb, mode);

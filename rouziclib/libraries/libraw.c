@@ -163,10 +163,6 @@ raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp)
 			//set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}*/
 
-#ifdef RL_OPENCL
-	init_raster_cl(&r, &fb.clctx);			// copies the data to an OpenCL buffer
-#endif
-
 	return r;
 }
 

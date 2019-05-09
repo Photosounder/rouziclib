@@ -314,8 +314,6 @@ cl_int init_fb_cl(framebuffer_t *fb)
 
 	make_gl_tex(fb);
 
-	drawq_alloc(fb, 60000);
-
 	data_cl_alloc(fb, 500);
 
 	return ret;

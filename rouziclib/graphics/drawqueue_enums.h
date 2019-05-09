@@ -7,7 +7,7 @@ enum
 	DQ_END_HEADER_SL,		// the end of the header, where the first entry should start
 };
 
-enum	// entry types
+enum dq_type	// entry types
 {
 	DQT_NOTYPE,
 	DQT_BRACKET_OPEN,
@@ -28,7 +28,7 @@ enum	// entry types
 	DQT_TEST1,
 };
 
-enum	// blending modes
+enum dq_blend	// blending modes
 {
 	DQB_ADD,
 	DQB_SUB,

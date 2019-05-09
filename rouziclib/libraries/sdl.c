@@ -374,7 +374,7 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 	if (fb->window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
 
-	if (fb->use_cl)
+	if (fb->use_drawq)
 	{
 		#ifdef RL_OPENCL_GL
 		gl_ctx = init_sdl_gl(fb->window);
@@ -394,7 +394,7 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
 	}
 
-	if (fb->use_cl==0)
+	if (fb->use_drawq==0)
 	{
 		if (fb->r.use_frgb==0)
 			fmt_mode = IMAGE_USE_LRGB;
@@ -405,10 +405,14 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 		// fb->r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
 	}
 
-	#ifdef RL_OPENCL_GL
-	if (fb->use_cl)
+	if (fb->use_drawq)
+	{
+		#ifdef RL_OPENCL_GL
 		init_fb_cl(fb);
-	#endif
+		#endif
+
+		drawq_alloc(fb, 60000);
+	}
 
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
@@ -464,7 +468,7 @@ int sdl_handle_window_resize(framebuffer_t *fb, zoom_t *zc)
 	fb->h = h;
 	fb->r.dim = xyi(fb->w, fb->h);
 
-	if (fb->use_cl==0)
+	if (fb->use_drawq==0)
 	{
 		SDL_DestroyTexture(fb->texture);
 
@@ -480,7 +484,7 @@ int sdl_handle_window_resize(framebuffer_t *fb, zoom_t *zc)
 
 void sdl_flip_fb(int *first_frame)
 {
-	if (fb.use_cl)
+	if (fb.use_drawq)
 	{
 		if (first_frame==NULL)
 		{
@@ -511,6 +515,7 @@ void sdl_flip_fb(int *first_frame)
 
 			SDL_GL_SwapWindow(fb.window);
 		}
+#endif
 		*first_frame = 0;
 
 		if (mouse.window_minimised_flag <= 0)
@@ -520,7 +525,6 @@ void sdl_flip_fb(int *first_frame)
 			drawq_reinit(&fb);
 			SDL_Delay(80);		// there's no more vsync therefore the loop can easily run at 500+ FPS without the delay
 		}
-#endif
 	}
 	else
 	{

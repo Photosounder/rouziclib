@@ -206,11 +206,11 @@ void free_raster(raster_t *r)
 
 void cl_unref_raster(raster_t *r)
 {
+	#ifdef RL_OPENCL
 	void **ptr;
 
 	ptr = get_raster_buffer_ptr(r);
 
-	#ifdef RL_OPENCL
 	cl_data_table_remove_entry_by_host_ptr(r->referencing_fb, *ptr);	// remove reference from cl data table
 	#endif
 }
@@ -236,7 +236,7 @@ void init_tls_fb(xyi_t dim)	// initalisation of thread-local fb and zc in fRGB m
 	fb.h = dim.y;
 	fb.r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 	fb.r.use_frgb = 1;
-	fb.use_cl = 0;
+	fb.use_drawq = 0;
 
 	zc = init_zoom(&fb, &mouse, drawing_thickness);
 	calc_screen_limits(&zc);
@@ -244,7 +244,7 @@ void init_tls_fb(xyi_t dim)	// initalisation of thread-local fb and zc in fRGB m
 
 void enlarge_framebuffer(framebuffer_t *fb, xyi_t newdim)
 {
-	if (fb->use_cl==0)
+	if (fb->use_drawq==0)
 		alloc_enough(get_raster_buffer_ptr(&fb->r), mul_x_by_y_xyi(newdim), &fb->r.as, get_raster_mode_elem_size(get_raster_mode(fb->r)), 1.2);
 
 	fb->r.dim = newdim;
@@ -284,7 +284,7 @@ void thickness_limit(double *thickness, double *brightness, double limit)	// sam
 
 void screen_blank(framebuffer_t fb)
 {
-	if (fb.use_cl)
+	if (fb.use_drawq)
 		return ;
 	else if (fb.r.use_frgb)
 		memset (fb.r.f, 0, fb.w*fb.h*sizeof(frgb_t));
@@ -294,36 +294,30 @@ void screen_blank(framebuffer_t fb)
 
 void draw_gain(framebuffer_t fb, double gain)
 {
-#ifdef RL_OPENCL
 	float *df = drawq_add_to_main_queue(fb, DQT_GAIN);
 	if (df==NULL)
 		return;
 	df[0] = gain;
 
 	drawq_add_sectors_for_already_set_sectors(fb);
-#endif
 }
 
 void draw_gain_parabolic(framebuffer_t fb, double gain)
 {
-#ifdef RL_OPENCL
 	float *df = drawq_add_to_main_queue(fb, DQT_GAIN_PARAB);
 	if (df==NULL)
 		return;
 	df[0] = gain;
 
 	drawq_add_sectors_for_already_set_sectors(fb);
-#endif
 }
 
 void draw_luma_compression(framebuffer_t fb, double factor)
 {
-#ifdef RL_OPENCL
 	float *df = drawq_add_to_main_queue(fb, DQT_LUMA_COMPRESS);
 	if (df==NULL)
 		return;
 	df[0] = factor;
 
 	drawq_add_sectors_for_already_set_sectors(fb);
-#endif
 }

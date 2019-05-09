@@ -18,7 +18,7 @@ extern void draw_polar_glow(framebuffer_t fb, double cx, double cy, lrgb_t col, 
 extern void draw_gaussian_gradient(framebuffer_t fb, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy, const blend_func_t bf);
 extern void draw_point_lrgb(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
 extern void draw_point_frgb(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity);
-extern void draw_point_cl(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity);
+extern void draw_point_dq(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity);
 extern void draw_point(framebuffer_t fb, xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_point_on_row(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
 extern void draw_triangle_thin(framebuffer_t fb, triangle_t tr, double drawing_thickness, col_t col, const blend_func_t bf, double intensity);

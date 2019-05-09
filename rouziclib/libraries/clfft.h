@@ -6,7 +6,9 @@
 #pragma comment (lib, "clfft.lib")
 #endif
 
+#define __inline static
 #include <clFFT.h>
+#undef __inline
 
 typedef struct
 {

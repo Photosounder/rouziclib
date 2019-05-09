@@ -342,12 +342,10 @@ void draw_line_thin_frgb(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb
 	}
 }
 
-void draw_line_thin_cl(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
+void draw_line_thin_dq(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
-#ifdef RL_OPENCL
 	double grad;
-	cl_float r1x, r1y, r2x, costh, sinth;
-	int32_t i, ix, iy;
+	int32_t ix, iy;
 	float *df;
 	recti_t bb;
 	rect_t box;
@@ -419,15 +417,14 @@ void draw_line_thin_cl(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t
 				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
 		}
 	}
-#endif
 }
 
 void draw_line_thin(framebuffer_t fb, xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 0);	// adjusts the focus
 
-	if (fb.use_cl)
-		draw_line_thin_cl(fb, p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
+	if (fb.use_drawq)
+		draw_line_thin_dq(fb, p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
 	else if (fb.r.use_frgb)
 		draw_line_thin_frgb(fb, p1, p2, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else

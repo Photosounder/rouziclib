@@ -49,6 +49,8 @@ extern "C" {
 #include <windows.h>
 #endif
 
+#define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
+
 // Structs and includes needed elsewhere
 #include "general/threading.h"
 #include "general/structs.h"
@@ -169,7 +171,6 @@ extern "C" {
 #include "network/network.h"
 #include "network/http.h"
 
-#define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
 #include "libraries/opencl.h"		// used if RL_OPENCL is defined
 #include "libraries/sdl.h"		// used if RL_SDL is defined
 #include "libraries/devil.h"		// used if RL_DEVIL is defined

@@ -1,4 +1,3 @@
-#ifdef RL_OPENCL
 void drawq_reinit(framebuffer_t *fb)
 {
 	memset(fb->drawq_data, 0, fb->drawq_data[DQ_END] * sizeof(int32_t));
@@ -12,17 +11,20 @@ void drawq_reinit(framebuffer_t *fb)
 	fb->drawq_data[DQ_END] = 1;
 	*fb->entry_count = 0;
 
+	#ifdef RL_OPENCL
 	cl_data_table_prune_unused(fb);
+	#endif
 }
 
 void drawq_alloc(framebuffer_t *fb, int size)
 {
 	int32_t i;
-	cl_int ret;
 	int32_t *dataint;
 	double ss;
 
+	#ifdef RL_OPENCL
 	clFinish(fb->clctx.command_queue);	// wait for end of queue
+	#endif
 
 	fb->drawq_size = size * 100;
 	fb->list_alloc_size = size * 100;
@@ -51,12 +53,15 @@ ss_calc:
 	fb->pending_bracket = calloc (fb->max_sector_count, sizeof(int32_t));
 	fb->entry_count = calloc (1, sizeof(int));
 
+	#ifdef RL_OPENCL
+	cl_int ret;
 	fb->drawq_data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->drawq_size*sizeof(int32_t), NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->drawq_data_cl)", ret);
 	fb->sector_pos_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->max_sector_count*sizeof(int32_t), NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->sector_pos_cl)", ret);
 	fb->entry_list_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->list_alloc_size*sizeof(int32_t), NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->entry_list_cl)", ret);
+	#endif
 
 	drawq_reinit(fb);
 }
@@ -74,9 +79,11 @@ void drawq_free(framebuffer_t *fb)
 		free (fb->entry_pos);
 		free (fb->entry_count);
 
+		#ifdef RL_OPENCL
 		clReleaseMemObject(fb->drawq_data_cl);
 		clReleaseMemObject(fb->sector_pos_cl);
 		clReleaseMemObject(fb->entry_list_cl);
+		#endif
 
 		fb->drawq_data = NULL;
 	}
@@ -84,6 +91,7 @@ void drawq_free(framebuffer_t *fb)
 
 void drawq_run(framebuffer_t *fb)
 {
+#ifdef RL_OPENCL
 	const char clsrc_draw_queue[] =
 	#include "drawqueue.cl.h"
 
@@ -116,14 +124,12 @@ void drawq_run(framebuffer_t *fb)
 	glFlush();
 	glFinish();
 	#endif
-	
-	// enqueues copying result to fb->srgb FIXME not good if it was just resized up
-//	ret = clEnqueueReadBuffer (fb->clctx.command_queue, fb->cl_srgb, CL_FALSE, 0, fb->w*fb->h*4*sizeof(uint8_t), fb->srgb, 0, NULL, NULL);
-//	CL_ERR_RET("clEnqueueReadBuffer (in drawq_run, for fb->cl_srgb)", ret);
+#endif
 
 	// make entry list for each sector
 	drawq_compile_lists(fb);
 
+#ifdef RL_OPENCL
 	// copy queue data to device
 	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->drawq_data_cl, CL_FALSE, 0, fb->drawq_data[DQ_END]*sizeof(int32_t), fb->drawq_data, 0, NULL, NULL);
 	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->drawq_data)", ret);
@@ -162,6 +168,7 @@ void drawq_run(framebuffer_t *fb)
 	// wait for srgb copy and draw queue copy to end
 	clWaitForEvents(1, &ev);
 	clReleaseEvent(ev);
+#endif
 
 	drawq_reinit(fb);	// clear/reinit the buffers
 }
@@ -393,13 +400,13 @@ void drawq_remove_prev_entry_for_sector(framebuffer_t fb, int32_t sector_id, int
 	fprintf_rl(stderr, "Entry to remove for sector_id %d not found in drawq_remove_prev_entry_for_sector()\n", sector_id);
 }
 
-#endif
-
 void drawq_bracket_open(framebuffer_t fb)
 {
-#ifdef RL_OPENCL
 	int sector_id;
 	xyi_t ip, bb0, bb1;
+
+	if (fb.use_drawq==0)
+		return ;
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
@@ -416,15 +423,16 @@ void drawq_bracket_open(framebuffer_t fb)
 			fb.pending_bracket[sector_id]++;		// increment the pending open bracket count
 			drawq_add_sector_id_nopending(fb, sector_id);	// add sector reference
 		}
-#endif
 }
 
-void drawq_bracket_close(framebuffer_t fb, int32_t blending_mode)	// blending modes are listed in drawqueue_enums.h
+void drawq_bracket_close(framebuffer_t fb, enum dq_blend blending_mode)	// blending modes are listed in drawqueue_enums.h
 {
-#ifdef RL_OPENCL
 	int sector_id;
 	int32_t *di;
 	xyi_t ip, bb0, bb1;
+
+	if (fb.use_drawq==0)
+		return ;
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
@@ -448,5 +456,4 @@ void drawq_bracket_close(framebuffer_t fb, int32_t blending_mode)	// blending mo
 			if (fb.pending_bracket[sector_id] < 0)
 				fb.pending_bracket[sector_id] = 0;
 		}
-#endif
 }

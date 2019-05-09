@@ -182,7 +182,7 @@ void draw_circle(const int circlemode, framebuffer_t fb, xy_t pos, double circra
 	/*if (circlemode==HOLLOWCIRCLE)
 		draw_circle_with_lines(fb, pos, circrad, radius, colour, blend_add, intensity);
 	else*/
-		if (fb.use_cl)
+		if (fb.use_drawq)
 			draw_circle_cl(circlemode, fb, pos, circrad, radius, col_to_frgb(colour), blend_add, intensity);
 		else
 			draw_circle_lrgb(circlemode, fb, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
@@ -518,13 +518,12 @@ void draw_point_frgb(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, c
 	}
 }
 
-void draw_point_cl(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_dq(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
-#ifdef RL_OPENCL
 	double grad;
 	int32_t ix, iy;
 	float *df;
-	recti_t bb;;
+	recti_t bb;
 	
 	grad = GAUSSRAD_HQ * radius;		// gaussian will go to x = ±4, radially
 
@@ -556,15 +555,14 @@ void draw_point_cl(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, con
 	for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 		for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
 			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
-#endif
 }
 
 void draw_point(framebuffer_t fb, xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
 
-	if (fb.use_cl)
-		draw_point_cl(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
+	if (fb.use_drawq)
+		draw_point_dq(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else if (fb.r.use_frgb)
 		draw_point_frgb(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else

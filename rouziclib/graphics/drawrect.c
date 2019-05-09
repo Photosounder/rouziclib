@@ -1,6 +1,5 @@
-void draw_rect_full_cl(framebuffer_t fb, rect_t box, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_rect_full_dq(framebuffer_t fb, rect_t box, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
-#ifdef RL_OPENCL
 	float *df;
 	double grad;
 	xyi_t ip;
@@ -65,7 +64,6 @@ void draw_rect_full_cl(framebuffer_t fb, rect_t box, double radius, frgb_t colou
 		for (ip.x=fri.p0.x; ip.x<=fri.p1.x; ip.x++)
 			if (check_point_within_box_int(xyi(ip.x, ip.y), fri)==1)	// if we're inside the plain fill area
 				drawq_add_sector_id(fb, ip.y*fb.sector_w + ip.x);	// add sector reference
-#endif
 }
 
 void draw_rect_full_lrgb(framebuffer_t fb, rect_t box, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
@@ -231,15 +229,14 @@ void draw_rect_full(framebuffer_t fb, rect_t box, double radius, col_t colour, c
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
-	if (fb.use_cl)
-		draw_rect_full_cl(fb, box, radius, col_to_frgb(colour), blend_add, intensity);
+	if (fb.use_drawq)
+		draw_rect_full_dq(fb, box, radius, col_to_frgb(colour), blend_add, intensity);
 	else
 		draw_rect_full_lrgb(fb, box, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_black_rect_cl(framebuffer_t fb, rect_t box, double radius)
+void draw_black_rect_dq(framebuffer_t fb, rect_t box, double radius)
 {
-#ifdef RL_OPENCL
 	float *df;
 	double grad;
 	xyi_t ip;
@@ -270,15 +267,14 @@ void draw_black_rect_cl(framebuffer_t fb, rect_t box, double radius)
 		}
 
 	// TODO clear lists in obscured sectors, don't add to empty sectors
-#endif
 }
 
 void draw_black_rect(framebuffer_t fb, rect_t box, double radius)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
-	if (fb.use_cl)
-		draw_black_rect_cl(fb, box, radius);
+	if (fb.use_drawq)
+		draw_black_rect_dq(fb, box, radius);
 	else
 		draw_rect_full(fb, box, radius, make_grey(0.), blend_alphablend, 1.);
 }

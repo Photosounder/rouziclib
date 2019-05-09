@@ -10,7 +10,8 @@ extern void cl_data_table_remove_entry(framebuffer_t *fb, int i);
 extern void cl_data_table_prune_unused(framebuffer_t *fb);
 extern void cl_data_table_remove_entry_by_host_ptr(framebuffer_t *fb, void *host_ptr);
 extern uint64_t cl_add_data_table_entry(framebuffer_t *fb, size_t table_index, size_t prev_end, void *buffer, size_t size, int *table_index_p);
-extern uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buffer_size, size_t align_size, int *table_index);
-extern uint64_t cl_add_raster_to_data_table(framebuffer_t *fb, raster_t *r);
 
 #endif
+
+extern uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buffer_size, size_t align_size, int *table_index);
+extern uint64_t cl_add_raster_to_data_table(framebuffer_t *fb, raster_t *r);

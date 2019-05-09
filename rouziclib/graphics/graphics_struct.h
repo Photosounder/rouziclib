@@ -40,9 +40,7 @@ typedef struct
 	int as;			// alloc size in pixels
 	// TODO consider a flag to indicate that the host-side raster has been updated since the last copy to the device to trigger a new copy
 	
-	#ifdef RL_OPENCL
 	void *referencing_fb;		// used to access the framebuffer's device alloc table if *f is referenced there for removal when freeing the raster
-	#endif
 	int table_index;		// index in the cl_data allocation table
 } raster_t;
 
@@ -87,7 +85,7 @@ typedef struct
 	int32_t w, h;
 	rect_t window_dl;	// window draw limit (based on the usual drawing thickness)
 	xyi_t maxdim;		// formerly max[wh]
-	int use_cl;
+	int use_drawq;
 	
 	#ifdef RL_SDL
 	void *window;
@@ -97,11 +95,6 @@ typedef struct
 	recti_t wind_rect;
 	#endif
 
-	#ifdef RL_OPENCL
-	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
-	uint32_t gltex;		// ID of the GL texture for cl_srgb
-	clctx_t clctx;		// contains the context and the command queue
-
 	// Draw queue data
 	int32_t *drawq_data;		// main queue where the full data for each entry is stored, with type ID as the first element and the number of following elements depending on the type
 	int32_t *sector_pos;		// for each sector: the position in entry_list
@@ -110,7 +103,6 @@ typedef struct
 	int32_t *sector_count;		// for each sector: the count of entries
 	int32_t *pending_bracket;	// for each sector: the number of pending open brackets, between 0 and 3
 	int32_t *entry_pos;		// for each entry: the list of start positions in sector_list, so that sector_list may be randomly accessed by entry ID
-	cl_mem drawq_data_cl, sector_pos_cl, entry_list_cl;
 
 	int drawq_size;		// number of floats/ints in the queue
 	int list_alloc_size;	// allocation size of entry and sector lists
@@ -120,6 +112,12 @@ typedef struct
 	int sector_size;	// size of the sectors in powers of two. sector_size==6 means 64x64 sized sectors
 	int sector_w;		// number of sectors per row (for instance rows of 30 64x64 sectors for 1920x1080)
 	int *entry_count;	// number of entries in the main queue
+
+	#ifdef RL_OPENCL
+	cl_mem drawq_data_cl, sector_pos_cl, entry_list_cl;
+	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
+	uint32_t gltex;		// ID of the GL texture for cl_srgb
+	clctx_t clctx;		// contains the context and the command queue
 
 	// CL data (for images and what not)
 	cl_mem data_cl;				// device buffer that contains all the needed data
