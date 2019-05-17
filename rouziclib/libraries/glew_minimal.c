@@ -32,24 +32,6 @@
 ** THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef GLEW_INCLUDE
-#include <GL/glew.h>
-#else
-#include GLEW_INCLUDE
-#endif
-
-#if defined(_WIN32)
-/*
- * If NOGDI is defined, wingdi.h won't be included by windows.h, and thus
- * wglGetProcAddress won't be declared. It will instead be implicitly declared,
- * potentially incorrectly, which we don't want.
- */
-#  if defined(NOGDI)
-#    undef NOGDI
-#  endif
-#  include <GL/wglew.h>
-#endif
-
 #include <stddef.h>  /* For size_t */
 
 #if defined(__APPLE__)
