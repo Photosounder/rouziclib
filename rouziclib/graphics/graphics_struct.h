@@ -114,6 +114,7 @@ typedef struct
 	int *entry_count;	// number of entries in the main queue
 
 	#ifdef RL_OPENCL
+	int first_frame_done;
 	cl_mem drawq_data_cl, sector_pos_cl, entry_list_cl;
 	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
 	uint32_t gltex;		// ID of the GL texture for cl_srgb

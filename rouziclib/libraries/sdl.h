@@ -44,7 +44,7 @@ extern SDL_GLContext init_sdl_gl(SDL_Window *window);
 extern void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t dim, xyi_t pos, int flags);
 extern void sdl_graphics_init_autosize(framebuffer_t *fb, const char *window_name, int flags, int window_index);
 extern int sdl_handle_window_resize(framebuffer_t *fb, zoom_t *zc);
-extern void sdl_flip_fb(int *first_frame);
+extern void sdl_flip_fb();
 extern int sdl_toggle_borderless_fullscreen();
 
 extern void sdl_init_audio_not_wasapi();

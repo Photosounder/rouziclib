@@ -32,6 +32,9 @@ void *load_full_mp3_fullarg(char *in_path, size_t *sample_count, int *channel_co
 
 		if (raw_index == info.frame_bytes)	// if it's the first decoded frame
 		{
+			if (raw_index==0)				// if the first frame is empty
+				return NULL;
+
 			*channel_count = info.channels;
 			*samplerate = info.hz;
 			out_size_elem = bytes_per_sample_func(*channel_count);

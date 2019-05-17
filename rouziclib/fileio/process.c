@@ -95,8 +95,17 @@ void send_SIGINT(HANDLE hProcess)	// probably better to use TerminateProcess(hPr
 	}
 }
 
+#endif
+
+#if defined(__APPLE__)	// copied from https://github.com/apple/swift/blob/master/stdlib/public/stubs/CommandLine.cpp
+// NOTE: forward declare this rather than including crt_externs.h as not all SDKs provide it
+extern char ***_NSGetArgv(void);
+extern int *_NSGetArgc(void);
+#endif
+
 char **get_argv(int *argc)
 {
+#ifdef _WIN32
 	LPWSTR *argv_w = CommandLineToArgvW(GetCommandLineW(), argc);
 	char **argv = calloc(*argc, sizeof(char *));
 
@@ -105,7 +114,15 @@ char **get_argv(int *argc)
 
 	LocalFree(argv_w);
 
+#elif defined(__APPLE__)
+	*argc = *_NSGetArgc();
+	char **argv = make_string_array_copy(*_NSGetArgv(), *argc);
+
+#else
+	// TODO (probably read from /proc/self/cmdline)
+	char **argv = NULL;
+	*argc = 0;
+#endif
+
 	return argv;
 }
-
-#endif

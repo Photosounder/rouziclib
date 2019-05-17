@@ -482,17 +482,12 @@ int sdl_handle_window_resize(framebuffer_t *fb, zoom_t *zc)
 	return 1;
 }
 
-void sdl_flip_fb(int *first_frame)
+void sdl_flip_fb()
 {
 	if (fb.use_drawq)
 	{
-		if (first_frame==NULL)
-		{
-			fprintf_rl(stderr, "first_frame NULL in sdl_flip_fb()\n");
-			return ;
-		}
 #ifdef RL_OPENCL_GL
-		if (*first_frame==0 && mouse.window_minimised_flag <= 0)
+		if (fb.first_frame_done && mouse.window_minimised_flag <= 0)
 		{
 			// display srgb
 			cl_int ret=0;
@@ -515,8 +510,8 @@ void sdl_flip_fb(int *first_frame)
 
 			SDL_GL_SwapWindow(fb.window);
 		}
+		fb.first_frame_done = 1;
 #endif
-		*first_frame = 0;
 
 		if (mouse.window_minimised_flag <= 0)
 			drawq_run(&fb);

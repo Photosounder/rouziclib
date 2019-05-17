@@ -1,4 +1,5 @@
 extern char *make_string_copy(const char *orig);
+extern char **make_string_array_copy(const char **orig, const size_t count);
 extern void strcpy_then_free(char *dest, char *src);
 extern char *replace_char(char *str, char find, char replace);
 extern char *string_tolower(char *str);

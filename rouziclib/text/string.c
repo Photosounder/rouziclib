@@ -11,6 +11,21 @@ char *make_string_copy(const char *orig)
 	return copy;
 }
 
+char **make_string_array_copy(const char **orig, const size_t count)
+{
+	size_t i;
+	char **copy;
+
+	copy = calloc(count, sizeof(char *));
+	if (copy==NULL)
+		return NULL;
+
+	for (i=0; i < count; i++)
+		copy[i] = make_string_copy(orig[i]);
+
+	return copy;
+}
+
 void strcpy_then_free(char *dest, char *src)
 {
 	strcpy(dest, src);
