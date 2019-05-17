@@ -12,3 +12,9 @@ extern void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key);
 #define get_kb_alt()	(mouse.key_state[RL_SCANCODE_LALT] | mouse.key_state[RL_SCANCODE_RALT])
 #define get_kb_all_mods()	(get_kb_shift() | get_kb_ctrl() | get_kb_guikey() | get_kb_alt())
 #define get_kb_enter()	(mouse.key_state[RL_SCANCODE_RETURN] | mouse.key_state[RL_SCANCODE_RETURN2] | mouse.key_state[RL_SCANCODE_KP_ENTER])
+
+#ifdef __APPLE__
+#define get_kb_cmd	get_kb_guikey
+#else
+#define get_kb_cmd	get_kb_ctrl
+#endif

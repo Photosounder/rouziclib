@@ -224,14 +224,14 @@ void textedit_add(textedit_t *te, char *str)
 
 			if (mouse.key_state[RL_SCANCODE_LEFT] >= 2)
 			{
-				if (get_kb_ctrl())
+				if (get_kb_cmd())
 					te->curpos = textedit_find_prev_wordstart(te);
 				else
 					te->curpos = find_prev_utf8_char(te->string, te->curpos);
 			}
 			else if (mouse.key_state[RL_SCANCODE_RIGHT] >= 2)
 			{
-				if (get_kb_ctrl())
+				if (get_kb_cmd())
 					te->curpos = textedit_find_next_wordstart(te);
 				else
 					te->curpos = find_next_utf8_char(te->string, te->curpos);
@@ -249,7 +249,7 @@ void textedit_add(textedit_t *te, char *str)
 				te->sel1 = te->curpos;
 		}
 
-		if (mouse.key_state[RL_SCANCODE_TAB] >= 2 && (get_kb_ctrl() | get_kb_alt())==0)
+		if (mouse.key_state[RL_SCANCODE_TAB] >= 2 && (get_kb_ctrl() | get_kb_alt() | get_kb_guikey())==0)
 		{
 			if (te->edit_mode == te_mode_value)
 			{
@@ -308,7 +308,7 @@ void textedit_add(textedit_t *te, char *str)
 				cur_textedit = NULL;
 			}
 		}
-		else if (get_kb_ctrl())
+		else if (get_kb_cmd())
 		{
 			if (get_key_state_by_name("v") >= 2)			// Paste
 			{
