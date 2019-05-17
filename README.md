@@ -73,3 +73,6 @@ void fprintf_wrapper (FILE *stream, const char* format, ...)
 ```
 
 I realise that this is a bit unusual, but it's pretty simple and very handy. You can for instance include rouziclib in a simple command-line C program without having to worry about dependencies as none will be included, and in another project add dependencies as you need by adding the necessary macros, so without having the recompile anything separately (as you would have to were you to use two versions of a same library compiled with different dependencies) you can have in separate projects a rouziclib with no dependencies or a rouziclib that uses SDL, DevIL, OpenCV, OpenCL, clFFT, FFMPEG and LibRAW.
+
+## Example project
+Have a look at a minimal [picture viewer](https://github.com/Photosounder/rouziclib-picture-viewer) built around rouziclib, with explanations of its features, how it works and how it expand on it or create a similar program.
