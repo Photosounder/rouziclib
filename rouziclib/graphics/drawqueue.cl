@@ -100,9 +100,6 @@ kernel void draw_queue_srgb_kernel(global float *df, global int *poslist, global
 
 	pv = draw_queue(df, poslist, entrylist, data_cl, sector_w, sector_size);
 
-	//pv = luma_compression(pv, 0.02f);
-	//pv = pv*(1.f-0.007f) + 0.007f;
-
 	if (pv.s0==0.f)
 	if (pv.s1==0.f)
 	if (pv.s2==0.f)

@@ -48,17 +48,27 @@ float s8lrgb(float s8)
 	return slrgb(s8 * (1.f/255.f));
 }
 
+#define max_s 255.f
+
 float apply_dithering(float pv, float dv)
 {
-	const float threshold = 1.2f / 255.f;
+	const float threshold = 1.2f / max_s;
 	const float it = 1.f / threshold;
-	const float rounding_offset = 0.5f / 255.f;
+	const float rounding_offset = 0.5f / max_s;
 
+	// Reduce the scale of the dithering if pv is close to 0
 	if (pv < threshold)	// 1.2 is the threshold so that the crushing happens at 1.2*sqrt(2) = 1.7 sigma
-		if (pv < 0.f)
+		if (pv <= 0.f)
 			return 0.f;
 		else
 			dv *= pv * it;
+
+	// Same if pv is close to 1
+	if (pv > 1.f - threshold)
+		if (pv >= 1.f)
+			return 1.f;
+		else
+			dv *= (1.f-pv) * it;
 
 	return pv += dv + rounding_offset;
 }
@@ -68,7 +78,7 @@ float4 linear_to_srgb(float4 pl0, uint seed)
 	float4 pl1;
 	float dith;
 	uchar4 ps;
-	const float dith_scale = M_SQRT1_2_F / 255.f;
+	const float dith_scale = M_SQRT1_2_F / max_s;
 
 	pl0 = mix(colour_blowout(pl0), clamp(pl0, 0.f, 1.f), 0.666f);
 
@@ -82,6 +92,10 @@ float4 linear_to_srgb(float4 pl0, uint seed)
 	pl1.s0 = apply_dithering(pl1.s0, dith);
 	pl1.s1 = apply_dithering(pl1.s1, dith);
 	pl1.s2 = apply_dithering(pl1.s2, dith);
+
+	// Lower bit depth simulation
+	if (max_s < 255.f)
+		pl1 = round(pl1 * max_s) / max_s;
 
 	return pl1;
 }
