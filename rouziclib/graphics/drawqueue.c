@@ -13,6 +13,8 @@ void drawq_reinit(framebuffer_t *fb)
 
 	#ifdef RL_OPENCL
 	cl_data_table_prune_unused(fb);
+
+	cl_data_find_max_free_space(fb);
 	#endif
 }
 
@@ -130,6 +132,10 @@ void drawq_run(framebuffer_t *fb)
 	drawq_compile_lists(fb);
 
 #ifdef RL_OPENCL
+	// Copy last data space to data_cl
+	if (fb->data_space_start > fb->data_copy_start)
+		cl_copy_buffer_to_device(*fb, &fb->data[fb->data_copy_start], fb->data_copy_start, fb->data_space_start - fb->data_copy_start);
+
 	// copy queue data to device
 	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->drawq_data_cl, CL_FALSE, 0, fb->drawq_data[DQ_END]*sizeof(int32_t), fb->drawq_data, 0, NULL, NULL);
 	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->drawq_data)", ret);

@@ -96,6 +96,7 @@ typedef struct
 	#endif
 
 	// Draw queue data
+	uint8_t *data;			// local version of data_cl (but doesn't mirror the draw queue data)
 	int32_t *drawq_data;		// main queue where the full data for each entry is stored, with type ID as the first element and the number of following elements depending on the type
 	int32_t *sector_pos;		// for each sector: the position in entry_list
 	int32_t *entry_list;		// for each sector: the list of entries, the first element is the number of entries for the sector, positions in the main queue are what follow
@@ -121,11 +122,14 @@ typedef struct
 	clctx_t clctx;		// contains the context and the command queue
 
 	// CL data (for images and what not)
-	cl_mem data_cl;				// device buffer that contains all the needed data
-	size_t data_cl_as;			// alloc size of data_cl in bytes
-	cl_data_alloc_t *data_alloc_table;	// table that lists allocations within the buffer
+	cl_mem data_cl;					// device buffer that contains all the needed data
+	size_t data_cl_as;				// alloc size of data_cl in bytes
+	size_t data_copy_start;				// start of the range to copy
+	size_t data_space_start, data_space_end;	// position and end of the currently used space
+	int data_space_index;				// data_alloc_table index where to insert a new entry in the space
+	cl_data_alloc_t *data_alloc_table;		// table that lists allocations within the buffer
 	int data_alloc_table_count;
-	int data_alloc_table_as;		// alloc size of the data_alloc_table in elements
+	int data_alloc_table_as;			// alloc size of the data_alloc_table in elements
 	hash_table_t hash_table;
 	#endif
 } framebuffer_t;

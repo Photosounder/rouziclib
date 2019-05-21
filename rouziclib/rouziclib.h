@@ -49,6 +49,11 @@ extern "C" {
 #include <windows.h>
 #endif
 
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
+#endif
+
 #define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
 
 // Structs and includes needed elsewhere

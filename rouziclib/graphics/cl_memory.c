@@ -2,6 +2,9 @@
 
 void cl_copy_buffer_to_device(framebuffer_t fb, void *buffer, size_t offset, size_t size)
 {
+	if (size==0)
+		return ;
+
 	cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
 	CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device, for fb.data_cl)", ret);
 }
@@ -25,10 +28,48 @@ void data_cl_alloc(framebuffer_t *fb, int mb)
 	fb->data_cl_as = mb * 1024*1024;
 	fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, fb->data_cl_as, NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in data_cl_alloc, for fb->data_cl)", ret);
+	fb->data = calloc(fb->data_cl_as, 1);
 
 	fb->data_alloc_table_count = 0;
 	fb->data_alloc_table_as = 128;
 	fb->data_alloc_table = calloc(fb->data_alloc_table_as, sizeof(cl_data_alloc_t));
+}
+
+void data_cl_realloc(framebuffer_t *fb, size_t buffer_size)
+{
+	cl_int ret;
+	size_t orig_as, new_as;
+
+	// free CL buffer
+	ret = clReleaseMemObject(fb->data_cl);
+	CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc, for fb->data_cl)", ret);
+
+	// Calculate the new allocation size
+	orig_as = new_as = fb->data_cl_as;
+	do
+	{
+		new_as += (1LL << log2_ffo64(fb->data_cl_as+buffer_size) - (fb->data_cl_as+buffer_size > 200<<20 ? 3 : 2));	// Increment by 33%-50% or 17%-25% above 200 MB
+	}
+	while (new_as < fb->data_cl_as + buffer_size);
+
+	// Allocate the CL buffer and shrink it if needed
+	do
+	{
+		fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, new_as, NULL, &ret);
+		if (ret != CL_SUCCESS)			// if it's too much
+			new_as -= 8 << 20;		// remove 8 MB
+	}
+	while (ret != CL_SUCCESS);
+
+	if (new_as < fb->data_cl_as)
+		fprintf_rl(stderr, "data_cl_realloc() made fb->data_cl smaller, %g MB to %g MB\n", (double) fb->data_cl_as / sq(1024.), (double) new_as / sq(1024.));
+
+	// Resize the local buffer and copy it back
+	alloc_enough(&fb->data, new_as, &fb->data_cl_as, 1, 1.);
+	fb->data_cl_as = new_as;
+	cl_copy_buffer_to_device(*fb, fb->data, 0, MINN(orig_as, fb->data_cl_as));	// enqueue copy of everything
+
+	//fprintf_rl(stdout, "data_cl resized to %g MB\n", (double) fb->data_cl_as / sq(1024.));
 }
 
 void cl_data_table_remove_entry(framebuffer_t *fb, int i)
@@ -42,12 +83,14 @@ void cl_data_table_prune_unused(framebuffer_t *fb)
 	int i;
 
 	// increment .unused in data_cl, remove the unused entries
-	for (i=0; i < fb->data_alloc_table_count; i++)
+	for (i=0; i < fb->data_alloc_table_count; )
 	{
 		fb->data_alloc_table[i].unused++;
 
 		if (fb->data_alloc_table[i].unused >= 2)
 			cl_data_table_remove_entry(fb, i);
+		else
+			i++;
 	}
 }
 
@@ -69,19 +112,24 @@ void cl_data_table_remove_entry_by_host_ptr(framebuffer_t *fb, void *host_ptr)
 	}
 }
 
-uint64_t cl_add_data_table_entry(framebuffer_t *fb, size_t table_index, size_t prev_end, void *buffer, size_t size, int *table_index_p)
+uint64_t cl_add_data_table_entry(framebuffer_t *fb, size_t *table_index, size_t prev_end, void *buffer, size_t size, int *table_index_p)
 {
-	cl_data_alloc_t *entry = &fb->data_alloc_table[table_index];
+	alloc_enough(&fb->data_alloc_table, fb->data_alloc_table_count+=1, &fb->data_alloc_table_as, sizeof(cl_data_alloc_t), 1.5);
+
+	// Move the entries that follow
+	if (*table_index < fb->data_alloc_table_count-1)
+		memmove(&fb->data_alloc_table[*table_index+1], &fb->data_alloc_table[*table_index], (fb->data_alloc_table_count-1 - *table_index) * sizeof(cl_data_alloc_t));
+
+	cl_data_alloc_t *entry = &fb->data_alloc_table[*table_index];
 
 	entry->start = prev_end;
 	entry->end = entry->start + size;
 	entry->unused = 0;
 	entry->host_ptr = buffer;
 	if (table_index_p)
-		*table_index_p = table_index;
+		*table_index_p = *table_index;
 
-//fprintf_rl(stdout, "Copying buffer 0x%08lx +%d to offset %d - %d, index %d in table\n", buffer, size, entry->start, entry->end, table_index);
-	cl_copy_buffer_to_device(*fb, buffer, entry->start, size);	// since the entry is new the data should be copied
+	memcpy(&fb->data[entry->start], buffer, size);		// copy to the host buffer
 
 	return entry->start;
 }
@@ -126,13 +174,52 @@ int hash_table_get_index(framebuffer_t *fb, void *buffer, int hash)
 	return hte->index;
 }
 
+void cl_data_find_max_free_space(framebuffer_t *fb)
+{
+	int i;
+	ssize_t prev_end=0, space_size, max_size = 0;
+
+	fb->data_space_start = 0;
+	fb->data_space_end = 0;
+
+	// Look for the largest space
+	for (i=0; i <= fb->data_alloc_table_count; i++)
+	{
+		if (i == fb->data_alloc_table_count)
+			space_size = fb->data_cl_as - prev_end;
+		else
+			space_size = fb->data_alloc_table[i].start - prev_end;
+
+		if (space_size > max_size)
+		{
+			max_size = space_size;
+			fb->data_space_index = i;
+			fb->data_space_start = prev_end;
+			if (i == fb->data_alloc_table_count)
+				fb->data_space_end = fb->data_cl_as;
+			else
+				fb->data_space_end = fb->data_alloc_table[i].start;
+		}
+
+		if (i < fb->data_alloc_table_count)
+			prev_end = next_aligned_offset(fb->data_alloc_table[i].end, 4);
+	}
+
+	fb->data_copy_start = fb->data_space_start;
+}
+
+int cl_data_check_enough_room(framebuffer_t *fb, size_t align_size, size_t buffer_size)
+{
+	return (ssize_t) fb->data_space_end - (ssize_t) next_aligned_offset(fb->data_space_start, align_size) >= (ssize_t) buffer_size;
+}
+
 #endif
 
 uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buffer_size, size_t align_size, int *table_index)
 {
 #ifdef RL_OPENCL
+	uint64_t ret=0;
 	int i, hash;
-	size_t prev_end=0;
 	const int ht_size = 1 << 16;
 	const int ht_mask = ht_size - 1;
 
@@ -163,7 +250,6 @@ uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buf
 	{
 		if (fb->data_alloc_table[i].host_ptr==buffer)	// if it's there
 		{
-//fprintf_rl(stdout, "buffer is at index %d (rand %02d)\n", i, rand()%100);
 			if (table_index)
 				*table_index = i;
 
@@ -172,29 +258,37 @@ uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buf
 		}
 	}
 
-	alloc_enough(&fb->data_alloc_table, fb->data_alloc_table_count+=1, &fb->data_alloc_table_as, sizeof(cl_data_alloc_t), 1.5);
+	// Add a new entry
 
-	// look for a free space to insert
-	for (i=0, prev_end=0; i < fb->data_alloc_table_count; i++)
+	for (i=0; i < 2; i++)
 	{
-		if (fb->data_alloc_table[i].start - prev_end >= buffer_size)	// if there's a free space before this one
+		if (cl_data_check_enough_room(fb, align_size, buffer_size))		// if there's enough room in the current space
 		{
-			memmove(&fb->data_alloc_table[i+1], &fb->data_alloc_table[i], (fb->data_alloc_table_count-1 - i) * sizeof(cl_data_alloc_t));
-			return cl_add_data_table_entry(fb, i, prev_end, buffer, buffer_size, table_index);
+			ret = cl_add_data_table_entry(fb, &fb->data_space_index, next_aligned_offset(fb->data_space_start, align_size), buffer, buffer_size, table_index);
+			fb->data_space_start = fb->data_alloc_table[fb->data_space_index].end;
+			fb->data_alloc_table[fb->data_space_index].unused = 0;
+			fb->data_space_index++;
+			return ret;
 		}
 
-		prev_end = next_aligned_offset(fb->data_alloc_table[i].end, align_size);
+		// If there wasn't enough room in this space
+		cl_copy_buffer_to_device(*fb, &fb->data[fb->data_copy_start], fb->data_copy_start, fb->data_space_start - fb->data_copy_start);	// copy the whole block
+
+		cl_data_find_max_free_space(fb);		// find new space
+
+		if (cl_data_check_enough_room(fb, align_size, buffer_size)==0)		// if there's no space large enough
+		{
+			data_cl_realloc(fb, buffer_size);	// enlarge the buffer
+			cl_data_find_max_free_space(fb);
+
+			if (cl_data_check_enough_room(fb, align_size, buffer_size)==0)	// if there's still not enough space
+			{
+				fprintf_rl(stderr, "cl_add_buffer_to_data_table() couldn't make enough room in data_cl for %g MB buffer\n", (double) buffer_size / sq(1024.));
+				return 0;
+			}
+		}
 	}
 
-	// add it at the end if there's enough space
-	prev_end = 0;
-	if (fb->data_alloc_table_count > 1)
-		prev_end = next_aligned_offset(fb->data_alloc_table[fb->data_alloc_table_count-2].end, align_size);
-
-	if (fb->data_cl_as - prev_end >= buffer_size)
-		return cl_add_data_table_entry(fb, fb->data_alloc_table_count-1, prev_end, buffer, buffer_size, table_index);
-
-	// TODO enlarge device buffer when needed
 	return 0;
 #else
 	return (uint64_t) buffer;

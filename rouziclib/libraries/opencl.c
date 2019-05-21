@@ -314,7 +314,7 @@ cl_int init_fb_cl(framebuffer_t *fb)
 
 	make_gl_tex(fb);
 
-	data_cl_alloc(fb, 500);		// TODO make it flexible as 500 might be too much on some systems
+	data_cl_alloc(fb, 1);
 
 	return ret;
 }
