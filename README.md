@@ -41,7 +41,8 @@ extern "C" {
 
 // this defines a wrapper for fprintf_rl, so you project can use a custom fprintf-type function that can for instance output to a file
 #define fprintf_rl fprintf_wrapper
-
+#include <stdio.h>
+#include <stdarg.h>
 extern void fprintf_wrapper (FILE *stream, const char* format, ...);
 
 #include <rouziclib/rouziclib.h>
