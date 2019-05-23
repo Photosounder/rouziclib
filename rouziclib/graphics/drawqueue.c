@@ -1,5 +1,9 @@
 void drawq_reinit(framebuffer_t *fb)
 {
+	// Copy last data space to data_cl
+	if (fb->data_space_start > fb->data_copy_start)
+		cl_copy_buffer_to_device(*fb, &fb->data[fb->data_copy_start], fb->data_copy_start, fb->data_space_start - fb->data_copy_start);
+
 	memset(fb->drawq_data, 0, fb->drawq_data[DQ_END] * sizeof(int32_t));
 	memset(fb->sector_count, 0, fb->sectors * sizeof(int32_t));
 	memset(fb->pending_bracket, 0, fb->sectors * sizeof(int32_t));
@@ -134,15 +138,21 @@ void drawq_run(framebuffer_t *fb)
 #ifdef RL_OPENCL
 	// Copy last data space to data_cl
 	if (fb->data_space_start > fb->data_copy_start)
+	{
 		cl_copy_buffer_to_device(*fb, &fb->data[fb->data_copy_start], fb->data_copy_start, fb->data_space_start - fb->data_copy_start);
+		fb->data_copy_start = fb->data_space_start;
+	}
 
 	// copy queue data to device
 	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->drawq_data_cl, CL_FALSE, 0, fb->drawq_data[DQ_END]*sizeof(int32_t), fb->drawq_data, 0, NULL, NULL);
 	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->drawq_data)", ret);
-	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->sector_pos_cl, CL_FALSE, 0, fb->sectors*sizeof(int32_t), fb->sector_pos, 0, NULL, NULL);
+	if (fb->entry_list_end > 0)
+	{
+		ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->entry_list_cl, CL_FALSE, 0, fb->entry_list_end*sizeof(int32_t), fb->entry_list, 0, NULL, &ev);
+		CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->entry_list)", ret);
+	}
+	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->sector_pos_cl, CL_FALSE, 0, fb->sectors*sizeof(int32_t), fb->sector_pos, 0, NULL, &ev);
 	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->sector_pos)", ret);
-	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->entry_list_cl, CL_FALSE, 0, fb->entry_list_end*sizeof(int32_t), fb->entry_list, 0, NULL, &ev);
-	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->entry_list)", ret);
 
 	// compute the random seed
 	randseed = rand32();

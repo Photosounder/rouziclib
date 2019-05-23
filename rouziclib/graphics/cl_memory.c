@@ -40,6 +40,9 @@ void data_cl_realloc(framebuffer_t *fb, size_t buffer_size)
 	cl_int ret;
 	size_t orig_as, new_as;
 
+	ret = clFinish(fb->clctx.command_queue);
+	CL_ERR_NORET("clFinish in data_cl_realloc()", ret);
+
 	// free CL buffer
 	ret = clReleaseMemObject(fb->data_cl);
 	CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc, for fb->data_cl)", ret);
