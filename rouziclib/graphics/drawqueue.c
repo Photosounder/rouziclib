@@ -18,7 +18,7 @@ void drawq_reinit(framebuffer_t *fb)
 	#ifdef RL_OPENCL
 	cl_data_table_prune_unused(fb);
 
-	cl_data_find_max_free_space(fb);
+	fb->must_recalc_free_space = 1;
 	#endif
 }
 

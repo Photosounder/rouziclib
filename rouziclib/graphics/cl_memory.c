@@ -79,6 +79,7 @@ void cl_data_table_remove_entry(framebuffer_t *fb, int i)
 {
 	fb->data_alloc_table_count--;
 	memmove(&fb->data_alloc_table[i], &fb->data_alloc_table[i+1], (fb->data_alloc_table_count - i) * sizeof(cl_data_alloc_t));
+	fb->must_recalc_free_space = 1;
 }
 
 void cl_data_table_prune_unused(framebuffer_t *fb)
@@ -86,14 +87,12 @@ void cl_data_table_prune_unused(framebuffer_t *fb)
 	int i;
 
 	// increment .unused in data_cl, remove the unused entries
-	for (i=0; i < fb->data_alloc_table_count; )
+	for (i = fb->data_alloc_table_count-1; i >= 0; i--)
 	{
 		fb->data_alloc_table[i].unused++;
 
 		if (fb->data_alloc_table[i].unused >= 2)
 			cl_data_table_remove_entry(fb, i);
-		else
-			i++;
 	}
 }
 
@@ -182,6 +181,7 @@ void cl_data_find_max_free_space(framebuffer_t *fb)
 	int i;
 	ssize_t prev_end=0, space_size, max_size = 0;
 
+	fb->must_recalc_free_space = 0;
 	fb->data_space_start = 0;
 	fb->data_space_end = 0;
 
@@ -262,6 +262,8 @@ uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buf
 	}
 
 	// Add a new entry
+	if (fb->must_recalc_free_space)
+		cl_data_find_max_free_space(fb);
 
 	for (i=0; i < 2; i++)
 	{
