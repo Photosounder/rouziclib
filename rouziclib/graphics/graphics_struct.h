@@ -86,6 +86,8 @@ typedef struct
 	rect_t window_dl;	// window draw limit (based on the usual drawing thickness)
 	xyi_t maxdim;		// formerly max[wh]
 	int use_drawq;
+
+	void *self_ptr;		// pointer to itself in case some function needs it
 	
 	#ifdef RL_SDL
 	void *window;
@@ -105,8 +107,8 @@ typedef struct
 	int32_t *pending_bracket;	// for each sector: the number of pending open brackets, between 0 and 3
 	int32_t *entry_pos;		// for each entry: the list of start positions in sector_list, so that sector_list may be randomly accessed by entry ID
 
-	int drawq_size;		// number of floats/ints in the queue
-	int list_alloc_size;	// allocation size of entry and sector lists
+	size_t drawq_as;	// number of floats/ints in the queue
+	size_t entry_list_as, sector_list_as, entry_pos_as;		// allocation size of entry and sector lists
 	int max_sector_count;
 	int entry_list_end;	// end (size) of entry_list
 	int sectors;		// number of subdivisions (and separate drawing queues) on the screen
@@ -116,7 +118,6 @@ typedef struct
 
 	#ifdef RL_OPENCL
 	int first_frame_done;
-	cl_mem drawq_data_cl, sector_pos_cl, entry_list_cl;
 	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
 	uint32_t gltex;		// ID of the GL texture for cl_srgb
 	clctx_t clctx;		// contains the context and the command queue

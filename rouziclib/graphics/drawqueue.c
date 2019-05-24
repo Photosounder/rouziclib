@@ -22,7 +22,7 @@ void drawq_reinit(framebuffer_t *fb)
 	#endif
 }
 
-void drawq_alloc(framebuffer_t *fb, int size)
+void drawq_alloc(framebuffer_t *fb)
 {
 	int32_t i;
 	int32_t *dataint;
@@ -32,12 +32,9 @@ void drawq_alloc(framebuffer_t *fb, int size)
 	clFinish(fb->clctx.command_queue);	// wait for end of queue
 	#endif
 
-	fb->drawq_size = size * 100;
-	fb->list_alloc_size = size * 100;
-	fb->max_sector_count = 16000;
-
 	drawq_free(fb);
 
+	fb->max_sector_count = 16000;
 	fb->sector_size = 4;				// can't be smaller than 4 (16x16 px)
 
 ss_calc:
@@ -50,24 +47,14 @@ ss_calc:
 		goto ss_calc;
 	}
 
-	fb->drawq_data = calloc (fb->drawq_size, sizeof(int32_t));
+	fb->drawq_data = calloc (fb->drawq_as = 1 << 18, sizeof(int32_t));
 	fb->sector_pos = calloc (fb->max_sector_count, sizeof(int32_t));
-	fb->entry_list = calloc (fb->list_alloc_size, sizeof(int32_t));
-	fb->sector_list = calloc (fb->list_alloc_size, sizeof(int32_t));
-	fb->entry_pos = calloc (fb->list_alloc_size, sizeof(int32_t));
+	fb->entry_list = calloc (fb->entry_list_as = 1 << 12, sizeof(int32_t));
+	fb->sector_list = calloc (fb->sector_list_as = 1 << 12, sizeof(int32_t));
+	fb->entry_pos = calloc (fb->entry_pos_as = 1 << 10, sizeof(int32_t));
 	fb->sector_count = calloc (fb->max_sector_count, sizeof(int32_t));
 	fb->pending_bracket = calloc (fb->max_sector_count, sizeof(int32_t));
 	fb->entry_count = calloc (1, sizeof(int));
-
-	#ifdef RL_OPENCL
-	cl_int ret;
-	fb->drawq_data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->drawq_size*sizeof(int32_t), NULL, &ret);
-	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->drawq_data_cl)", ret);
-	fb->sector_pos_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->max_sector_count*sizeof(int32_t), NULL, &ret);
-	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->sector_pos_cl)", ret);
-	fb->entry_list_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_ONLY, fb->list_alloc_size*sizeof(int32_t), NULL, &ret);
-	CL_ERR_NORET("clCreateBuffer (in drawq_alloc, for fb->entry_list_cl)", ret);
-	#endif
 
 	drawq_reinit(fb);
 }
@@ -84,12 +71,6 @@ void drawq_free(framebuffer_t *fb)
 		free (fb->pending_bracket);
 		free (fb->entry_pos);
 		free (fb->entry_count);
-
-		#ifdef RL_OPENCL
-		clReleaseMemObject(fb->drawq_data_cl);
-		clReleaseMemObject(fb->sector_pos_cl);
-		clReleaseMemObject(fb->entry_list_cl);
-		#endif
 
 		fb->drawq_data = NULL;
 	}
@@ -136,25 +117,22 @@ void drawq_run(framebuffer_t *fb)
 	drawq_compile_lists(fb);
 
 #ifdef RL_OPENCL
+	// Copy compiled lists to data_cl
+	cl_ulong drawq_data_index = cl_add_buffer_to_data_table(fb, fb->drawq_data, fb->drawq_data[DQ_END]*sizeof(int32_t), sizeof(int32_t), NULL);
+	cl_ulong sector_pos_index = cl_add_buffer_to_data_table(fb, fb->sector_pos, fb->sectors*sizeof(int32_t), sizeof(int32_t), NULL);
+	cl_ulong entry_list_index = cl_add_buffer_to_data_table(fb, fb->entry_list, fb->entry_list_end*sizeof(int32_t), sizeof(int32_t), NULL);
+
 	// Copy last data space to data_cl
-	if (fb->data_space_start > fb->data_copy_start)
-	{
-		cl_copy_buffer_to_device(*fb, &fb->data[fb->data_copy_start], fb->data_copy_start, fb->data_space_start - fb->data_copy_start);
-		fb->data_copy_start = fb->data_space_start;
-	}
+	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->data_cl, CL_FALSE, fb->data_copy_start, fb->data_space_start - fb->data_copy_start, &fb->data[fb->data_copy_start], 0, NULL, &ev);
+	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb.data_cl)", ret);
+	fb->data_copy_start = fb->data_space_start;
 
-	// copy queue data to device
-	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->drawq_data_cl, CL_FALSE, 0, fb->drawq_data[DQ_END]*sizeof(int32_t), fb->drawq_data, 0, NULL, NULL);
-	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->drawq_data)", ret);
-	if (fb->entry_list_end > 0)
-	{
-		ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->entry_list_cl, CL_FALSE, 0, fb->entry_list_end*sizeof(int32_t), fb->entry_list, 0, NULL, &ev);
-		CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->entry_list)", ret);
-	}
-	ret = clEnqueueWriteBuffer(fb->clctx.command_queue, fb->sector_pos_cl, CL_FALSE, 0, fb->sectors*sizeof(int32_t), fb->sector_pos, 0, NULL, &ev);
-	CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb->sector_pos)", ret);
+	// Remove compiled lists from data_cl
+	cl_data_table_remove_entry_by_host_ptr(fb, fb->drawq_data);
+	cl_data_table_remove_entry_by_host_ptr(fb, fb->sector_pos);
+	cl_data_table_remove_entry_by_host_ptr(fb, fb->entry_list);
 
-	// compute the random seed
+	// Compute the random seed
 	randseed = rand32();
 	i = 24;
 	while (fb->w*fb->h / (1<<i) < 4)	// while the period would be less than 4 times the number of pixels
@@ -162,9 +140,9 @@ void drawq_run(framebuffer_t *fb)
 	randseed %= ((1<<i) - fb->w*fb->h);	// seed + fbi will fit inside i bits to speed up the PRNG
 
 	// Run the kernel
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &fb->drawq_data_cl);	//CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->drawq_data_cl)", ret);
-	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), &fb->sector_pos_cl);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_pos_cl)", ret);
-	ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), &fb->entry_list_cl);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->entry_list_cl)", ret);
+	ret = clSetKernelArg(kernel, 0, sizeof(cl_ulong), &drawq_data_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for drawq_data_index)", ret);
+	ret = clSetKernelArg(kernel, 1, sizeof(cl_ulong), &sector_pos_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for sector_pos_index)", ret);
+	ret = clSetKernelArg(kernel, 2, sizeof(cl_ulong), &entry_list_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for entry_list_index)", ret);
 	ret = clSetKernelArg(kernel, 3, sizeof(cl_mem), &fb->data_cl);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->data_cl)", ret);
 	ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), &fb->cl_srgb);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->cl_srgb)", ret);
 	ret = clSetKernelArg(kernel, 5, sizeof(cl_int), &fb->sector_w);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_w)", ret);
@@ -181,7 +159,7 @@ void drawq_run(framebuffer_t *fb)
 	ret = clFlush(fb->clctx.command_queue);
 	CL_ERR_NORET("clFlush (in drawq_run)", ret);
 
-	// wait for srgb copy and draw queue copy to end
+	// wait for the input data copies to end
 	clWaitForEvents(1, &ev);
 	clReleaseEvent(ev);
 #endif
@@ -212,45 +190,43 @@ int32_t drawq_entry_size(const int32_t type)
 	}
 }
 
-void *drawq_add_to_main_queue(framebuffer_t fb, const int dqtype)
+void *drawq_add_to_main_queue(framebuffer_t fbs, const int dqtype)
 {
-	int32_t end, *di = fb.drawq_data;
+	framebuffer_t *fb = fbs.self_ptr;
+	int32_t end, *di = fb->drawq_data;
 	int entry_size = drawq_entry_size(dqtype);
 
 	// store the drawing parameters in the main drawing queue
 	end = di[DQ_END];
-	if (end + entry_size + 2 >= fb.drawq_size)		// if there's not enough room left
-	{
-		fprintf(stderr, "Draw queue size exceeded, %d numbers already in (%02d)\n", di[0], rand()%100);
-		return di;
-	}
+	alloc_enough(&fb->drawq_data, end + entry_size + 1, &fb->drawq_as, sizeof(int32_t), 2.);
+	di = fb->drawq_data;
 
 	di[end] = dqtype;
 	end++;
 
 	di[DQ_END] += entry_size + 1;
 
-	fb.sector_list[DQ_ENTRY_START] = fb.sector_list[DQ_END];	// set the start of the new entry
-	fb.sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
-	fb.entry_pos[*fb.entry_count] = fb.sector_list[DQ_ENTRY_START];	// reference the start of this entry in sector_list
-	(*fb.entry_count)++;
+	alloc_enough(&fb->sector_list, fb->sector_list[DQ_END] + 1, &fb->sector_list_as, sizeof(int32_t), 2.);
+	fb->sector_list[DQ_ENTRY_START] = fb->sector_list[DQ_END];	// set the start of the new entry
+	fb->sector_list[DQ_END]++;					// sector_list becomes 1 larger by having the sector count (=0) for the new entry added
+	alloc_enough(&fb->entry_pos, *fb->entry_count + 1, &fb->entry_pos_as, sizeof(int32_t), 2.);
+	fb->entry_pos[*fb->entry_count] = fb->sector_list[DQ_ENTRY_START];	// reference the start of this entry in sector_list
+	(*fb->entry_count)++;
 
 	return &di[end];
 }
 
-void drawq_add_sector_id_nopending(framebuffer_t fb, int32_t sector_id)
+void drawq_add_sector_id_nopending(framebuffer_t fbs, int32_t sector_id)
 {
-	if (fb.sector_list[DQ_END]+1 >= fb.list_alloc_size)
-	{
-		fprintf(stderr, "Sector list size exceeded, %d numbers already in (%02d)\n", fb.sector_list[DQ_END], rand()%100);
-		return ;
-	}
+	framebuffer_t *fb = fbs.self_ptr;
 
-	fb.sector_count[sector_id]++;				// increment the count of entries for this sector
+	fb->sector_count[sector_id]++;				// increment the count of entries for this sector
 
-	fb.sector_list[fb.sector_list[DQ_END]] = sector_id;	// add the sector to the list
-	fb.sector_list[fb.sector_list[DQ_ENTRY_START]]++;	// increment the sector count for this entry
-	fb.sector_list[DQ_END]++;				// sector_list becomes 1 larger
+	alloc_enough(&fb->sector_list, fb->sector_list[DQ_END] + 1, &fb->sector_list_as, sizeof(int32_t), 2.);
+
+	fb->sector_list[fb->sector_list[DQ_END]] = sector_id;	// add the sector to the list
+	fb->sector_list[fb->sector_list[DQ_ENTRY_START]]++;	// increment the sector count for this entry
+	fb->sector_list[DQ_END]++;				// sector_list becomes 1 larger
 }
 
 void drawq_add_sector_id(framebuffer_t fb, int32_t sector_id)	// like drawq_add_sector_id_nopending but clears the pending bracket count
@@ -283,7 +259,7 @@ void drawq_compile_lists(framebuffer_t *fb)		// makes entry_list and sector_pos
 {
 	int32_t i, j, end_i, end_j, main_i, sector, secpos, *count, pos=0;
 
-	for (i=0; i<fb->sectors; i++)
+	for (i=0; i < fb->sectors; i++)
 	{
 		// fill the sector position list
 		if (fb->sector_count[i] > 0)			// if the sector contains entries
@@ -313,8 +289,12 @@ void drawq_compile_lists(framebuffer_t *fb)		// makes entry_list and sector_pos
 
 				if (secpos >= 0)
 				{
+					alloc_enough(&fb->entry_list, secpos + 1, &fb->entry_list_as, sizeof(int32_t), 2.);
 					count = &fb->entry_list[secpos];		// count of entry references for this sector
 					(*count)++;
+
+					alloc_enough(&fb->entry_list, secpos + *count + 1, &fb->entry_list_as, sizeof(int32_t), 2.);
+					count = &fb->entry_list[secpos];
 					fb->entry_list[secpos + *count] = main_i;	// store the position of this entry in the main queue
 				}
 			}

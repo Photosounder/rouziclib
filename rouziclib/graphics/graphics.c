@@ -237,6 +237,7 @@ void init_tls_fb(xyi_t dim)	// initalisation of thread-local fb and zc in fRGB m
 	fb.r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 	fb.r.use_frgb = 1;
 	fb.use_drawq = 0;
+	fb.self_ptr = &fb;
 
 	zc = init_zoom(&fb, &mouse, drawing_thickness);
 	calc_screen_limits(&zc);

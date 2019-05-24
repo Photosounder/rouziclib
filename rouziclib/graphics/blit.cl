@@ -204,7 +204,6 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
 	global float *lef = lei;
-	global ulong *lel = lei;
 	global float4 *im;
 	int2 im_dim;
 	float2 pscale, pos, pif;
@@ -229,7 +228,6 @@ float4 blit_sprite_flattop(global uint *lei, global uchar *data_cl, float4 pv)
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
 	global float *lef = lei;
-	global ulong *lel = lei;
 	global float4 *im;
 	int2 im_dim;
 	int fmt;
@@ -274,7 +272,6 @@ float4 blit_photo(global uint *lei, global uchar *data_cl, float4 pv)
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
 	global float *lef = lei;
-	global ulong *lel = lei;
 	global float4 *im;
 	int2 im_dim;
 	float2 pscale, pos, pif, pc;

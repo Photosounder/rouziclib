@@ -79,11 +79,11 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			case DQT_LUMA_COMPRESS:		pv = luma_compression(pv, df[qi+1]);			break;
 			case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);		break;
 			case DQT_CIRCLE_HOLLOW:		pv = draw_circle_hollow_add(&df[qi+1], pv);		break;
-			//case DQT_BLIT_BILINEAR:		pv = blit_sprite_bilinear(&df[qi+1], data_cl, pv);	break;
+			//case DQT_BLIT_BILINEAR:	pv = blit_sprite_bilinear(&df[qi+1], data_cl, pv);	break;
 			case DQT_BLIT_FLATTOP:		pv = blit_sprite_flattop(&df[qi+1], data_cl, pv);	break;
 			//case DQT_BLIT_PHOTO:		pv = blit_photo(&df[qi+1], data_cl, pv);		break;
 			case DQT_TEST1:			pv = drawgradienttest(pv);				break;
-				
+
 			default:
 				break;
 		}
@@ -92,11 +92,14 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 	return pv;
 }
 
-kernel void draw_queue_srgb_kernel(global float *df, global int *poslist, global int *entrylist, global uchar *data_cl, write_only image2d_t srgb, const int sector_w, const int sector_size, const int randseed)
+kernel void draw_queue_srgb_kernel(const ulong df_index, const ulong poslist_index, const ulong entrylist_index, global uchar *data_cl, write_only image2d_t srgb, const int sector_w, const int sector_size, const int randseed)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const int fbi = p.y * get_global_size(0) + p.x;
 	float4 pv;		// pixel value (linear)
+	global float *df = &data_cl[df_index];
+	global int *poslist = &data_cl[poslist_index];
+	global int *entrylist = &data_cl[entrylist_index];
 
 	pv = draw_queue(df, poslist, entrylist, data_cl, sector_w, sector_size);
 

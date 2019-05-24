@@ -226,6 +226,9 @@ uint64_t cl_add_buffer_to_data_table(framebuffer_t *fb, void *buffer, size_t buf
 	const int ht_size = 1 << 16;
 	const int ht_mask = ht_size - 1;
 
+	if (buffer_size == 0)
+		return 0;
+
 	// check the provided table index
 	if (table_index)
 	{

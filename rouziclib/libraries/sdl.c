@@ -393,6 +393,8 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 		if (fb->texture==NULL)
 			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
 	}
+	
+	fb->self_ptr = fb;
 
 	if (fb->use_drawq==0)
 	{
@@ -411,7 +413,7 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 		init_fb_cl(fb);
 		#endif
 
-		drawq_alloc(fb, 60000);
+		drawq_alloc(fb);
 	}
 
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
