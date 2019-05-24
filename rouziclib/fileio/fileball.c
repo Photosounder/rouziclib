@@ -105,8 +105,6 @@ void fileball_make_header_file(char *out_path, char **paths, int path_count, con
 
 	for (i=0; i < sz.len; i++)
 	{
-		if (i == 7305)
-			i = i;
 		fprint_escaped_byte(fout, i==0 ? 0 : sz.buf[i-1], sz.buf[i]);
 
 		if ((i % 2000) == 0 && i)		// this cuts up the string to please compilers

@@ -1,0 +1,31 @@
+# Tools
+
+Some external tools are needed to generate parts of rouziclib or to work with it.
+
+## Tablegen
+
+Tablegen is what I made to generate the lookup tables used for my fast floating point and fixed point arithmetic approximations. For some of them like the quintic cosine approximation the precision had to be higher than double precision so I used [MPFR](https://www.mpfr.org/) to generate tables with high accuracy. My method starts to fail with sextic polynomial fitting. The code isn't very pretty but it does the job.
+
+## Bin-to-C
+
+If you look at the top of [drawqueue.cl](https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue.cl) you will see a comment containing the command I use to generate [drawqueue.cl.h](https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue.cl.h). GCC resolves the include statements to put all the OpenCL code into one file, then bin\_to\_c turns that file into a string in a C header, which is then included in [drawqueue.c](https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue.c).
+
+## Fileball
+
+Fileballs are my own approach to something similar to tarballs, except simpler. That means that many files are put together into one. The format is dead simple, it starts with the line `fileball 1.0` just in case I ever make new versions, then follows a UTF-8 relative file path to extract to such as `images/01.png`, then on the next line the number of bytes in it, then on the next line all the bytes, and after the specified number of bytes you may find the next entry, if any. That fileball can then be compressed using the DEFLATE compression, and then it can be turned into a C header. The goal is to be able to include small files all at once into an executable in a totally portable for the sake of convenience.
+
+Fileball.c shows you how to compress a list of files in one call to either an uncompressed fileball, a compressed fileball or a compressed C header fileball that's ready to include as a string literal. You can tell that I didn't dwell on it very long given that I didn't bother with setting a proper output path, but that's easy for you to solve. I heard that the limit you can expect from compilers is 32 kB (measured at the level of the binary compressed fileball), so that's good if you have about 100 kB of small files to put into your binary which you can then extract to a path using code like this:
+
+```
+void my_fileballz_extraction(char *dir_path)
+{
+	char data[] = 
+	#include "my_fileballz.h"
+	buffer_t zball={0};
+
+	zball.buf = data;
+	zball.len = sizeof(data);
+
+	fileball_extract_z_mem_to_path(&zball, dir_path);
+}
+```
