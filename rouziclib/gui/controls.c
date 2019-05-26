@@ -702,7 +702,7 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 	// Input processing and dragging
 	state->prev_dragged = state->dragged;
 	state->dragged = 0;
-	for (i=0; i<9; i++)
+	for (i=0; i < 9; i++)
 	{
 		ctrl_drag_set_dim(&state->drag[i], i==0 ? dim : set_xy(cdim));
 		ret = ctrl_draggable(&state->drag[i]);
@@ -734,11 +734,11 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 		*box = sort_rect(*box);		// sort when the dragging just stopped
 
 	// Draw controls
-	for (i=0; i<9; i++)
+	for (i=0; i < 9; i++)
 	{
 		cbox = make_rect_centred(state->drag[i].pos, i==0 ? dim : set_xy(cdim));
 		draw_rect(fb, sc_rect(cbox), drawing_thickness, GUI_COL_DEF, cur_blend, intensity);
 	}
 
-	return state->dragged || state->prev_dragged;	// signal when the dragging just stopped so the final sorting is taken into account
+	return state->dragged + state->prev_dragged*2;	// signal when the dragging just stopped so the final sorting is taken into account
 }

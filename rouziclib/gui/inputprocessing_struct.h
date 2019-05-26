@@ -12,7 +12,7 @@ typedef struct
 typedef struct
 {
 	xy_t pos, dim, offset, freedom, click_offset;
-	int down, over;
+	int down, over, uponce;
 } ctrl_drag_state_t;
 
 typedef struct

@@ -197,14 +197,19 @@ int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mous
 	state->offset = XY0;
 
 	ctrl_id_check = check_ctrl_id_rect(box, mouse);
+
+	state->uponce = 0;
 	
 	if (mouse.b.lmb < 0)				// if LMB is released
 	{
+		if (state->down)
+			state->uponce = 1;
+
 		state->down = 0;			// the control is deselected
 		state->click_offset = set_xy(0.5);
 	}
 
-	if (mouse.b.lmb==2 && ctrl_id_check)		// if LMB was just clicked and the control was hovered
+	if (mouse.b.lmb==2 && ctrl_id_check && mouse.mouse_focus_flag==1)		// if LMB was just clicked and the control was hovered
 	{
 		state->down = 1;			// the control is now selected
 		state->click_offset = pos_to_rect_ratio(mouse.u, box);

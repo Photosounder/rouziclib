@@ -4,6 +4,7 @@
 #define XY0	xy(0.,0.)
 #define XY1	xy(1.,1.)
 #define XYI0	xyi(0,0)
+#define XYI1	xyi(1,1)
 #define XYZ0	xyz(0.,0.,0.)
 #define zyx(z, y, x)	xyz(x, y, z)
 
@@ -61,6 +62,7 @@ extern int isfinite_xy(xy_t a);
 #define ceil_xy(a)	func1_xy(a, ceil)
 #define nearbyint_xy(a)	func1_xy(a, nearbyint)
 #define sq_xy(a)	func1_xy(a, sq)
+#define xy_to_xyi_round(a)  xy_to_xyi(nearbyint_xy(a))
 extern xy_t func1_xy(xy_t a, double (*f)(double));
 extern xyz_t func1_xyz(xyz_t a, double (*f)(double));
 extern xyi_t func1_xyi(xyi_t a, int (*f)(int));

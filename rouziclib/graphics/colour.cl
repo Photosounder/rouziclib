@@ -54,3 +54,19 @@ float4 luma_compression(float4 pv0, float lvl_lin)
 
 	return pv1;
 }
+
+float4 colour_matrix(global float *le, float4 pv)
+{
+	float4 v;
+
+/*	v.x = le[0]*pv.x + le[1]*pv.y + le[2]*pv.z;
+	v.y = le[3]*pv.x + le[4]*pv.y + le[5]*pv.z;
+	v.z = le[6]*pv.x + le[7]*pv.y + le[8]*pv.z;
+*/
+	v.x = le[0]*pv.x + le[3]*pv.y + le[6]*pv.z;
+	v.y = le[1]*pv.x + le[4]*pv.y + le[7]*pv.z;
+	v.z = le[2]*pv.x + le[5]*pv.y + le[8]*pv.z;
+	v.w = pv.w;
+
+	return v;
+}

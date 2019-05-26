@@ -6,9 +6,9 @@ rawphoto_t init_rawphoto(int32_t width, int32_t height)
 
 	memset(&rp, 0, sizeof(rawphoto_t));
 
-	rp.w = width;
-	rp.h = height;
-	rp.data = calloc(rp.w*rp.h, sizeof(*rp.data));
+	rp.dim.x = width;
+	rp.dim.y = height;
+	rp.data = calloc(rp.dim.x*rp.dim.y, sizeof(*rp.data));
 
 	return rp;
 }
@@ -49,6 +49,7 @@ raster_t load_raw_thumb(libraw_data_t *rd)
 	else
 	{
 		r = make_raster(NULL, xyi(proc_image->width, proc_image->height), XYI0, IMAGE_USE_FRGB);
+		free_null(&r.f);
 		convert_image_srgb8(&r, proc_image->data, IMAGE_USE_FRGB);
 	}
 
@@ -89,7 +90,7 @@ rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 
 	// copy the wanted data
 	rp = init_rawphoto(rd->rawdata.sizes.raw_width, rd->rawdata.sizes.raw_height);
-	memcpy(rp.data, rd->rawdata.raw_image, rp.w*rp.h * sizeof(uint16_t));
+	memcpy(rp.data, rd->rawdata.raw_image, rp.dim.x*rp.dim.y * sizeof(uint16_t));
 
 	if (load_thumb)
 		rp.preview = load_raw_thumb(rd);
@@ -120,7 +121,7 @@ rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 	return rp;
 }
 
-raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp)
+raster_t raw_photo_to_raster(rawphoto_t rp)
 {
 	int i, bayer_ind, col_ind;
 	double vl, v;
@@ -140,13 +141,13 @@ raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp)
 			bayer_ind = (ip.x&1) + ((ip.y&1) << 1);
 			col_ind = bayer_ind - (bayer_ind>>1);
 
-			vl = rp.data[ip.y * rp.w + ip.x];
+			vl = rp.data[ip.y * rp.dim.x + ip.x];
 			v = (vl - rp.bayer_black[bayer_ind]) / (rp.maximum_value-rp.bayer_black[bayer_ind]) * get_xyz_index(rp.wb, col_ind);// * gain;
 
 			set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}
 
-	gaussian_blur(r.f, r.f, r.dim, 4, 1.4);
+	//gaussian_blur(r.f, r.f, r.dim, 4, 1.4);
 
 /*	for (ip.y=im_p0.y; ip.y <= im_p1.y; ip.y++)
 		for (ip.x=im_p0.x; ip.x <= im_p1.x; ip.x++)
@@ -154,7 +155,7 @@ raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp)
 			bayer_ind = (ip.x&1) + ((ip.y&1) << 1);
 			col_ind = bayer_ind - (bayer_ind>>1);
 
-			vl = rp.data[ip.y * rp.w + ip.x];
+			vl = rp.data[ip.y * rp.dim.x + ip.x];
 			v = (vl - rp.bayer_black[bayer_ind]) / (rp.maximum_value-rp.bayer_black[bayer_ind]) * get_xyz_index(rp.wb, col_ind);// * gain;
 
 			frgb_to_hsl(r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], &H, &S, &L, HUEDEG);
@@ -162,6 +163,73 @@ raster_t raw_photo_to_raster(framebuffer_t fb, rawphoto_t rp)
 
 			//set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}*/
+
+	return r;
+}
+
+raster_t load_raw_photo_dcraw_proc(char *path)
+{
+	int i, ic, ret;
+	rawphoto_t rp={0};
+	libraw_data_t *rd = libraw_init(0);
+	uint8_t *raw_data;
+	size_t raw_data_size;
+	libraw_processed_image_t *proc_image;
+	raster_t r={0};
+
+	raw_data = load_raw_file(path, &raw_data_size);
+	if (raw_data==NULL)
+	{
+		fprintf_rl(stderr, "Could not open image %s\n", path);
+		return r;
+	}
+
+	//ret = libraw_open_file(rd, path);
+	ret = libraw_open_buffer(rd, raw_data, raw_data_size);
+	//free (raw_data);
+	if (ret)
+	{
+		fprintf_rl(stderr, "%s: libraw %s\n", path, libraw_strerror(ret));
+		return r;
+	}
+
+	//fprintf_rl(stdout, "Processing %s (%s %s)\n", path, rd->idata.make, rd->idata.model);
+
+	ret = libraw_unpack(rd);
+	if (ret)
+		fprintf_rl(stderr, "%s: libraw %s\n", path, libraw_strerror(ret));
+
+	libraw_set_output_bps(rd, 16);
+	rd->params.use_camera_wb  = 1;
+	libraw_set_output_color(rd, 0); // 0 = raw, 1 = sRGB
+	libraw_set_gamma(rd, 0, 1.f);
+	libraw_set_gamma(rd, 1, 1.f);
+	libraw_set_highlight(rd, 0); // 0 = clip
+	libraw_set_no_auto_bright(rd, 0);
+	libraw_set_demosaic(rd, 2); // 2 = PPG, 11 = DHT
+
+	ret = libraw_dcraw_process(rd);
+	if (ret)
+		fprintf_rl(stderr, "libraw %s\n", libraw_strerror(ret));
+
+	proc_image = libraw_dcraw_make_mem_image(rd, &ret);
+	if (ret)
+		fprintf_rl(stderr, "libraw %s\n", libraw_strerror(ret));
+	else if (proc_image->colors!=3 || proc_image->bits!=16)
+	{
+		fprintf_rl(stderr, "Wrong decoded image format, %d %d-bit channels, type %d\n", proc_image->colors, proc_image->bits, proc_image->type);
+	}
+	else
+	{
+		r = make_raster(NULL, xyi(proc_image->width, proc_image->height), XYI0, IMAGE_USE_FRGB);
+		//convert_image_srgb16(&r, proc_image->data, IMAGE_USE_FRGB);
+		for (i=0; i < mul_x_by_y_xyi(r.dim); i++)
+			for (ic=0; ic < 3; ic++)
+				//((float *) r.f)[i*4+ic] = s16lrgb(proc_image->data[i*3+ic]);
+				((float *) r.f)[i*4+ic] = ((uint16_t *)proc_image->data)[i*3+ic] * (1.f / 65535.f);
+	}
+
+	libraw_dcraw_clear_mem(proc_image);
 
 	return r;
 }

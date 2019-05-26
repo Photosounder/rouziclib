@@ -322,3 +322,15 @@ void draw_luma_compression(framebuffer_t fb, double factor)
 
 	drawq_add_sectors_for_already_set_sectors(fb);
 }
+
+void draw_colour_matrix(framebuffer_t fb, double *matrix)
+{
+	float *df = drawq_add_to_main_queue(fb, DQT_COL_MATRIX);
+	if (df==NULL)
+		return;
+
+	for (int i=0; i < 9; i++)
+		df[i] = matrix[i];
+
+	drawq_add_sectors_for_already_set_sectors(fb);
+}

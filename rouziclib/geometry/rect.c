@@ -34,6 +34,11 @@ recti_t rect_to_recti(const rect_t r)
 	return recti(xy_to_xyi(r.p0), xy_to_xyi(r.p1));
 }
 
+recti_t rect_to_recti_round(const rect_t r)
+{
+	return recti(xy_to_xyi_round(r.p0), xy_to_xyi_round(r.p1));
+}
+
 rect_t recti_to_rect(const recti_t ri)
 {
 	return rect(xyi_to_xy(ri.p0), xyi_to_xy(ri.p1));
@@ -193,7 +198,7 @@ rect_t rect_move(rect_t r, xy_t v)
 
 rect_t rect_neg_y(rect_t r)
 {
-	return rect( neg_y(r.p0) , neg_y(r.p1) );
+	return sort_rect(rect( neg_y(r.p0) , neg_y(r.p1) ));
 }
 
 rect_t make_rect_ulcorner(xy_t ulc, xy_t wh)

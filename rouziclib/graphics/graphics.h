@@ -51,3 +51,4 @@ extern void screen_blank(framebuffer_t fb);
 extern void draw_gain(framebuffer_t fb, double gain);
 extern void draw_gain_parabolic(framebuffer_t fb, double gain);
 extern void draw_luma_compression(framebuffer_t fb, double factor);
+extern void draw_colour_matrix(framebuffer_t fb, double *matrix);

@@ -5,6 +5,7 @@ extern rect_t rect(const xy_t p0, const xy_t p1);
 extern recti_t recti(const xyi_t p0, const xyi_t p1);
 extern triangle_t triangle(const xy_t a, const xy_t b, const xy_t c);
 extern recti_t rect_to_recti(const rect_t r);
+extern recti_t rect_to_recti_round(const rect_t r);
 extern rect_t recti_to_rect(const recti_t ri);
 extern recti_t rect_to_recti_fixedpoint(const rect_t r, const double fpratio);
 extern xy_t rect_p01(rect_t r);
