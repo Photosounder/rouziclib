@@ -17,6 +17,7 @@ typedef struct
 	xyz_t wb;
 	double bayer_black[4];
 	double maximum_value;
+	double inv_matrix[9];
 	rect_t image_area;
 	xy_t image_centre;
 	raster_t preview;

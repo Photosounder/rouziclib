@@ -103,8 +103,12 @@ rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 	rp.wb = div_xyz(rp.wb, set_xyz(min_of_xyz(rp.wb)));
 
 	// black levels
-	for (i=0; i<4; i++)
+	for (i=0; i < 4; i++)
 		rp.bayer_black[i] = rd->color.black + rd->color.cblack[i];
+
+	// colour invert matrix
+	for (i=0; i < 9; i++)
+		rp.inv_matrix[i] = rd->color.rgb_cam[i%3][i/3];
 	
 	rp.maximum_value = rd->color.maximum;
 
@@ -146,6 +150,14 @@ raster_t raw_photo_to_raster(rawphoto_t rp)
 
 			set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}
+
+	// Demosaicing by +0.5 offset
+	frgb_t *new_f = calloc(mul_x_by_y_xyi(r.dim), sizeof(frgb_t));
+	for (ip.y=0; ip.y < r.dim.y-1; ip.y++)
+		for (ip.x=0; ip.x < r.dim.x-1; ip.x++)
+			new_f[ip.y*r.dim.x + ip.x] = mul_scalar_frgb(add_frgb(add_frgb(r.f[ip.y*r.dim.x + ip.x], r.f[ip.y*r.dim.x + ip.x+1]), add_frgb(r.f[(ip.y+1)*r.dim.x + ip.x], r.f[(ip.y+1)*r.dim.x + ip.x+1])), 0.25f);
+	free(r.f);
+	r.f = new_f;
 
 	//gaussian_blur(r.f, r.f, r.dim, 4, 1.4);
 

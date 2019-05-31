@@ -292,6 +292,9 @@ void free_mipmap_array(mipmap_t *m, int count)
 {
 	int i;
 
+	if (m == NULL)
+		return ;
+
 	for (i=0; i<count; i++)
 		free_mipmap(&m[i]);
 }
