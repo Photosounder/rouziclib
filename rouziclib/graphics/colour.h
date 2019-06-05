@@ -26,6 +26,7 @@ enum
 	#define col_to_hsl		frgb_to_hsl
 	#define col_invert_linear	col_invert_linear_f
 	#define col_invert_Lab		col_invert_Lab_f
+	#define add_col			add_frgba
 #else
 	#define make_colour		make_colour_lin
 	#define frgb_to_col(x)		frgb_to_lrgb(x)
@@ -41,6 +42,7 @@ enum
 	#define col_to_rgb		lrgb_to_rgb
 	#define col_to_xyz		lrgb_to_xyz
 	#define col_to_hsl		lrgb_to_hsl
+	#define add_col			add_lrgb
 #endif
 
 extern lrgb_t make_colour_lin(const double r, const double g, const double b, const double a);
@@ -96,6 +98,7 @@ extern raster_t convert_float_array_to_frgb(float *fa, xyi_t dim, raster_t *rp);
 
 extern frgb_t add_frgb(frgb_t a, frgb_t b);
 extern frgb_t add_frgba(frgb_t a, frgb_t b);
+extern lrgb_t add_lrgb(lrgb_t a, lrgb_t b);
 extern frgb_t sub_frgb(frgb_t a, frgb_t b);
 extern frgb_t mul_frgb(frgb_t a, frgb_t b);
 extern frgb_t div_frgb(frgb_t a, frgb_t b);

@@ -19,9 +19,7 @@ float4 draw_circle_full_add(global float *le, float4 pv)
 	dn = (circrad - dc) * rad;	// Near edge distance
 	df = -(circrad + dc) * rad;	// Far edge distance
 
-	pv += (erfr(dn) - erfr(df)) * col;
-	//pv += erfr(dn) * col;
-	//pv += (gaussian(dn) + gaussian(df)) * col;
+	pv += (erf(dn) - erf(df)) *0.5f * col;
 
 	return pv;
 }

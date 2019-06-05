@@ -114,24 +114,8 @@ void cl_data_table_remove_entry_by_host_ptr(framebuffer_t *fb, void *host_ptr)
 	}
 }
 
-void cl_check_add_data_table(framebuffer_t *fb, size_t start, size_t size, size_t table_index)
-{
-	size_t i, end = start+size;
-
-	for (i=0; i < fb->data_alloc_table_count; i++)
-	{
-		if (start < fb->data_alloc_table[i].end && end > fb->data_alloc_table[i].start)
-		{
-			fprintf_rl(stderr, "Table collision found in cl_check_add_data_table().\nAdded entry [%d]: %d to %d\nColliding entry [%d], %d to %d\nSpace from %d to %d, space index [%d]", table_index, start, end, i, fb->data_alloc_table[i].start, fb->data_alloc_table[i].end, fb->data_space_start, fb->data_space_end, fb->data_space_index);
-			getch();
-		}
-	}
-}
-
 uint64_t cl_add_data_table_entry(framebuffer_t *fb, size_t *table_index, size_t prev_end, void *buffer, size_t size, int *table_index_p)
 {
-	cl_check_add_data_table(fb, prev_end, size, *table_index);
-
 	alloc_enough(&fb->data_alloc_table, fb->data_alloc_table_count+=1, &fb->data_alloc_table_as, sizeof(cl_data_alloc_t), 1.5);
 
 	// Move the entries that follow

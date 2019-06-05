@@ -19,9 +19,11 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 		if (butt_state_ptr)
 			butt_state_ptr->out_of_screen = 1;
 
-		if (mouse.b.lmb < 1)
-			if (check_point_within_box(mouse.b.orig, box)==0)	// only return if there's no held click originating from it
-				return 0;
+		if (mouse.b.lmb < 1)					// return if there's no click
+			return 0;
+
+		if (check_point_within_box(mouse.b.orig, box)==0)	// return if there's no held click originating from it
+			return 0;
 	}
 
 	if (zc.mouse->window_focus_flag > 0)

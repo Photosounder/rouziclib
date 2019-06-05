@@ -654,6 +654,16 @@ frgb_t add_frgba(frgb_t a, frgb_t b)
 	return a;
 }
 
+lrgb_t add_lrgb(lrgb_t a, lrgb_t b)
+{
+	a.r = MINN(ONE, a.r+b.r);
+	a.g = MINN(ONE, a.g+b.g);
+	a.b = MINN(ONE, a.b+b.b);
+	a.a = MINN(ONE, a.a+b.a);
+
+	return a;
+}
+
 frgb_t sub_frgb(frgb_t a, frgb_t b)
 {
 	a.r -= b.r;

@@ -1,3 +1,14 @@
+void flwindow_set_defaults(flwindow_t *w)
+{
+	w->bg_col = make_colour_hsl(240., 1., 0.0006, HUEDEG, 0);
+	w->bar_col = make_colour_hsl(240., 0.5, 0.006, HUEDEG, 0);
+	w->bar_height = 0.5;
+	w->close_hover_col = make_grey(0.06);
+	w->close_down_col = make_grey(0.12);
+	w->title_col = make_grey(0.5);
+	w->close_x_col = make_grey(0.5);
+}
+
 void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, gui_layout_t *layout, const int id)
 {
 	int ret;
@@ -93,21 +104,21 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, gui_layout_t *la
 	draw_rect_full(fb, sc_rect(bar_area_os), drawing_thickness, w->bar_col, blend_add, 1.);		// title bar rectangle
 
 	if (close_butt_state.over)
-		draw_rect_full(fb, sc_rect(close_area), drawing_thickness, close_butt_state.down ? make_grey(0.12) : make_grey(0.06), blend_add, 1.);	// close button hover rect
+		draw_rect_full(fb, sc_rect(close_area), drawing_thickness, close_butt_state.down ? w->close_down_col : w->close_hover_col, blend_add, 1.);	// close button hover rect
 
 	// Pin control
 	if (w->hide_pin==0)
 	{
-		ctrl_checkbox_pin(&w->pinned, pin_area, make_grey(0.5));
+		ctrl_checkbox_pin(&w->pinned, pin_area, w->title_col);
 
 		world_os_to_pinned_os(layout->offset, layout->sm, &w->pinned_offset, &w->pinned_sm);
 	}
 
 	blend_func_t orig_blend = cur_blend;
 	cur_blend = blend_add;
-	draw_label(cur_elem->label, title_area, make_grey(0.5), ALIG_CENTRE);				// title bar text
+	draw_label(cur_elem->label, title_area, w->title_col, ALIG_CENTRE);				// title bar text
 	if (diag_on)
-		draw_label("\342\250\211", close_x_area, make_grey(0.5), ALIG_CENTRE);			// close button
+		draw_label("\342\250\211", close_x_area, w->close_x_col, ALIG_CENTRE);			// close button
 	cur_blend = orig_blend;
 
 	if (w->hide_corner==0)
