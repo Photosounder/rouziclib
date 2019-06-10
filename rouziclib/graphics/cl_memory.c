@@ -71,6 +71,7 @@ void data_cl_realloc(size_t buffer_size)
 	alloc_enough(&fb.data, new_as, &fb.data_cl_as, 1, 1.);
 	fb.data_cl_as = new_as;
 	cl_copy_buffer_to_device(fb.data, 0, MINN(orig_as, fb.data_cl_as));	// enqueue copy of everything
+	fb.must_recalc_free_space = 1;
 
 	//fprintf_rl(stdout, "data_cl resized to %g MB\n", (double) fb.data_cl_as / sq(1024.));
 }
@@ -181,6 +182,9 @@ void cl_data_find_max_free_space()
 	int i;
 	ssize_t prev_end=0, space_size, max_size = 0;
 
+	if (fb.data_space_start > fb.data_copy_start)
+		cl_copy_buffer_to_device(&fb.data[fb.data_copy_start], fb.data_copy_start, fb.data_space_start - fb.data_copy_start);
+
 	fb.must_recalc_free_space = 0;
 	fb.data_space_start = 0;
 	fb.data_space_end = 0;
@@ -280,9 +284,7 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 		}
 
 		// If there wasn't enough room in this space
-		cl_copy_buffer_to_device(&fb.data[fb.data_copy_start], fb.data_copy_start, fb.data_space_start - fb.data_copy_start);	// copy the whole block
-
-		cl_data_find_max_free_space();		// find new space
+		cl_data_find_max_free_space();		// copy the whole block and find a new space
 
 		if (cl_data_check_enough_room(align_size, buffer_size)==0)		// if there's no space large enough
 		{
