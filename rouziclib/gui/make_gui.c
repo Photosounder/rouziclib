@@ -477,6 +477,15 @@ void sprint_gui_layout(gui_layout_t *layout, char **str, int *str_as)
 	}
 }
 
+void gui_layout_init_pos_scale(gui_layout_t *layout, xy_t pos, double scale, xy_t offset, int force)
+{
+	if (layout->init==0 || force)
+	{
+		layout->sm = scale;
+		layout->offset = add_xy(pos, mul_xy(offset, set_xy(scale)));
+	}
+}
+
 //**** Value functions ****
 
 int check_value_id_validity(gui_layout_t *layout, const int id, const int implemented)

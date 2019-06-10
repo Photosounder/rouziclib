@@ -106,16 +106,31 @@
 		static gui_layout_t layout={0};
 		const char *layout_src[] = {""};
 
-		layout.sm = 1.;
+		gui_layout_init_pos_scale(&layout, XY0, 1., XY0, 0);
 		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
 
-	// Make it float
+	// Make it float permanently
 		layout.offset = zc.offset_u;
 		layout.sm = 1./zc.zoomscale;
 
+	// Make a floating window
+		// 2nd argument is a int * that can be NULL if a close button isn't needed
+		// 4th argument must be a layout ID which by its rect defines the size of the window in local coordinates
+		static flwindow_t window={0};
+
+		flwindow_init_defaults(&window);
+		flwindow_init_pinned(&window);
+		draw_dialog_window_fromlayout(&window, &diag_on, &layout, id);
+
+		// Example of window-defining elem
+		"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
+
+	// Fit a sublayout into a layout's rectangle
+		fit_sublayout_into_layout_rect(&window_layout, id_to_fit_into, &sublayout, id_of_frame, offset);
+
 	// Get the rect of a layout element
 		// the last argument is the provided offset
-		gui_layout_elem_comp_area_os(&layout, id, XY0)
+		gui_layout_elem_comp_area_os(&layout, id, XY0);
 
 	// Label
 		draw_label_fromlayout(&layout, id, ALIG_CENTRE | MONODIGITS);

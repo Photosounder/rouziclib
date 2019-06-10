@@ -128,7 +128,7 @@ rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 raster_t raw_photo_to_raster(rawphoto_t rp)
 {
 	int i, bayer_ind, col_ind;
-	double vl, v;
+	double vl, v, v_scale[4];
 	raster_t r;
 	xyi_t ip, im_p0 = xy_to_xyi(rp.image_area.p0), im_p1 = xy_to_xyi(rp.image_area.p1);
 	xyi_t im_dim = xy_to_xyi(get_rect_dim(rp.image_area));
@@ -139,6 +139,9 @@ raster_t raw_photo_to_raster(rawphoto_t rp)
 	
 	r = make_raster(NULL, add_xyi(im_dim, set_xyi(1)), XYI0, IMAGE_USE_FRGB);
 
+	for (bayer_ind=0; bayer_ind < 4; bayer_ind++)
+		v_scale[bayer_ind] = 1. / (rp.maximum_value-rp.bayer_black[bayer_ind]);
+
 	for (ip.y=im_p0.y; ip.y <= im_p1.y; ip.y++)
 		for (ip.x=im_p0.x; ip.x <= im_p1.x; ip.x++)
 		{
@@ -146,7 +149,7 @@ raster_t raw_photo_to_raster(rawphoto_t rp)
 			col_ind = bayer_ind - (bayer_ind>>1);
 
 			vl = rp.data[ip.y * rp.dim.x + ip.x];
-			v = (vl - rp.bayer_black[bayer_ind]) / (rp.maximum_value-rp.bayer_black[bayer_ind]) * get_xyz_index(rp.wb, col_ind);// * gain;
+			v = (vl - rp.bayer_black[bayer_ind]) * v_scale[bayer_ind];// * get_xyz_index(rp.wb, col_ind);// * gain;
 
 			set_frgb_channel(&r.f[(ip.y-im_p0.y) * r.dim.x + (ip.x-im_p0.x)], col_ind, v * (col_ind==1 ? 2. : 4.));
 		}
@@ -212,8 +215,8 @@ raster_t load_raw_photo_dcraw_proc(char *path)
 		fprintf_rl(stderr, "%s: libraw %s\n", path, libraw_strerror(ret));
 
 	libraw_set_output_bps(rd, 16);
-	rd->params.use_camera_wb  = 1;
-	libraw_set_output_color(rd, 0); // 0 = raw, 1 = sRGB
+	rd->params.use_camera_wb  = 0;
+	libraw_set_output_color(rd, 1); // 0 = raw, 1 = sRGB
 	libraw_set_gamma(rd, 0, 1.f);
 	libraw_set_gamma(rd, 1, 1.f);
 	libraw_set_highlight(rd, 0); // 0 = clip

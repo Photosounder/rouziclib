@@ -68,6 +68,7 @@ extern void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, in
 extern void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount, const char *layout_name);
 extern void gui_layout_add_elem(gui_layout_t *layout, int *id, const char **src, const int linecount);
 extern void sprint_gui_layout(gui_layout_t *layout, char **str, int *str_as);
+extern void gui_layout_init_pos_scale(gui_layout_t *layout, xy_t pos, double scale, xy_t offset, int force);
 
 extern int check_value_id_validity(gui_layout_t *layout, const int id, const int implemented);
 extern xy_t *gui_layout_get_value_ptr(gui_layout_t *layout, const int id);

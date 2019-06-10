@@ -1,12 +1,21 @@
-void flwindow_set_defaults(flwindow_t *w)
+void flwindow_init_defaults(flwindow_t *w)
 {
-	w->bg_col = make_colour_hsl(240., 1., 0.0006, HUEDEG, 0);
-	w->bar_col = make_colour_hsl(240., 0.5, 0.006, HUEDEG, 0);
-	w->bar_height = 0.5;
-	w->close_hover_col = make_grey(0.06);
-	w->close_down_col = make_grey(0.12);
-	w->title_col = make_grey(0.5);
-	w->close_x_col = make_grey(0.5);
+	if (w->init == 0)
+	{
+		w->bg_col = make_colour_hsl(240., 1., 0.0006, HUEDEG, 0);
+		w->bar_col = make_colour_hsl(240., 0.5, 0.006, HUEDEG, 0);
+		w->bar_height = 0.5;
+		w->close_hover_col = make_grey(0.06);
+		w->close_down_col = make_grey(0.12);
+		w->title_col = make_grey(0.5);
+		w->close_x_col = make_grey(0.5);
+	}
+}
+
+void flwindow_init_pinned(flwindow_t *w)
+{
+	if (w->init == 0)
+		w->pinned = 1;
 }
 
 void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, gui_layout_t *layout, const int id)
@@ -19,6 +28,8 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, gui_layout_t *la
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return ;
 	cur_elem = &layout->elem[id];
+
+	w->init = 1;
 
 	//**** Background, title bar and resizing logic ****
 	
