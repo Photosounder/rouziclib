@@ -1,4 +1,4 @@
-void draw_line_thin_lrgb(framebuffer_t fb, xy_t p1, xy_t p2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t i, iy, ix, fbi;
 	xy_t p3, p4, p1l, p2l, p3l, p4l;
@@ -175,7 +175,7 @@ void draw_line_thin_lrgb(framebuffer_t fb, xy_t p1, xy_t p2, double radius, lrgb
 	}
 }
 
-void draw_line_thin_frgb(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_line_thin_frgb(xy_t p1, xy_t p2, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	int32_t i, iy, ix, fbi;
 	xy_t p3, p4, p1l, p2l, p3l, p4l;
@@ -342,7 +342,7 @@ void draw_line_thin_frgb(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb
 	}
 }
 
-void draw_line_thin_dq(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
+void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
 	double grad;
 	int32_t ix, iy;
@@ -370,7 +370,7 @@ void draw_line_thin_dq(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t
 	bb = rshift_recti(bb, fb.sector_size);
 
 	// store the drawing parameters in the main drawing queue
-	df = drawq_add_to_main_queue(fb, DQT_LINE_THIN_ADD);
+	df = drawq_add_to_main_queue(DQT_LINE_THIN_ADD);
 	if (df==NULL)
 		return;
 	df[0] = p1.x;
@@ -390,7 +390,7 @@ void draw_line_thin_dq(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t
 	if (mul_x_by_y_xyi(bb_dim) < 9)	// if there's less than 9 possible sectors then just do them all anyway, very few sectors will turn out to be superfluous
 		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 			for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
-				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 	else
 	for (iy=bb.p0.y; iy<=bb.p1.y; iy++) // find the affected sectors
 	{
@@ -414,30 +414,30 @@ void draw_line_thin_dq(framebuffer_t fb, xy_t p1, xy_t p2, double radius, frgb_t
 
 			// if sector is needed
 			if (l1.x!=l2.x || l1.y!=l2.y)
-				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 		}
 	}
 }
 
-void draw_line_thin(framebuffer_t fb, xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 0);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_line_thin_dq(fb, p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
+		draw_line_thin_dq(p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
 	else if (fb.r.use_frgb)
-		draw_line_thin_frgb(fb, p1, p2, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
+		draw_line_thin_frgb(p1, p2, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
-		draw_line_thin_lrgb(fb, p1, p2, radius, col_to_lrgb(colour), bf, intensity);
+		draw_line_thin_lrgb(p1, p2, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_line_thin_rectclip(framebuffer_t fb, xy_t p1, xy_t p2, xy_t b1, xy_t b2, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_rectclip(xy_t p1, xy_t p2, xy_t b1, xy_t b2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	line_rect_clip(&p1, &p2, rect(b1, b2));
-	draw_line_thin(fb, p1, p2, radius, colour, bf, intensity);
+	draw_line_thin(p1, p2, radius, colour, bf, intensity);
 }
 
-void draw_line_thin_short(framebuffer_t fb, xy_t p1, xy_t p2, double u1, double u2, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_thin_short(xy_t p1, xy_t p2, double u1, double u2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	xy_t p3, p4;
 
@@ -460,5 +460,5 @@ void draw_line_thin_short(framebuffer_t fb, xy_t p1, xy_t p2, double u1, double 
 	else
 		p4 = p2;
 
-	draw_line_thin(fb, p3, p4, radius, colour, bf, intensity);
+	draw_line_thin(p3, p4, radius, colour, bf, intensity);
 }

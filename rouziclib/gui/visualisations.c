@@ -60,7 +60,7 @@ draw_graph_bar_ret_t draw_graph_data_bar(rect_t area, float *data, float *label_
 
 			bar_dim_px = mul_xy(get_rect_dim(bar), set_xy(zc.scrscale));
 			if (bar_dim_px.x*bar_dim_px.y > 0.04 || bar_dim_px.x > 2.)
-				draw_rect_full(fb, sc_rect(bar), drawing_thickness, col, cur_blend, 1.);
+				draw_rect_full(sc_rect(bar), drawing_thickness, col, cur_blend, 1.);
 
 			if (graph_ss*sm*zc.scrscale > 0.5)
 			{

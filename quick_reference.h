@@ -12,17 +12,17 @@
 
 	// Line
 		// pixel coordinates
-		draw_line_thin(fb, sc_xy(p0), sc_xy(p1), drawing_thickness, white, blend_add, intensity);
+		draw_line_thin(sc_xy(p0), sc_xy(p1), drawing_thickness, white, blend_add, intensity);
 
 	// Rectangles
 		// pixel coordinates
-		draw_rect(fb, sc_rect(box), drawing_thickness, colour, blend_add, intensity);
-		draw_rect_full(fb, sc_rect(box), drawing_thickness, colour, blend_add, intensity);
-		draw_black_rect(fb, sc_rect(box), drawing_thickness);
+		draw_rect(sc_rect(box), drawing_thickness, colour, blend_add, intensity);
+		draw_rect_full(sc_rect(box), drawing_thickness, colour, blend_add, intensity);
+		draw_black_rect(sc_rect(box), drawing_thickness);
 
 	// Circle (HOLLOWCIRCLE or FULLCIRCLE)
 		// pixel coordinates
-		draw_circle(HOLLOWCIRCLE, fb, sc_xy(circle_centre), circle_radius, drawing_thickness, colour, blend_add, intensity);
+		draw_circle(HOLLOWCIRCLE, sc_xy(circle_centre), circle_radius, drawing_thickness, colour, blend_add, intensity);
 
 	// Text label
 		// world coordinates
@@ -216,8 +216,8 @@
 
 	// Displaying
 		// penultimate argument set to 1 keeps the pixel aspect ratio
-		blit_in_rect(&fb, &r, sc_rect(image_frame), 1, LINEAR_INTERP);
-		blit_mipmap_in_rect(&fb, image_mm, sc_rect(image_frame), 1, LINEAR_INTERP);
+		blit_in_rect(&r, sc_rect(image_frame), 1, LINEAR_INTERP);
+		blit_mipmap_in_rect(image_mm, sc_rect(image_frame), 1, LINEAR_INTERP);
 
 //**** Layout ****
 
@@ -458,3 +458,8 @@
 
 		#pragma check_stack()
 		#pragma strict_gs_check()
+
+// How to transition code
+	// 190610 transition that involves removing any 'fb' from any function call, making it a TLS global only
+	// run this on every file that passes fb to functions
+	%s/framebuffer_t \**fb\>,* *//e | %s/(&*\**fb, /(/e | %s/(&*\**fb)/()/e | %s/, fb,/,/e | %s/, fb)/)/e | %s/fb->/fb./ge

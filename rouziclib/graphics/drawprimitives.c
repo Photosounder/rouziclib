@@ -1,4 +1,4 @@
-void draw_circle_lrgb(const int circlemode, framebuffer_t fb, xy_t pos, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_circle_lrgb(const int circlemode, xy_t pos, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, lboundx, lboundy, rboundx, rboundy;
@@ -67,7 +67,7 @@ void draw_circle_lrgb(const int circlemode, framebuffer_t fb, xy_t pos, double c
 	}
 }
 
-void draw_circle_cl(const int circlemode, framebuffer_t fb, xy_t pos, double circrad, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_circle_cl(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 #ifdef RL_OPENCL
 	float *df;
@@ -101,7 +101,7 @@ void draw_circle_cl(const int circlemode, framebuffer_t fb, xy_t pos, double cir
 	colour.b *= intensity;
 
 	// store the drawing parameters in the main drawing queue
-	df = drawq_add_to_main_queue(fb, circlemode==FULLCIRCLE ? DQT_CIRCLE_FULL : DQT_CIRCLE_HOLLOW);
+	df = drawq_add_to_main_queue(circlemode==FULLCIRCLE ? DQT_CIRCLE_FULL : DQT_CIRCLE_HOLLOW);
 	df[0] = pos.x;
 	df[1] = pos.y;
 	df[2] = circrad;
@@ -120,7 +120,7 @@ void draw_circle_cl(const int circlemode, framebuffer_t fb, xy_t pos, double cir
 
 			if (check_box_circle_intersection(secbox, pos, circrad+grad))
 				if (circrad-grad <= 0. || check_box_wholly_inside_circle(secbox, pos, circrad-grad)==0)
-					drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+					drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 		}
 
 	if (circrad-grad <= 0. || circlemode==HOLLOWCIRCLE)
@@ -128,7 +128,7 @@ void draw_circle_cl(const int circlemode, framebuffer_t fb, xy_t pos, double cir
 
 	//************PLAIN FILL AREA************
 
-	df = drawq_add_to_main_queue(fb, DQT_PLAIN_FILL);
+	df = drawq_add_to_main_queue(DQT_PLAIN_FILL);
 	df[0] = colour.r;
 	df[1] = colour.g;
 	df[2] = colour.b;
@@ -142,12 +142,12 @@ void draw_circle_cl(const int circlemode, framebuffer_t fb, xy_t pos, double cir
 			secbox.p1 = add_xy(secbox.p0, set_xy((1 << fb.sector_size) - 1));
 
 			if (check_box_wholly_inside_circle(secbox, pos, circrad-grad))	// if we're inside the plain fill area
-				drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 		}
 #endif
 }
 
-void draw_circle_arc(framebuffer_t fb, xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_circle_arc(xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	int i, count;
 	double stepth, oval_ratio = circrad.x / circrad.y;
@@ -165,38 +165,38 @@ void draw_circle_arc(framebuffer_t fb, xy_t pos, xy_t circrad, double th0, doubl
 		p1 = rotate_xy2(xy(0., -circrad.y), th0 + (double) (i+1) * stepth);
 		p0.x *= oval_ratio;
 		p1.x *= oval_ratio;
-		draw_line_thin(fb, add_xy(pos, p0), add_xy(pos, p1), radius, colour, bf, intensity);
+		draw_line_thin(add_xy(pos, p0), add_xy(pos, p1), radius, colour, bf, intensity);
 	}
 }
 
-void draw_circle_with_lines(framebuffer_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_circle_with_lines(xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
-	draw_circle_arc(fb, pos, set_xy(circrad), 0., 1., radius, colour, bf, intensity);
+	draw_circle_arc(pos, set_xy(circrad), 0., 1., radius, colour, bf, intensity);
 }
 
-void draw_circle(const int circlemode, framebuffer_t fb, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	//if (circlemode!=HOLLOWCIRCLE)
 		radius = drawing_focus_adjust(focus_rlg, radius, circlemode==FULLCIRCLE ? NULL : &intensity, 0);	// adjusts the focus
 
 	/*if (circlemode==HOLLOWCIRCLE)
-		draw_circle_with_lines(fb, pos, circrad, radius, colour, blend_add, intensity);
+		draw_circle_with_lines(pos, circrad, radius, colour, blend_add, intensity);
 	else*/
 		if (fb.use_drawq)
-			draw_circle_cl(circlemode, fb, pos, circrad, radius, col_to_frgb(colour), blend_add, intensity);
+			draw_circle_cl(circlemode, pos, circrad, radius, col_to_frgb(colour), blend_add, intensity);
 		else
-			draw_circle_lrgb(circlemode, fb, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
+			draw_circle_lrgb(circlemode, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_rect(framebuffer_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_rect(rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
-	draw_line_thin(fb, xy(r.p0.x, r.p0.y), xy(r.p0.x, r.p1.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(r.p0.x, r.p1.y), xy(r.p1.x, r.p1.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(r.p1.x, r.p1.y), xy(r.p1.x, r.p0.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(r.p1.x, r.p0.y), xy(r.p0.x, r.p0.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p0.x, r.p0.y), xy(r.p0.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p0.x, r.p1.y), xy(r.p1.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p1.x, r.p1.y), xy(r.p1.x, r.p0.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p1.x, r.p0.y), xy(r.p0.x, r.p0.y), radius, colour, bf, intensity);
 }
 
-void draw_rect_chamfer(framebuffer_t fb, rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity, double chamfer)
+void draw_rect_chamfer(rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity, double chamfer)
 {
 	xy_t p2, p3;
 	double cs, csx, csy, sx=1., sy=1.;
@@ -215,18 +215,18 @@ void draw_rect_chamfer(framebuffer_t fb, rect_t r, double radius, col_t colour, 
 	p2.y = r.p0.y+csy;
 	p3.y = r.p1.y-csy;
 
-	draw_line_thin(fb, xy(r.p0.x, p2.y), xy(r.p0.x, p3.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(p2.x, r.p1.y), xy(p3.x, r.p1.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(r.p1.x, p3.y), xy(r.p1.x, p2.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(p3.x, r.p0.y), xy(p2.x, r.p0.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p0.x, p2.y), xy(r.p0.x, p3.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(p2.x, r.p1.y), xy(p3.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p1.x, p3.y), xy(r.p1.x, p2.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(p3.x, r.p0.y), xy(p2.x, r.p0.y), radius, colour, bf, intensity);
 
-	draw_line_thin(fb, xy(r.p0.x, p3.y), xy(p2.x, r.p1.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(p3.x, r.p1.y), xy(r.p1.x, p3.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(r.p1.x, p2.y), xy(p3.x, r.p0.y), radius, colour, bf, intensity);
-	draw_line_thin(fb, xy(p2.x, r.p0.y), xy(r.p0.x, p2.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p0.x, p3.y), xy(p2.x, r.p1.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(p3.x, r.p1.y), xy(r.p1.x, p3.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(r.p1.x, p2.y), xy(p3.x, r.p0.y), radius, colour, bf, intensity);
+	draw_line_thin(xy(p2.x, r.p0.y), xy(r.p0.x, p2.y), radius, colour, bf, intensity);
 }
 
-void draw_line_dashed(framebuffer_t fb, xy_t p1, xy_t p2, double dash_period, double dash_ratio, double phase, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_line_dashed(xy_t p1, xy_t p2, double dash_period, double dash_ratio, double phase, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	xy_t pt1, pt2, pd;
 	double t1, t2, t1c, t2c, d;
@@ -248,7 +248,7 @@ void draw_line_dashed(framebuffer_t fb, xy_t p1, xy_t p2, double dash_period, do
 		pt1 = add_xy(mul_xy(set_xy(t1c), pd), p1);
 		pt2 = add_xy(mul_xy(set_xy(t2c), pd), p1);
 
-		draw_line_thin(fb, pt1, pt2, radius, colour, bf, intensity);
+		draw_line_thin(pt1, pt2, radius, colour, bf, intensity);
 
 		t1 += dash_period;
 	}
@@ -295,7 +295,7 @@ int32_t get_dist_to_roundrect(int32_t lx1, int32_t ly1, int32_t lx2, int32_t ly2
 	return d;
 }
 
-void draw_roundrect(framebuffer_t fb, rect_t box, double corner, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_roundrect(rect_t box, double corner, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
@@ -335,7 +335,7 @@ void draw_roundrect(framebuffer_t fb, rect_t box, double corner, double radius, 
 	}
 }
 
-void draw_roundrect_frame(framebuffer_t fb, rect_t box1, rect_t box2, double corner1, double corner2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_roundrect_frame(rect_t box1, rect_t box2, double corner1, double corner2, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
 	int32_t ix, iy, fbi, ratio, p, lboundx, lboundy, rboundx, rboundy;
@@ -382,7 +382,7 @@ void draw_roundrect_frame(framebuffer_t fb, rect_t box1, rect_t box2, double cor
 }
 
 // TODO optimise using fixed point arithmetic and look-up tables
-void draw_polar_glow(framebuffer_t fb, double cx, double cy, lrgb_t col, double colmul, double scale, double rad, double gradr, double gradth, double angle, int32_t islog, int32_t riserf, double erfrad, double pixoffset)
+void draw_polar_glow(double cx, double cy, lrgb_t col, double colmul, double scale, double rad, double gradr, double gradth, double angle, int32_t islog, int32_t riserf, double erfrad, double pixoffset)
 {
 	int32_t ix, iy, g, ginv;
 	double ixf, iyf, r, th, gx, gy;
@@ -426,7 +426,7 @@ void draw_polar_glow(framebuffer_t fb, double cx, double cy, lrgb_t col, double 
 }
 
 // TODO optimise using fixed point arithmetic and look-up tables
-void draw_gaussian_gradient(framebuffer_t fb, double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy, const blend_func_t bf)
+void draw_gaussian_gradient(double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy, const blend_func_t bf)
 {
 	int32_t ix, iy, p;
 	double gx, gy;
@@ -449,7 +449,7 @@ void draw_gaussian_gradient(framebuffer_t fb, double cx, double cy, lrgb_t c0, l
 	}
 }
 
-void draw_point_lrgb(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_point_lrgb(xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t iy, ix, fbi;
 	double grad;
@@ -490,7 +490,7 @@ void draw_point_lrgb(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, c
 	}
 }
 
-void draw_point_frgb(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_frgb(xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	int32_t iy, ix, fbi;
 	float ixf, iyf, p, bradius, ratio=intensity;
@@ -518,7 +518,7 @@ void draw_point_frgb(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, c
 	}
 }
 
-void draw_point_dq(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_dq(xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	double grad;
 	int32_t ix, iy;
@@ -541,7 +541,7 @@ void draw_point_dq(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, con
 	bb = rshift_recti(bb, fb.sector_size);
 
 	// store the drawing parameters in the main drawing queue
-	df = drawq_add_to_main_queue(fb, DQT_POINT_ADD);
+	df = drawq_add_to_main_queue(DQT_POINT_ADD);
 	if (df==NULL)
 		return;
 	df[0] = pos.x;
@@ -554,22 +554,22 @@ void draw_point_dq(framebuffer_t fb, xy_t pos, double radius, frgb_t colour, con
 	// go through the affected sectors
 	for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 		for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
-			drawq_add_sector_id(fb, iy*fb.sector_w + ix);	// add sector reference
+			drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 }
 
-void draw_point(framebuffer_t fb, xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_point_dq(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
+		draw_point_dq(pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else if (fb.r.use_frgb)
-		draw_point_frgb(fb, pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
+		draw_point_frgb(pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
-		draw_point_lrgb(fb, pos, radius, col_to_lrgb(colour), bf, intensity);
+		draw_point_lrgb(pos, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_point_on_row(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_point_on_row(xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int32_t ix, fbi, dp;
 	double grad = GAUSSRAD(intensity, radius);
@@ -604,11 +604,11 @@ void draw_point_on_row(framebuffer_t fb, xy_t pos, double radius, lrgb_t colour,
 	}
 }
 
-void draw_triangle_thin(framebuffer_t fb, triangle_t tr, double drawing_thickness, col_t col, const blend_func_t bf, double intensity)
+void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, const blend_func_t bf, double intensity)
 {
-	draw_line_thin(fb, tr.a, tr.c, drawing_thickness, col, bf, intensity);
-	draw_line_thin(fb, tr.a, tr.b, drawing_thickness, col, bf, intensity);
-	draw_line_thin(fb, tr.b, tr.c, drawing_thickness, col, bf, intensity);
+	draw_line_thin(tr.a, tr.c, drawing_thickness, col, bf, intensity);
+	draw_line_thin(tr.a, tr.b, drawing_thickness, col, bf, intensity);
+	draw_line_thin(tr.b, tr.c, drawing_thickness, col, bf, intensity);
 }
 
 void draw_mousecursor(xy_t pos)
@@ -622,10 +622,10 @@ void draw_mousecursor(xy_t pos)
 
 	if (mouse.window_focus_flag < 0 && mouse.mouse_focus_flag > 0)	// if the window is out of focus but mouse is over the window
 	{
-		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
-		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
-		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
-		draw_line_thin(fb, sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
 		return ;
 	}
 
@@ -636,9 +636,9 @@ void draw_mousecursor(xy_t pos)
 	tr.b = sc_xy(add_xy(pos, xy(0.*sc, -1.*sc)));
 	tr.c = sc_xy(add_xy(pos, xy(0.64*sc, -0.76837*sc)));
 
-	drawq_bracket_open(fb);
-	draw_triangle_thin(fb, triangle_dilate(tr, -1.), drawing_thickness, make_grey(0.), blend_alphablendfg, 2./3.);
-	drawq_bracket_close(fb, DQB_BLEND);
+	drawq_bracket_open();
+	draw_triangle_thin(triangle_dilate(tr, -1.), drawing_thickness, make_grey(0.), blend_alphablendfg, 2./3.);
+	drawq_bracket_close(DQB_BLEND);
 
-	draw_triangle_thin(fb, tr, drawing_thickness, col, cur_blend, 1.);
+	draw_triangle_thin(tr, drawing_thickness, col, cur_blend, 1.);
 }

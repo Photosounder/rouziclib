@@ -22,6 +22,6 @@ extern void textedit_clear_then_set_new_text(textedit_t *te, char *str);
 extern void textedit_add(textedit_t *te, char *str);
 extern void textedit_prev_next_logic(textedit_t *te);
 extern int ctrl_textedit(textedit_t *te, rect_t box, col_t colour);
-extern void draw_textedit_cursor(framebuffer_t fb, xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness);
+extern void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness);
 
 extern textedit_t *cur_textedit, *prev_textedit, *next_textedit;

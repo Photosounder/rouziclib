@@ -15,8 +15,8 @@ extern void free_mipmap_level(mipmap_level_t *ml);
 extern void free_mipmap(mipmap_t *m);
 extern void free_mipmap_array(mipmap_t *m, int count);
 extern void remove_mipmap_levels_above_dim(mipmap_t *m, xyi_t dim);
-extern void blit_mipmap(framebuffer_t *fb, mipmap_t m, xy_t pscale, xy_t pos, int interp);
-extern void blit_mipmap_in_rect(framebuffer_t *fb, mipmap_t m, rect_t r, int keep_aspect_ratio, int interp);
+extern void blit_mipmap(mipmap_t m, xy_t pscale, xy_t pos, int interp);
+extern void blit_mipmap_in_rect(mipmap_t m, rect_t r, int keep_aspect_ratio, int interp);
 extern int get_largest_mipmap_lvl_index(mipmap_t m);
 extern xyi_t get_largest_mipmap_lvl_dim(mipmap_t m);
 

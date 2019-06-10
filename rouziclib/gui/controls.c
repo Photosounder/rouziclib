@@ -50,19 +50,19 @@ int ctrl_button_chamf(uint8_t *name, rect_t box, col_t colour)
 
 	intensity *= intensity_scaling(total_scale, 48.);
 
-	draw_rect_chamfer(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.5*intensity, 1./12.);
+	draw_rect_chamfer(sc_rect(box), drawing_thickness, colour, cur_blend, 0.5*intensity, 1./12.);
 
 	if (butt_state.over && butt_state.down==0)
 	{
 		boxb = get_rect_centred_coord(box);
 		boxb.p1 = sub_xy(boxb.p1, set_xy(scale / 12.));
 		boxb = make_rect_centred(boxb.p0, boxb.p1);
-		draw_rect_chamfer(fb, sc_rect(boxb), drawing_thickness, colour, cur_blend, 0.5*intensity, 1./12.*9./12.);
+		draw_rect_chamfer(sc_rect(boxb), drawing_thickness, colour, cur_blend, 0.5*intensity, 1./12.*9./12.);
 	}
 
 	dim = get_rect_dim(box);
 	box = rect_add_margin(box, xy(MINN(-dim.x/10., -dim.y/6.), -dim.y/6.));
-	draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
 	return butt_state.uponce;
 }
@@ -81,19 +81,19 @@ int ctrl_checkbox(int *state, uint8_t *name, rect_t box, col_t colour)
 	intensity *= intensity_scaling(total_scale, 24.);
 
 	if (butt_state.over && butt_state.down==0)
-		draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
+		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
 
 	if (butt_state.uponce && state)
 		*state = (*state & 1) ^ 1;
 
 	box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
 	if (state)
-		draw_string_bestfit(fb, font, (*state==1) ? "\xE2\x98\x91" : (*state==0) ? "\xE2\x98\x90" : "\xF3\xB2\x98\x92", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_string_bestfit(font, (*state==1) ? "\xE2\x98\x91" : (*state==0) ? "\xE2\x98\x90" : "\xF3\xB2\x98\x92", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
 	else
-		draw_string_bestfit(fb, font, "\xE2\x98\x90", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_string_bestfit(font, "\xE2\x98\x90", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
 
 	box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
-	draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
 
 	return butt_state.uponce;
 }
@@ -112,13 +112,13 @@ int ctrl_checkbox_pin(int *state, rect_t box, col_t colour)
 	intensity *= intensity_scaling(total_scale, 24.);
 
 	if (butt_state.over && butt_state.down==0)
-		draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
+		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
 
 	if (butt_state.uponce && state)
 		*state = (*state & 1) ^ 1;
 
 	box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
-	draw_string_bestfit(fb, font, (*state) ? "\xE2\x98\x91\302\240\360\237\223\214" : "\xE2\x98\x90\302\240\360\237\223\214", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	draw_string_bestfit(font, (*state) ? "\xE2\x98\x91\302\240\360\237\223\214" : "\xE2\x98\x90\302\240\360\237\223\214", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
 
 	return butt_state.uponce;
 }
@@ -137,17 +137,17 @@ int ctrl_radio(int state, uint8_t *name, rect_t box, col_t colour)
 	intensity *= intensity_scaling(total_scale, 24.);
 
 	if (butt_state.over && butt_state.down==0)
-		draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
+		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
 
-	draw_circle(HOLLOWCIRCLE, fb, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 0.3*total_scale, drawing_thickness, colour, cur_blend, intensity);
+	draw_circle(HOLLOWCIRCLE, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 0.3*total_scale, drawing_thickness, colour, cur_blend, intensity);
 	if (state)
-		draw_circle(FULLCIRCLE, fb, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 7./12.*0.3*total_scale, drawing_thickness, colour, cur_blend, 1.);
+		draw_circle(FULLCIRCLE, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 7./12.*0.3*total_scale, drawing_thickness, colour, cur_blend, 1.);
 
 	if (name)
 	{
 		box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
 		box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
-		draw_string_bestfit(fb, font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
 	}
 
 	return butt_state.uponce;
@@ -186,14 +186,14 @@ int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 
 	intensity *= intensity_scaling(total_scale, 24.);
 
-	draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, intensity);
+	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, intensity);
 
 	state->hover_id = -1;
 	if (state->open)
 	{
 		open_box = selectmenu_rect(box, -state->count);
-		draw_black_rect(fb, sc_rect(open_box), drawing_thickness);
-		draw_rect(fb, sc_rect(open_box), drawing_thickness, colour, cur_blend, intensity);
+		draw_black_rect(sc_rect(open_box), drawing_thickness);
+		draw_rect(sc_rect(open_box), drawing_thickness, colour, cur_blend, intensity);
 
 		for (i=0; i < state->count; i++)
 		{
@@ -209,7 +209,7 @@ int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 			{
 				over_something = 1;
 				state->hover_id = i;
-				draw_rect_full(fb, sc_rect(entry_box), drawing_thickness, make_colour_hsl(220., 0.5, 0.08, HUEDEG, 0), cur_blend, 1.);
+				draw_rect_full(sc_rect(entry_box), drawing_thickness, make_colour_hsl(220., 0.5, 0.08, HUEDEG, 0), cur_blend, 1.);
 			}
 		}
 	}
@@ -304,7 +304,7 @@ double find_next_round_knob_value(double vo, knob_t knob, double t_step)
 		return 10.*dvexp;
 }
 
-int ctrl_knob_value_buttons(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
+int ctrl_knob_value_buttons(zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
 		double *v, knob_t knob, xy_t centre, double scale, col_t colour)
 {
 	int i, ret=0;
@@ -320,7 +320,7 @@ int ctrl_knob_value_buttons(framebuffer_t fb, zoom_t zc, mouse_t mouse, vector_f
 		if (t > 1.)
 			break;
 
-		if (ctrl_knob_value_button(fb, zc, mouse, font, drawing_thickness, v, t, vt, box_scale, centre, scale, colour))
+		if (ctrl_knob_value_button(zc, mouse, font, drawing_thickness, v, t, vt, box_scale, centre, scale, colour))
 			ret = 1;
 	}*/
 
@@ -450,7 +450,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	// show value buttons
 	/*if (total_scale > 96.)
-		if (ctrl_knob_value_buttons(fb, zc, mouse, font, drawing_thickness, &v, knob, centre, scale, colour))
+		if (ctrl_knob_value_buttons(zc, mouse, font, drawing_thickness, &v, knob, centre, scale, colour))
 			knob_state.uponce = 1;*/
 
 	// Draw knob
@@ -459,7 +459,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	// Draw value
 	sprintf(str, knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
 	if (knob->edit_open==0)
-		draw_string_bestfit(fb, font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 	else
 	{
 		ret = ctrl_textedit(&knob->edit, gui_layout_elem_comp_area_os(&layout, 10, XY0), colour);
@@ -475,10 +475,10 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	// Draw bottom label
 	//valbox = make_rect_centred(add_xy(centre, xy(0., -5./12.*scale)), xy(7./12.*scale, 0.25*scale));
-	draw_string_bestfit(fb, font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
 	// Draw arc circle
-	draw_circle_arc(fb, sc_xy(centre), set_xy(0.5*total_scale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
+	draw_circle_arc(sc_xy(centre), set_xy(0.5*total_scale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
 
 	if (knob->circular)
 		th = t * -2.*pi;
@@ -486,7 +486,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		th = (t * 0.75 - 0.375) * -2.*pi;
 	p0 = rotate_xy2(xy(0., 0.5*scale), th);
 	p1 = rotate_xy2(xy(0., 0.4*scale), th);
-	draw_line_thin(fb, sc_xy(add_xy(centre, p0)), sc_xy(add_xy(centre, p1)), drawing_thickness, colour, cur_blend, 2.*intensity);
+	draw_line_thin(sc_xy(add_xy(centre, p0)), sc_xy(add_xy(centre, p1)), drawing_thickness, colour, cur_blend, 2.*intensity);
 
 	if (v_orig)
 		*v_orig = v;
@@ -598,9 +598,9 @@ int ctrl_draggable_circle(xy_t *pos, double radius, int *sel_id, int cur_id, int
 		return 0;
 
 	if (butt_state.over)
-		draw_circle(FULLCIRCLE, fb, sc_xy(*pos), total_scale+drawing_thickness, drawing_thickness, colour, cur_blend, intensity);
+		draw_circle(FULLCIRCLE, sc_xy(*pos), total_scale+drawing_thickness, drawing_thickness, colour, cur_blend, intensity);
 	else
-		draw_circle(HOLLOWCIRCLE, fb, sc_xy(*pos), total_scale, drawing_thickness, colour, cur_blend, intensity);
+		draw_circle(HOLLOWCIRCLE, sc_xy(*pos), total_scale, drawing_thickness, colour, cur_blend, intensity);
 
 	return ret;
 }
@@ -619,14 +619,14 @@ int ctrl_draggable_circle(xy_t *pos, double radius, int *sel_id, int cur_id, int
 	hanc2.a = gaussian(ci->mouseout_time * 1.) * ONEF + 0.5;
 
 		if (hh2)
-			draw_circle(FULLCIRCLE, ci->fb, posx2, posy2, 5.8, aarad, hanc2, blend_blend, 1.);		// red dot full
+			draw_circle(FULLCIRCLE, posx2, posy2, 5.8, aarad, hanc2, blend_blend, 1.);		// red dot full
 		else
-			draw_circle(HOLLOWCIRCLE, ci->fb, posx2, posy2, 5., aarad, hanc2, blend_alphablendfg, 1.);	// red dot
+			draw_circle(HOLLOWCIRCLE, posx2, posy2, 5., aarad, hanc2, blend_alphablendfg, 1.);	// red dot
 
 		if (hh1)
-			draw_circle(FULLCIRCLE, ci->fb, posx1, posy1, 5.8, aarad, hanc1, blend_blend, 1.);		// blue handle dot full
+			draw_circle(FULLCIRCLE, posx1, posy1, 5.8, aarad, hanc1, blend_blend, 1.);		// blue handle dot full
 		else
-			draw_circle(HOLLOWCIRCLE, ci->fb, posx1, posy1, 5., aarad, hanc1, blend_alphablendfg, 1.);	// blue handle dot
+			draw_circle(HOLLOWCIRCLE, posx1, posy1, 5., aarad, hanc1, blend_alphablendfg, 1.);	// blue handle dot
 
 		if (ci->eqs[i].id==ci->selband)
 		{
@@ -638,14 +638,14 @@ int ctrl_draggable_circle(xy_t *pos, double radius, int *sel_id, int cur_id, int
 				diam = 0.*mix + 20.*(1.-mix);
 				//hanc3.a = pow(mix, 2.) * 255. + 0.5;
 				hanc3.a = pow(mix, 4.) * ONEF + 0.5;
-				draw_circle(HOLLOWCIRCLE, ci->fb, posx0, posy0, diam, aarad, hanc3, blend_alphablendfg, 1.);	// yellow-orange dot
+				draw_circle(HOLLOWCIRCLE, posx0, posy0, diam, aarad, hanc3, blend_alphablendfg, 1.);	// yellow-orange dot
 			}
 		}
 
 		if(hh0)
-			draw_circle(HOLLOWCIRCLE, ci->fb, posx0, posy0, 5., aarad, hanc0, blend_blend, 1.);	// yellow dot
+			draw_circle(HOLLOWCIRCLE, posx0, posy0, 5., aarad, hanc0, blend_blend, 1.);	// yellow dot
 		else
-			draw_circle(FULLCIRCLE, ci->fb, posx0, posy0, 5.8, aarad, hanc0, blend_blend, 1.);	// yellow dot
+			draw_circle(FULLCIRCLE, posx0, posy0, 5.8, aarad, hanc0, blend_blend, 1.);	// yellow dot
 }*/
 
 void update_ctrl_resizing_rect_positions(ctrl_resize_rect_t *state, rect_t box)
@@ -739,7 +739,7 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 	for (i=0; i < 9; i++)
 	{
 		cbox = make_rect_centred(state->drag[i].pos, i==0 ? dim : set_xy(cdim));
-		draw_rect(fb, sc_rect(cbox), drawing_thickness, GUI_COL_DEF, cur_blend, intensity);
+		draw_rect(sc_rect(cbox), drawing_thickness, GUI_COL_DEF, cur_blend, intensity);
 	}
 
 	return state->dragged + state->prev_dragged*2;	// signal when the dragging just stopped so the final sorting is taken into account

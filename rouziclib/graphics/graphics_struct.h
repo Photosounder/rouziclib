@@ -40,7 +40,6 @@ typedef struct
 	int as;			// alloc size in pixels
 	// TODO consider a flag to indicate that the host-side raster has been updated since the last copy to the device to trigger a new copy
 	
-	void *referencing_fb;		// used to access the framebuffer's device alloc table if *f is referenced there for removal when freeing the raster
 	int table_index;		// index in the cl_data allocation table
 } raster_t;
 
@@ -87,8 +86,6 @@ typedef struct
 	xyi_t maxdim;		// formerly max[wh]
 	int use_drawq;
 
-	void *self_ptr;		// pointer to itself in case some function needs it
-	
 	#ifdef RL_SDL
 	void *window;
 	void *renderer;
@@ -114,7 +111,7 @@ typedef struct
 	int sectors;		// number of subdivisions (and separate drawing queues) on the screen
 	int sector_size;	// size of the sectors in powers of two. sector_size==6 means 64x64 sized sectors
 	int sector_w;		// number of sectors per row (for instance rows of 30 64x64 sectors for 1920x1080)
-	int *entry_count;	// number of entries in the main queue
+	int entry_count;	// number of entries in the main queue
 
 	#ifdef RL_OPENCL
 	int first_frame_done;

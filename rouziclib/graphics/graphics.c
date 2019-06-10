@@ -193,7 +193,7 @@ void free_raster(raster_t *r)
 	while (ptr)
 	{
 		#ifdef RL_OPENCL
-		cl_data_table_remove_entry_by_host_ptr(r->referencing_fb, *ptr);	// remove reference from cl data table
+		cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table
 		#endif
 	
 		free_null(ptr);
@@ -211,7 +211,7 @@ void cl_unref_raster(raster_t *r)
 
 	ptr = get_raster_buffer_ptr(r);
 
-	cl_data_table_remove_entry_by_host_ptr(r->referencing_fb, *ptr);	// remove reference from cl data table
+	cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table
 	#endif
 }
 
@@ -237,20 +237,19 @@ void init_tls_fb(xyi_t dim)	// initalisation of thread-local fb and zc in fRGB m
 	fb.r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 	fb.r.use_frgb = 1;
 	fb.use_drawq = 0;
-	fb.self_ptr = &fb;
 
-	zc = init_zoom(&fb, &mouse, drawing_thickness);
+	zc = init_zoom(&mouse, drawing_thickness);
 	calc_screen_limits(&zc);
 }
 
-void enlarge_framebuffer(framebuffer_t *fb, xyi_t newdim)
+void enlarge_framebuffer(xyi_t newdim)
 {
-	if (fb->use_drawq==0)
-		alloc_enough(get_raster_buffer_ptr(&fb->r), mul_x_by_y_xyi(newdim), &fb->r.as, get_raster_mode_elem_size(get_raster_mode(fb->r)), 1.2);
+	if (fb.use_drawq==0)
+		alloc_enough(get_raster_buffer_ptr(&fb.r), mul_x_by_y_xyi(newdim), &fb.r.as, get_raster_mode_elem_size(get_raster_mode(fb.r)), 1.2);
 
-	fb->r.dim = newdim;
-	fb->w = fb->r.dim.x;
-	fb->h = fb->r.dim.y;
+	fb.r.dim = newdim;
+	fb.w = fb.r.dim.x;
+	fb.h = fb.r.dim.y;
 }
 
 double intensity_scaling(double scale, double scale_limit)	// gives an intensity ratio that decreases if the scale of the thing to be drawn is below a scale threshold
@@ -283,7 +282,7 @@ void thickness_limit(double *thickness, double *brightness, double limit)	// sam
 	}
 }
 
-void screen_blank(framebuffer_t fb)
+void screen_blank()
 {
 	if (fb.use_drawq)
 		return ;
@@ -293,44 +292,44 @@ void screen_blank(framebuffer_t fb)
 		memset (fb.r.l, 0, fb.w*fb.h*sizeof(lrgb_t));
 }
 
-void draw_gain(framebuffer_t fb, double gain)
+void draw_gain(double gain)
 {
-	float *df = drawq_add_to_main_queue(fb, DQT_GAIN);
+	float *df = drawq_add_to_main_queue(DQT_GAIN);
 	if (df==NULL)
 		return;
 	df[0] = gain;
 
-	drawq_add_sectors_for_already_set_sectors(fb);
+	drawq_add_sectors_for_already_set_sectors();
 }
 
-void draw_gain_parabolic(framebuffer_t fb, double gain)
+void draw_gain_parabolic(double gain)
 {
-	float *df = drawq_add_to_main_queue(fb, DQT_GAIN_PARAB);
+	float *df = drawq_add_to_main_queue(DQT_GAIN_PARAB);
 	if (df==NULL)
 		return;
 	df[0] = gain;
 
-	drawq_add_sectors_for_already_set_sectors(fb);
+	drawq_add_sectors_for_already_set_sectors();
 }
 
-void draw_luma_compression(framebuffer_t fb, double factor)
+void draw_luma_compression(double factor)
 {
-	float *df = drawq_add_to_main_queue(fb, DQT_LUMA_COMPRESS);
+	float *df = drawq_add_to_main_queue(DQT_LUMA_COMPRESS);
 	if (df==NULL)
 		return;
 	df[0] = factor;
 
-	drawq_add_sectors_for_already_set_sectors(fb);
+	drawq_add_sectors_for_already_set_sectors();
 }
 
-void draw_colour_matrix(framebuffer_t fb, double *matrix)
+void draw_colour_matrix(double *matrix)
 {
-	float *df = drawq_add_to_main_queue(fb, DQT_COL_MATRIX);
+	float *df = drawq_add_to_main_queue(DQT_COL_MATRIX);
 	if (df==NULL)
 		return;
 
 	for (int i=0; i < 9; i++)
 		df[i] = matrix[i];
 
-	drawq_add_sectors_for_already_set_sectors(fb);
+	drawq_add_sectors_for_already_set_sectors();
 }

@@ -344,7 +344,7 @@ SDL_GLContext init_sdl_gl(SDL_Window *window)
 	return ctx;
 }
 
-void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t dim, xyi_t pos, int flags)
+void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags)
 {
 	static int init=1;
 	SDL_DisplayMode dm;
@@ -360,87 +360,85 @@ void sdl_graphics_init_full(framebuffer_t *fb, const char *window_name, xyi_t di
 
 	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
 
-	fb->w = dim.x;
-	fb->h = dim.y;
+	fb.w = dim.x;
+	fb.h = dim.y;
 
-	fb->maxdim = sdl_screen_max_window_size();
+	fb.maxdim = sdl_screen_max_window_size();
 
-	fb->window = SDL_CreateWindow (	window_name,			// window title
-					-fb->maxdim.x-100,			// initial x position
+	fb.window = SDL_CreateWindow (	window_name,			// window title
+					-fb.maxdim.x-100,			// initial x position
 					SDL_WINDOWPOS_UNDEFINED,	// initial y position
-					fb->maxdim.x,			// width, in pixels
-					fb->maxdim.y,			// height, in pixels
+					fb.maxdim.x,			// width, in pixels
+					fb.maxdim.y,			// height, in pixels
 					SDL_WINDOW_OPENGL | flags);	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
-	if (fb->window==NULL)
+	if (fb.window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
 
-	if (fb->use_drawq)
+	if (fb.use_drawq)
 	{
 		#ifdef RL_OPENCL_GL
-		gl_ctx = init_sdl_gl(fb->window);
-		fb->renderer = SDL_CreateRenderer(fb->window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
-		if (fb->renderer==NULL)
+		gl_ctx = init_sdl_gl(fb.window);
+		fb.renderer = SDL_CreateRenderer(fb.window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
+		if (fb.renderer==NULL)
 			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
 		#endif
 	}
 	else
 	{
-		fb->renderer = SDL_CreateRenderer(fb->window, -1, SDL_RENDERER_PRESENTVSYNC);
-		if (fb->renderer==NULL)
+		fb.renderer = SDL_CreateRenderer(fb.window, -1, SDL_RENDERER_PRESENTVSYNC);
+		if (fb.renderer==NULL)
 			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
 
-		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
-		if (fb->texture==NULL)
+		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
+		if (fb.texture==NULL)
 			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
 	}
 	
-	fb->self_ptr = fb;
-
-	if (fb->use_drawq==0)
+	if (fb.use_drawq==0)
 	{
-		if (fb->r.use_frgb==0)
+		if (fb.r.use_frgb==0)
 			fmt_mode = IMAGE_USE_LRGB;
 		else
 			fmt_mode = IMAGE_USE_FRGB;
 
-		fb->r = make_raster(NULL, XYI0, fb->maxdim, fmt_mode);
-		// fb->r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
+		fb.r = make_raster(NULL, XYI0, fb.maxdim, fmt_mode);
+		// fb.r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
 	}
 
-	if (fb->use_drawq)
+	if (fb.use_drawq)
 	{
 		#ifdef RL_OPENCL_GL
-		init_fb_cl(fb);
+		init_fb_cl();
 		#endif
 
-		drawq_alloc(fb);
+		drawq_alloc();
 	}
 
-	SDL_SetWindowSize(fb->window, fb->w, fb->h);
-	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
+	SDL_SetWindowSize(fb.window, fb.w, fb.h);
+	SDL_GetWindowSize(fb.window, &fb.w, &fb.h);
 	#ifndef __APPLE__	// see https://bugzilla.libsdl.org/show_bug.cgi?id=4401
-	SDL_SetWindowPosition(fb->window, pos.x, pos.y);
+	SDL_SetWindowPosition(fb.window, pos.x, pos.y);
 	#endif
-	fb->r.dim = xyi(fb->w, fb->h);
+	fb.r.dim = xyi(fb.w, fb.h);
 
 	// focus flags, useless since SDL_WINDOW_INPUT_FOCUS is always on when it shouldn't be
 /*	mouse.mouse_focus_flag = 1;
 	mouse.window_focus_flag = 1;
 	mouse.window_minimised_flag = -1;
 
-	if ((SDL_GetWindowFlags(fb->window) & SDL_WINDOW_MOUSE_FOCUS)==0)
+	if ((SDL_GetWindowFlags(fb.window) & SDL_WINDOW_MOUSE_FOCUS)==0)
 		mouse.mouse_focus_flag = -1;
 
-	if ((SDL_GetWindowFlags(fb->window) & SDL_WINDOW_INPUT_FOCUS)==0)
+	if ((SDL_GetWindowFlags(fb.window) & SDL_WINDOW_INPUT_FOCUS)==0)
 		mouse.window_focus_flag = -1;
 
-	if (SDL_GetWindowFlags(fb->window) & SDL_WINDOW_MINIMIZED)
+	if (SDL_GetWindowFlags(fb.window) & SDL_WINDOW_MINIMIZED)
 		mouse.window_minimised_flag = 1;
 
 	fprintf_rl(stdout, "mouse %d focus %d minimised %d\n", mouse.mouse_focus_flag, mouse.window_focus_flag, mouse.window_minimised_flag);*/
 }
 
-void sdl_graphics_init_autosize(framebuffer_t *fb, const char *window_name, int flags, int window_index)
+void sdl_graphics_init_autosize(const char *window_name, int flags, int window_index)
 {
 	recti_t r;
 
@@ -450,32 +448,32 @@ void sdl_graphics_init_autosize(framebuffer_t *fb, const char *window_name, int 
 	r = sdl_get_display_usable_rect(window_index);
 	r = recti_add_margin(r, xyi(-8, -16));
 	r.p0.y += 14;
-	sdl_graphics_init_full(fb, window_name, get_recti_dim(r), r.p0, flags);	// initialise SDL as well as the framebuffer
+	sdl_graphics_init_full(window_name, get_recti_dim(r), r.p0, flags);	// initialise SDL as well as the framebuffer
 }
 
-int sdl_handle_window_resize(framebuffer_t *fb, zoom_t *zc)
+int sdl_handle_window_resize(zoom_t *zc)
 {
 	int w, h;
 
-	SDL_GetWindowSize(fb->window, &w, &h);
+	SDL_GetWindowSize(fb.window, &w, &h);
 	
-	if (fb->w == w && fb->h == h)
+	if (fb.w == w && fb.h == h)
 		return 0;
 
 	#ifdef RL_OPENCL_GL
-	clFinish(fb->clctx.command_queue);	// wait for end of queue
+	clFinish(fb.clctx.command_queue);	// wait for end of queue
 	#endif
 
-	fb->w = w;
-	fb->h = h;
-	fb->r.dim = xyi(fb->w, fb->h);
+	fb.w = w;
+	fb.h = h;
+	fb.r.dim = xyi(fb.w, fb.h);
 
-	if (fb->use_drawq==0)
+	if (fb.use_drawq==0)
 	{
-		SDL_DestroyTexture(fb->texture);
+		SDL_DestroyTexture(fb.texture);
 
-		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
-		if (fb->texture==NULL)
+		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
+		if (fb.texture==NULL)
 			printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
 	}
 
@@ -516,10 +514,10 @@ void sdl_flip_fb()
 #endif
 
 		if (mouse.window_minimised_flag <= 0)
-			drawq_run(&fb);
+			drawq_run();
 		else				// if the window is minimised just don't do any OpenCL/OpenGL stuff
 		{
-			drawq_reinit(&fb);
+			drawq_reinit();
 			SDL_Delay(80);		// there's no more vsync therefore the loop can easily run at 500+ FPS without the delay
 		}
 	}
@@ -530,7 +528,7 @@ void sdl_flip_fb()
 		SDL_Rect rs;
 		rs = make_sdl_rect(0, 0, fb.w, fb.h);
 		SDL_LockTexture(fb.texture, &rs, &fb.r.srgb, &pitch);
-		convert_linear_rgb_to_srgb(fb, DITHER);
+		convert_linear_rgb_to_srgb(DITHER);
 		SDL_UnlockTexture(fb.texture);
 		//SDL_UpdateTexture(fb.texture, NULL, fb.srgb, fb.w * 4);
 
@@ -538,7 +536,7 @@ void sdl_flip_fb()
 		SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 		SDL_RenderPresent(fb.renderer);
 
-		screen_blank(fb);
+		screen_blank();
 	}
 }
 
@@ -550,14 +548,14 @@ void sdl_flip_fb_srgb(srgb_t *sfb)
 	rs = make_sdl_rect(0, 0, fb.w, fb.h);
 	SDL_LockTexture(fb.texture, &rs, &fb.r.srgb, &pitch);
 	memcpy(fb.r.srgb, sfb, mul_x_by_y_xyi(fb.r.dim) * sizeof(srgb_t));
-	//convert_linear_rgb_to_srgb(fb, DITHER);
+	//convert_linear_rgb_to_srgb(DITHER);
 	SDL_UnlockTexture(fb.texture);
 
 	SDL_RenderClear(fb.renderer);
 	SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 	SDL_RenderPresent(fb.renderer);
 
-	screen_blank(fb);
+	screen_blank();
 }
 
 int sdl_toggle_borderless_fullscreen()
@@ -580,7 +578,7 @@ int sdl_toggle_borderless_fullscreen()
 		SDL_SetWindowBordered(fb.window, SDL_TRUE);
 	}
 
-	sdl_handle_window_resize(&fb, &zc);
+	sdl_handle_window_resize(&zc);
 
 	return fb.fullscreen_on;
 }

@@ -269,52 +269,52 @@ cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size)
 	return ret;
 }
 
-void init_framebuffer_cl(framebuffer_t *fb, const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
+void init_framebuffer_cl(const clctx_t *clctx)		// inits the linear CL buffer and copies the data from frgb
 {
 	cl_int ret;
 
-	if (fb->clctx.command_queue==NULL)
-		fb->clctx = *clctx;		// copy the original cl context
+	if (fb.clctx.command_queue==NULL)
+		fb.clctx = *clctx;		// copy the original cl context
 }
 
-void make_gl_tex(framebuffer_t *fb)
+void make_gl_tex()
 {
 	cl_int ret=0;
 	#ifdef RL_OPENCL_GL
 
 	// create an OpenGL 2D texture normally
 	glEnable(GL_TEXTURE_2D);
-	glGenTextures(1, &fb->gltex);						// generate the texture ID
-	glBindTexture(GL_TEXTURE_2D, fb->gltex);				// binding the texture
+	glGenTextures(1, &fb.gltex);						// generate the texture ID
+	glBindTexture(GL_TEXTURE_2D, fb.gltex);				// binding the texture
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	// regular sampler params
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);	// need to set GL_NEAREST
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0); 		// set the base and max mipmap levels
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fb->maxdim.x, fb->maxdim.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);		// specify texture dimensions, format etc
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fb.maxdim.x, fb.maxdim.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);		// specify texture dimensions, format etc
 
-	fb->cl_srgb = clCreateFromGLTexture(fb->clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb->gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
-	CL_ERR_NORET("clCreateFromGLTexture (in make_gl_tex, for fb->cl_srgb)", ret);
+	fb.cl_srgb = clCreateFromGLTexture(fb.clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb.gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
+	CL_ERR_NORET("clCreateFromGLTexture (in make_gl_tex, for fb.cl_srgb)", ret);
 	#endif
 }
 
-cl_int init_fb_cl(framebuffer_t *fb)
+cl_int init_fb_cl()
 {
 	cl_int ret;
 	
-	if (fb->clctx.command_queue)
+	if (fb.clctx.command_queue)
 	{
-		clReleaseMemObject(fb->data_cl);
-		deinit_clctx(&fb->clctx);
+		clReleaseMemObject(fb.data_cl);
+		deinit_clctx(&fb.clctx);
 	}
 
-	ret = init_cl_context(&fb->clctx, 1);
+	ret = init_cl_context(&fb.clctx, 1);
 	CL_ERR_RET("init_cl_context", ret);
 
-	make_gl_tex(fb);
+	make_gl_tex();
 
-	data_cl_alloc(fb, 1);
+	data_cl_alloc(1);
 
 	return ret;
 }

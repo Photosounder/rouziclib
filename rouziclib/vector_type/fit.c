@@ -159,7 +159,7 @@ double find_best_string_width(vector_font_t *font, uint8_t *string, word_stats_t
 	return thresh;		// happens only if the longest line is a single word
 }
 
-void draw_string_maxwidth(framebuffer_t fb, vector_font_t *font, uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp)
+void draw_string_maxwidth(vector_font_t *font, uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp)
 {
 	int i, iw, il, len, line_start=0, line_end=0, line_iw_start=0, line_iw_end=0, new_lw;
 	//const double space_width = letter_width(font, 0., ' ', 1., mode);
@@ -188,7 +188,7 @@ void draw_string_maxwidth(framebuffer_t fb, vector_font_t *font, uint8_t *string
 		line_start = ws.word_start[iw];
 		line_end = ws.word_end[line_iw_end];
 		len = 1 + line_end - line_start;
-		draw_string_len(fb, font, &string[line_start], p, scale, colour, intensity, line_thick, mode, len, tp);
+		draw_string_len(font, &string[line_start], p, scale, colour, intensity, line_thick, mode, len, tp);
 
 		iw = line_iw_end + 1;
 
@@ -196,7 +196,7 @@ void draw_string_maxwidth(framebuffer_t fb, vector_font_t *font, uint8_t *string
 	}
 }
 
-void draw_string_bestfit(framebuffer_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_bestfit(vector_font_t *font, uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
 	double thresh, box_thresh, scale_ratio;
@@ -226,12 +226,12 @@ void draw_string_bestfit(framebuffer_t fb, vector_font_t *font, uint8_t *string,
 		nlines = find_line_count_for_thresh(font, string, ws, mode, thresh, NULL);	// then the number of lines must be recounted
 	}
 
-	draw_string_maxwidth(fb, font, string, ws, box, scale*scale_ratio, colour, intensity, line_thick, mode, thresh, nlines, NULL);
+	draw_string_maxwidth(font, string, ws, box, scale*scale_ratio, colour, intensity, line_thick, mode, thresh, nlines, NULL);
 
 	free_word_stats(ws);
 }
 
-double draw_string_bestfit_asis(framebuffer_t fb, vector_font_t *font, uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+double draw_string_bestfit_asis(vector_font_t *font, uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	int nlines=0;
 	double maxwidth, maxscale;
@@ -254,17 +254,17 @@ double draw_string_bestfit_asis(framebuffer_t fb, vector_font_t *font, uint8_t *
 
 	//fitdim = mul_xy( set_xy(scale) , xy(maxwidth, nlines*LINEVSPACING) );
 	//fitrect = make_rect_off( box.p0, fitdim, XY0 );
-	//draw_rect_full(fb, fitrect, line_thick, colour, intensity);
+	//draw_rect_full(fitrect, line_thick, colour, intensity);
 
 	p = box.p0;
 	p.x += 2.*scale;
 	p.y += 8.*scale;
-	draw_string(fb, font, string, p, scale, colour, intensity, line_thick, mode, tp);
+	draw_string(font, string, p, scale, colour, intensity, line_thick, mode, tp);
 
 	return scale;
 }
 
-void draw_string_fixed_thresh(framebuffer_t fb, vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_fixed_thresh(vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
 	double scale_ratio=1.;
@@ -280,7 +280,7 @@ void draw_string_fixed_thresh(framebuffer_t fb, vector_font_t *font, uint8_t *st
 
 	nlines = find_line_count_for_thresh(font, string, ws, mode, thresh, NULL);	// then the number of lines must be recounted
 
-	draw_string_maxwidth(fb, font, string, ws, box, scale*scale_ratio, colour, intensity, line_thick, mode, thresh, nlines, tp);
+	draw_string_maxwidth(font, string, ws, box, scale*scale_ratio, colour, intensity, line_thick, mode, thresh, nlines, tp);
 
 	free_word_stats(ws);
 }

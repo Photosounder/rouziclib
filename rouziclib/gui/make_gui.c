@@ -710,15 +710,15 @@ void draw_rect_fromlayout_blending(const int type, const blend_func_t bf, gui_la
 	switch (type)
 	{
 		case 0:
-			draw_rect(fb, box_sc, drawing_thickness, cur_elem->colour, bf, intensity_scaling(rect_min_side(box_sc), 24.));
+			draw_rect(box_sc, drawing_thickness, cur_elem->colour, bf, intensity_scaling(rect_min_side(box_sc), 24.));
 			break;
 
 		case 1:
-			draw_rect_full(fb, box_sc, drawing_thickness, cur_elem->colour, bf, 1.);
+			draw_rect_full(box_sc, drawing_thickness, cur_elem->colour, bf, 1.);
 			break;
 
 		case 2:
-			draw_black_rect(fb, box_sc, drawing_thickness);
+			draw_black_rect(box_sc, drawing_thickness);
 			break;
 	}
 
@@ -813,7 +813,7 @@ int ctrl_textedit_fromlayout_in_rect(gui_layout_t *layout, const int id, rect_t 
 	cur_elem = &layout->elem[id];
 
 	ret = ctrl_textedit(cur_elem->data, box_os, cur_elem->colour);
-	draw_rect(fb, sc_rect(box_os), drawing_thickness, cur_elem->colour, cur_blend, 0.25 * intensity_scaling(rect_min_side(sc_rect(box_os)), 24.));	// FIXME maybe use te.rect_brightness instead?
+	draw_rect(sc_rect(box_os), drawing_thickness, cur_elem->colour, cur_blend, 0.25 * intensity_scaling(rect_min_side(sc_rect(box_os)), 24.));	// FIXME maybe use te.rect_brightness instead?
 
 	ctrl_fromlayout_resizing(layout, id, 2);
 	return ret;

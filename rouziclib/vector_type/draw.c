@@ -1,4 +1,4 @@
-int draw_vector_char(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
+int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
 	double fixoff, wc1, wc2;
@@ -25,13 +25,13 @@ int draw_vector_char(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, 
 		else
 			fixoff -= l->bl;
 
-		draw_vobj(fb, l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
+		draw_vobj(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
 	}
 
 	// Alias
 	if (found==0 && l)
 		if (l->alias)
-			found |= draw_vector_char(fb, font, l->alias, p, off, scale, colour, line_thick, mode, bidi);
+			found |= draw_vector_char(font, l->alias, p, off, scale, colour, line_thick, mode, bidi);
 
 	// Combo
 	if (found==0)
@@ -41,7 +41,7 @@ int draw_vector_char(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, 
 		{
 			wc1 = glyph_width(font, off.x, ucd.combo1, scale, mode);
 
-			found |= draw_vector_char(fb, font, ucd.combo1, p, off, scale, colour, line_thick, mode, bidi);
+			found |= draw_vector_char(font, ucd.combo1, p, off, scale, colour, line_thick, mode, bidi);
 
 			if (ucd.uccat == uccat_Ll)	// if character is lowercase
 			{
@@ -55,23 +55,23 @@ int draw_vector_char(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, 
 				off.x -= (wc1 - wc2) * 0.5;
 			else
 				off.x += (wc1 - wc2) * 0.5;
-			found |= draw_vector_char(fb, font, ucd.combo2, p, off, scale, colour, line_thick, mode, bidi);
+			found |= draw_vector_char(font, ucd.combo2, p, off, scale, colour, line_thick, mode, bidi);
 		}
 	}
 
 	// Upper case
 	if (found==0)
 		if (ucd.upper_map)
-			found |= draw_vector_char(fb, font, ucd.upper_map, p, off, scale*LOWERCASESCALE, colour, line_thick, mode, bidi);
+			found |= draw_vector_char(font, ucd.upper_map, p, off, scale*LOWERCASESCALE, colour, line_thick, mode, bidi);
 
 	// Decomposed CJK
 	if (found==0)
-		found |= draw_cjkdec_glyph(fb, font, c, add_xy(p, off), scale, colour, line_thick, mode);
+		found |= draw_cjkdec_glyph(font, c, add_xy(p, off), scale, colour, line_thick, mode);
 
 	return found;
 }
 
-int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t *off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
+int draw_vector_char_lookahead(vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t *off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
 	double fixoff, wc1, wc2;
@@ -94,7 +94,7 @@ int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c
 		//bidi1 = bidicat_direction(ucd1.bidicat);
 		wc1 = glyph_width(font, off->x, c, scale, mode);
 
-		draw_vector_char(fb, font, c, p, *off, scale, colour, line_thick, mode, bidi);
+		draw_vector_char(font, c, p, *off, scale, colour, line_thick, mode, bidi);
 
 		if (ucd1.uccat == uccat_Ll)	// if character is lowercase
 			scale_mod = LOWERCASESCALE;
@@ -137,7 +137,7 @@ int draw_vector_char_lookahead(framebuffer_t fb, vector_font_t *font, uint32_t c
 						noff.y -= offb * scale*scale_mod;
 				}
 
-				draw_vector_char(fb, font, cn, p, noff, scale*scale_mod, colour, line_thick, mode, bidi);
+				draw_vector_char(font, cn, p, noff, scale*scale_mod, colour, line_thick, mode, bidi);
 
 				if (ldom)
 				{
@@ -169,7 +169,7 @@ void check_closest_cursor(xy_t off, double scale, xy_t expected_pos, double *clo
 
 col_t text_sel_col={0};
 
-void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
+void cursor_processing(vector_font_t *font, char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
 {
 	static int32_t sel0=0, sel1=0, newline=0;
 	static xy_t p0, p1;
@@ -208,7 +208,7 @@ void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint
 
 			box.p0 = add_xy(p0, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
 			box.p1 = add_xy(p1, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), -8.*scale));
-		//	draw_rect_full(fb, box, line_thick, text_sel_col, 1.);
+		//	draw_rect_full(box, line_thick, text_sel_col, 1.);
 
 			if (c=='\n')
 				newline = 1;
@@ -223,13 +223,13 @@ void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint
 		wc1 = glyph_width(font, off.x, c, scale, mode);
 		box.p0 = add_xy(add_xy(p, off), xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
 		box.p1 = add_xy(box.p0, xy(wc1 * (bidi == -2 ? -1. : 1.), -10.*scale));
-		draw_rect_full(fb, box, line_thick, text_sel_col, cur_blend, 1.);
+		draw_rect_full(box, line_thick, text_sel_col, cur_blend, 1.);
 	}
 
 	if (cur_textedit->click_on==0 && is==curpos)		// if the cursor is on the current character
 	{
 		if (cur_textedit->read_only==0)
-			draw_textedit_cursor(fb, add_xy(p, off), scale, bidi, bidi_change, line_thick);
+			draw_textedit_cursor(add_xy(p, off), scale, bidi, bidi_change, line_thick);
 		cur_textedit->cur_screen_pos = div_xy(off, set_xy(scale));
 	}
 
@@ -247,7 +247,7 @@ void cursor_processing(framebuffer_t fb, vector_font_t *font, char *string, uint
 	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[2], isa, &cur_textedit->curpos_down);
 }
 
-void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
+void draw_string_full(vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
 {
 	uint32_t i, is, c, co;
 	double w=0., base_off=0.;
@@ -317,7 +317,7 @@ void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t 
 				curpos = &cur_textedit->string[cur_textedit->curpos] - string;
 
 				if (curpos==0 && cur_textedit->click_on==0 && recur==0 && len==0)	// draw cursor if the string is empty
-					draw_textedit_cursor(fb, add_xy(p, off), scale, bidi, bidi_change, line_thick);
+					draw_textedit_cursor(add_xy(p, off), scale, bidi, bidi_change, line_thick);
 
 				if (cur_textedit->click_on)
 				{
@@ -361,19 +361,19 @@ void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t 
 			if (drawline && recur==0)
 			if (c==' ' || c=='\t' || c=='\n')	// if c is whitespace char
 			if (equal_xy(off, off_ls)==0)
-				draw_line_thin(fb, add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
+				draw_line_thin(add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
 
 			c_bidi = bidicat_direction(ucd.bidicat);
 
 			bidi_change = (bidi!=-2 && c_bidi==-2) || (bidi==-2 && c_bidi>0);
 
 			if (use_textedit)
-				cursor_processing(fb, font, string, c, p, off, scale, expected_pos, is, curpos, recur, mode, bidi, bidi_change, line_thick, closest_deltapos);
+				cursor_processing(font, string, c, p, off, scale, expected_pos, is, curpos, recur, mode, bidi, bidi_change, line_thick, closest_deltapos);
 
 			if (bidi_change)
 			{
 				len_sec = find_len_bidi_section(&string[is], len-is, c_bidi);
-				draw_string_full(fb, font, &string[is], p, off, scale, colour, intensity, line_thick, mode, len_sec, glyph_limit, line_limit, c_bidi, recur+1, tp);
+				draw_string_full(font, &string[is], p, off, scale, colour, intensity, line_thick, mode, len_sec, glyph_limit, line_limit, c_bidi, recur+1, tp);
 				off.x += (calc_strwidth_len(font, &string[is], scale, mode, len_sec) + LETTERSPACING * scale) * (bidi == -2 ? -1. : 1.);
 				is += len_sec;
 				i = is-1;
@@ -387,13 +387,13 @@ void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t 
 
 				default:
 					if (drawline==0)
-						i += draw_vector_char_lookahead(fb, font, c, &string[i+1], p, &off, scale, colm, line_thick, mode, bidi);
+						i += draw_vector_char_lookahead(font, c, &string[i+1], p, &off, scale, colm, line_thick, mode, bidi);
 
 					off.x += letter_width(font, off.x, c, scale, mode) * (bidi == -2 ? -1. : 1.);
 			}
 
 			if (use_textedit && i+1==len)	// if we're reaching the end of the string
-				cursor_processing(fb, font, string, 0, p, off, scale, expected_pos, i+1, curpos, recur, mode, bidi, bidi_change, line_thick, closest_deltapos);
+				cursor_processing(font, string, 0, p, off, scale, expected_pos, i+1, curpos, recur, mode, bidi, bidi_change, line_thick, closest_deltapos);
 
 			if (drawline)
 			if (c==' ' || c=='\t' || c=='\n')	// if c is whitespace char
@@ -403,17 +403,17 @@ void draw_string_full(framebuffer_t fb, vector_font_t *font, char *string, xy_t 
 
 	if (drawline && recur==0)
 	if (equal_xy(off, off_ls)==0)
-		draw_line_thin(fb, add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
+		draw_line_thin(add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
 }
 
-void draw_string_len(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)
+void draw_string_len(vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)
 {
-	draw_string_full(fb, font, string, p, XY0, scale, colour, intensity, line_thick, mode, len, 0.2, 0.01, 2, 0, tp);
+	draw_string_full(font, string, p, XY0, scale, colour, intensity, line_thick, mode, len, 0.2, 0.01, 2, 0, tp);
 }
 
-void draw_string(framebuffer_t fb, vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string(vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
-	draw_string_len(fb, font, string, p, scale, colour, intensity, line_thick, mode, -1, tp);
+	draw_string_len(font, string, p, scale, colour, intensity, line_thick, mode, -1, tp);
 }
 
 void print_to_screen(xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, const char *format, ...)
@@ -426,5 +426,5 @@ void print_to_screen(xy_t pos, double scale, col_t colour, double intensity, con
 	vsprintf (string, format, args);		// print new text to a
 	va_end (args);
 
-	draw_string(fb, font, string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, mode, NULL);
+	draw_string(font, string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, mode, NULL);
 }

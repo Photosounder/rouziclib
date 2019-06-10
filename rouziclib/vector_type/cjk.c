@@ -59,7 +59,7 @@ int is_cjkdec_glyph(vector_font_t *font, uint32_t c)
 	return 0;
 }
 
-int draw_cjkdec_glyph(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p, double scale, col_t colour, double line_thick, const int mode)
+int draw_cjkdec_glyph(vector_font_t *font, uint32_t c, xy_t p, double scale, col_t colour, double line_thick, const int mode)
 {
 	rect_t area;
 
@@ -67,7 +67,7 @@ int draw_cjkdec_glyph(framebuffer_t fb, vector_font_t *font, uint32_t c, xy_t p,
 		return 0;
 
 	area = make_rect_off(p, set_xy(6.*scale), xy(0., 1.));
-	draw_rect_full(fb, area, line_thick, make_grey(0.01), cur_blend, 1.);
+	draw_rect_full(area, line_thick, make_grey(0.01), cur_blend, 1.);
 
 	return 1;
 }

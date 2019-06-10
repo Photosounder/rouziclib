@@ -109,13 +109,13 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, gui_layout_t *la
 
 	// Drawing
 	if (w->shadow_strength)
-		draw_rect_full(fb, sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), make_grey(0.), blend_alphablend, w->shadow_strength);	// shadow FIXME doesn't work in CL mode
-	draw_black_rect(fb, sc_rect(area_os), drawing_thickness);					// black out the background
-	draw_rect_full(fb, sc_rect(diag_area), drawing_thickness, w->bg_col, blend_add, 1.);		// diag rectangle
-	draw_rect_full(fb, sc_rect(bar_area_os), drawing_thickness, w->bar_col, blend_add, 1.);		// title bar rectangle
+		draw_rect_full(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), make_grey(0.), blend_alphablend, w->shadow_strength);	// shadow FIXME doesn't work in CL mode
+	draw_black_rect(sc_rect(area_os), drawing_thickness);					// black out the background
+	draw_rect_full(sc_rect(diag_area), drawing_thickness, w->bg_col, blend_add, 1.);		// diag rectangle
+	draw_rect_full(sc_rect(bar_area_os), drawing_thickness, w->bar_col, blend_add, 1.);		// title bar rectangle
 
 	if (close_butt_state.over)
-		draw_rect_full(fb, sc_rect(close_area), drawing_thickness, close_butt_state.down ? w->close_down_col : w->close_hover_col, blend_add, 1.);	// close button hover rect
+		draw_rect_full(sc_rect(close_area), drawing_thickness, close_butt_state.down ? w->close_down_col : w->close_hover_col, blend_add, 1.);	// close button hover rect
 
 	// Pin control
 	if (w->hide_pin==0)
@@ -139,9 +139,9 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, gui_layout_t *la
 		int hover = check_point_within_box(mouse.u, corner_area_os) || w->corner_drag.down;
 
 		corner_area_os = get_subdiv_area(corner_area_os, set_xy(8./12.), set_xy(0.5));
-		draw_line_thin(fb, sc_xy(corner_area_os.p0), sc_xy(corner_area_os.p1), drawing_thickness, GUI_COL_DEF, cur_blend, hover ? 0.5 : 0.25);
+		draw_line_thin(sc_xy(corner_area_os.p0), sc_xy(corner_area_os.p1), drawing_thickness, GUI_COL_DEF, cur_blend, hover ? 0.5 : 0.25);
 		corner_area_os = get_subdiv_area(corner_area_os, set_xy(6./12.), xy(1., 0.));
-		draw_line_thin(fb, sc_xy(corner_area_os.p0), sc_xy(corner_area_os.p1), drawing_thickness, GUI_COL_DEF, cur_blend, hover ? 0.5 : 0.25);
+		draw_line_thin(sc_xy(corner_area_os.p0), sc_xy(corner_area_os.p1), drawing_thickness, GUI_COL_DEF, cur_blend, hover ? 0.5 : 0.25);
 	}
 
 	ctrl_fromlayout_resizing(layout, id, 2);

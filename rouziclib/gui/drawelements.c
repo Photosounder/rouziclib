@@ -1,4 +1,4 @@
-void draw_titled_roundrect_frame(framebuffer_t fb, xy_t pos, double radius, xy_t c, xy_t space, lrgb_t colour, const blend_func_t bf)
+void draw_titled_roundrect_frame(xy_t pos, double radius, xy_t c, xy_t space, lrgb_t colour, const blend_func_t bf)
 {
 	xy_t fr;
 
@@ -7,7 +7,7 @@ void draw_titled_roundrect_frame(framebuffer_t fb, xy_t pos, double radius, xy_t
 	pos.x -= 0.5*fr.x + 0.5;
 	pos.y -= 0.5*fr.y + 3.5;
 
-	draw_roundrect_frame(fb,
+	draw_roundrect_frame(
 			rect( pos, xy(pos.x+fr.x + c.x*space.x, pos.y+fr.y + c.y*space.y) ),
 			rect( xy(pos.x+1., pos.y+17.5), xy(pos.x+fr.x-1. + c.x*space.x, pos.y+fr.y-1. + c.y*space.y)),
 			9., 8., radius, colour, bf, 1.);
@@ -25,7 +25,7 @@ void draw_label(uint8_t *label, rect_t box, col_t colour, const int mode)
 	//box.p0.x += 2.*scale/LINEVSPACING;
 	//box.p1.x -= 2.*scale/LINEVSPACING;
 
-	draw_string_bestfit(fb, font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
+	draw_string_bestfit(font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
 }
 
 void display_dialog_enclosing_frame(rect_t box_os, double scale, char *label, col_t colour)
@@ -35,11 +35,11 @@ void display_dialog_enclosing_frame(rect_t box_os, double scale, char *label, co
 
 	intensity = intensity_scaling(rect_max_side(box_os), 32.);
 
-	draw_rect(fb, box_os, drawing_thickness, colour, cur_blend, intensity);
+	draw_rect(box_os, drawing_thickness, colour, cur_blend, intensity);
 
 	label_box = rect_size_mul(box_os, set_xy(1. - 16./144.));
 
-	draw_string_bestfit(fb, font, label, label_box, 0., 1e30, colour, intensity * (0.5+0.5*erf((0.75-scale)*6.)), drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, label, label_box, 0., 1e30, colour, intensity * (0.5+0.5*erf((0.75-scale)*6.)), drawing_thickness, ALIG_CENTRE, NULL);
 }
 
 void draw_unit_grid_level(xy_t offset, double sm, double scale, col_t colour)
@@ -72,10 +72,10 @@ void draw_unit_grid_level(xy_t offset, double sm, double scale, col_t colour)
 	end = zc.corners_dl.p1;
 
 	for (p=start.x; p<=end.x; p+=sm*scale)
-		draw_line_thin(fb, sc_xy(xy(p, zc.corners_dl.p0.y)), sc_xy(xy(p, zc.corners_dl.p1.y)), drawing_thickness, colour, cur_blend, bright);
+		draw_line_thin(sc_xy(xy(p, zc.corners_dl.p0.y)), sc_xy(xy(p, zc.corners_dl.p1.y)), drawing_thickness, colour, cur_blend, bright);
 
 	for (p=start.y; p<=end.y; p+=sm*scale)
-		draw_line_thin(fb, sc_xy(xy(zc.corners_dl.p0.x, p)), sc_xy(xy(zc.corners_dl.p1.x, p)), drawing_thickness, colour, cur_blend, bright);
+		draw_line_thin(sc_xy(xy(zc.corners_dl.p0.x, p)), sc_xy(xy(zc.corners_dl.p1.x, p)), drawing_thickness, colour, cur_blend, bright);
 }
 
 void draw_unit_grid_col(xy_t offset, double sm, col_t colour)
@@ -94,8 +94,8 @@ void draw_rangebox(rect_t box, const char *label, col_t colour)
 		return ;
 
 	const double bg_intensity = 2./144.;
-	draw_rect_full(fb, sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
-	draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, 0.5 - bg_intensity*0.5);
+	draw_rect_full(sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
+	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.5 - bg_intensity*0.5);
 
-	draw_string_bestfit(fb, font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, 1. - bg_intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, 1. - bg_intensity, drawing_thickness, ALIG_CENTRE, NULL);
 }

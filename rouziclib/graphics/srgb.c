@@ -189,7 +189,7 @@ lut_t bytecheck_lut_init(int border)
 	return bytecheck_l;
 }
 
-void convert_lrgb_to_srgb(framebuffer_t fb, int mode)
+void convert_lrgb_to_srgb(int mode)
 {
 	int32_t i, id, stop, dither;
 	uint32_t dith_on;
@@ -254,7 +254,7 @@ void convert_lrgb_to_srgb(framebuffer_t fb, int mode)
 	}
 }
 
-void convert_frgb_to_srgb(framebuffer_t fb, int mode)
+void convert_frgb_to_srgb(int mode)
 {
 	int32_t i, id, stop, dither;
 	uint32_t dith_on;
@@ -319,7 +319,7 @@ void convert_frgb_to_srgb(framebuffer_t fb, int mode)
 	}
 }
 
-void blit_lrgb_on_srgb(framebuffer_t fb, srgb_t *srgb0, srgb_t *srgb1)
+void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 {
 	int32_t i;
 	lrgb_t p, l0;
@@ -361,17 +361,17 @@ void blit_lrgb_on_srgb(framebuffer_t fb, srgb_t *srgb0, srgb_t *srgb1)
 	}
 }
 
-void convert_linear_rgb_to_srgb(framebuffer_t fb, int mode)
+void convert_linear_rgb_to_srgb(int mode)
 {
 	if (fb.use_drawq)
 		return ;
 	else if (fb.r.use_frgb)
-		convert_frgb_to_srgb(fb, mode);
+		convert_frgb_to_srgb(mode);
 	else
-		convert_lrgb_to_srgb(fb, mode);
+		convert_lrgb_to_srgb(mode);
 }
 
-void convert_srgb_to_lrgb(framebuffer_t fb)
+void convert_srgb_to_lrgb()
 {
 	int32_t i;
 	static int init=1;
@@ -393,19 +393,19 @@ void convert_srgb_to_lrgb(framebuffer_t fb)
 	}
 }
 
-void convert_frgb_to_lrgb(framebuffer_t *fb)
+void convert_frgb_to_lrgb()
 {
-	int32_t i, pixc = fb->w*fb->h*4;
+	int32_t i, pixc = fb.w*fb.h*4;
 	const float offset = (float) (1UL << 23-LBD);		// 23 (mantissa) - 15 (fractional bits of the result) = 8 (offset)
 	float *pf, v;
 	uint16_t *pl;
 	uint32_t *vint = (uint32_t *) &v;
 
-	if (fb->r.l==NULL)
-		fb->r.l = calloc (fb->w*fb->h, sizeof(lrgb_t));
+	if (fb.r.l==NULL)
+		fb.r.l = calloc (fb.w*fb.h, sizeof(lrgb_t));
 
-	pf = (float *) fb->r.f;
-	pl = (uint16_t *) fb->r.l;
+	pf = (float *) fb.r.f;
+	pl = (uint16_t *) fb.r.l;
 
 	for (i=0; i<pixc; i++)
 	{
@@ -414,19 +414,19 @@ void convert_frgb_to_lrgb(framebuffer_t *fb)
 	}
 }
 
-void convert_frgb_to_lrgb_ratio(framebuffer_t *fb, const float ratio)
+void convert_frgb_to_lrgb_ratio(const float ratio)
 {
-	int32_t i, pixc = fb->w*fb->h*4;
+	int32_t i, pixc = fb.w*fb.h*4;
 	const float offset = (float) (1UL << 23-LBD);		// 23 (mantissa) - 15 (fractional bits of the result) = 8 (offset)
 	float *pf, v;
 	uint16_t *pl;
 	uint32_t *vint = (uint32_t *) &v;
 
-	if (fb->r.l==NULL)
-		fb->r.l = calloc (fb->w*fb->h, sizeof(lrgb_t));
+	if (fb.r.l==NULL)
+		fb.r.l = calloc (fb.w*fb.h, sizeof(lrgb_t));
 
-	pf = (float *) fb->r.f;
-	pl = (uint16_t *) fb->r.l;
+	pf = (float *) fb.r.f;
+	pl = (uint16_t *) fb.r.l;
 
 	for (i=0; i<pixc; i++)
 	{

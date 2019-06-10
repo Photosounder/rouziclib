@@ -311,7 +311,7 @@ void remove_mipmap_levels_above_dim(mipmap_t *m, xyi_t dim)
 		}
 }
 
-void blit_mipmap(framebuffer_t *fb, mipmap_t m, xy_t pscale, xy_t pos, int interp)
+void blit_mipmap(mipmap_t m, xy_t pscale, xy_t pos, int interp)
 {
 	int i;
 	xyi_t it;
@@ -331,10 +331,10 @@ void blit_mipmap(framebuffer_t *fb, mipmap_t m, xy_t pscale, xy_t pos, int inter
 
 	for (it.y=0; it.y < ml->tilecount.y; it.y++)
 		for (it.x=0; it.x < ml->tilecount.x; it.x++)
-			blit_scale(fb, &ml->r[it.y*ml->tilecount.x + it.x], ml_scale, add_xy(pos, mul_xy(ml_scale, xyi_to_xy(mul_xyi(it, ml->tiledim)))), interp);
+			blit_scale(&ml->r[it.y*ml->tilecount.x + it.x], ml_scale, add_xy(pos, mul_xy(ml_scale, xyi_to_xy(mul_xyi(it, ml->tiledim)))), interp);
 }
 
-void blit_mipmap_in_rect(framebuffer_t *fb, mipmap_t m, rect_t r, int keep_aspect_ratio, int interp)
+void blit_mipmap_in_rect(mipmap_t m, rect_t r, int keep_aspect_ratio, int interp)
 {
 	xy_t pscale, pos;
 	rect_t image_frame = r;
@@ -348,7 +348,7 @@ void blit_mipmap_in_rect(framebuffer_t *fb, mipmap_t m, rect_t r, int keep_aspec
 	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(m.fulldim));
 	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
-	blit_mipmap(fb, m, pscale, pos, interp);
+	blit_mipmap(m, pscale, pos, interp);
 }
 
 int get_largest_mipmap_lvl_index(mipmap_t m)

@@ -72,7 +72,7 @@ int ctrl_polyline(polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
 	}
 
 	for (i=0; i < pl->line_count; i++)
-		draw_line_thin(fb, sc_xy(offset_scale(pl->pv[pl->line[i].x], offset, sm)), sc_xy(offset_scale(pl->pv[pl->line[i].y], offset, sm)), drawing_thickness, GUI_COL_DEF, cur_blend, 1.);
+		draw_line_thin(sc_xy(offset_scale(pl->pv[pl->line[i].x], offset, sm)), sc_xy(offset_scale(pl->pv[pl->line[i].y], offset, sm)), drawing_thickness, GUI_COL_DEF, cur_blend, 1.);
 
 	return 0;
 }

@@ -461,13 +461,13 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	//**** Draw ****
 	intensity *= intensity_scaling(total_scale, 24.);
 
-	draw_string_bestfit_asis(fb, font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
-	//draw_string_bestfit(fb, font, te->string, sc_rect(box), 0., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
-	//draw_string_fixed_thresh(fb, font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
+	draw_string_bestfit_asis(font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
+	//draw_string_bestfit(font, te->string, sc_rect(box), 0., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
+	//draw_string_fixed_thresh(font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
 
 	// Rectangle frame drawing
 	if (te->rect_brightness > 0.)
-		draw_rect(fb, sc_rect(box), drawing_thickness, colour, cur_blend, intensity * te->rect_brightness);
+		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, intensity * te->rect_brightness);
 	//---- Draw ----
 
 	// Selection (te->curpos is set by the draw_string_* function)
@@ -492,7 +492,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	return ret;			// returns 1 if Enter used, 2 if clicked out, 3 if Tab used, 4 if probably modified
 }
 
-void draw_textedit_cursor(framebuffer_t fb, xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness)
+void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness)
 {
 	static uint32_t t0=0;
 	double frame_s;
@@ -521,6 +521,6 @@ void draw_textedit_cursor(framebuffer_t fb, xy_t offset, double scale, int bidi,
 
 	p0 = pd;
 	p1 = add_xy(pd, xy(0., 3.));
-	draw_line_thin(fb, offset_scale(p0, offset, scale), offset_scale(p1, offset, scale), drawing_thickness, col, cur_blend, 1.);
-	draw_line_thin(fb, offset_scale(neg_y(p0), offset, scale), offset_scale(neg_y(p1), offset, scale), drawing_thickness, col, cur_blend, 1.);
+	draw_line_thin(offset_scale(p0, offset, scale), offset_scale(p1, offset, scale), drawing_thickness, col, cur_blend, 1.);
+	draw_line_thin(offset_scale(neg_y(p0), offset, scale), offset_scale(neg_y(p1), offset, scale), drawing_thickness, col, cur_blend, 1.);
 }

@@ -18,7 +18,7 @@ int sprite_offsets_old(int32_t fbw, int32_t fbh, int32_t spw, int32_t sph, int32
 	return 0;
 }
 
-int sprite_offsets(framebuffer_t fb, raster_t r, xyi_t *pos, xyi_t *offset, xyi_t *start, xyi_t *stop, int hmode, int vmode)
+int sprite_offsets(raster_t r, xyi_t *pos, xyi_t *offset, xyi_t *start, xyi_t *stop, int hmode, int vmode)
 {
 	if (hmode==A_CEN)	pos->x -= (r.dim.x>>1);
 	if (hmode==A_RIG)	pos->x -= (r.dim.x-1);
@@ -48,13 +48,13 @@ int calc_blit_bounds(xyi_t in_dim, xyi_t out_dim, xyi_t offset, recti_t *bounds)
 }
 
 #include <string.h>	// for memcpy
-void blit_sprite(framebuffer_t fb, raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vmode)
+void blit_sprite(raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vmode)
 {
 	int32_t iy_r0, iy_r1;
 	int32_t ix, iy;
 	xyi_t offset, start, stop;
 
-	if (sprite_offsets(fb, r, &pos, &offset, &start, &stop, hmode, vmode))
+	if (sprite_offsets(r, &pos, &offset, &start, &stop, hmode, vmode))
 		return ;
 
 	if (bf==blend_solid)	// if the sprite is opaque then it can be blitted whole lines at a time
@@ -80,7 +80,7 @@ void blit_sprite(framebuffer_t fb, raster_t r, xyi_t pos, const blend_func_t bf,
 	}
 }
 
-void blit_layout(framebuffer_t fb, raster_t r)
+void blit_layout(raster_t r)
 {
 	int32_t i, wh;
 	lrgb_t *p;
@@ -164,7 +164,7 @@ double calc_flattop_slope(double n)
 	return slope;
 }
 
-void blit_scale_nearest(framebuffer_t fb, raster_t r, xy_t pos, xy_t ipscale, xyi_t start, xyi_t stop)
+void blit_scale_nearest(raster_t r, xy_t pos, xy_t ipscale, xyi_t start, xyi_t stop)
 {
 	int32_t ix, iy, biyw;
 	static int32_t lastw=0, *xluti=NULL;
@@ -193,7 +193,7 @@ void blit_scale_nearest(framebuffer_t fb, raster_t r, xy_t pos, xy_t ipscale, xy
 	}
 }
 
-void blit_scale_lrgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp)
+void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 {
 	int32_t i, ic, iy, ix, jx, jy;
 	xyi_t start, stop, jstart, jstop;
@@ -247,7 +247,7 @@ void blit_scale_lrgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int in
 
 	if (nsx*nsy == 1)		// if unfiltered nearest neighbour (only 1 pixel in -> 1 pixel out)
 	{
-		blit_scale_nearest(fb, r, pos, ipscale, start, stop);
+		blit_scale_nearest(r, pos, ipscale, start, stop);
 	}
 	else
 	{
@@ -297,7 +297,7 @@ void blit_scale_lrgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int in
 	}
 }
 
-void blit_scale_frgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int interp)
+void blit_scale_frgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 {
 	if (r.f==NULL || fb.r.f==NULL)
 		return ;
@@ -305,7 +305,7 @@ void blit_scale_frgb(framebuffer_t fb, raster_t r, xy_t pscale, xy_t pos, int in
 	blit_scale_float(fb.r.f, fb.r.dim, r.f, r.dim, 4, pscale, pos, get_pixel_address_contig);
 }
 
-void blit_scale_dq(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp)
+void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
 	int ix, iy;
 	int32_t *di;
@@ -320,17 +320,16 @@ void blit_scale_dq(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int in
 
 	rad = max_xy(set_xy(1.), pscale);	// for interp == LINEAR_INTERP where the radius is 1 * pscale
 
-	if (drawq_get_bounding_box(*fb, make_rect_off(pos, mul_xy( xyi_to_xy(sub_xyi(r->dim, xyi(1, 1))) , pscale ), XY0), rad, &bbi)==0)
+	if (drawq_get_bounding_box(make_rect_off(pos, mul_xy( xyi_to_xy(sub_xyi(r->dim, xyi(1, 1))) , pscale ), XY0), rad, &bbi)==0)
 		return ;
 
 	//if (pscale.x < 1. || pscale.y < 1.)
 		flattop = 1;
 
-	dqbuf_da = cl_add_raster_to_data_table(fb, r);
-	r->referencing_fb = fb;
+	dqbuf_da = cl_add_raster_to_data_table(r);
 
 	// store the drawing parameters in the main drawing queue
-	df = di = drawq_add_to_main_queue(*fb, flattop ? DQT_BLIT_FLATTOP : DQT_BLIT_BILINEAR);
+	df = di = drawq_add_to_main_queue(flattop ? DQT_BLIT_FLATTOP : DQT_BLIT_BILINEAR);
 	di[0] = dqbuf_da;
 	di[1] = dqbuf_da >> 32;
 	di[2] = r->dim.x;
@@ -353,20 +352,20 @@ void blit_scale_dq(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int in
 	// go through the affected sectors
 	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
 		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
-			drawq_add_sector_id(*fb, iy*fb->sector_w + ix);	// add sector reference
+			drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 }
 
-void blit_scale(framebuffer_t *fb, raster_t *r, xy_t pscale, xy_t pos, int interp)
+void blit_scale(raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
-	if (fb->use_drawq)
-		blit_scale_dq(fb, r, pscale, pos, interp);
-	else if (fb->r.use_frgb==0)
-		blit_scale_lrgb(*fb, *r, pscale, pos, interp);
+	if (fb.use_drawq)
+		blit_scale_dq(r, pscale, pos, interp);
+	else if (fb.r.use_frgb==0)
+		blit_scale_lrgb(*r, pscale, pos, interp);
 	else
-		blit_scale_frgb(*fb, *r, pscale, pos, interp);
+		blit_scale_frgb(*r, pscale, pos, interp);
 }
 
-void blit_in_rect(framebuffer_t *fb, raster_t *raster, rect_t r, int keep_aspect_ratio, int interp)
+void blit_in_rect(raster_t *raster, rect_t r, int keep_aspect_ratio, int interp)
 {
 	xy_t pscale, pos;
 	rect_t image_frame = r;
@@ -377,5 +376,5 @@ void blit_in_rect(framebuffer_t *fb, raster_t *raster, rect_t r, int keep_aspect
 	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(raster->dim));
 	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
-	blit_scale(fb, raster, pscale, pos, interp);
+	blit_scale(raster, pscale, pos, interp);
 }

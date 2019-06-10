@@ -1,4 +1,4 @@
-void draw_rect_full_dq(framebuffer_t fb, rect_t box, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
 {
 	float *df;
 	double grad;
@@ -11,7 +11,7 @@ void draw_rect_full_dq(framebuffer_t fb, rect_t box, double radius, frgb_t colou
 	
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 
-	if (drawq_get_bounding_box(fb, box, set_xy(grad), &bbi)==0)
+	if (drawq_get_bounding_box(box, set_xy(grad), &bbi)==0)
 			return ;
 
 	box = sort_rect(box);
@@ -33,7 +33,7 @@ void draw_rect_full_dq(framebuffer_t fb, rect_t box, double radius, frgb_t colou
 	colour.b *= intensity;
 
 	// store the drawing parameters in the main drawing queue
-	df = drawq_add_to_main_queue(fb, DQT_RECT_FULL);
+	df = drawq_add_to_main_queue(DQT_RECT_FULL);
 	df[0] = box.p0.x;
 	df[1] = box.p0.y;
 	df[2] = box.p1.x;
@@ -47,14 +47,14 @@ void draw_rect_full_dq(framebuffer_t fb, rect_t box, double radius, frgb_t colou
 	for (ip.y=bbi.p0.y; ip.y<=bbi.p1.y; ip.y++)
 		for (ip.x=bbi.p0.x; ip.x<=bbi.p1.x; ip.x++)
 			if (check_point_within_box_int(ip, fri)!=1)			// if we're not inside the plain fill area
-				drawq_add_sector_id(fb, ip.y*fb.sector_w + ip.x);	// add sector reference
+				drawq_add_sector_id(ip.y*fb.sector_w + ip.x);	// add sector reference
 
 	if (fri.p0.x == -1)
 		return ;
 
 	//************PLAIN FILL AREA************
 
-	df = drawq_add_to_main_queue(fb, DQT_PLAIN_FILL);
+	df = drawq_add_to_main_queue(DQT_PLAIN_FILL);
 	df[0] = colour.r;
 	df[1] = colour.g;
 	df[2] = colour.b;
@@ -63,10 +63,10 @@ void draw_rect_full_dq(framebuffer_t fb, rect_t box, double radius, frgb_t colou
 	for (ip.y=fri.p0.y; ip.y<=fri.p1.y; ip.y++)
 		for (ip.x=fri.p0.x; ip.x<=fri.p1.x; ip.x++)
 			if (check_point_within_box_int(xyi(ip.x, ip.y), fri)==1)	// if we're inside the plain fill area
-				drawq_add_sector_id(fb, ip.y*fb.sector_w + ip.x);	// add sector reference
+				drawq_add_sector_id(ip.y*fb.sector_w + ip.x);	// add sector reference
 }
 
-void draw_rect_full_lrgb(framebuffer_t fb, rect_t box, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
+void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	double grad;
 	xyi_t ip, pf, d0, d1, gv;
@@ -225,17 +225,17 @@ void draw_rect_full_lrgb(framebuffer_t fb, rect_t box, double radius, lrgb_t col
 	}
 }
 
-void draw_rect_full(framebuffer_t fb, rect_t box, double radius, col_t colour, const blend_func_t bf, double intensity)
+void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_rect_full_dq(fb, box, radius, col_to_frgb(colour), blend_add, intensity);
+		draw_rect_full_dq(box, radius, col_to_frgb(colour), blend_add, intensity);
 	else
-		draw_rect_full_lrgb(fb, box, radius, col_to_lrgb(colour), bf, intensity);
+		draw_rect_full_lrgb(box, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_black_rect_dq(framebuffer_t fb, rect_t box, double radius)
+void draw_black_rect_dq(rect_t box, double radius)
 {
 	float *df;
 	double grad;
@@ -244,13 +244,13 @@ void draw_black_rect_dq(framebuffer_t fb, rect_t box, double radius)
 
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 
-	if (drawq_get_bounding_box(fb, box, set_xy(grad), &bbi)==0)
+	if (drawq_get_bounding_box(box, set_xy(grad), &bbi)==0)
 			return ;
 
 	box = sort_rect(box);
 
 	// store the drawing parameters in the main drawing queue
-	df = drawq_add_to_main_queue(fb, DQT_RECT_BLACK);
+	df = drawq_add_to_main_queue(DQT_RECT_BLACK);
 	df[0] = box.p0.x;
 	df[1] = box.p0.y;
 	df[2] = box.p1.x;
@@ -263,18 +263,18 @@ void draw_black_rect_dq(framebuffer_t fb, rect_t box, double radius)
 		{
 			int32_t sector_id = ip.y*fb.sector_w + ip.x;
 			if (fb.sector_count[sector_id] > 0 && fb.pending_bracket[sector_id] == 0)	// if the sector contains something at the current bracket level
-				drawq_add_sector_id(fb, sector_id);	// add sector reference
+				drawq_add_sector_id(sector_id);	// add sector reference
 		}
 
 	// TODO clear lists in obscured sectors, don't add to empty sectors
 }
 
-void draw_black_rect(framebuffer_t fb, rect_t box, double radius)
+void draw_black_rect(rect_t box, double radius)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_black_rect_dq(fb, box, radius);
+		draw_black_rect_dq(box, radius);
 	else
-		draw_rect_full(fb, box, radius, make_grey(0.), blend_alphablend, 1.);
+		draw_rect_full(box, radius, make_grey(0.), blend_alphablend, 1.);
 }
