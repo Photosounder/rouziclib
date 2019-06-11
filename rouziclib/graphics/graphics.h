@@ -48,7 +48,3 @@ extern void init_tls_fb(xyi_t dim);
 extern double intensity_scaling(double scale, double scale_limit);
 extern void thickness_limit(double *thickness, double *brightness, double limit);
 extern void screen_blank();
-extern void draw_gain(double gain);
-extern void draw_gain_parabolic(double gain);
-extern void draw_luma_compression(double factor);
-extern void draw_colour_matrix(double *matrix);

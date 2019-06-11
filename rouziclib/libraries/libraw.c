@@ -215,7 +215,7 @@ raster_t load_raw_photo_dcraw_proc(char *path)
 		fprintf_rl(stderr, "%s: libraw %s\n", path, libraw_strerror(ret));
 
 	libraw_set_output_bps(rd, 16);
-	rd->params.use_camera_wb  = 0;
+	rd->params.use_camera_wb  = 1;
 	libraw_set_output_color(rd, 1); // 0 = raw, 1 = sRGB
 	libraw_set_gamma(rd, 0, 1.f);
 	libraw_set_gamma(rd, 1, 1.f);

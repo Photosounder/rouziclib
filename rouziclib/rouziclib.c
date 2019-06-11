@@ -50,6 +50,7 @@
 #include "graphics/drawrect.c"
 #include "graphics/drawprimitives.c"
 #include "graphics/drawqueue.c"
+#include "graphics/draw_effects.c"
 #include "graphics/processing.c"
 #include "graphics/mipmap.c"
 #include "graphics/cl_memory.c"

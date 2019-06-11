@@ -165,7 +165,7 @@ void drawq_run()
 	drawq_reinit();	// clear/reinit the buffers
 }
 
-int32_t drawq_entry_size(const int32_t type)
+int32_t drawq_entry_size(const enum dq_type type)
 {
 	switch (type)
 	{
@@ -180,6 +180,7 @@ int32_t drawq_entry_size(const int32_t type)
 		case DQT_GAIN_PARAB:		return 1;
 		case DQT_LUMA_COMPRESS:		return 1;
 		case DQT_COL_MATRIX:		return 9;
+		case DQT_CLIP:			return 1;
 		case DQT_CIRCLE_FULL:		return 7;
 		case DQT_CIRCLE_HOLLOW:		return 7;
 		//case DQT_BLIT_BILINEAR:		return 8;
@@ -189,17 +190,17 @@ int32_t drawq_entry_size(const int32_t type)
 	}
 }
 
-void *drawq_add_to_main_queue(const int dqtype)
+void *drawq_add_to_main_queue(const enum dq_type type)
 {
 	int32_t end, *di = fb.drawq_data;
-	int entry_size = drawq_entry_size(dqtype);
+	int entry_size = drawq_entry_size(type);
 
 	// store the drawing parameters in the main drawing queue
 	end = di[DQ_END];
 	alloc_enough(&fb.drawq_data, end + entry_size + 1, &fb.drawq_as, sizeof(int32_t), 2.);
 	di = fb.drawq_data;
 
-	di[end] = dqtype;
+	di[end] = type;
 	end++;
 
 	di[DQ_END] += entry_size + 1;
@@ -438,10 +439,10 @@ void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are list
 		{
 			sector_id = ip.y*fb.sector_w + ip.x;
 
-			if (fb.pending_bracket[sector_id])					// if there's a pending open bracket
+			if (fb.pending_bracket[sector_id])				// if there's a pending open bracket
 				drawq_remove_prev_entry_for_sector(sector_id, 1, ip);	// remove the DQT_BRACKET_OPEN entry for this sector
 			else
-				drawq_add_sector_id_nopending(sector_id);			// add sector reference
+				drawq_add_sector_id_nopending(sector_id);		// add sector reference
 
 			fb.pending_bracket[sector_id]--;		// decrement the pending open bracket count
 			if (fb.pending_bracket[sector_id] < 0)

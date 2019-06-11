@@ -78,6 +78,7 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			case DQT_GAIN_PARAB:		pv = gain_parabolic(pv, df[qi+1]);			break;
 			case DQT_LUMA_COMPRESS:		pv = luma_compression(pv, df[qi+1]);			break;
 			case DQT_COL_MATRIX:		pv = colour_matrix(&df[qi+1], pv);			break;
+			case DQT_CLIP:			pv = min(pv, df[qi+1]);					break;
 			case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);		break;
 			case DQT_CIRCLE_HOLLOW:		pv = draw_circle_hollow_add(&df[qi+1], pv);		break;
 			//case DQT_BLIT_BILINEAR:	pv = blit_sprite_bilinear(&df[qi+1], data_cl, pv);	break;
