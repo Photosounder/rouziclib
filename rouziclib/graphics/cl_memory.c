@@ -1,12 +1,12 @@
-#ifdef RL_OPENCL
-
 void cl_copy_buffer_to_device(void *buffer, size_t offset, size_t size)
 {
 	if (size==0)
 		return ;
 
+	#ifdef RL_OPENCL
 	cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
 	CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device, for fb.data_cl)", ret);
+	#endif
 }
 
 void cl_copy_raster_to_device(raster_t r, size_t offset)
@@ -23,12 +23,14 @@ void cl_copy_raster_to_device(raster_t r, size_t offset)
 
 void data_cl_alloc(int mb)
 {
-	cl_int ret;
-
 	fb.data_cl_as = mb * 1024*1024;
+	fb.data = calloc(fb.data_cl_as, 1);
+
+	#ifdef RL_OPENCL
+	cl_int ret;
 	fb.data_cl = clCreateBuffer(fb.clctx.context, CL_MEM_READ_WRITE, fb.data_cl_as, NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in data_cl_alloc, for fb.data_cl)", ret);
-	fb.data = calloc(fb.data_cl_as, 1);
+	#endif
 
 	fb.data_alloc_table_count = 0;
 	fb.data_alloc_table_as = 128;
@@ -37,15 +39,16 @@ void data_cl_alloc(int mb)
 
 void data_cl_realloc(size_t buffer_size)
 {
-	cl_int ret;
 	size_t orig_as, new_as;
 
-	ret = clFinish(fb.clctx.command_queue);
+	#ifdef RL_OPENCL
+	cl_int ret = clFinish(fb.clctx.command_queue);
 	CL_ERR_NORET("clFinish in data_cl_realloc()", ret);
 
 	// free CL buffer
 	ret = clReleaseMemObject(fb.data_cl);
 	CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc, for fb.data_cl)", ret);
+	#endif
 
 	// Calculate the new allocation size
 	orig_as = new_as = fb.data_cl_as;
@@ -56,6 +59,7 @@ void data_cl_realloc(size_t buffer_size)
 	while (new_as < fb.data_cl_as + buffer_size);
 
 	// Allocate the CL buffer and shrink it if needed
+	#ifdef RL_OPENCL
 	do
 	{
 		fb.data_cl = clCreateBuffer(fb.clctx.context, CL_MEM_READ_WRITE, new_as, NULL, &ret);
@@ -63,6 +67,7 @@ void data_cl_realloc(size_t buffer_size)
 			new_as -= 8 << 20;		// remove 8 MB
 	}
 	while (ret != CL_SUCCESS);
+	#endif
 
 	if (new_as < fb.data_cl_as)
 		fprintf_rl(stderr, "data_cl_realloc() made fb.data_cl smaller, %g MB to %g MB\n", (double) fb.data_cl_as / sq(1024.), (double) new_as / sq(1024.));
@@ -219,8 +224,6 @@ int cl_data_check_enough_room(size_t align_size, size_t buffer_size)
 {
 	return (ssize_t) fb.data_space_end - (ssize_t) next_aligned_offset(fb.data_space_start, align_size) >= (ssize_t) buffer_size;
 }
-
-#endif
 
 uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t align_size, int *table_index)
 {

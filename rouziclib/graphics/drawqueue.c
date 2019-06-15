@@ -133,7 +133,7 @@ void drawq_run()
 	// Compute the random seed
 	randseed = rand32();
 	i = 24;
-	while (fb.w*fb.h / (1<<i) < 4)	// while the period would be less than 4 times the number of pixels
+	while (fb.w*fb.h / (1<<i) < 4)		// while the period would be less than 4 times the number of pixels
 		i++;				// double the period
 	randseed %= ((1<<i) - fb.w*fb.h);	// seed + fbi will fit inside i bits to speed up the PRNG
 
@@ -260,7 +260,7 @@ void drawq_compile_lists()		// makes entry_list and sector_pos
 		// fill the sector position list
 		if (fb.sector_count[i] > 0)			// if the sector contains entries
 		{
-			fb.sector_pos[i] = pos;		// this is where the sector starts in entry_list
+			fb.sector_pos[i] = pos;			// this is where the sector starts in entry_list
 			pos += fb.sector_count[i] + 1;		// add to the position the count of entries for each sector + 1 for the count of entries
 		}
 		else						// if the sector is empty

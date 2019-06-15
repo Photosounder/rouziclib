@@ -121,6 +121,7 @@ typedef struct
 
 	// CL data (for images and what not)
 	cl_mem data_cl;					// device buffer that contains all the needed data
+	#endif
 	size_t data_cl_as;				// alloc size of data_cl in bytes
 	size_t data_copy_start;				// start of the range to copy
 	size_t data_space_start, data_space_end;	// position and end of the currently used space
@@ -130,5 +131,4 @@ typedef struct
 	int data_alloc_table_count;
 	int data_alloc_table_as;			// alloc size of the data_alloc_table in elements
 	hash_table_t hash_table;
-	#endif
 } framebuffer_t;
