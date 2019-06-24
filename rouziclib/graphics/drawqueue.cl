@@ -79,6 +79,7 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			case DQT_LUMA_COMPRESS:		pv = luma_compression(pv, df[qi+1]);			break;
 			case DQT_COL_MATRIX:		pv = colour_matrix(&df[qi+1], pv);			break;
 			case DQT_CLIP:			pv = min(pv, df[qi+1]);					break;
+			case DQT_CLAMP:			pv = clamp(pv, 0.f, 1.f);				break;
 			case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);		break;
 			case DQT_CIRCLE_HOLLOW:		pv = draw_circle_hollow_add(&df[qi+1], pv);		break;
 			//case DQT_BLIT_BILINEAR:	pv = blit_sprite_bilinear(&df[qi+1], data_cl, pv);	break;
@@ -111,4 +112,30 @@ kernel void draw_queue_srgb_kernel(const ulong df_index, const ulong poslist_ind
 		return ;
 
 	write_imagef(srgb, p, linear_to_srgb(pv, randseed+fbi));
+}
+
+kernel void draw_queue_srgb_buf_kernel(const ulong df_index, const ulong poslist_index, const ulong entrylist_index, global uchar *data_cl, global write_only uchar4 *srgb, const int sector_w, const int sector_size, const int randseed)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const int fbi = p.y * get_global_size(0) + p.x;
+	float4 pv;		// pixel value (linear)
+	uchar4 ps;
+	global float *df = &data_cl[df_index];
+	global int *poslist = &data_cl[poslist_index];
+	global int *entrylist = &data_cl[entrylist_index];
+
+	pv = draw_queue(df, poslist, entrylist, data_cl, sector_w, sector_size);
+
+	if (pv.s0==0.f)
+	if (pv.s1==0.f)
+	if (pv.s2==0.f)
+	{
+		srgb[fbi] = 0;
+		return ;
+	}
+
+	ps = convert_uchar4(linear_to_srgb(pv, randseed+fbi) * 255.f);
+	srgb[fbi].x = ps.z;
+	srgb[fbi].y = ps.y;
+	srgb[fbi].z = ps.x;
 }

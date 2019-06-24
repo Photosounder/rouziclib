@@ -19,8 +19,8 @@ float4 draw_rect_full_add(global float *le, float4 pv)
 	d0 = (pf - p0) * rad;
 	d1 = (pf - p1) * rad;
 
-	gv.x = (erf(d0.x) - erf(d1.x)) * 0.5f;
-	gv.y = (erf(d0.y) - erf(d1.y)) * 0.5f;
+	gv.x = (erf_fast(d0.x) - erf_fast(d1.x)) * 0.5f;
+	gv.y = (erf_fast(d0.y) - erf_fast(d1.y)) * 0.5f;
 
 	pv += gv.x*gv.y * col;
 
@@ -43,8 +43,8 @@ float4 draw_black_rect(global float *le, float4 pv)
 	d0 = (pf - p0) * rad;
 	d1 = (pf - p1) * rad;
 
-	gv.x = (erf(d0.x) - erf(d1.x)) * 0.5f;
-	gv.y = (erf(d0.y) - erf(d1.y)) * 0.5f;
+	gv.x = (erf_fast(d0.x) - erf_fast(d1.x)) * 0.5f;
+	gv.y = (erf_fast(d0.y) - erf_fast(d1.y)) * 0.5f;
 
 	pv *= 1.f - gv.x*gv.y;
 

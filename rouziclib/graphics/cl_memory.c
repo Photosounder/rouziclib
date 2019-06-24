@@ -5,7 +5,7 @@ void cl_copy_buffer_to_device(void *buffer, size_t offset, size_t size)
 
 	#ifdef RL_OPENCL
 	cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
-	CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device, for fb.data_cl)", ret);
+	CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device(), for fb.data_cl)", ret);
 	#endif
 }
 
@@ -29,7 +29,7 @@ void data_cl_alloc(int mb)
 	#ifdef RL_OPENCL
 	cl_int ret;
 	fb.data_cl = clCreateBuffer(fb.clctx.context, CL_MEM_READ_WRITE, fb.data_cl_as, NULL, &ret);
-	CL_ERR_NORET("clCreateBuffer (in data_cl_alloc, for fb.data_cl)", ret);
+	CL_ERR_NORET("clCreateBuffer (in data_cl_alloc(), for fb.data_cl)", ret);
 	#endif
 
 	fb.data_alloc_table_count = 0;
@@ -47,7 +47,7 @@ void data_cl_realloc(size_t buffer_size)
 
 	// free CL buffer
 	ret = clReleaseMemObject(fb.data_cl);
-	CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc, for fb.data_cl)", ret);
+	CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc(), for fb.data_cl)", ret);
 	#endif
 
 	// Calculate the new allocation size

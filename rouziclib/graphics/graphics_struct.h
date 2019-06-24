@@ -90,7 +90,7 @@ typedef struct
 	void *window;
 	void *renderer;
 	void *texture;
-	int fullscreen_on;
+	int fullscreen_on, tex_lock;
 	recti_t wind_rect;
 	#endif
 

@@ -29,7 +29,8 @@ size_t http_request(char *domain, char *port, char *request, int timeout, int re
 				if (pe==NULL)									// when we do the last packet
 					pe = &tcpdata[datasize];
 
-				error = gz_decompress(p, pe-p, &data[defli], *data_alloc-defli);
+				size_t defli_as = *data_alloc-defli;
+				error = gz_decompress(p, pe-p, &data[defli], &defli_as);
 				if (error > 0)
 					defli += error;
 

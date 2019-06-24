@@ -27,7 +27,7 @@
 		if (rp.x > r1x - gl)
 		if (rp.x < r2x + gl)
 		{
-			v = (erf(rp.x-r1x) - erf(rp.x-r2x)) * 0.5f;
+			v = (erf_fast(rp.x-r1x) - erf_fast(rp.x-r2x)) * 0.5f;
 			v *= gaussian(rp.y-r1y);
 			pv += v * col;
 		}
@@ -79,7 +79,7 @@ float4 draw_line_thin_add(global float *le, float4 pv)
 	if (d2p >= gl)
 		return pv;
 
-	v = (erf(d1p) - erf(d2p)) * 0.5f;
+	v = (erf_fast(d1p) - erf_fast(d2p)) * 0.5f;
 	v *= gaussian(d3p);
 	pv += v * col;
 

@@ -277,10 +277,10 @@ void init_framebuffer_cl(const clctx_t *clctx)		// inits the linear CL buffer an
 		fb.clctx = *clctx;		// copy the original cl context
 }
 
-void make_gl_tex()
+void cl_make_srgb_tex()
 {
 	cl_int ret=0;
-	#ifdef RL_OPENCL_GL
+#ifdef RL_OPENCL_GL
 
 	// create an OpenGL 2D texture normally
 	glEnable(GL_TEXTURE_2D);
@@ -295,8 +295,11 @@ void make_gl_tex()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fb.maxdim.x, fb.maxdim.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);		// specify texture dimensions, format etc
 
 	fb.cl_srgb = clCreateFromGLTexture(fb.clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb.gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
-	CL_ERR_NORET("clCreateFromGLTexture (in make_gl_tex, for fb.cl_srgb)", ret);
-	#endif
+	CL_ERR_NORET("clCreateFromGLTexture (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
+#else
+	fb.cl_srgb = clCreateBuffer(fb.clctx.context, CL_MEM_WRITE_ONLY, mul_x_by_y_xyi(fb.maxdim)*4, NULL, &ret);
+	CL_ERR_NORET("clCreateBuffer (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
+#endif
 }
 
 cl_int init_fb_cl()
@@ -309,10 +312,14 @@ cl_int init_fb_cl()
 		deinit_clctx(&fb.clctx);
 	}
 
+#ifdef RL_OPENCL_GL
 	ret = init_cl_context(&fb.clctx, 1);
+#else
+	ret = init_cl_context(&fb.clctx, 0);
+#endif
 	CL_ERR_RET("init_cl_context", ret);
 
-	make_gl_tex();
+	cl_make_srgb_tex();
 
 	data_cl_alloc(1);
 

@@ -194,6 +194,7 @@ void convert_lrgb_to_srgb(int mode)
 	int32_t i, id, stop, dither;
 	uint32_t dith_on;
 	lrgb_t p;
+	srgb_t ps;
 	static int init=1;
 	static lut_t lsrgb_l, dither_l, bytecheck_l;
 	const int32_t black_threshold = (1. / (255.*12.92)) * ONEF + 0.5;	// 10 for LBD==15
@@ -228,9 +229,11 @@ void convert_lrgb_to_srgb(int mode)
 
 			dith_on = p.r+p.g+p.b >= black_threshold;	// 0 if the pixel is black, 1 otherwise
 			dither = dither_l.lutint[id] * dith_on;
-			fb.r.srgb[i].r = bytecheck_l.lutb[lsrgb_l.lutint[p.r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
-			fb.r.srgb[i].g = bytecheck_l.lutb[lsrgb_l.lutint[p.g] + dither >> 5];
-			fb.r.srgb[i].b = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
+			ps.r = bytecheck_l.lutb[lsrgb_l.lutint[p.r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
+			ps.g = bytecheck_l.lutb[lsrgb_l.lutint[p.g] + dither >> 5];
+			ps.b = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
+
+			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
 	
 			id = (id+1) & 0x3FFF;
 	
@@ -247,9 +250,10 @@ void convert_lrgb_to_srgb(int mode)
 		{
 			p = fb.r.l[i];
 
-			fb.r.srgb[i].r = lsrgb_l.lutint[p.r] >> 5;
-			fb.r.srgb[i].g = lsrgb_l.lutint[p.g] >> 5;
-			fb.r.srgb[i].b = lsrgb_l.lutint[p.b] >> 5;
+			ps.r = lsrgb_l.lutint[p.r] >> 5;
+			ps.g = lsrgb_l.lutint[p.g] >> 5;
+			ps.b = lsrgb_l.lutint[p.b] >> 5;
+			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
 		}
 	}
 }
@@ -259,6 +263,7 @@ void convert_frgb_to_srgb(int mode)
 	int32_t i, id, stop, dither;
 	uint32_t dith_on;
 	frgb_t p;
+	srgb_t ps;
 	static int init=1;
 	static lut_t lsrgb_fl_l, dither_l, bytecheck_l;
 	const float black_threshold = (1.f / (255.f*12.92f));
@@ -293,9 +298,11 @@ void convert_frgb_to_srgb(int mode)
 
 			dith_on = p.r+p.g+p.b >= black_threshold;	// 0 if the pixel is black, 1 otherwise
 			dither = dither_l.lutint[id] * dith_on;
-			fb.r.srgb[i].r = bytecheck_l.lutb[lsrgb_fl(p.r, lsrgb_fl_l.lutint) + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
-			fb.r.srgb[i].g = bytecheck_l.lutb[lsrgb_fl(p.g, lsrgb_fl_l.lutint) + dither >> 5];
-			fb.r.srgb[i].b = bytecheck_l.lutb[lsrgb_fl(p.b, lsrgb_fl_l.lutint) + dither >> 5];
+			ps.r = bytecheck_l.lutb[lsrgb_fl(p.r, lsrgb_fl_l.lutint) + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
+			ps.g = bytecheck_l.lutb[lsrgb_fl(p.g, lsrgb_fl_l.lutint) + dither >> 5];
+			ps.b = bytecheck_l.lutb[lsrgb_fl(p.b, lsrgb_fl_l.lutint) + dither >> 5];
+
+			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_ABGR);
 	
 			id = (id+1) & 0x3FFF;
 	
@@ -312,9 +319,11 @@ void convert_frgb_to_srgb(int mode)
 		{
 			p = fb.r.f[i];
 
-			fb.r.srgb[i].r = lsrgb_fl(p.r, lsrgb_fl_l.lutint) >> 5;
-			fb.r.srgb[i].g = lsrgb_fl(p.g, lsrgb_fl_l.lutint) >> 5;
-			fb.r.srgb[i].b = lsrgb_fl(p.b, lsrgb_fl_l.lutint) >> 5;
+			ps.r = lsrgb_fl(p.r, lsrgb_fl_l.lutint) >> 5;
+			ps.g = lsrgb_fl(p.g, lsrgb_fl_l.lutint) >> 5;
+			ps.b = lsrgb_fl(p.b, lsrgb_fl_l.lutint) >> 5;
+
+			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_ABGR);
 		}
 	}
 }

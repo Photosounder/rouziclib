@@ -94,7 +94,11 @@ void drawq_run()
 		ret = build_cl_program(&fb.clctx, &program, clsrc_draw_queue);
 		CL_ERR_NORET("build_cl_program (in drawq_run)", ret);
 
+		#ifdef RL_OPENCL_GL
 		ret = create_cl_kernel(&fb.clctx, program, &kernel, "draw_queue_srgb_kernel");
+		#else
+		ret = create_cl_kernel(&fb.clctx, program, &kernel, "draw_queue_srgb_buf_kernel");
+		#endif
 		CL_ERR_NORET("create_cl_kernel (in drawq_run)", ret);
 	}
 	if (kernel==NULL)
@@ -105,7 +109,7 @@ void drawq_run()
 	glClearTexImage(fb.gltex, 0, GL_RGBA, GL_UNSIGNED_BYTE, &z);
 	
 	ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
-	CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run, for fb.cl_srgb)", ret);
+	CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb.cl_srgb)", ret);
 	glFlush();
 	glFinish();
 	#endif
@@ -160,6 +164,14 @@ void drawq_run()
 	// wait for the input data copies to end
 	clWaitForEvents(1, &ev);
 	clReleaseEvent(ev);
+
+	#ifndef RL_OPENCL_GL
+	int pitch;
+	SDL_LockTexture(fb.texture, NULL, &fb.r.srgb, &pitch);
+	fb.tex_lock = 1;
+	ret = clEnqueueReadBuffer(fb.clctx.command_queue, fb.cl_srgb, CL_FALSE, 0, mul_x_by_y_xyi(fb.r.dim)*4, fb.r.srgb, 0, NULL, NULL);
+	CL_ERR_NORET("clEnqueueReadBuffer (in drawq_run(), for fb.cl_srgb)", ret);
+	#endif
 #endif
 
 	drawq_reinit();	// clear/reinit the buffers
@@ -181,6 +193,7 @@ int32_t drawq_entry_size(const enum dq_type type)
 		case DQT_LUMA_COMPRESS:		return 1;
 		case DQT_COL_MATRIX:		return 9;
 		case DQT_CLIP:			return 1;
+		case DQT_CLAMP:			return 0;
 		case DQT_CIRCLE_FULL:		return 7;
 		case DQT_CIRCLE_HOLLOW:		return 7;
 		//case DQT_BLIT_BILINEAR:		return 8;

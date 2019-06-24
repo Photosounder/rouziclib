@@ -109,6 +109,9 @@
 		gui_layout_init_pos_scale(&layout, XY0, 1., XY0, 0);
 		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
 
+	// Put it in the upper left corner
+		gui_layout_init_pos_scale(&layout, add_xy(neg_x(zc.limit_u), neg_y(set_xy(0.25))), 1., XY0, 0);
+
 	// Make it float permanently
 		layout.offset = zc.offset_u;
 		layout.sm = 1./zc.zoomscale;
@@ -155,6 +158,8 @@
 	// Knob
 		static double value=NAN;
 		ctrl_knob_fromlayout(&value, &layout, id);
+		// set knob attribute
+		get_knob_data_fromlayout(&layout, id)->min = 0.;
 
 	// Text editor
 		ctrl_textedit_fromlayout(&layout, id);
@@ -205,7 +210,7 @@
 
 	// Creating a raster
 		// the first arg can be an array if it already exists
-		make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
+		r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 
 	// Loading an image as a tiled mipmap
 		mipmap_t image_mm={0};
@@ -218,6 +223,10 @@
 		// penultimate argument set to 1 keeps the pixel aspect ratio
 		blit_in_rect(&r, sc_rect(image_frame), 1, LINEAR_INTERP);
 		blit_mipmap_in_rect(image_mm, sc_rect(image_frame), 1, LINEAR_INTERP);
+
+	// Updating
+		// if a raster's contents are updated the drawqueue data copy of the new contents can be triggered before blitting like this:
+		cl_unref_raster(&r);
 
 //**** Layout ****
 

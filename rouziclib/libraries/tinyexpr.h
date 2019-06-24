@@ -17,4 +17,14 @@
 	{"db_to_vol", db_to_vol, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"vol_to_db", vol_to_db, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"nearbyint", nearbyint, TE_FUNCTION1 | TE_FLAG_PURE},	\
+	{"min", min_tefunc, TE_FUNCTION2 | TE_FLAG_PURE},	\
+	{"max", max_tefunc, TE_FUNCTION2 | TE_FLAG_PURE},	\
+	{"clamp", clamp_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},	\
+	{"sign", sign_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},	\
+	{"sgn", sign_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"sq", sq, TE_FUNCTION1 | TE_FLAG_PURE}
+
+extern double min_tefunc(double a, double b);
+extern double max_tefunc(double a, double b);
+extern double clamp_tefunc(double v);
+extern double sign_tefunc(double v);

@@ -321,7 +321,7 @@ void fprint_escaped_byte(FILE *fout, unsigned char c0, unsigned char c1)
 
 void convert_file_to_header_const_string(const char *in_path)
 {
-	int ret;
+	int ret, i;
 	FILE *fin, *fout;
 	uint8_t out_path[PATH_MAX*4], c0=0, c1;
 
@@ -332,12 +332,19 @@ void convert_file_to_header_const_string(const char *in_path)
 	fprintf(fout, "\"");
 
 	ret = 1;
+	i = 0;
 	while (ret==1)
 	{
 		ret = fread(&c1, 1, 1, fin);
 
 		if (ret)
+		{
 			fprint_escaped_byte(fout, c0, c1);
+			
+			if ((i % 2000) == 0 && i)		// this cuts up the string to please compilers
+				fprintf(fout, "\"\n\"");
+			i++;
+		}
 
 		c0 = c1;
 	}

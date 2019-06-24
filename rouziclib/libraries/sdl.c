@@ -360,6 +360,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 
 	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
 
+	// Window
 	fb.w = dim.x;
 	fb.h = dim.y;
 
@@ -374,25 +375,21 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	if (fb.window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
 
-	if (fb.use_drawq)
-	{
-		#ifdef RL_OPENCL_GL
-		gl_ctx = init_sdl_gl(fb.window);
-		fb.renderer = SDL_CreateRenderer(fb.window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
-		if (fb.renderer==NULL)
-			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-		#endif
-	}
-	else
-	{
-		fb.renderer = SDL_CreateRenderer(fb.window, -1, SDL_RENDERER_PRESENTVSYNC);
-		if (fb.renderer==NULL)
-			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+	// Renderer and texture
+#ifdef RL_OPENCL_GL
+	gl_ctx = init_sdl_gl(fb.window);
+	fb.renderer = SDL_CreateRenderer(fb.window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
+	if (fb.renderer==NULL)
+		fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+#else
+	fb.renderer = SDL_CreateRenderer(fb.window, -1, SDL_RENDERER_PRESENTVSYNC);
+	if (fb.renderer==NULL)
+		fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
 
-		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
-		if (fb.texture==NULL)
-			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
-	}
+	fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
+	if (fb.texture==NULL)
+		fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+#endif
 	
 	if (fb.use_drawq==0)
 	{
@@ -407,7 +404,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 
 	if (fb.use_drawq)
 	{
-		#ifdef RL_OPENCL_GL
+		#ifdef RL_OPENCL
 		init_fb_cl();
 		#endif
 
@@ -468,14 +465,26 @@ int sdl_handle_window_resize(zoom_t *zc)
 	fb.h = h;
 	fb.r.dim = xyi(fb.w, fb.h);
 
-	if (fb.use_drawq==0)
+	#ifndef RL_OPENCL_GL
+	#ifdef RL_OPENCL
+	if (fb.tex_lock)
 	{
-		SDL_DestroyTexture(fb.texture);
-
-		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
-		if (fb.texture==NULL)
-			printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
+		SDL_UnlockTexture(fb.texture);
+		fb.tex_lock = 0;
 	}
+	#endif
+	SDL_DestroyTexture(fb.texture);
+
+	fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
+	if (fb.texture==NULL)
+		printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
+
+	// Blank the resized texture
+	int pitch;
+	SDL_LockTexture(fb.texture, NULL, &fb.r.srgb, &pitch);
+	memset(fb.r.srgb, 0, pitch * fb.r.dim.y);
+	SDL_UnlockTexture(fb.texture);
+	#endif
 
 	calc_screen_limits(zc);
 
@@ -486,13 +495,15 @@ void sdl_flip_fb()
 {
 	if (fb.use_drawq)
 	{
-#ifdef RL_OPENCL_GL
+	#ifdef RL_OPENCL
 		if (fb.first_frame_done && mouse.window_minimised_flag <= 0)
 		{
 			// display srgb
 			cl_int ret=0;
 			ret = clFinish(fb.clctx.command_queue);
 			CL_ERR_NORET("clFinish in sdl_flip_fb()", ret);
+
+		#ifdef RL_OPENCL_GL
 			ret = clEnqueueReleaseGLObjects(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
 			CL_ERR_NORET("clEnqueueReleaseGLObjects in sdl_flip_fb()", ret);
 
@@ -509,9 +520,21 @@ void sdl_flip_fb()
 			glEnd();
 
 			SDL_GL_SwapWindow(fb.window);
+		#else
+			if (fb.tex_lock)
+			{
+				SDL_UnlockTexture(fb.texture);
+				fb.tex_lock = 0;
+			}
+
+			SDL_RenderClear(fb.renderer);
+			SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
+			SDL_RenderPresent(fb.renderer);
+
+		#endif
 		}
 		fb.first_frame_done = 1;
-#endif
+	#endif
 
 		if (mouse.window_minimised_flag <= 0)
 			drawq_run();
@@ -547,8 +570,8 @@ void sdl_flip_fb_srgb(srgb_t *sfb)
 	SDL_Rect rs;
 	rs = make_sdl_rect(0, 0, fb.w, fb.h);
 	SDL_LockTexture(fb.texture, &rs, &fb.r.srgb, &pitch);
-	memcpy(fb.r.srgb, sfb, mul_x_by_y_xyi(fb.r.dim) * sizeof(srgb_t));
-	//convert_linear_rgb_to_srgb(DITHER);
+	//memcpy(fb.r.srgb, sfb, mul_x_by_y_xyi(fb.r.dim) * sizeof(srgb_t));
+	srgb_change_order(sfb, fb.r.srgb, mul_x_by_y_xyi(fb.r.dim), ORDER_BGRA);
 	SDL_UnlockTexture(fb.texture);
 
 	SDL_RenderClear(fb.renderer);

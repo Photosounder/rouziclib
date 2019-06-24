@@ -1117,6 +1117,14 @@ char *get_textedit_string_fromlayout(gui_layout_t *layout, const int id)
 	return te->string;
 }
 
+knob_t *get_knob_data_fromlayout(gui_layout_t *layout, const int id)
+{
+	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
+		return ;
+
+	return (knob_t *) layout->elem[id].data;
+}
+
 void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const int id)
 {
 	knob_t *knob_data;

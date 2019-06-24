@@ -77,7 +77,6 @@ float4 linear_to_srgb(float4 pl0, uint seed)
 {
 	float4 pl1;
 	float dith;
-	uchar4 ps;
 	const float dith_scale = M_SQRT1_2_F / max_s;
 
 	pl0 = mix(colour_blowout(pl0), clamp(pl0, 0.f, 1.f), 0.666f);

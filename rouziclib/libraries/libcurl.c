@@ -55,4 +55,11 @@ int curl_https_get(char *url, int timeout, int retry, uint8_t **data, int *data_
 	return buf.len;
 }
 
+size_t curl_http_get_buf(char *url, int timeout, int retry, buffer_t *buf)
+{
+	buf->len = curl_https_get(url, timeout, retry, &buf->buf, &buf->as);
+
+	return buf->len;
+}
+
 #endif

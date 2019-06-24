@@ -107,6 +107,7 @@ extern int print_to_layout_label(gui_layout_t *layout, const int id, const char 
 extern int print_to_layout_textedit(gui_layout_t *layout, const int id, const int clear_undo, const char *format, ...);
 extern textedit_t *get_textedit_fromlayout(gui_layout_t *layout, const int id);
 extern char *get_textedit_string_fromlayout(gui_layout_t *layout, const int id);
+extern knob_t *get_knob_data_fromlayout(gui_layout_t *layout, const int id);
 extern void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const int id);
 extern void gui_layout_registry_add(gui_layout_t *layout, const char *layout_name);
 extern void gui_layout_registry_reset();
