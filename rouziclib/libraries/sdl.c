@@ -498,14 +498,17 @@ void sdl_flip_fb()
 	#ifdef RL_OPENCL
 		if (fb.first_frame_done && mouse.window_minimised_flag <= 0)
 		{
-			// display srgb
 			cl_int ret=0;
+		#ifdef RL_OPENCL_GL
+			ret = clEnqueueReleaseGLObjects(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
+			CL_ERR_NORET("clEnqueueReleaseGLObjects in sdl_flip_fb()", ret);
+		#endif
+
+			// display srgb
 			ret = clFinish(fb.clctx.command_queue);
 			CL_ERR_NORET("clFinish in sdl_flip_fb()", ret);
 
 		#ifdef RL_OPENCL_GL
-			ret = clEnqueueReleaseGLObjects(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
-			CL_ERR_NORET("clEnqueueReleaseGLObjects in sdl_flip_fb()", ret);
 
 			float hoff = 2. * (fb.h - fb.maxdim.y) / (double) fb.maxdim.y;
 			glLoadIdentity();             // Reset the projection matrix

@@ -9,6 +9,11 @@
   #define _Thread_local __thread
 #endif
 
+#if defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
+    #include <errno.h>
+    #include <unistd.h>
+#endif
+
 #define THREAD_U64 uint64_t
 #include "../libraries/orig/thread.h"
 

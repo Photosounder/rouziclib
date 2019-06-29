@@ -16,7 +16,7 @@ extern void init_framebuffer_cl(const clctx_t *clctx);
 extern void cl_make_srgb_tex();
 extern cl_int init_fb_cl();
 
-#define CL_ERR_RET(name, ret)	if (ret != CL_SUCCESS) { fprintf_rl(stderr, "%s failed (%s)\n", name, get_cl_error_string(ret));	return ret; }
-#define CL_ERR_NORET(name, ret)	if (ret != CL_SUCCESS) { fprintf_rl(stderr, "%s failed (%s)\n", name, get_cl_error_string(ret));	return ; }
+#define CL_ERR_RET(name, ret)	if (ret != CL_SUCCESS) { fprintf_rl(stderr, "%s failed (err %d: %s)\n", name, ret, get_cl_error_string(ret));	return ret; }
+#define CL_ERR_NORET(name, ret)	if (ret != CL_SUCCESS) { fprintf_rl(stderr, "%s failed (err %d: %s)\n", name, ret, get_cl_error_string(ret));	return ; }
 
 #endif

@@ -108,10 +108,10 @@ void drawq_run()
 	uint32_t z = 0;
 	glClearTexImage(fb.gltex, 0, GL_RGBA, GL_UNSIGNED_BYTE, &z);
 	
-	ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
-	CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb.cl_srgb)", ret);
 	glFlush();
 	glFinish();
+	ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
+	CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb.cl_srgb)", ret);
 	#endif
 #endif
 

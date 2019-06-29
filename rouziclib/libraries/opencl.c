@@ -25,6 +25,13 @@ const char *get_cl_error_string(cl_int err)
 		case -10: return "CL_IMAGE_FORMAT_NOT_SUPPORTED";
 		case -11: return "CL_BUILD_PROGRAM_FAILURE";
 		case -12: return "CL_MAP_FAILURE";
+		case -13: return "CL_MISALIGNED_SUB";
+		case -14: return "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
+		case -15: return "CL_COMPILE_PROGRAM";
+		case -16: return "CL_LINKER_NOT_AVAILABLE";
+		case -17: return "CL_LINK_PROGRAM_FAILURE";
+		case -18: return "CL_DEVICE_PARTITION_FAILED";
+		case -19: return "CL_MAP_FAILURE";
 
 		case -30: return "CL_INVALID_VALUE";
 		case -31: return "CL_INVALID_DEVICE_TYPE";
@@ -60,6 +67,41 @@ const char *get_cl_error_string(cl_int err)
 		case -61: return "CL_INVALID_BUFFER_SIZE";
 		case -62: return "CL_INVALID_MIP_LEVEL";
 		case -63: return "CL_INVALID_GLOBAL_WORK_SIZE";
+		case -64: return "CL_INVALID_PROPERTY";
+		case -65: return "CL_INVALID_IMAGE_DESCRIPTOR";
+		case -66: return "CL_INVALID_COMPILER_OPTIONS";
+		case -67: return "CL_INVALID_LINKER_OPTIONS";
+		case -68: return "CL_INVALID_DEVICE_PARTITION_COUNT";
+		case -69: return "CL_INVALID_PIPE_SIZE";
+		case -70: return "CL_INVALID_DEVICE_QUEUE";
+
+		case -1000: return "CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR";
+		case -1001: return "CL_PLATFORM_NOT_FOUND_KHR";
+		case -1002: return "CL_INVALID_D3D10_DEVICE_KHR";
+		case -1003: return "CL_INVALID_D3D10_RESOURCE_KHR";
+		case -1004: return "CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR";
+		case -1005: return "CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR";
+		case -1006: return "CL_INVALID_D3D11_DEVICE_KHR";
+		case -1007: return "CL_INVALID_D3D11_RESOURCE_KHR";
+		case -1008: return "CL_D3D11_RESOURCE_ALREADY_ACQUIRED_KHR";
+		case -1009: return "CL_D3D11_RESOURCE_NOT_ACQUIRED_KHR";
+		case -1010: return "CL_INVALID_D3D9_DEVICE_NV/INTEL";
+		case -1011: return "CL_INVALID_D3D9_RESOURCE_NV/INTEL";
+		case -1012: return "CL_D3D9_RESOURCE_ALREADY_ACQUIRED_NV/INTEL";
+		case -1013: return "CL_D3D9_RESOURCE_NOT_ACQUIRED_NV/INTEL";
+		case -1092: return "CL_EGL_RESOURCE_NOT_ACQUIRED_KHR";
+		case -1093: return "CL_INVALID_EGL_OBJECT_KHR";
+		case -1094: return "CL_INVALID_ACCELERATOR_INTEL";
+		case -1095: return "CL_INVALID_ACCELERATOR_TYPE_INTEL";
+		case -1096: return "CL_INVALID_ACCELERATOR_DESCRIPTOR_INTEL";
+		case -1097: return "CL_ACCELERATOR_TYPE_NOT_SUPPORTED_INTEL";
+		case -1098: return "CL_INVALID_VA_API_MEDIA_ADAPTER_INTEL";
+		case -1099: return "CL_INVALID_VA_API_MEDIA_SURFACE_INTEL";
+		case -1100: return "CL_VA_API_MEDIA_SURFACE_ALREADY_ACQUIRED_INTEL";
+		case -1101: return "CL_VA_API_MEDIA_SURFACE_NOT_ACQUIRED_INTEL";
+
+		case -9999: return "NVidia clEnqueueNDRangeKernel Illegal read or write to a buffer";
+
 		#ifdef RL_CLFFT
 		case 4096: return "CLFFT_BUGCHECK";
 		case 4097: return "CLFFT_NOTIMPLEMENTED";
@@ -196,6 +238,11 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 
 	c->command_queue = clCreateCommandQueue(c->context, device_id[0], 0*CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | 0*CL_QUEUE_PROFILING_ENABLE, &ret);
 	CL_ERR_RET("clCreateCommandQueue (in init_cl_context)", ret);
+
+	size_t info_size;
+	cl_bool val;
+	ret = clGetDeviceInfo(c->device_id, CL_DEVICE_PREFERRED_INTEROP_USER_SYNC, sizeof(cl_bool), &val, &info_size);
+	//fprintf_rl(stdout, "clGetDeviceInfo(CL_DEVICE_PREFERRED_INTEROP_USER_SYNC) = %d (ret %d)\n", val, ret);
 
 	return ret;
 }
