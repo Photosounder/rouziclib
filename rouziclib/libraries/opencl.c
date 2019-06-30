@@ -245,11 +245,6 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 	c->command_queue = clCreateCommandQueue(c->context, device_id[0], 0*CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | 0*CL_QUEUE_PROFILING_ENABLE, &ret);
 	CL_ERR_RET("clCreateCommandQueue (in init_cl_context)", ret);
 
-	size_t info_size;
-	cl_bool val;
-	ret = clGetDeviceInfo(c->device_id, CL_DEVICE_PREFERRED_INTEROP_USER_SYNC, sizeof(cl_bool), &val, &info_size);
-	//fprintf_rl(stdout, "clGetDeviceInfo(CL_DEVICE_PREFERRED_INTEROP_USER_SYNC) = %d (ret %d)\n", val, ret);
-
 	return ret;
 }
 
@@ -335,7 +330,13 @@ void cl_make_srgb_tex()
 	cl_int ret=0;
 #ifdef RL_OPENCL_GL
 
-	// create an OpenGL 2D texture normally
+	// Detect whether or not to do interop sync
+	size_t info_size;
+	cl_bool val;
+	ret = clGetDeviceInfo(fb.clctx.device_id, CL_DEVICE_PREFERRED_INTEROP_USER_SYNC, sizeof(cl_bool), &val, &info_size);
+	fb.interop_sync = val;
+
+	// Create an OpenGL 2D texture normally
 	glEnable(GL_TEXTURE_2D);
 	glGenTextures(1, &fb.gltex);						// generate the texture ID
 	glBindTexture(GL_TEXTURE_2D, fb.gltex);				// binding the texture
@@ -349,6 +350,12 @@ void cl_make_srgb_tex()
 
 	fb.cl_srgb = clCreateFromGLTexture(fb.clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb.gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
 	CL_ERR_NORET("clCreateFromGLTexture (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
+
+	if (fb.interop_sync==0)		// acquire the GL texture with OpenCL only once if no interop sync is needed
+	{
+		ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
+		CL_ERR_NORET("clEnqueueAcquireGLObjects (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
+	}
 #else
 	fb.cl_srgb = clCreateBuffer(fb.clctx.context, CL_MEM_WRITE_ONLY, mul_x_by_y_xyi(fb.maxdim)*4, NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
