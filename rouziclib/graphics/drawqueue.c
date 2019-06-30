@@ -105,8 +105,12 @@ void drawq_run()
 		return ;
 
 	#ifdef RL_OPENCL_GL
+	#ifdef __APPLE__
+	// TODO macOS doesn't support OpenGL 4.4 which means no glClearTexImage(), see https://stackoverflow.com/questions/7195130/how-to-efficiently-initialize-texture-with-zeroes
+	#else
 	uint32_t z = 0;
 	glClearTexImage(fb.gltex, 0, GL_RGBA, GL_UNSIGNED_BYTE, &z);
+	#endif
 	
 	glFlush();
 	glFinish();

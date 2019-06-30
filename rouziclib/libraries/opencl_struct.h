@@ -7,7 +7,9 @@
 		#define GLEW_STATIC
 		#include "glew_minimal.h"
 	#else
-		#include <GL/glew.h>
+		#ifdef _MSC_VER
+			#include <GL/glew.h>
+		#endif
 	#endif
 	
 	#ifdef _MSC_VER
@@ -16,6 +18,11 @@
 		#ifndef RL_BUILTIN_GLEW
 			#pragma comment (lib, "glew32.lib")
 		#endif
+	#endif
+
+	#ifdef __APPLE__
+		#include <OpenCL/cl_gl.h>
+		#include <OpenCL/cl_gl_ext.h>
 	#endif
 #endif
 

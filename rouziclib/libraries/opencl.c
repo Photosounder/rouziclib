@@ -133,6 +133,12 @@ void check_compilation_log(clctx_t *c, cl_program program)
 	free (log);
 }
 
+#ifdef RL_OPENCL_GL
+#ifdef __APPLE__
+extern CGLContextObj CGLGetCurrentContext(void);
+#endif
+#endif
+
 cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform)
 {
 	cl_int ret=0;
