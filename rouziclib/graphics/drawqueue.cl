@@ -109,7 +109,10 @@ kernel void draw_queue_srgb_kernel(const ulong df_index, const ulong poslist_ind
 	if (pv.s0==0.f)
 	if (pv.s1==0.f)
 	if (pv.s2==0.f)
+	{
+		write_imageui(srgb, p, 0);
 		return ;
+	}
 
 	write_imagef(srgb, p, linear_to_srgb(pv, randseed+fbi));
 }
