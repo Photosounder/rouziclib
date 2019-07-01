@@ -115,6 +115,7 @@ typedef struct
 
 	#ifdef RL_OPENCL
 	int first_frame_done, interop_sync;
+	int opt_clfinish, opt_glfinish, opt_interop;
 	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
 	uint32_t gltex;		// ID of the GL texture for cl_srgb
 	clctx_t clctx;		// contains the context and the command queue

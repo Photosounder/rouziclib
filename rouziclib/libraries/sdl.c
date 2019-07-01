@@ -500,7 +500,7 @@ void sdl_flip_fb()
 		{
 			cl_int ret=0;
 		#ifdef RL_OPENCL_GL
-			if (fb.interop_sync)
+			if (fb.opt_interop)
 			{
 				ret = clEnqueueReleaseGLObjects(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
 				CL_ERR_NORET("clEnqueueReleaseGLObjects in sdl_flip_fb()", ret);
@@ -508,8 +508,11 @@ void sdl_flip_fb()
 		#endif
 
 			// display srgb
-			ret = clFinish(fb.clctx.command_queue);
-			CL_ERR_NORET("clFinish in sdl_flip_fb()", ret);
+			if (fb.opt_clfinish)
+			{
+				ret = clFinish(fb.clctx.command_queue);
+				CL_ERR_NORET("clFinish in sdl_flip_fb()", ret);
+			}
 
 		#ifdef RL_OPENCL_GL
 

@@ -105,16 +105,13 @@ void drawq_run()
 		return ;
 
 	#ifdef RL_OPENCL_GL
-	/*#ifdef __APPLE__
-	// TODO macOS doesn't support OpenGL 4.4 which means no glClearTexImage(), see https://stackoverflow.com/questions/7195130/how-to-efficiently-initialize-texture-with-zeroes
-	#else
-	uint32_t z = 0;
-	glClearTexImage(fb.gltex, 0, GL_RGBA, GL_UNSIGNED_BYTE, &z);
-	#endif*/
-	
-	glFlush();
-	glFinish();
-	if (fb.interop_sync)
+	if (fb.opt_glfinish)
+	{
+		glFlush();
+		glFinish();
+	}
+
+	if (fb.opt_interop)
 	{
 		ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
 		CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb.cl_srgb)", ret);

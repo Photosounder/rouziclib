@@ -355,7 +355,16 @@ void cl_make_srgb_tex()
 	{
 		ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
 		CL_ERR_NORET("clEnqueueAcquireGLObjects (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
+
+		fb.opt_glfinish = 1;
 	}
+	else
+	{
+		fb.opt_clfinish = 1;
+		fb.opt_glfinish = 1;
+		fb.opt_interop = 1;
+	}
+
 #else
 	fb.cl_srgb = clCreateBuffer(fb.clctx.context, CL_MEM_WRITE_ONLY, mul_x_by_y_xyi(fb.maxdim)*4, NULL, &ret);
 	CL_ERR_NORET("clCreateBuffer (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
@@ -387,3 +396,51 @@ cl_int init_fb_cl()
 }
 
 #endif
+
+void dialog_cl_gl_interop_options(xy_t init_offset, double init_sm)
+{
+	#ifdef RL_OPENCL
+	static uint32_t td=0;
+	static int diag_on = 1;
+
+	// GUI layout
+	static gui_layout_t layout={0};
+	const char *layout_src[] = {
+		"elem 0", "type none", "label OpenCL/GL Interop Options", "pos	-8;6	4", "dim	12	4;10", "off	0	1", "",
+		"elem 10", "type checkbox", "label clFinish()", "pos	-4	3", "dim	3;6	1", "off	0	1", "",
+		"elem 11", "type checkbox", "label glFinish()", "link_pos_id 10", "pos	0	-1;2", "dim	3;6	1", "off	0	1", "",
+		"elem 12", "type checkbox", "label Interop sync", "link_pos_id 11", "pos	0	-1;2", "dim	3;6	1", "off	0	1", "",
+		"elem 20", "type label", "pos	-8	3", "dim	3;6	1", "off	0	1", "",
+		"elem 21", "type label", "link_pos_id 20", "pos	0	-1;2", "dim	3;6	1", "off	0	1", "",
+	};
+
+	gui_layout_init_pos_scale(&layout, init_offset, init_sm, xy(8.5, -4), diag_on==0);
+	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "CL/GL options");
+
+	// Window
+	static flwindow_t window={0};
+
+	diag_on = 1;
+	flwindow_init_defaults(&window);
+	draw_dialog_window_fromlayout(&window, &diag_on, &layout, 0);
+
+	// Controls
+	ctrl_checkbox_fromlayout(&fb.opt_clfinish, &layout, 10);
+	ctrl_checkbox_fromlayout(&fb.opt_glfinish, &layout, 11);
+	ctrl_checkbox_fromlayout(&fb.opt_interop, &layout, 12);
+
+	// FPS and info
+	gui_printf_to_label(&layout, 20, 0, "%.1f FPS", 1./fps_estimate_2speeds(0.001 * get_time_diff(&td), 0));
+	draw_label_fromlayout(&layout, 20, ALIG_CENTRE | MONODIGITS);
+	gui_printf_to_label(&layout, 21, 0, "CL_DEVICE_PREFERRED_INTEROP_USER_SYNC is %s", fb.interop_sync ? "true" : "false");
+	draw_label_fromlayout(&layout, 21, ALIG_CENTRE | MONODIGITS);
+
+	// Box visual test
+	static is=0;
+	xy_t ip;
+
+	is = (is+1) % 9;
+	ip = xy(is/3, is%3);
+	draw_rect_full(sc_rect(offset_scale_rect(make_rect_off(ip, XY1, XY0), layout.offset, layout.sm)), drawing_thickness, make_grey(0.5), blend_add, 1.);
+	#endif
+}

@@ -104,7 +104,10 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, gui_layout_t *la
 	if (diag_on)
 	{
 		if (ctrl_button_invis(close_area, &close_butt_state))
+		{
 			*diag_on = 0;
+			w->pinned = 0;
+		}
 	}
 
 	// Drawing

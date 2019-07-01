@@ -20,3 +20,5 @@ extern cl_int init_fb_cl();
 #define CL_ERR_NORET(name, ret)	if (ret != CL_SUCCESS) { fprintf_rl(stderr, "%s failed (err %d: %s)\n", name, ret, get_cl_error_string(ret));	return ; }
 
 #endif
+
+extern void dialog_cl_gl_interop_options(xy_t init_offset, double init_sm);
