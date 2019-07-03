@@ -18,12 +18,6 @@ double gaussian(double x)	// gaussian(x) = e^-x²
 	return exp(-x*x);
 }
 
-// approximation of erf(x) = (sgn(x) * sqrt(1-gaussian(x)) * (1+gaussian(x*0.886)*0.1283792))
-// also erf(x) ~= sgn(x) * sqrt(1 - gaussian(x) / (sqrt(x^2+c0)+1-sqrt(c0)) ), c0 = 3.1220878, max subtractive error 0.958e-3
-// ~= sqrt( 1. - gaussian(x) / (sqrt(x*x+3.1220878) - 0.76694306642857) )
-// gaussian(x) / (1-erf(x)^2)
-// sqrt(x^2+3)-sqrt(3)+1
-
 double erfr(double x)
 {
 	return 0.5 + 0.5*erf(x);
