@@ -264,90 +264,6 @@ knob_t make_knob(char *main_label, double default_value, const knob_func_t func,
 	return knob;
 }
 
-int ctrl_knob_value_button(double *v, double t, double vt, double box_scale, xy_t centre, double scale, col_t colour)
-{
-	char str[64];
-	double th;
-	xy_t pos;
-	rect_t box;
-
-	th = (t * 0.75 - 0.375) * -2.*pi;
-	pos = rotate_xy2(xy(0., 0.5-0.1*box_scale), th);
-	box = make_rect_centred( pos, mul_xy(set_xy(box_scale), xy(0.1, 0.04)) );
-	sprintf(str, "%g", vt);
-
-	if (ctrl_button_chamf(str, offset_scale_rect(box, centre, scale), colour))
-	{
-		*v = vt;
-		return 1;
-	}
-
-	return 0;
-}
-
-double find_next_round_knob_value(double vo, knob_t knob, double t_step)
-{
-	double to, t, v, dv, dvexp, dvm;
-
-	to = knob.func(vo, knob.min, knob.max, 1);
-	v = knob.func(MINN(1., to+t_step), knob.min, knob.max, 0);
-
-	//dv = v - vo;
-
-	dvexp = normalised_notation_split(v, &dvm);
-
-	if (dvm <= 2.)
-		return 2.*dvexp;
-	else if (dvm <= 5.)
-		return 5.*dvexp;
-	else
-		return 10.*dvexp;
-}
-
-int ctrl_knob_value_buttons(zoom_t zc, mouse_t mouse, vector_font_t *font, double drawing_thickness, 
-		double *v, knob_t knob, xy_t centre, double scale, col_t colour)
-{
-	int i, ret=0;
-	double lt, t, vt, box_scale;
-
-	/*for (i=0, vt=knob.min; i >= 0 && vt<=knob.max; i++)
-	{
-		vt = find_next_round_knob_value(vt, knob, 24. / (scale*zc.scrscale));
-		//vt = knob.func(t, knob.min, knob.max, 0);
-		box_scale = 1.;//500. / (scale*zc.scrscale);
-
-		t = knob.func(vt, knob.min, knob.max, 1);
-		if (t > 1.)
-			break;
-
-		if (ctrl_knob_value_button(zc, mouse, font, drawing_thickness, v, t, vt, box_scale, centre, scale, colour))
-			ret = 1;
-	}*/
-
-	double log_min, log_max;
-
-	if (knob.min==0. || knob.max==0.)	// FIXME can't be 0
-		return 0;
-
-	log_min = log10(knob.min);
-	log_max = log10(knob.max);
-
-	for (lt=ceil(log_min); lt < log_max; lt+=1.)
-	{
-		vt = pow(10., lt);
-		box_scale = 1.;
-
-		t = knob.func(vt, knob.min, knob.max, 1);
-		if (t > 1.)
-			break;
-
-		if (ctrl_knob_value_button(v, t, vt, box_scale, centre, scale, colour))
-			ret = 1;
-	}
-
-	return ret;
-}
-
 int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 {
 	int ret, val_set_by_edit=0;
@@ -370,10 +286,6 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	layout.offset = fit_into_area(box, make_rect_off(XY0, xy(2., 2.), xy(0.5, 0.5)), 0., &layout.sm);
 	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), NULL);
-
-/*	ctrl_textedit_fromlayout(&layout, 10);
-	//draw_label_fromlayout(&layout, 10, ALIG_CENTRE | MONODIGITS);
-	*/
 
 	if (v_orig)
 		v = *v_orig;
@@ -448,11 +360,6 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		t = rangelimit(t+t_off, 0., 1.);
 	v = knob->func(t, knob->min, knob->max, 0);
 
-	// show value buttons
-	/*if (total_scale > 96.)
-		if (ctrl_knob_value_buttons(zc, mouse, font, drawing_thickness, &v, knob, centre, scale, colour))
-			knob_state.uponce = 1;*/
-
 	// Draw knob
 	intensity *= intensity_scaling(total_scale, 24.);
 
@@ -474,7 +381,6 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	}
 
 	// Draw bottom label
-	//valbox = make_rect_centred(add_xy(centre, xy(0., -5./12.*scale)), xy(7./12.*scale, 0.25*scale));
 	draw_string_bestfit(font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
 	// Draw arc circle
@@ -493,7 +399,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	if (knob_state.uponce || knob_state.doubleclick || val_set_by_edit)	// the final value change when the mouse button is released
 		return 1;
-	if (knob_state.down)							// an ongoing value change when the mouse button is held down
+	if (knob_state.down && t_off != 0.)					// an ongoing value change when the mouse button is held down
 		return 2;
 	return 0;
 }

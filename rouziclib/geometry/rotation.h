@@ -1,4 +1,6 @@
+extern xy_t rotate_xy2_pre(xy_t p, double costh, double sinth);
 extern xy_t rotate_xy2(xy_t p, double th);
+extern xy_t rotate_xy2_pre_around_point(xy_t p, xy_t c, double costh, double sinth);
 extern xyz_t rotate_xy(xyz_t p, double th);
 extern xyz_t rotate_zxy(xyz_t p, xyz_t th);
 extern xyz_t rotate_zxy_pre(xyz_t p, xyz_t costh, xyz_t sinth);

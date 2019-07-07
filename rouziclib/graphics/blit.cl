@@ -145,6 +145,32 @@ float4 read_yuv420pN_pixel(global ushort *im, int2 im_dim, int2 i, float depth_m
 	return pv;
 }
 
+float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i)
+{
+	switch (fmt)
+	{
+		case 0:		// frgb_t
+			return im[i.y * im_dim.x + i.x];
+
+		case 1:		// sqrgb_t
+			return read_sqrgb_pixel(im, i.y * im_dim.x + i.x);
+
+		case 2:		// srgb_t
+			return read_srgb_pixel(im, i.y * im_dim.x + i.x);
+
+		case 10:	// YCbCr 420 planar 8-bit (AV_PIX_FMT_YUV420P)
+			return read_yuv420p8_pixel(im, im_dim, i);
+
+		case 11:	// YCbCr 420 planar 10-bit LE (AV_PIX_FMT_YUV420P10LE)
+			return read_yuv420pN_pixel(im, im_dim, i, 0.25f);
+
+		case 12:	// YCbCr 420 planar 12-bit LE (AV_PIX_FMT_YUV420P12LE)
+			return read_yuv420pN_pixel(im, im_dim, i, 0.0625f);
+	}
+
+	return 0.f;
+}
+
 float calc_flattop_weight(float2 pif, float2 i, float2 knee, float2 slope, float2 pscale)
 {
 	float2 d, w;
@@ -160,41 +186,15 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 {
 	float4 pv = 0.f;
 	float2 knee, i, start, end;
-	float depth_mul=0.25f;
 
 	knee = 0.5f - fabs(fmod(pscale, 1.f) - 0.5f);
 
 	start = max(0.f, ceil(pif - pscale));
 	end = min(convert_float2(im_dim - 1), floor(pif + pscale));
 
-	if (fmt==0)		// frgb_t
-		for (i.y = start.y; i.y <= end.y; i.y+=1.f)
-			for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-				pv += im[(int) i.y * im_dim.x + (int) i.x] * calc_flattop_weight(pif, i, knee, slope, pscale);
-	else if (fmt==1)	// sqrgb_t
-		for (i.y = start.y; i.y <= end.y; i.y+=1.f)
-			for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-				pv += read_sqrgb_pixel(im, (int) i.y * im_dim.x + (int) i.x) * calc_flattop_weight(pif, i, knee, slope, pscale);
-	else if (fmt==2)	// srgb_t
-		for (i.y = start.y; i.y <= end.y; i.y+=1.f)
-			for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-				pv += read_srgb_pixel(im, (int) i.y * im_dim.x + (int) i.x) * calc_flattop_weight(pif, i, knee, slope, pscale);
-	else if (fmt==10)	// YCbCr 420 planar 8-bit (AV_PIX_FMT_YUV420P)
-		for (i.y = start.y; i.y <= end.y; i.y+=1.f)
-			for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-				pv += read_yuv420p8_pixel(im, im_dim, convert_int2(i)) * calc_flattop_weight(pif, i, knee, slope, pscale);
-	else if (fmt==11 || fmt==12)	// YCbCr 420 planar 10-bit or 12-bit LE (AV_PIX_FMT_YUV420P1xLE)
-	{
-		switch (fmt)
-		{
-			case 11:	depth_mul = 0.25f;	break;
-			case 12:	depth_mul = 0.0625f;	break;
-		}
-
-		for (i.y = start.y; i.y <= end.y; i.y+=1.f)
-			for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-				pv += read_yuv420pN_pixel(im, im_dim, convert_int2(i), depth_mul) * calc_flattop_weight(pif, i, knee, slope, pscale);
-	}
+	for (i.y = start.y; i.y <= end.y; i.y+=1.f)
+		for (i.x = start.x; i.x <= end.x; i.x+=1.f)
+			pv += read_fmt_pixel(fmt, im, im_dim, convert_int2(i)) * calc_flattop_weight(pif, i, knee, slope, pscale);
 
 	return pv;
 }
@@ -245,6 +245,39 @@ float4 blit_sprite_flattop(global uint *lei, global uchar *data_cl, float4 pv)
 	slope.y = lef[10];
 
 	pif = pscale * (pf + pos);
+	pscale = max(1.f, pscale);
+	pv += image_filter_flattop(im, im_dim, fmt, pif, pscale, slope);
+
+	return pv;
+}
+
+float4 blit_sprite_flattop_rot(global uint *lei, global uchar *data_cl, float4 pv)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const float2 pf = convert_float2(p);
+	global float *lef = lei;
+	global float4 *im;
+	int2 im_dim;
+	int fmt;
+	float2 pscale, pos, pif, pifo, slope;
+	float costh, sinth;
+
+	im = (global float4 *) &data_cl[lei[0]+(lei[1]<<32)];
+	im_dim.x = lei[2];
+	im_dim.y = lei[3];
+	pscale.x = lef[4];
+	pscale.y = pscale.x;
+	pos.x = lef[5];
+	pos.y = lef[6];
+	fmt = lei[7];
+	slope.x = lef[8];
+	slope.y = slope.x;
+	costh = lef[9];
+	sinth = lef[10];
+
+	pifo = pscale * (pf + pos);
+	pif.x = pifo.x * costh - pifo.y * sinth;
+	pif.y = pifo.x * sinth + pifo.y * costh;
 	pscale = max(1.f, pscale);
 	pv += image_filter_flattop(im, im_dim, fmt, pif, pscale, slope);
 

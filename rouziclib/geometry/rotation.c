@@ -1,10 +1,6 @@
-xy_t rotate_xy2(xy_t p, double th)
+xy_t rotate_xy2_pre(xy_t p, double costh, double sinth)
 {
-	double costh, sinth;
 	xy_t r;
-
-	costh = cos(th);
-	sinth = sin(th);
 
 	r.x = p.x * costh - p.y * sinth;
 	r.y = p.x * sinth + p.y * costh;
@@ -12,18 +8,19 @@ xy_t rotate_xy2(xy_t p, double th)
 	return r;
 }
 
+xy_t rotate_xy2(xy_t p, double th)	// 2D rotation
+{
+	return rotate_xy2_pre(p, cos(th), sin(th));
+}
+
+xy_t rotate_xy2_pre_around_point(xy_t p, xy_t c, double costh, double sinth)
+{
+	return add_xy(c, rotate_xy2_pre(sub_xy(p, c), costh, sinth));
+}
+
 xyz_t rotate_xy(xyz_t p, double th)
 {
-	double costh, sinth;
-	xyz_t r;
-
-	costh = cos(th);
-	sinth = sin(th);
-
-	r.x = p.x * costh - p.y * sinth;
-	r.y = p.x * sinth + p.y * costh;
-
-	return r;
+	return rotate_z_pre(p, cos(th), sin(th));
 }
 
 xyz_t rotate_zxy(xyz_t p, xyz_t th)

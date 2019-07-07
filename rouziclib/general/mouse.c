@@ -67,6 +67,8 @@ void mouse_button_update(int *mb, int *quick_mb, int new_state, int button_index
 
 void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 {
+	zc->just_reset = 0;
+
 	#ifdef RL_SDL
 	sdl_update_mouse(fb.window, mouse);
 	#endif

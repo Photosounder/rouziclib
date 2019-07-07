@@ -87,6 +87,7 @@ void zoom_reset(zoom_t *zc, int *flag_zoom_key)
 {
 	zc->zoomscale = 1.;
 	zc->offset_u = XY0;
+	zc->just_reset = 1;
 	zc->zoom_key_time = 0;
 	*flag_zoom_key = 1;
 	zoom_toggle(zc, flag_zoom_key);
@@ -170,14 +171,23 @@ void toggle_guizoom(zoom_t *zc, int on)	// used for temporarily disabling zoomin
 	calc_screen_limits(zc);
 }
 
+void change_zoom(xy_t pos, double zoom_scale)
+{
+	if (isnan_xy(pos)==0)
+		zc.offset_u = pos;
+
+	if (isnan(zoom_scale)==0)
+		zc.zoomscale = zoom_scale;
+
+	calc_screen_limits(&zc);
+}
+
 void change_zoom_and_turn_off_zoom_mode(xy_t pos, double zoom_scale)
 {
-	zc.offset_u = pos;
-	zc.zoomscale = zoom_scale;
 	zc.zoom_key_time = get_time_ms();
 
 	if (mouse.zoom_flag)
 		zoom_key_released(&zc, &mouse.zoom_flag, 1);
 
-	calc_screen_limits(&zc);
+	change_zoom(pos, zoom_scale);
 }

@@ -365,7 +365,84 @@ void blit_scale(raster_t *r, xy_t pscale, xy_t pos, int interp)
 		blit_scale_frgb(*r, pscale, pos, interp);
 }
 
-void blit_in_rect(raster_t *raster, rect_t r, int keep_aspect_ratio, int interp)
+void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)
+{
+	int i, ix, iy;
+	int32_t *di;
+	float *df;
+	uint64_t dqbuf_da;
+	xy_t rad;
+	recti_t bbi;
+	double costh=1., sinth=0.;
+	rect_t obr, rbr;
+	xy_t rp[4];
+
+	if (r->f==NULL && r->sq==NULL && r->srgb==NULL && r->buf==NULL)
+		return ;
+
+	rad = max_xy(set_xy(1.), pscale);	// for interp == LINEAR_INTERP where the radius is 1 * pscale
+
+	costh = cos(angle);
+	sinth = sin(angle);
+
+	// pos originally is the screen position of the first pixel if angle was 0
+	// we must turn it into the screen position after rotation around rot_centre
+	obr = rect_add_margin(make_rect_off(pos, mul_xy( xyi_to_xy(sub_xyi(r->dim, xyi(1, 1))) , pscale ), XY0), rad);		// original bounding rectangle
+	pos = rotate_xy2_pre_around_point(pos, rot_centre, costh, sinth);
+	rp[0] = rotate_xy2_pre_around_point(obr.p0, rot_centre, costh, sinth);
+	rp[1] = rotate_xy2_pre_around_point(rect_p01(obr), rot_centre, costh, sinth);
+	rp[2] = rotate_xy2_pre_around_point(rect_p10(obr), rot_centre, costh, sinth);
+	rp[3] = rotate_xy2_pre_around_point(obr.p1, rot_centre, costh, sinth);
+	rbr.p0 = rp[0];
+	rbr.p1 = rp[0];
+	for (i=1; i < 4; i++)		// rbr is a bounding rectangle that contains the rotated rectangle
+	{
+		rbr.p0 = min_xy(rbr.p0, rp[i]);
+		rbr.p1 = max_xy(rbr.p1, rp[i]);
+	}
+
+	if (drawq_get_bounding_box(rbr, rad, &bbi)==0)
+		return ;
+
+	dqbuf_da = cl_add_raster_to_data_table(r);
+
+	// store the drawing parameters in the main drawing queue
+	df = di = drawq_add_to_main_queue(DQT_BLIT_FLATTOP_ROT);
+	di[0] = dqbuf_da;
+	di[1] = dqbuf_da >> 32;
+	di[2] = r->dim.x;
+	di[3] = r->dim.y;
+	df[4] = 1./pscale.x;
+	df[5] = -pos.x;
+	df[6] = -pos.y;
+	if (r->buf)
+		di[7] = r->buf_fmt;
+	else
+		di[7] = r->sq ? 1 : (r->srgb ? 2 : 0);
+	pscale = min_xy(pscale, set_xy(1.));
+	df[8] = calc_flattop_slope(1./pscale.x);
+	df[9] = costh;
+	df[10] = -sinth;
+
+	// go through the affected sectors
+	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
+		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
+			drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
+}
+
+void blit_scale_rotated(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)
+{
+	if (angle==0.)
+	{
+		blit_scale(r, pscale, pos, interp);
+		return ;
+	}
+
+	if (fb.use_drawq)
+		blit_scale_rotated_dq(r, pscale, pos, angle, rot_centre, interp);
+}
+
+void blit_in_rect_rotated(raster_t *raster, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
 {
 	xy_t pscale, pos;
 	rect_t image_frame = r;
@@ -376,5 +453,5 @@ void blit_in_rect(raster_t *raster, rect_t r, int keep_aspect_ratio, int interp)
 	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(raster->dim));
 	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
-	blit_scale(raster, pscale, pos, interp);
+	blit_scale_rotated(raster, pscale, pos, angle, rot_centre, interp);
 }

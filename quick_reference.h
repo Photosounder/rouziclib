@@ -160,6 +160,8 @@
 		ctrl_knob_fromlayout(&value, &layout, id);
 		// set knob attribute
 		get_knob_data_fromlayout(&layout, id)->min = 0.;
+		// set knob circularity
+		set_knob_circularity_fromlayout(1, &layout, id);
 
 	// Text editor
 		ctrl_textedit_fromlayout(&layout, id);
@@ -376,6 +378,11 @@
 
 	// Reset zoom and offset
 		zoom_reset(&zc, &mouse.zoom_flag);
+
+	// Change zoom or view offset
+		// if either argument is NAN it is unchanged
+		change_zoom(pos, NAN);
+		change_zoom_and_turn_off_zoom_mode(pos, 4.);
 
 	// Timing
 		uint32_t td=0;

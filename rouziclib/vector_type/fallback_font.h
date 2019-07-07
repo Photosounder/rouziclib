@@ -435,4 +435,100 @@ const char *fallback_font[] = {
 "	lines p3 p4",
 "	bounds	-2;6	2;6",
 
+"glyph E010", 
+"	bounds 0 0", 
+ 
+"glyph E011", 
+"	bounds 0 1", 
+ 
+"glyph E012", 
+"	bounds 0 2", 
+ 
+"glyph E013", 
+"	bounds 0 3", 
+ 
+"glyph E014", 
+"	bounds 0 4", 
+ 
+"glyph E015", 
+"	bounds 0 5", 
+ 
+"glyph E016", 
+"	bounds 0 6", 
+ 
+"glyph E017", 
+"	bounds 0 7", 
+ 
+"glyph E018", 
+"	bounds 0 8", 
+ 
+"glyph E019", 
+"	bounds 0 9", 
+ 
+"glyph E01A", 
+"	bounds 0 10", 
+ 
+"glyph E01B", 
+"	bounds 0 11", 
+ 
+"glyph E01C", 
+"	bounds 0 12", 
+ 
+"glyph E01D", 
+"	bounds 0 0;1", 
+ 
+"glyph E01E", 
+"	bounds 0 0;2", 
+ 
+"glyph E01F", 
+"	bounds 0 0;3", 
+ 
+"glyph E020", 
+"	bounds 0 0;4", 
+ 
+"glyph E021", 
+"	bounds 0 0;5", 
+ 
+"glyph E022", 
+"	bounds 0 0;6", 
+ 
+"glyph E023", 
+"	bounds 0 24", 
+ 
+"glyph E024", 
+"	bounds 0 36", 
+ 
+"glyph E025", 
+"	bounds 0 48", 
+ 
+"glyph E026", 
+"	bounds 0 60", 
+ 
+"glyph E027", 
+"	bounds 0 72", 
+ 
+"glyph E028", 
+"	bounds 0 84", 
+ 
+"glyph E029", 
+"	bounds 0 96", 
+ 
+"glyph E02A", 
+"	bounds 0 108", 
+ 
+"glyph E02B", 
+"	bounds 0 120", 
+ 
+"glyph E02C", 
+"	bounds 0 240", 
+ 
+"glyph E02D", 
+"	bounds 0 360", 
+ 
+"glyph E02E", 
+"	bounds 0 480", 
+ 
+"glyph E02F", 
+"	bounds 0 600", 
+
 };
