@@ -170,3 +170,8 @@ buffer_t buf_load_raw_file_dos_conv(const char *path)
 
 	return s;
 }
+
+int buf_save_raw_file(buffer_t *s, const char *path, const char *mode)
+{
+	return save_raw_file(path, mode, s->buf, s->len);
+}

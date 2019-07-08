@@ -15,8 +15,6 @@ extern int get_string_linecount(char *text, int len);
 extern int string_find_start_nth_line(char *text, int len, int n);
 extern char **arrayise_text(char *text, int *linecount);
 extern char *strstr_i (char *fullstr, char *substr);
-extern char *bstrchr(const char *s, int c, int l);
-extern char *bstrstr(const char *s1, int l1, const char *s2, int l2);
 #ifdef _WIN32
 extern void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len);
 #endif

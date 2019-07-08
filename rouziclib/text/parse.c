@@ -242,45 +242,6 @@ char *strstr_i(char *fullstr, char *substr)		// case insensitive substring searc
 	return ret;
 }
 
-char *bstrchr(const char *s, int c, int l)	// find first occurrence of c in char s[] for length l, same as memchr?
-{
-	const char ch = c;
-
-	if (l <= 0)
-		return NULL;
-
-	for (; *s != ch; ++s, --l)
-		if (l == 0)
-			return NULL;
-
-	return (char*) s;
-}
-
-char *bstrstr(const char *s1, int l1, const char *s2, int l2)	// find first occurrence of s2[] in s1[] for length l1, same as memmem?
-{
-	const char *ss1 = s1;
-	const char *ss2 = s2;
-
-	if (l1 <= 0)
-		return NULL;
-	if (l2 <= 0)
-		return (char *) s1;
-
-	// match prefix
-	for (; (s1 = bstrchr(s1, *s2, ss1-s1+l1)) != NULL && ss1-s1+l1!=0; ++s1)
-	{
-		// match rest of prefix
-		const char *sc1, *sc2;
-		for (sc1 = s1, sc2 = s2; ;)
-			if (++sc2 >= ss2+l2)
-				return (char *) s1;
-			else if (*++sc1 != *sc2)
-				break;
-	}
-
-	return NULL;
-}
-
 #ifdef _WIN32
 void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// like strstr but binary
 {

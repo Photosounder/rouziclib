@@ -27,6 +27,7 @@ extern double normalised_notation_split(double number, double *m);
 extern double fabs_min(double a, double b);
 extern double fabs_max(double a, double b);
 extern int ceil_rshift(int v, int sh);
+extern int idiv_ceil(int a, int b);
 extern int find_largest_prime_factor(int n);
 extern int is_prime(int n);
 extern int next_prime(int n);

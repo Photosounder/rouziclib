@@ -804,7 +804,7 @@ void save_font_block(char *path, vector_font_t *font, int range0, int range1, ch
 		return ;
 	}
 
-	for (i=0; i<font->letter_count; i++)
+	for (i=0; i < font->letter_count; i++)
 	{
 		cp = font->l[i].codepoint;
 

@@ -354,6 +354,10 @@ const char *fallback_font[] = {
 "	p2	0	6",
 "	lines p1 p2",
 
+"glyph 00B0",
+"	circle p1 p8	8  0;8	0 5;8	-0;9",
+"	lines p1 to p8 p1",
+
 "glyph 2610",
 "	rect	p1	-3 0	3 6",
 "	lines p1 p2 p4 p3 p1",

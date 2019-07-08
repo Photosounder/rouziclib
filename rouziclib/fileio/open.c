@@ -21,6 +21,18 @@ FILE *fopen_utf8(const char *filename, const char *mode)
 }
 #endif
 
+FILE *fopen_mkdirs(const char *path, const char *mode)
+{
+	FILE *file;
+
+	file = fopen_utf8(path, mode);
+	if (file)
+		return file;
+
+	create_dirs_for_file(path);		// if the file couldn't be open (presumably for writing), create the parent dirs
+	return fopen_utf8(path, mode);
+}
+
 uint8_t *load_raw_file(const char *path, size_t *size)
 {
 	FILE *in_file;
@@ -98,7 +110,7 @@ int save_raw_file(const char *path, const char *mode, uint8_t *data, size_t data
 	if (data==NULL)
 		return 0;
 
-	file = fopen_utf8(path, mode);
+	file = fopen_mkdirs(path, mode);
 	if (file==NULL)
 	{
 		fprintf_rl(stderr, "File '%s' not found.\n", path);
@@ -119,7 +131,7 @@ int save_string_to_file(const char *path, const char *mode, char *string)
 	if (string==NULL)
 		return 0;
 
-	file = fopen_utf8(path, mode);
+	file = fopen_mkdirs(path, mode);
 	if (file==NULL)
 	{
 		fprintf_rl(stderr, "File '%s' not found.\n", path);

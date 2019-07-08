@@ -16,3 +16,4 @@ extern void buf_tail(buffer_t *s, int n);
 extern void bufprint_gmtime(buffer_t *s, time_t t);
 extern buffer_t buf_load_raw_file(const char *path);
 extern buffer_t buf_load_raw_file_dos_conv(const char *path);
+extern int buf_save_raw_file(buffer_t *s, const char *path, const char *mode);

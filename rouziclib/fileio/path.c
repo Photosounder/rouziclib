@@ -254,7 +254,7 @@ int is_path_image_file(char *path)
 
 int is_path_video_file(char *path)
 {
-	const char *list_ext[] = {"avi", "mp4", "mkv", "mov"};
+	const char *list_ext[] = {"avi", "mp4", "mkv", "mov", "webm"};
 
 	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
 }

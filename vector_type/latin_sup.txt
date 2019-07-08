@@ -150,9 +150,8 @@ glyph 00AE
 	lines p1 to p8 p1
 
 glyph 00B0
-	copy 25EF
-	scale 0;2;8
-	move 0 5
+	circle p1 p8	8  0;8	0 5;8	-0;9
+	lines p1 to p8 p1
 
 glyph 00B1
 	p1	-1;6	3

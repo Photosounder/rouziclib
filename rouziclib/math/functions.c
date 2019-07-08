@@ -167,6 +167,16 @@ int ceil_rshift(int v, int sh)	// does the ceiling version of a right shift, for
 	return (v >> sh) + ((v & mask)!=0);
 }
 
+int idiv_ceil(int a, int b)	// 30 / 10 returns 3, 31 / 10 returns 4
+{
+	int d = a / b;
+
+	if (d*b < a)
+		d += 1;
+
+	return d;
+}
+
 int find_largest_prime_factor(int n)
 {
 	int i = 2;
