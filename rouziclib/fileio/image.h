@@ -16,6 +16,7 @@ extern raster_t load_image_from_http_lib(image_load_mem_func_t load_func, char *
 extern mipmap_t load_mipmap_from_http_lib(image_load_mem_func_t load_func, char *url, const int mode);
 extern mipmap_t load_mipmap_lib(image_load_mem_func_t load_func, const char *path, const int mode);
 extern raster_t load_image_mem_builtin(uint8_t *raw_data, size_t size, const int mode);
+extern raster_t load_file_tiles_to_raster(const char *dir_path, const char *filename_fmt, int x_first, const int mode);
 
 #define load_image(path, mode)			load_image_lib(NULL, path, mode)
 #define load_image_from_http(url, mode)		load_image_from_http_lib(NULL, url, mode);

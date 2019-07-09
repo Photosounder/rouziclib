@@ -214,6 +214,9 @@
 		// the first arg can be an array if it already exists
 		r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 
+	// Loading an image as a raster
+		r = load_image(path, IMAGE_USE_FRGB);
+
 	// Loading an image as a tiled mipmap
 		mipmap_t image_mm={0};
 		free_mipmap(&image_mm);

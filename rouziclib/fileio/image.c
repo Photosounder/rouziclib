@@ -271,3 +271,108 @@ raster_t load_image_mem_builtin(uint8_t *raw_data, size_t size, const int mode)
 
 	return im;
 }
+
+raster_t load_file_tiles_to_raster(const char *dir_path, const char *filename_fmt, int x_first, const int mode)
+{
+	xyi_t it, tile_count={0};
+	raster_t full_im={0}, *tile_r;
+	char filename[PATH_MAX*4], path[PATH_MAX*4];
+	int iy, pixel_size = get_raster_mode_elem_size(mode);
+
+	// Find and count the tile files
+	for (it.y=0; ; it.y++)
+	{
+		for (it.x=0; ; it.x++)
+		{
+			// look for the file with a name containing x and y
+			if (x_first)
+				sprintf(filename, filename_fmt, it.x, it.y);
+			else
+				sprintf(filename, filename_fmt, it.y, it.x);
+
+			append_name_to_path(path, dir_path, filename);
+
+			// stop going up x for this line this one was missing
+			if (check_file_is_readable(path)==0)
+			{
+				tile_count.x = MAXN(tile_count.x, it.x);
+				break;
+			}
+		}
+
+		// stop going up y if there was no x=0 tile
+		if (it.x==0)
+		{
+			tile_count.y = it.y;
+			break;
+		}
+	}
+
+	tile_r = calloc(mul_x_by_y_xyi(tile_count), sizeof(raster_t));
+
+	// Load every tile
+	for (it.y=0; it.y < tile_count.y; it.y++)
+		for (it.x=0; it.x < tile_count.x; it.x++)
+		{
+			if (x_first)
+				sprintf(filename, filename_fmt, it.x, it.y);
+			else
+				sprintf(filename, filename_fmt, it.y, it.x);
+
+			append_name_to_path(path, dir_path, filename);
+
+			tile_r[it.y*tile_count.x + it.x] = load_image(path, mode);
+		}
+
+	// Get the X dim
+	for (it.y=0; it.y < tile_count.y; it.y++)
+	{
+		int width=0;
+
+		for (it.x=0; it.x < tile_count.x; it.x++)
+			width += tile_r[it.y*tile_count.x + it.x].dim.x;
+
+		full_im.dim.x = MAXN(full_im.dim.x, width);
+	}
+
+	// Get the Y dim
+	for (it.x=0; it.x < tile_count.x; it.x++)
+	{
+		int height=0;
+
+		for (it.y=0; it.y < tile_count.y; it.y++)
+			height += tile_r[it.y*tile_count.x + it.x].dim.y;
+
+		full_im.dim.y = MAXN(full_im.dim.y, height);
+	}
+
+	// Copy each tile to the full image
+	full_im = make_raster(NULL, full_im.dim, XYI0, mode);
+
+	xyi_t offset={0};
+	raster_t tile_p;
+	for (it.y=0; it.y < tile_count.y; it.y++)
+	{
+		for (it.x=0; it.x < tile_count.x; it.x++)
+		{
+			tile_p = tile_r[it.y*tile_count.x + it.x];
+			uint8_t *im_buf = get_raster_buffer_for_mode(full_im, mode);
+			uint8_t *tile_buf = get_raster_buffer_for_mode(tile_p, mode);
+
+			// Copy each line of the tile
+			for (iy=0; iy < tile_p.dim.y; iy++)
+				memcpy(&im_buf[((offset.y+iy)*full_im.dim.x + offset.x)*pixel_size], &tile_buf[iy*tile_p.dim.x*pixel_size], tile_p.dim.x * pixel_size);
+
+			offset.x += tile_p.dim.x;
+
+			free_raster(&tile_r[it.y*tile_count.x + it.x]);
+		}
+
+		offset.x = 0;
+		offset.y += tile_p.dim.y;
+	}
+
+	free(tile_r);
+
+	return full_im;
+}

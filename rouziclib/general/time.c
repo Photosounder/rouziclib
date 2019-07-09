@@ -1,25 +1,70 @@
 #ifdef _WIN32
-	#include <mmsystem.h>
-	#pragma comment(lib, "winmm.lib")
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
 
-	uint32_t get_time_ms()
-	{
-		return timeGetTime();
-	}
+uint32_t get_time_ms()
+{
+	return timeGetTime();
+}
 
 #else
-	#include <sys/types.h> 
-	#include <sys/time.h>
-	
-	uint32_t get_time_ms()
-	{
-		struct timeval now;
-	
-		gettimeofday(&now, NULL);
-	
-		return now.tv_sec * 1000 + now.tv_usec / 1000;
-	}
+#include <sys/types.h> 
+#include <sys/time.h>
+
+uint32_t get_time_ms()
+{
+	struct timeval now;
+
+	gettimeofday(&now, NULL);
+
+	return now.tv_sec * 1000 + now.tv_usec / 1000;
+}
+
 #endif
+
+#ifdef __APPLE__
+#include <mach/mach_time.h>
+#endif
+
+double get_time_hr()	// High-resolution timing (based on https://github.com/nclack/tictoc/)
+{
+	static double tick_dur = 0.;
+
+	// Find the tick duration in seconds only once
+	if (tick_dur==0.)
+	{
+		#ifdef _WIN32
+		LARGE_INTEGER rate;
+		QueryPerformanceFrequency(&rate);
+		tick_dur = 1. / (double) rate.QuadPart;
+
+		#elif __APPLE__
+		mach_timebase_info_data_t rate_nsec;
+		mach_timebase_info(&rate_nsec);
+		tick_dur = 1e-9 * (double) rate_nsec.numer / (double) rate_nsec.denom;
+
+		#else
+		struct timespec rate;
+		clock_getres(CLOCKID, &rate);
+		tick_dur = 1e-9 * (double) rate.tv_nsec;
+
+		#endif
+	}
+
+	#ifdef _WIN32
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	return (double) now.QuadPart * tick_dur;
+
+	#elif __APPLE__
+	return (double) mach_absolute_time() * tick_dur;
+
+	#else
+	struct timespec now;
+	clock_gettime(CLOCKID, &now);
+	return (double) ((uint64_t) time.tv_sec*1000000000LL + time.tv_nsec) * tick_dur;
+	#endif
+}
 
 // the caller should give a pointer to the old time value for it to be replaced with the new value, and the difference is returned
 int32_t get_time_diff(uint32_t *t)
@@ -27,6 +72,17 @@ int32_t get_time_diff(uint32_t *t)
 	uint32_t now, diff;
 
 	now = get_time_ms();
+	diff = now - *t;
+	*t = now;
+
+	return diff;
+}
+
+double get_time_diff_hr(double *t)
+{
+	double now, diff;
+
+	now = get_time_hr();
 	diff = now - *t;
 	*t = now;
 
