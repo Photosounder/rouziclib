@@ -80,6 +80,13 @@ typedef struct
 
 typedef struct
 {
+	double start, start_sleep, func_end, flip_start, flip_end, end;
+} frame_timing_t;
+
+#define FRAME_TIMING_COUNT 120
+
+typedef struct
+{
 	raster_t r;
 	int32_t w, h;
 	rect_t window_dl;	// window draw limit (based on the usual drawing thickness)
@@ -92,6 +99,8 @@ typedef struct
 	void *texture;
 	int fullscreen_on, tex_lock;
 	recti_t wind_rect;
+	frame_timing_t timing[FRAME_TIMING_COUNT];
+	int timing_index;
 	#endif
 
 	// Draw queue data

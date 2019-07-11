@@ -162,7 +162,7 @@ void draw_circle_arc(xy_t pos, xy_t circrad, double th0, double th1, double radi
 	for (i=0; i<count; i++)
 	{
 		p0 = rotate_xy2(xy(0., -circrad.y), th0 + (double) i * stepth);
-		p1 = rotate_xy2(xy(0., -circrad.y), th0 + (double) (i+1) * stepth);
+		p1 = rotate_xy2(xy(0., -circrad.y), th0 + (double) (i+1) * stepth);	// TODO recycle p1 into the next p0 to save on a rotation
 		p0.x *= oval_ratio;
 		p1.x *= oval_ratio;
 		draw_line_thin(add_xy(pos, p0), add_xy(pos, p1), radius, colour, bf, intensity);

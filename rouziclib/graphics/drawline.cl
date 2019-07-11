@@ -73,16 +73,13 @@ float4 draw_line_thin_add(global float *le, float4 pv)
 	d2p *= iradius;
 	d3p *= iradius;
 
-	if (d1p <= -gl)
-		return pv;
-
-	if (d2p >= gl)
-		return pv;
+	if (d1p <= -gl)		return pv;
+	if (d2p >= gl)		return pv;
+	if (fabs(d3p) >= gl)	return pv;
 
 	v = (erf_fast(d1p) - erf_fast(d2p)) * 0.5f;
 	v *= gaussian(d3p);
 	pv += v * col;
-
 	return pv;
 }
 

@@ -493,6 +493,8 @@ int sdl_handle_window_resize(zoom_t *zc)
 
 void sdl_flip_fb()
 {
+	fb.timing[fb.timing_index].func_end = get_time_hr();
+
 	if (fb.use_drawq)
 	{
 	#ifdef RL_OPENCL
@@ -528,7 +530,9 @@ void sdl_flip_fb()
 			glTexCoord2f(0.f, tscale*1.f);		glVertex2f(-1., -1.+hoff);
 			glEnd();
 
+			fb.timing[fb.timing_index].flip_start = get_time_hr();
 			SDL_GL_SwapWindow(fb.window);
+			fb.timing[fb.timing_index].flip_end = get_time_hr();
 		#else
 			if (fb.tex_lock)
 			{
@@ -567,9 +571,17 @@ void sdl_flip_fb()
 		SDL_RenderClear(fb.renderer);
 		SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 		SDL_RenderPresent(fb.renderer);
+		SDL_RenderPresent(fb.renderer);
 
 		screen_blank();
 	}
+
+	double t = get_time_hr();
+	fb.timing[fb.timing_index].end = t;
+	fb.timing_index = circ_index(fb.timing_index+1, FRAME_TIMING_COUNT);
+	fb.timing[fb.timing_index].start = t;
+	sleep_ms(1);
+	fb.timing[fb.timing_index].start_sleep = get_time_hr();
 }
 
 void sdl_flip_fb_srgb(srgb_t *sfb)

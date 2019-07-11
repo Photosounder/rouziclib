@@ -26,7 +26,7 @@ uint32_t get_time_ms()
 #include <mach/mach_time.h>
 #endif
 
-double get_time_hr()	// High-resolution timing (based on https://github.com/nclack/tictoc/)
+double get_time_hr()	// High-resolution timing
 {
 	static double tick_dur = 0.;
 

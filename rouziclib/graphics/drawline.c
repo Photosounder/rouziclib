@@ -387,33 +387,36 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	if (bb_dim.x <= 0 || bb_dim.y <= 0)
 		return ;
 
-	if (mul_x_by_y_xyi(bb_dim) < 9)	// if there's less than 9 possible sectors then just do them all anyway, very few sectors will turn out to be superfluous
+	if (p1.x==p2.x || p1.y==p2.y || bb.p0.x==bb.p1.x || bb.p0.y==bb.p1.y)	// if the line is purely vertical or horizontal or is only 1 sector high/wide
 		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 			for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
 				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 	else
-	for (iy=bb.p0.y; iy<=bb.p1.y; iy++) // find the affected sectors
 	{
-		b1.y = iy << fb.sector_size;
-		b2.y = b1.y + (1<<fb.sector_size) - 1;
-		b1.y -= grad;
-		b2.y += grad;
+		double c0, c1, c1_inv, sec_size = 1<<fb.sector_size, inv_sec_size = 1. / sec_size, sec_size_m1 = sec_size - 1.;
+		c1 = (p2.y - p1.y) / (p2.x - p1.x);
+		c1_inv = 1. / c1;
+		c0 = p1.y - c1 * p1.x;
 
-		for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
+		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 		{
-			// test if sector is actually needed
-			b1.x = ix << fb.sector_size;
-			b2.x = b1.x + (1<<fb.sector_size) - 1;
-			b1.x -= grad;
-			b2.x += grad;
+			double y0, y1, x0, x1;
+			int sec0, sec1;
 
-			l1 = xy(p1.x, p1.y);
-			l2 = xy(p2.x, p2.y);
+			// Calculate where in x the line intersects with the padded top and bottom y levels
+			y0 = (iy * sec_size) - grad;
+			y1 = (iy * sec_size) + grad + sec_size_m1;
+			x0 = (y0 - c0) * c1_inv;
+			x1 = (y1 - c0) * c1_inv;
 
-			line_rect_clip(&l1, &l2, rect(b1, b2));	// TODO optimise this
+			// Find the first and last sector for this iy sector line
+			minmax_double(&x0, &x1);
+			sec0 = floor((x0 - grad) * inv_sec_size);
+			sec1 = ceil((x1 + grad) * inv_sec_size);
+			sec0 = MAXN(bb.p0.x, sec0);
+			sec1 = MINN(bb.p1.x, sec1);
 
-			// if sector is needed
-			if (l1.x!=l2.x || l1.y!=l2.y)
+			for (ix=sec0; ix <= sec1; ix++)
 				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 		}
 	}

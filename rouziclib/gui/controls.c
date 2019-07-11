@@ -328,7 +328,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		if (knob_state.rightclick && knob->edit_open==0)
 		{
 			knob->edit_open = 1;
-			sprintf(str, "%g", v);
+			sprintf(str, "%.10g", v);
 			textedit_set_new_text(&knob->edit, str);
 			knob->edit.rect_brightness = 0.125;
 			cur_textedit = &knob->edit;
