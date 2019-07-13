@@ -253,6 +253,15 @@ void drawq_add_sector_id(int32_t sector_id)	// like drawq_add_sector_id_nopendin
 	fb.pending_bracket[sector_id] = 0;
 }
 
+void drawq_add_sectors_for_area(recti_t bb)
+{
+	int ix, iy;
+
+	for (iy=bb.p0.y; iy <= bb.p1.y; iy++)
+		for (ix=bb.p0.x; ix <= bb.p1.x; ix++)
+			drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
+}
+
 void drawq_add_sectors_for_already_set_sectors()	// adds sectors for the current main queue entry only if the sectors already had something to draw (useful for applied effects, such as multiplication)
 {
 	int sector_id;

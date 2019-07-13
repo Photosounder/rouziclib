@@ -9,6 +9,7 @@ extern int32_t drawq_entry_size(const enum dq_type type);
 extern void *drawq_add_to_main_queue(const enum dq_type type);
 extern void drawq_add_sector_id_nopending(int32_t sector_id);
 extern void drawq_add_sector_id(int32_t sector_id);
+extern void drawq_add_sectors_for_area(recti_t bb);
 extern void drawq_add_sectors_for_already_set_sectors();
 extern void drawq_compile_lists();
 extern void drawq_test1();

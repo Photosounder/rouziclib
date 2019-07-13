@@ -388,36 +388,44 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 		return ;
 
 	if (p1.x==p2.x || p1.y==p2.y || bb_dim.x==1 || bb_dim.y==1 || mul_x_by_y_xyi(bb_dim) <= 4)	// if the line is purely vertical or horizontal or is only 1 sector across or if there's 4 possible sectors or less then just do them all anyway
-		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
-			for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
-				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
+		drawq_add_sectors_for_area(bb);		// add all sector references
 	else
 	{
-		double c0, c1, c1_inv, sec_size = 1<<fb.sector_size, inv_sec_size = 1. / sec_size;
-		c1 = (p2.y - p1.y) / (p2.x - p1.x);	// turn the line p1-p2 into c1*x + c0
-		c1_inv = 1. / c1;
-		c0 = p1.y - c1 * p1.x;
+		double c0, c1, c1_inv;
 
-		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
+		c1 = (p2.y - p1.y) / (p2.x - p1.x);		// turn the line p1-p2 into c1*x + c0
+
+		if (fabs(c1) < 1e-6)				// if the line is pretty much horizontal
+			drawq_add_sectors_for_area(bb);		// add all sector references
+		else if (fabs(c1_inv = 1. / c1) < 1e-6)		// if the line is pretty much vertical
+			drawq_add_sectors_for_area(bb);		// add all sector references
+		else
 		{
-			double y0, y1, x0, x1;
-			int sec0, sec1;
+			double sec_size = 1<<fb.sector_size, inv_sec_size = 1. / sec_size;
 
-			// Calculate where in x the line intersects with the padded top and bottom y levels
-			y0 = (iy * sec_size) - grad;
-			y1 = (iy * sec_size) + grad + sec_size - 1.;
-			x0 = (y0 - c0) * c1_inv;
-			x1 = (y1 - c0) * c1_inv;
+			c0 = p1.y - c1 * p1.x;
 
-			// Find the first and last sector for this iy sector line
-			minmax_double(&x0, &x1);
-			sec0 = floor((x0 - grad) * inv_sec_size);
-			sec1 = ceil((x1 + grad) * inv_sec_size);
-			sec0 = MAXN(bb.p0.x, sec0);
-			sec1 = MINN(bb.p1.x, sec1);
+			for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
+			{
+				double y0, y1, x0, x1;
+				int sec0, sec1;
 
-			for (ix=sec0; ix <= sec1; ix++)
-				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
+				// Calculate where in x the line intersects with the padded top and bottom y levels
+				y0 = (iy * sec_size) - grad;
+				y1 = (iy * sec_size) + grad + sec_size - 1.;
+				x0 = (y0 - c0) * c1_inv;
+				x1 = (y1 - c0) * c1_inv;
+
+				// Find the first and last sector for this iy sector line
+				minmax_double(&x0, &x1);
+				sec0 = floor((x0 - grad) * inv_sec_size);
+				sec1 = ceil((x1 + grad) * inv_sec_size);
+				sec0 = MAXN(bb.p0.x, sec0);
+				sec1 = MINN(bb.p1.x, sec1);
+
+				for (ix=sec0; ix <= sec1; ix++)
+					drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
+			}
 		}
 	}
 }
