@@ -140,11 +140,47 @@ void sleep_ms(int ms)
 {
 	#ifdef _WIN32
 	Sleep(ms);
+
 	#else
 	struct timespec t;
 
 	t.tv_sec  = ms / 1000;
 	t.tv_nsec = (ms - t.tv_sec) * 1000000;
+
+	nanosleep(&t, NULL);
+	#endif
+}
+
+#ifdef _WIN32
+typedef NTSTATUS (NTAPI *NtDelayExecution_func)(BOOLEAN Alertable, PLARGE_INTEGER DelayInterval);
+NtDelayExecution_func NtDelayExecution;
+typedef NTSTATUS (NTAPI *ZwSetTimerResolution_func)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
+ZwSetTimerResolution_func ZwSetTimerResolution;
+#endif
+
+void sleep_hr(double t)
+{
+	#ifdef _WIN32
+	static int init=1;
+
+	if (init)
+	{
+		NtDelayExecution = (NtDelayExecution_func) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
+		ZwSetTimerResolution = (ZwSetTimerResolution_func) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
+		ULONG actualResolution;
+		ZwSetTimerResolution(1, TRUE, &actualResolution);
+		init = 0;
+	}
+
+	LARGE_INTEGER interval;
+	interval.QuadPart = -1e7 * t;
+	NtDelayExecution(FALSE, &interval);
+
+	#else
+	struct timespec t;
+
+	t.tv_sec  = t;
+	t.tv_nsec = (t - (double) t.tv_sec) * 1e9;
 
 	nanosleep(&t, NULL);
 	#endif

@@ -80,10 +80,8 @@ typedef struct
 
 typedef struct
 {
-	double start, start_sleep, func_end, flip_start, flip_end, end;
+	double start, start_sleep, func_end, flip_end, interop_sync_end, dq_comp_end, cl_enqueue_end, cl_copy_end, end;
 } frame_timing_t;
-
-#define FRAME_TIMING_COUNT 120
 
 typedef struct
 {
@@ -99,8 +97,9 @@ typedef struct
 	void *texture;
 	int fullscreen_on, tex_lock;
 	recti_t wind_rect;
-	frame_timing_t timing[FRAME_TIMING_COUNT];
-	int timing_index;
+	frame_timing_t *timing;
+	size_t timing_as, timing_count, timing_index;
+	double start_sleep_dur;
 	#endif
 
 	// Draw queue data

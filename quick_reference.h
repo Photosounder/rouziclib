@@ -123,12 +123,13 @@
 
 		flwindow_init_defaults(&window);
 		flwindow_init_pinned(&window);
-		draw_dialog_window_fromlayout(&window, &diag_on, &layout, id);
+		draw_dialog_window_fromlayout(&window, &diag_on, &layout, 0);
 
 		// Example of window-defining elem
 		"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
 
 	// Fit a sublayout into a layout's rectangle
+		// offset decides towards which edges the fitting will go if the aspect ratios don't match
 		fit_sublayout_into_layout_rect(&window_layout, id_to_fit_into, &sublayout, id_of_frame, offset);
 
 	// Get the rect of a layout element
@@ -482,3 +483,6 @@
 	// 190610 transition that involves removing any 'fb' from any function call, making it a TLS global only
 	// run this on every file that passes fb to functions
 	%s/framebuffer_t \**fb\>,* *//e | %s/(&*\**fb, /(/e | %s/(&*\**fb)/()/e | %s/, fb,/,/e | %s/, fb)/)/e | %s/fb->/fb./ge
+
+	// 190712 transition changing how floating windows work
+	// add NULL as a 3rd argument for normal floating windows

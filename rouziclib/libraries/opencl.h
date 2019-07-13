@@ -21,4 +21,4 @@ extern cl_int init_fb_cl();
 
 #endif
 
-extern void dialog_cl_gl_interop_options(xy_t init_offset, double init_sm);
+extern void dialog_cl_gl_interop_options(rect_t area, int parent_on, int *detached);

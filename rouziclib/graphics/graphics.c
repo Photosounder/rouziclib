@@ -259,10 +259,6 @@ double intensity_scaling(double scale, double scale_limit)	// gives an intensity
 
 	if (scale < scale_limit)
 		ratio = scale / scale_limit;
-
-	// logarithmic knee smoothing
-	//x = log(scale / scale_limit);
-	//ratio = exp( (-sqrt(sq(x)+knee_width) + x) * 0.5 );
 	
 	// linear adjust knee smoothing
 	x = scale / scale_limit;

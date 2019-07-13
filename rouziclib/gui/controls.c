@@ -374,6 +374,14 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		if (ret==1 || ret==2 || ret==3)
 		{
 			v = te_interp(knob->edit.string, NULL);
+			if (isnan(v))
+				v = knob->default_value;
+
+			if (knob->circular)
+				v = rangewrap(v, knob->min, knob->max);
+			else
+				v = rangelimit(v, knob->min, knob->max);
+
 			val_set_by_edit = 1;
 			knob->edit_open = 0;
 			cur_textedit = NULL;

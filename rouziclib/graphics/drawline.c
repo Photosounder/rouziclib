@@ -387,14 +387,14 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	if (bb_dim.x <= 0 || bb_dim.y <= 0)
 		return ;
 
-	if (p1.x==p2.x || p1.y==p2.y || bb.p0.x==bb.p1.x || bb.p0.y==bb.p1.y)	// if the line is purely vertical or horizontal or is only 1 sector high/wide
+	if (p1.x==p2.x || p1.y==p2.y || bb_dim.x==1 || bb_dim.y==1 || mul_x_by_y_xyi(bb_dim) <= 4)	// if the line is purely vertical or horizontal or is only 1 sector across or if there's 4 possible sectors or less then just do them all anyway
 		for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 			for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
 				drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
 	else
 	{
-		double c0, c1, c1_inv, sec_size = 1<<fb.sector_size, inv_sec_size = 1. / sec_size, sec_size_m1 = sec_size - 1.;
-		c1 = (p2.y - p1.y) / (p2.x - p1.x);
+		double c0, c1, c1_inv, sec_size = 1<<fb.sector_size, inv_sec_size = 1. / sec_size;
+		c1 = (p2.y - p1.y) / (p2.x - p1.x);	// turn the line p1-p2 into c1*x + c0
 		c1_inv = 1. / c1;
 		c0 = p1.y - c1 * p1.x;
 
@@ -405,7 +405,7 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 
 			// Calculate where in x the line intersects with the padded top and bottom y levels
 			y0 = (iy * sec_size) - grad;
-			y1 = (iy * sec_size) + grad + sec_size_m1;
+			y1 = (iy * sec_size) + grad + sec_size - 1.;
 			x0 = (y0 - c0) * c1_inv;
 			x1 = (y1 - c0) * c1_inv;
 

@@ -1169,6 +1169,28 @@ void gui_layout_registry_reset()
 	layout_reg.reg_count = 0;
 }
 
+rect_t fit_sublayout_into_area(rect_t area0, gui_layout_t *sublayout, int main_area_id, xy_t offset, int save_os)
+{
+	rect_t area1;
+
+	if (check_elem_id_validity(sublayout, main_area_id, 0)==0)
+	{
+		fprintf_rl(stderr, "Invalid element #%d for sublayout in fit_sublayout_into_area()\n", main_area_id);
+		return area0;
+	}
+
+	area1 = gui_layout_elem_comp_area(sublayout, main_area_id);
+
+	area0 = fit_rect_in_area(get_rect_dim(area1), area0, offset);
+
+	if (save_os)
+		sublayout->offset = fit_into_area(area0, area1, 0., &sublayout->sm);
+	else
+		fit_into_area(area0, area1, 0., NULL);
+
+	return area0;
+}
+
 rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_layout_t *sublayout, int main_area_id, xy_t offset)
 {
 	rect_t area0={0}, area1;

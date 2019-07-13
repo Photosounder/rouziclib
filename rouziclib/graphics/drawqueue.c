@@ -118,9 +118,11 @@ void drawq_run()
 	}
 	#endif
 #endif
+	fb.timing[fb.timing_index].interop_sync_end = get_time_hr();
 
 	// make entry list for each sector
 	drawq_compile_lists();
+	fb.timing[fb.timing_index].dq_comp_end = get_time_hr();
 
 #ifdef RL_OPENCL
 	// Copy compiled lists to data_cl
@@ -164,10 +166,12 @@ void drawq_run()
 
 	ret = clFlush(fb.clctx.command_queue);
 	CL_ERR_NORET("clFlush (in drawq_run)", ret);
+	fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
 
 	// wait for the input data copies to end
 	clWaitForEvents(1, &ev);
 	clReleaseEvent(ev);
+	fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
 
 	#ifndef RL_OPENCL_GL
 	int pitch;

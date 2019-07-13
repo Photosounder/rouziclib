@@ -162,7 +162,8 @@ xy_t fit_unscaled_rect(rect_t a, rect_t f, double *sm)	// find the offset-scale 
 	xy_t tmul, tadd;
 
 	area_to_area_transform(a, f, &tmul, &tadd, 1);
-	*sm = min_of_xy(tmul);
+	if (sm)
+		*sm = min_of_xy(tmul);
 
 	return tadd;
 }

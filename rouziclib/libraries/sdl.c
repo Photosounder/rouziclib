@@ -493,6 +493,8 @@ int sdl_handle_window_resize(zoom_t *zc)
 
 void sdl_flip_fb()
 {
+	if (fb.timing==NULL)
+		fb.timing = calloc(fb.timing_as = fb.timing_count = 120, sizeof(frame_timing_t));
 	fb.timing[fb.timing_index].func_end = get_time_hr();
 
 	if (fb.use_drawq)
@@ -517,7 +519,7 @@ void sdl_flip_fb()
 			}
 
 		#ifdef RL_OPENCL_GL
-
+for(int i=0; i < 1; i++) {
 			float hoff = 2. * (fb.h - fb.maxdim.y) / (double) fb.maxdim.y;
 			glLoadIdentity();             // Reset the projection matrix
 			glViewport(0, 0, fb.maxdim.x, fb.maxdim.y);
@@ -530,8 +532,8 @@ void sdl_flip_fb()
 			glTexCoord2f(0.f, tscale*1.f);		glVertex2f(-1., -1.+hoff);
 			glEnd();
 
-			fb.timing[fb.timing_index].flip_start = get_time_hr();
 			SDL_GL_SwapWindow(fb.window);
+}
 			fb.timing[fb.timing_index].flip_end = get_time_hr();
 		#else
 			if (fb.tex_lock)
@@ -571,16 +573,15 @@ void sdl_flip_fb()
 		SDL_RenderClear(fb.renderer);
 		SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 		SDL_RenderPresent(fb.renderer);
-		SDL_RenderPresent(fb.renderer);
 
 		screen_blank();
 	}
 
 	double t = get_time_hr();
 	fb.timing[fb.timing_index].end = t;
-	fb.timing_index = circ_index(fb.timing_index+1, FRAME_TIMING_COUNT);
+	fb.timing_index = circ_index(fb.timing_index+1, fb.timing_count);
 	fb.timing[fb.timing_index].start = t;
-	sleep_ms(1);
+	sleep_hr(rangelimit(fb.start_sleep_dur - t + fb.timing[circ_index(fb.timing_index-1, fb.timing_count)].flip_end, 0., fb.start_sleep_dur));
 	fb.timing[fb.timing_index].start_sleep = get_time_hr();
 }
 

@@ -397,32 +397,31 @@ cl_int init_fb_cl()
 
 #endif
 
-void dialog_cl_gl_interop_options(xy_t init_offset, double init_sm)
+void dialog_cl_gl_interop_options(rect_t area, int parent_on, int *detached)
 {
 	#ifdef RL_OPENCL
-	static uint32_t td=0;
-	static int diag_on = 1;
-
 	// GUI layout
 	static gui_layout_t layout={0};
 	const char *layout_src[] = {
-		"elem 0", "type none", "label OpenCL/GL Interop Options", "pos	-8;6	4", "dim	12	4;10", "off	0	1", "",
-		"elem 10", "type checkbox", "label clFinish()", "pos	-4	3", "dim	3;6	1", "off	0	1", "",
-		"elem 11", "type checkbox", "label glFinish()", "link_pos_id 10", "pos	0	-1;2", "dim	3;6	1", "off	0	1", "",
-		"elem 12", "type checkbox", "label Interop sync", "link_pos_id 11", "pos	0	-1;2", "dim	3;6	1", "off	0	1", "",
-		"elem 20", "type label", "pos	-8	3", "dim	3;6	1", "off	0	1", "",
-		"elem 21", "type label", "link_pos_id 20", "pos	0	-1;2", "dim	3;6	1", "off	0	1", "",
+		"elem 0", "type none", "label OpenCL/GL Interop Options", "pos	-0;6	8;3", "dim	4	9;4", "off	0	1", "",
+		"elem 10", "type checkbox", "label clFinish()", "pos	0	5;11", "dim	3	0;10", "off	0	1", "",
+		"elem 11", "type checkbox", "label glFinish()", "link_pos_id 10", "pos	0	-0;11", "dim	3	0;10", "off	0	1", "",
+		"elem 12", "type checkbox", "label Interop sync", "link_pos_id 11", "pos	0	-0;11", "dim	3	0;10", "off	0	1", "",
+		"elem 20", "type label", "pos	0	7;5", "dim	3	0;10", "off	0	1", "",
+		"elem 21", "type label", "link_pos_id 20", "pos	0	-0;11", "dim	3	0;7", "off	0	1", "",
+		"elem 30", "type checkbox", "label Test pattern", "pos	0	-0;2", "dim	3	0;6", "off	0	1", "",
 	};
 
-	gui_layout_init_pos_scale(&layout, init_offset, init_sm, xy(8.5, -4), diag_on==0);
 	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "CL/GL options");
+
+	if (parent_on==0 && *detached==0)	// keep the detached dialog open if the parent dialog is closed
+		return ;
 
 	// Window
 	static flwindow_t window={0};
-
-	diag_on = 1;
 	flwindow_init_defaults(&window);
-	draw_dialog_window_fromlayout(&window, &diag_on, &layout, 0);
+	window.parent_on = parent_on;
+	draw_dialog_window_fromlayout(&window, detached, &area, &layout, 0);
 
 	// Controls
 	ctrl_checkbox_fromlayout(&fb.opt_clfinish, &layout, 10);
@@ -430,17 +429,24 @@ void dialog_cl_gl_interop_options(xy_t init_offset, double init_sm)
 	ctrl_checkbox_fromlayout(&fb.opt_interop, &layout, 12);
 
 	// FPS and info
-	gui_printf_to_label(&layout, 20, 0, "%.1f FPS", 1./fps_estimate_2speeds(0.001 * get_time_diff(&td), 0));
-	draw_label_fromlayout(&layout, 20, ALIG_CENTRE | MONODIGITS);
+	double td = fb.timing[circ_index(fb.timing_index-1, fb.timing_count)].flip_end - fb.timing[circ_index(fb.timing_index-2, fb.timing_count)].flip_end;
+	gui_printf_to_label(&layout, 20, 0, "%.1f FPS", 1./fps_estimate_2speeds(td, 0));
 	gui_printf_to_label(&layout, 21, 0, "CL_DEVICE_PREFERRED_INTEROP_USER_SYNC is %s", fb.interop_sync ? "true" : "false");
+	draw_label_fromlayout(&layout, 20, ALIG_CENTRE | MONODIGITS);
 	draw_label_fromlayout(&layout, 21, ALIG_CENTRE | MONODIGITS);
 
 	// Box visual test
-	static is=0;
-	xy_t ip;
+	static int pattern_on=1;
+	ctrl_checkbox_fromlayout(&pattern_on, &layout, 30);	
 
-	is = (is+1) % 9;
-	ip = xy(is/3, is%3);
-	draw_rect_full(sc_rect(offset_scale_rect(make_rect_off(ip, XY1, XY0), layout.offset, layout.sm)), drawing_thickness, make_grey(0.5), blend_add, 1.);
+	if (pattern_on)
+	{
+		static is=0;
+		xy_t ip;
+
+		is = (is+1) % 9;
+		ip = xy(is/3, is%3);
+		draw_rect_full(sc_rect(offset_scale_rect(make_rect_off(ip, XY1, XY0), layout.offset, layout.sm)), drawing_thickness, make_grey(0.5), blend_add, 1.);
+	}
 	#endif
 }

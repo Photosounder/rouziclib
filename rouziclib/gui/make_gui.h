@@ -111,6 +111,7 @@ extern knob_t *get_knob_data_fromlayout(gui_layout_t *layout, const int id);
 extern void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const int id);
 extern void gui_layout_registry_add(gui_layout_t *layout, const char *layout_name);
 extern void gui_layout_registry_reset();
+extern rect_t fit_sublayout_into_area(rect_t area0, gui_layout_t *sublayout, int main_area_id, xy_t offset, int save_os);
 extern rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_layout_t *sublayout, int main_area_id, xy_t offset);
 
 #define ctrl_button_fromlayout(layout, id)	ctrl_button_fromlayout_offset(layout, id, XY0)
