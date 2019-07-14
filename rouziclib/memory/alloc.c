@@ -1,4 +1,4 @@
-size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio)	// increases a buffer's size to accomodate for the requested count if necessary
+inline size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio)	// increases a buffer's size to accomodate for the requested count if necessary
 {
 	size_t newsize;
 	void *p;

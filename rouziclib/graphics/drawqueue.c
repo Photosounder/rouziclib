@@ -284,7 +284,7 @@ void drawq_add_sectors_for_already_set_sectors()	// adds sectors for the current
 
 void drawq_compile_lists()		// makes entry_list and sector_pos
 {
-	int32_t i, j, end_i, end_j, main_i, sector, secpos, *count, pos=0;
+	int32_t i, j, end_i, end_j, main_i, sector, secpos, count, pos=0;
 
 	for (i=0; i < fb.sectors; i++)
 	{
@@ -316,13 +316,13 @@ void drawq_compile_lists()		// makes entry_list and sector_pos
 
 				if (secpos >= 0)
 				{
-					alloc_enough(&fb.entry_list, secpos + 1, &fb.entry_list_as, sizeof(int32_t), 2.);
-					count = &fb.entry_list[secpos];		// count of entry references for this sector
-					(*count)++;
+					count = 1;
+					if (secpos < fb.entry_list_as)
+						count = fb.entry_list[secpos] + 1;
 
-					alloc_enough(&fb.entry_list, secpos + *count + 1, &fb.entry_list_as, sizeof(int32_t), 2.);
-					count = &fb.entry_list[secpos];
-					fb.entry_list[secpos + *count] = main_i;	// store the position of this entry in the main queue
+					alloc_enough(&fb.entry_list, secpos + count + 1, &fb.entry_list_as, sizeof(int32_t), 2.);
+					fb.entry_list[secpos] = count;
+					fb.entry_list[secpos + count] = main_i;	// store the position of this entry in the main queue
 				}
 			}
 		}

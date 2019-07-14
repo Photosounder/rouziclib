@@ -1,4 +1,4 @@
-extern size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio);
+extern inline size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio);
 extern void free_null(void **ptr);
 extern void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t size_elem);
 extern void **copy_2d(void **ptr, const size_t ptr_count, const size_t size_buffers);
