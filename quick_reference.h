@@ -75,6 +75,9 @@
 			te.edit_mode = te_mode_value;
 			te.max_scale = 1./6.;
 			te.rect_brightness = 0.25;
+			te.first_click_no_sel = 1;
+			// or
+			get_textedit_fromlayout(&layout, id)->first_click_no_sel = 1;
 
 		// returns 1 if Enter (or sometimes Tab) is pressed, 2 when clicked out of it, 3 when tabbed out, 4 when modified
 		if (ctrl_textedit(&te, offset_scale_rect(box, offset, sm), colour))
@@ -325,20 +328,34 @@
 		va_end(args);
 		free(string);
 
+//**** Generic buffer ****
+
+	// Declare buffer
+		buffer_t buf={0};
+
+	// Free buffer
+		free_buf(&buf);
+
+	// Function equivalents
+		bufprintf(&buf, ...)			= fprintf(stream, ...)
+		bufwrite(&buf, data, data_len)		= fwrite
+		buf = buf_load_raw_file(path)		= load_raw_file(path, ...)
+		buf = buf_load_raw_file_dos_conv(path)	= load_raw_file_dos_conv(path, ...)
+		buf_save_raw_file(&buf, path, "wb")	= save_raw_file(...)
+
 //**** Threading ****
 
 	// Init thread handle (not for detached threads)
 		static rl_thread_t thread_handle=NULL;
 	// Declare the thread data
-		my_thread_data_t data={0};
+		static my_thread_data_t data={0};
 
 	// before rl_thread_join the caller should signal to the thread function to quit using this element in the data struct
 		volatile int thread_on;
 		data.thread_on = 0;
 
 	// Wait for thread to end (not for detached threads, use mutex instead)
-		if (thread_handle)
-			rl_thread_join_and_null(&thread_handle);
+		rl_thread_join_and_null(&thread_handle);
 
 		// and before creating the thread:
 		data.thread_on = 1;

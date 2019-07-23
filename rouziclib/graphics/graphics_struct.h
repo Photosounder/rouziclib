@@ -97,10 +97,12 @@ typedef struct
 	void *texture;
 	int fullscreen_on, tex_lock;
 	recti_t wind_rect;
+	#endif
+
+	// Time profiling
 	frame_timing_t *timing;
 	size_t timing_as, timing_count, timing_index;
 	double start_sleep_dur;
-	#endif
 
 	// Draw queue data
 	uint8_t *data;			// local version of data_cl (but doesn't mirror the draw queue data)

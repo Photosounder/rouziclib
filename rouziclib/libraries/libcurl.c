@@ -41,6 +41,8 @@ int curl_https_get(char *url, int timeout, int retry, uint8_t **data, int *data_
 		curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L);	// skip certification verif
 		curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 0L);	// skip host name verif
 
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36");
+
 		res = curl_easy_perform(handle);	// perform the request
 		if (res != CURLE_OK)
 			fprintf_rl(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));

@@ -1,3 +1,9 @@
+enum te_mode
+{
+	te_mode_value,
+	te_mode_full,
+};
+
 typedef struct
 {
 	char *string;
@@ -21,5 +27,6 @@ typedef struct
 	int click_on;
 	double max_scale, rect_brightness;
 	textundo_t undo;
-	int edit_mode, read_only, first_click_no_sel, return_flag, draw_string_mode, was_cur_te, tab_switch, sel_all;
+	enum te_mode edit_mode;
+	int read_only, first_click_no_sel, return_flag, draw_string_mode, was_cur_te, tab_switch, sel_all;
 } textedit_t;

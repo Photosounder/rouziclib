@@ -31,6 +31,7 @@ extern double fastatan2(double y, double x);
 #define fastcos		cos
 #define	fastsin		sin
 #define fastatan2	atan2
+#define fast_lsrgbf	lsrgb
 
 #define fastgaussianf_d0	gaussian
 #define fastgaussianf_d1	gaussian

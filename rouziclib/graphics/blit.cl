@@ -52,6 +52,11 @@ float4 image_interp_linear(global float4 *im, int2 im_dim, float2 pif)
 	return pv;
 }*/
 
+float4 read_frgb_pixel(global float4 *im, int index)
+{
+	return im[index];
+}
+
 float4 read_sqrgb_pixel(global uint *im, int index)
 {
 	float4 pv;
@@ -150,7 +155,7 @@ float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i)
 	switch (fmt)
 	{
 		case 0:		// frgb_t
-			return im[i.y * im_dim.x + i.x];
+			return read_frgb_pixel(im, i.y * im_dim.x + i.x);
 
 		case 1:		// sqrgb_t
 			return read_sqrgb_pixel(im, i.y * im_dim.x + i.x);

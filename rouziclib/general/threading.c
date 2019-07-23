@@ -54,6 +54,9 @@ int rl_thread_join_and_null(rl_thread_t *thread_handle)
 {
 	int ret;
 
+	if (thread_handle==NULL)
+		return 0;
+
 	ret = rl_thread_join(*thread_handle);
 
 	memset(thread_handle, 0, sizeof(rl_thread_t));

@@ -95,6 +95,7 @@ extern int ctrl_knob_fromlayout(double *v, gui_layout_t *layout, const int id);
 extern int ctrl_textedit_fromlayout_in_rect(gui_layout_t *layout, const int id, rect_t box_os);
 extern int ctrl_textedit_fromlayout(gui_layout_t *layout, const int id);
 extern void gui_layout_selmenu_set_count(const int count, gui_layout_t *layout, const int id);
+extern void gui_layout_selmenu_set_open(const int state, gui_layout_t *layout, const int id);
 extern void gui_layout_selmenu_set_entry_id(const int entry_id, gui_layout_t *layout, const int id);
 extern int ctrl_selmenu_fromlayout(gui_layout_t *layout, const int id);
 extern void draw_selmenu_entry_fromlayout(const int i, const char *label, gui_layout_t *layout, const int id);
@@ -113,6 +114,7 @@ extern void gui_layout_registry_add(gui_layout_t *layout, const char *layout_nam
 extern void gui_layout_registry_reset();
 extern rect_t fit_sublayout_into_area(rect_t area0, gui_layout_t *sublayout, int main_area_id, xy_t offset, int save_os);
 extern rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_layout_t *sublayout, int main_area_id, xy_t offset);
+extern void gui_parse_knob_data_string(gui_layout_t *layout, const int id, const char *line, buffer_t *buferr);
 
 #define ctrl_button_fromlayout(layout, id)	ctrl_button_fromlayout_offset(layout, id, XY0)
 #define ctrl_button_invis_fromlayout(state, layout, id)	ctrl_button_invis_fromlayout_offset(state, layout, id, XY0)

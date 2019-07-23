@@ -1,11 +1,5 @@
 // in general/textedit_struct.h:
-// textedit_t
-
-enum
-{
-	te_mode_value,
-	te_mode_full,
-};
+// textedit_t, enum te_mode
 
 extern void textedit_init(textedit_t *te, const int alloc);
 extern void textedit_free(textedit_t *te);

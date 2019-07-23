@@ -826,6 +826,18 @@ int ctrl_textedit_fromlayout(gui_layout_t *layout, const int id)
 
 // Selection menu functions
 
+void gui_layout_selmenu_set_open(const int state, gui_layout_t *layout, const int id)
+{
+	layout_elem_t *cur_elem=NULL;
+
+	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
+		return ;
+	cur_elem = &layout->elem[id];
+
+	if (cur_elem->data)
+		((ctrl_selectmenu_state_t *) cur_elem->data)->next_open = state;
+}
+
 void gui_layout_selmenu_set_count(const int count, gui_layout_t *layout, const int id)
 {
 	layout_elem_t *cur_elem=NULL;
@@ -1214,4 +1226,59 @@ rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_
 	sublayout->offset = fit_into_area(area0, area1, 0., &sublayout->sm);
 
 	return area0;
+}
+
+void gui_parse_knob_data_string(gui_layout_t *layout, const int id, const char *line, buffer_t *buferr)
+{
+	knob_t *knob_data;
+	int n;
+	char *p, b[32]={0};
+
+	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
+		return ;
+
+	knob_data = (knob_t *) layout->elem[id].data;
+
+	n = 0;
+	if (sscanf(line, "%lg %lg %lg %s %n", &knob_data->min, &knob_data->default_value, &knob_data->max, b, &n)>=3)
+	{
+		knob_data->func = knob_func_name_to_ptr(b);
+		if (knob_data->func == NULL)
+			knob_data->func = knobf_linear;
+
+		if (knob_data->func==NULL)
+		{
+			bufprintf(buferr, "The knob function name '%s' isn't valid in line \"%s\"\n", b, line);
+			return ;
+		}
+
+		if (knob_data->min >= knob_data->max)
+		{
+			bufprintf(buferr, "The maximum value of a knob cannot be lower than the minimum in line \"%s\"\n", line);
+			return ;
+		}
+
+		if (knob_data->min > knob_data->default_value || knob_data->default_value > knob_data->max)
+		{
+			bufprintf(buferr, "The default value of a knob cannot be outside of the [min , max] range in line \"%s\"\n", line);
+			return ;
+		}
+
+		if (knob_data->func==knobf_log && MINN(knob_data->min, knob_data->default_value) <= 0.)
+		{
+			bufprintf(buferr, "When the knob function is logarithmic no value can be 0 or lower in line \"%s\"\n", line);
+			return ;
+		}
+
+		if (n==0)
+			n = strlen(line);
+		p = &line[n];
+		free(knob_data->fmt_str);
+		knob_data->fmt_str = make_string_copy(p[0] ? p : VALFMT_DEFAULT);
+	}
+	else
+	{
+		bufprintf(buferr, "The 'knob' command needs at least the first 3 arguments: '<min> <default> <max> (<function (linear|log|recip)>) (<format string>)' at line \"%s\"\n", line);
+		return ;
+	}
 }
