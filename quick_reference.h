@@ -480,6 +480,19 @@
 			imag = out[i+1];
 		}
 
+	// Loading the vector typeface
+		// from a header
+		void vector_font_load_from_header()
+		{
+			char data[] = 
+			#include "vector_type_fileball.h"
+
+			font = make_font_from_zball(data, sizeof(data));
+		}
+
+		// from a folder
+		font = remake_font("vector_type/type_index.txt", font);
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments

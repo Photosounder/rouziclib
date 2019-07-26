@@ -173,3 +173,71 @@ void fileball_extract_z_file_to_path(const char *in_path, const char *extract_pa
 	fileball_extract_z_mem_to_path(&zball, extract_path);
 	free(zball.buf);
 }
+
+fileball_t fileball_extract_z_mem_to_struct(buffer_t *zball)
+{
+	buffer_t ball={0};
+	fileball_t s={0};
+	size_t s_as = 0;
+
+	gz_decompress(zball->buf, zball->len, &ball.buf, &ball.len);	// decompress zball into ball
+	s.original_array = ball.buf;
+
+	int n=0;
+	char *p, *pend;
+	double version=0.;
+
+	p = ball.buf;
+	pend = &ball.buf[ball.len];
+
+	sscanf(p, "fileball %lg%n", &version, &n);
+	p = &p[n];
+	if (n==0)
+		return s;
+	n = 0;
+	while (p < pend)
+	{
+		// read the relative path to extract to
+		sscanf(p, "\n%*[^\n]%n", &n);
+		if (n)
+		{
+			alloc_enough(&s.file, s.file_count+=1, &s_as, sizeof(fileball_subfile_t), 2.);
+			s.file[s.file_count-1].path = &p[1];
+			p[n] = '\0';	// makes the .path suitable
+			p = &p[n+1];
+		}
+		else
+			break ;
+		n = 0;
+
+		// read the size of the subfile
+		sscanf(p, "%zu\n%n", &s.file[s.file_count-1].len, &n);
+		p = &p[n];
+		if (n==0)
+			break ;
+		n = 0;
+
+		// file data pointer
+		s.file[s.file_count-1].data = p;
+		p = &p[s.file[s.file_count-1].len];
+	}
+
+	return s;
+}
+
+fileball_subfile_t *fileball_find_subfile(fileball_t *s, const char *name)
+{
+	for (int i=0; i < s->file_count; i++)
+		if (strcmp(name, s->file[i].path)==0)
+			return &s->file[i];
+
+	return NULL;
+}
+
+void free_fileball_struct(fileball_t *s)
+{
+	free(s->file);
+	free(s->original_array);
+
+	memset(s, 0, sizeof(fileball_t));
+}

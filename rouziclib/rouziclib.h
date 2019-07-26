@@ -75,6 +75,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "gui/zoom_struct.h"			// needs rect, xyz, mouse, graphics
 #include "vector/vector_struct.h"		// needs xyz
 #include "vector_type/vector_type_struct.h"	// needs vector
+#include "fileio/fileball_struct.h"
 
 
 #include "general/macros.h"

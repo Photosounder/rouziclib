@@ -629,42 +629,90 @@ void make_font_block(char *path, vector_font_t *font)
 	for (i=0; i < linecount; i++)
 		font_block_process_line(line[i], font);
 
-	free(line[0]);
-	free(line);
+	free_2d(line, 1);
+}
+
+void make_font_block_from_struct(fileball_t *s, char *path, vector_font_t *font)
+{
+	int i, linecount;
+	char **line;
+
+	fileball_subfile_t *subfile = fileball_find_subfile(s, path);
+	if (subfile == NULL)
+	{
+		fprintf_rl(stderr, "Subfile \"%s\" not found in make_font_block_from_struct()\n", path);
+		return ;
+	}
+
+	line = arrayise_text(make_string_copy_len(subfile->data, subfile->len), &linecount);
+	if (line == NULL)
+		return ;
+
+	for (i=0; i < linecount; i++)
+		font_block_process_line(line[i], font);
+
+	free_2d(line, 1);
+}
+
+void make_font_aliases_line(char *line, vector_font_t *font)
+{
+	int ret;
+	uint32_t cp, tgt;
+	char a[128], c, *p;
+
+	ret = sscanf(line, "%X = %s", &cp, a);
+
+	if (ret==2)
+	{
+		font_alloc_one(font);
+		font->l[font->letter_count-1].codepoint = cp;
+		if (a[0]=='\'')
+		{
+			if (sscanf(a, "'%c'", &c)==1)
+				font->l[font->letter_count-1].alias = c;
+		}
+		else
+			sscanf(a, "%X", &font->l[font->letter_count-1].alias);
+
+		add_codepoint_letter_lut_reference(font);
+	}
 }
 
 void make_font_aliases(char *path, vector_font_t *font)
 {
-	int i, ret, linecount;
-	uint32_t cp, tgt;
-	char **line, a[128], c, *p;
+	int i, linecount;
+	char **line;
 	
 	line = arrayise_text(load_raw_file_dos_conv(path, NULL), &linecount);
 	if (line == NULL)
 		return ;
 
 	for (i=0; i < linecount; i++)
+		make_font_aliases_line(line[i], font);
+
+	free_2d(line, 1);
+}
+
+void make_font_aliases_from_struct(fileball_t *s, char *path, vector_font_t *font)
+{
+	int i, linecount;
+	char **line;
+
+	fileball_subfile_t *subfile = fileball_find_subfile(s, path);
+	if (subfile == NULL)
 	{
-		ret = sscanf(line[i], "%X = %s", &cp, a);
-
-		if (ret==2)
-		{
-			font_alloc_one(font);
-			font->l[font->letter_count-1].codepoint = cp;
-			if (a[0]=='\'')
-			{
-				if (sscanf(a, "'%c'", &c)==1)
-					font->l[font->letter_count-1].alias = c;
-			}
-			else
-				sscanf(a, "%X", &font->l[font->letter_count-1].alias);
-
-			add_codepoint_letter_lut_reference(font);
-		}
+		fprintf_rl(stderr, "Subfile \"%s\" not found in make_font_aliases_from_struct()\n", path);
+		return ;
 	}
 
-	free(line[0]);
-	free(line);
+	line = arrayise_text(make_string_copy_len(subfile->data, subfile->len), &linecount);
+	if (line == NULL)
+		return ;
+
+	for (i=0; i < linecount; i++)
+		make_font_aliases_line(line[i], font);
+
+	free_2d(line, 1);
 }
 
 void process_one_glyph(vector_font_t *font, int i)
@@ -736,8 +784,77 @@ vector_font_t *make_font(char *index_path)
 		}
 	}
 	
-	free(line[0]);
-	free(line);
+	free_2d(line, 1);
+
+	return font;
+}
+
+vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename)
+{
+	vector_font_t *font;
+	char dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
+	int i, linecount, range0, range1;
+
+	font = calloc(1, sizeof(vector_font_t));
+
+	font->l = calloc (font->alloc_count = 256, sizeof(letter_t));
+	font->codepoint_letter_lut = calloc (0x110000, sizeof(int32_t));
+	memset(font->codepoint_letter_lut, 0xFF, 0x110000 * sizeof(int32_t));
+
+	fileball_subfile_t *subfile = fileball_find_subfile(s, index_filename);
+	if (subfile==NULL)
+	{
+		make_fallback_font(font);
+		return font;
+	}
+
+	line = arrayise_text(make_string_copy_len(subfile->data, subfile->len), &linecount);
+	if (line == NULL)
+	{
+		make_fallback_font(font);
+		return font;
+	}
+
+	for (i=0; i < linecount; i++)			// read the index file
+	{
+		a[0] = '\0';
+		sscanf(line[i], "%s", a);
+
+		if (strcmp(a, "range")==0)
+		{
+			sscanf(line[i], "range %X %X \"%[^\"]\"", &range0, &range1, path);
+			make_font_block_from_struct(s, path, font);
+		}
+
+		if (strcmp(a, "substitutions")==0)
+		{
+			sscanf(line[i], "substitutions \"%[^\"]\"", path);
+			make_font_aliases_from_struct(s, path, font);
+		}
+
+		/*if (strcmp(a, "cjkdecomp")==0)
+		{
+			sscanf(line[i], "cjkdecomp \"%[^\"]\"", path);
+			cjkdec_load_data_from_struct(s, path, font);
+		}*/
+	}
+	
+	free_2d(line, 1);
+
+	return font;
+}
+
+vector_font_t *make_font_from_zball(uint8_t *data, size_t data_len)
+{
+	buffer_t zball={0};
+
+	zball.buf = data;
+	zball.len = data_len;
+
+	fileball_t s = fileball_extract_z_mem_to_struct(&zball);
+	vector_font_t *font = make_font_from_fileball(&s, "type_index.txt");
+
+	free_fileball_struct(&s);
 
 	return font;
 }
@@ -858,8 +975,7 @@ void save_font(vector_font_t *font, char *index_path)
 	}
 
 	free(cp_saved);
-	free(line[0]);
-	free(line);
+	free_2d(line, 1);
 
 	return ;
 }

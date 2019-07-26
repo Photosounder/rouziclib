@@ -53,6 +53,19 @@ void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t
 	return array;
 }
 
+void **memcpy_2d(void **dst, void **src, const size_t ptr_count, const size_t size_buffers)
+{
+	size_t i;
+
+	if (dst==NULL || src==NULL)
+		return NULL;
+
+	for (i=0; i < ptr_count; i++)
+		memcpy(dst[i], src[i], size_buffers);
+
+	return dst;
+}
+
 void **copy_2d(void **ptr, const size_t ptr_count, const size_t size_buffers)
 {
 	size_t i;
