@@ -20,6 +20,7 @@
 	{"min", min_tefunc, TE_FUNCTION2 | TE_FLAG_PURE},	\
 	{"max", max_tefunc, TE_FUNCTION2 | TE_FLAG_PURE},	\
 	{"clamp", clamp_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},	\
+	{"rangelimit", rangelimit, TE_FUNCTION3 | TE_FLAG_PURE},	\
 	{"sign", sign_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"sgn", sign_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"sq", sq, TE_FUNCTION1 | TE_FLAG_PURE}

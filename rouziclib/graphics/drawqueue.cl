@@ -118,7 +118,7 @@ kernel void draw_queue_srgb_kernel(const ulong df_index, const ulong poslist_ind
 	write_imagef(srgb, p, linear_to_srgb(pv, randseed+fbi));
 }
 
-kernel void draw_queue_srgb_buf_kernel(const ulong df_index, const ulong poslist_index, const ulong entrylist_index, global uchar *data_cl, global write_only uchar4 *srgb, const int sector_w, const int sector_size, const int randseed)
+kernel void draw_queue_srgb_buf_kernel(const ulong df_index, const ulong poslist_index, const ulong entrylist_index, global uchar *data_cl, global uchar4 *srgb, const int sector_w, const int sector_size, const int randseed)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const int fbi = p.y * get_global_size(0) + p.x;

@@ -406,10 +406,16 @@
 		change_zoom_and_turn_off_zoom_mode(pos, 4.);
 
 	// Timing
-		uint32_t td=0;
-		get_time_diff(&td);
-		function_to_time();
-		fprintf_rl(stdout, "function_to_time() took %d ms\n\n", get_time_diff(&td));
+		uint32_t ts=0;
+		get_time_diff(&ts);
+		//< things to time >
+		fprintf_rl(stdout, "Things took %d ms\n\n", get_time_diff(&ts));
+
+		// or in high precision
+		double ts=0.;
+		get_time_diff_hr(&ts);
+		//< things to time >
+		fprintf_rl(stdout, "Things took %d sec\n\n", get_time_diff_hr(&ts));
 
 	// Paths
 		append_name_to_path(fullpath, path, name);	// puts 'path/name' into char fullpath[PATH_MAX*4], fullpath can be NULL in which case the function returns the allocated string
