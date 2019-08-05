@@ -173,6 +173,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/file_management.h"
 #include "fileio/process.h"
 #include "fileio/fileball.h"
+#include "fileio/prefs.h"
 
 // used if RL_INCL_NETWORK is defined
 #include "network/network.h"

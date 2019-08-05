@@ -10,23 +10,48 @@ char *skip_whitespace(const char *string)
 	return skip_string(string, " %n");
 }
 
+int string_count_fields(char *string, char *delim)
+{
+	int count = 0;
+	char *p = string;
+
+	// Count fields
+	while (p)
+	{
+		count++;
+		p = strstr(p, delim);
+		if (p)
+			p = &p[1];
+	}
+
+	return count;
+}
+
 int string_get_field(char *string, char *delim, int n, char *field)	// copies the Nth field (0 indexed) of string into field
 {
 	int i;
+	size_t delim_len = strlen(delim);
 	char *end;
 
-	for (i=0; i<n; i++)
+	// If n is negative it means we count from the end, -1 is last, -2 the one before etc...
+	if (n < 0)
+		n = string_count_fields(string, delim) + n;	// -x becomes count-x
+
+	// Find field start
+	for (i=0; i < n; i++)
 	{
 		string = strstr(string, delim);			// look for the next delimiter
 
 		if (string==NULL)				// if the next delimiter needed isn't found
-			return 0;				// 0 means failure
+			return 0;				// 0 means failure to find the field
 
-		string += strlen(delim);			// set string to right after the delimiter that indicates the start
+		string += delim_len;				// set string to right after the delimiter that indicates the start
 	}
 
+	// Find field end
 	end = strstr(string, delim);				// look for the next delimiter that marks the end of the field
 
+	// Copy field
 	if (end==NULL)						// if it was the last field
 		strcpy(field, string);				// copy all that is left
 	else							// otherwise
@@ -195,7 +220,7 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 		return NULL;
 
 	len = strlen(text);
-	if (len==0)
+	if (len==0)		// if the text is empty
 	{
 		array = calloc(1, sizeof(char *));
 		array[0] = text;
@@ -208,6 +233,7 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 	array = calloc(*linecount, sizeof(char *));
 	array[0] = text;
 
+	// Set the pointers to the start of each line and replace all line breaks with \0
 	for (ia=1, i=0; i < len-1; i++)
 		if (text[i] == '\n')
 		{
@@ -240,6 +266,20 @@ char *strstr_i(char *fullstr, char *substr)		// case insensitive substring searc
 	free (substr_low);
 
 	return ret;
+}
+
+char *strstr_after(char *fullstr, char *substr)		// points to after the substring
+{
+	char *p;
+
+	if (fullstr==NULL || substr==NULL)
+		return NULL;
+
+	p = strstr(fullstr, substr);
+	if (p)
+		return &p[strlen(substr)];
+
+	return NULL;
 }
 
 #ifdef _WIN32
@@ -336,4 +376,17 @@ double parse_timestamp(const char *ts)
 		sscanf(ts, "%lg", &ss);
 
 	return (hh*60. + mm)*60. + ss;
+}
+
+int find_line_indentation_depth(char *line)	// returns how many \t the line starts with
+{
+	int depth = 0;
+
+	for (int i=0; line[i]; i++)
+		if (line[i] == '\t')
+			depth++;
+		else
+			return depth;
+
+	return depth;
 }

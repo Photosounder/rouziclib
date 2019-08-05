@@ -1,16 +1,23 @@
 xy_t line_line_intersection(xy_t p1, xy_t p2, xy_t p3, xy_t p4)
 {
 	xy_t p;
+	double a, b, c;
 
-	p.x = ((p1.x*p2.y-p1.y*p2.x)*(p3.x-p4.x)-(p1.x-p2.x)*(p3.x*p4.y-p3.y*p4.x)) / ((p1.x-p2.x)*(p3.y-p4.y)-(p1.y-p2.y)*(p3.x-p4.x));
-	p.y = ((p1.x*p2.y-p1.y*p2.x)*(p3.y-p4.y)-(p1.y-p2.y)*(p3.x*p4.y-p3.y*p4.x)) / ((p1.x-p2.x)*(p3.y-p4.y)-(p1.y-p2.y)*(p3.x-p4.x));
+	a = p1.x*p2.y - p1.y*p2.x;
+	b = p3.x*p4.y - p3.y*p4.x;
+	c = 1. / ((p1.x-p2.x)*(p3.y-p4.y) - (p1.y-p2.y)*(p3.x-p4.x));
+
+	p.x = (a*(p3.x-p4.x) - (p1.x-p2.x)*b) * c;
+	p.y = (a*(p3.y-p4.y) - (p1.y-p2.y)*b) * c;
 
 	return p;
 }
 
 double pos_on_line(xy_t p1, xy_t p2, xy_t p)
 {
-	return ((p.x-p1.x)*(p2.x-p1.x) + (p.y-p1.y)*(p2.y-p1.y)) / ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+	xy_t d12 = sub_xy(p2, p1);
+
+	return ((p.x-p1.x)*d12.x + (p.y-p1.y)*d12.y) / hypot_d_xy2(d12);
 }
 
 int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int exclusive)
@@ -38,16 +45,20 @@ int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int excl
 			return 0;
 }
 
-double point_line_distance(xy_t l1, xy_t l2, xy_t p3)	// nearest point on the line
+double point_line_distance(xy_t l1, xy_t l2, xy_t p3)		// distance to the nearest point on the line
 {
-	double u;
-	xy_t p;
+	l1 = sub_xy(l1, p3);
+	l2 = sub_xy(l2, p3);
 
-	u = ((p3.x-l1.x)*(l2.x-l1.x) + (p3.y-l1.y)*(l2.y-l1.y)) / sq(hypot_xy(l2, l1));
+	return fabs(l1.x*l2.y - l2.x*l1.y) / hypot_xy(l1, l2);	// double of the area of the triangle / length of line
+}
 
-	p = interpolate_xy(l1, l2, u);
+double point_line_distance2(xy_t l1, xy_t l2, xy_t p3)		// squared distance to the nearest point on the line
+{
+	l1 = sub_xy(l1, p3);
+	l2 = sub_xy(l2, p3);
 
-	return hypot_xy(p, p3);
+	return sq(l1.x*l2.y - l2.x*l1.y) / hypot_xy2(l1, l2);	// uses only + - * /
 }
 
 // Limits a line to the insides of a bounding box

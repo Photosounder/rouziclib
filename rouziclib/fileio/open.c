@@ -134,11 +134,33 @@ int save_string_to_file(const char *path, const char *mode, char *string)
 	file = fopen_mkdirs(path, mode);
 	if (file==NULL)
 	{
-		fprintf_rl(stderr, "File '%s' not found.\n", path);
+		fprintf_rl(stderr, "File '%s' couldn't be open for writing in save_string_to_file()\n", path);
 		return 0;
 	}
 
 	fprintf(file, "%s", string);
+
+	fclose(file);
+
+	return 1;
+}
+
+int save_string_array_to_file(const char *path, const char *mode, char **array, int linecount)
+{
+	FILE *file;
+
+	if (array==NULL)
+		return 0;
+
+	file = fopen_mkdirs(path, mode);
+	if (file==NULL)
+	{
+		fprintf_rl(stderr, "File '%s' couldn't be open for writing in save_string_array_to_file()\n", path);
+		return 0;
+	}
+
+	for (int i=0; i < linecount; i++)
+		fprintf(file, "%s\n", array[i]);
 
 	fclose(file);
 

@@ -177,11 +177,11 @@ void sleep_hr(double t)
 	NtDelayExecution(FALSE, &interval);
 
 	#else
-	struct timespec t;
+	struct timespec ts;
 
-	t.tv_sec  = t;
-	t.tv_nsec = (t - (double) t.tv_sec) * 1e9;
+	ts.tv_sec  = t;
+	ts.tv_nsec = (t - (double) ts.tv_sec) * 1e9;
 
-	nanosleep(&t, NULL);
+	nanosleep(&ts, NULL);
 	#endif
 }

@@ -105,6 +105,7 @@
 #include "fileio/file_management.c"
 #include "fileio/process.c"
 #include "fileio/fileball.c"
+#include "fileio/prefs.c"
 
 #include "network/network.c"
 #include "network/http.c"

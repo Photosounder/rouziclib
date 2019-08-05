@@ -8,3 +8,6 @@ extern char *vsprintf_realloc(char **string, int *alloc_count, const int append,
 extern char *sprintf_realloc(char **string, int *alloc_count, const int append, const char *format, ...);
 extern char *vsprintf_alloc(const char *format, va_list args);
 extern char *sprintf_ret(char *str, const char *format, ...);
+extern char **string_array_insert_lines(char **array, int *linecount, char **ins, int ins_count, int ins_pos);
+extern char **string_array_insert_line(char **array, int *linecount, char *ins, int ins_pos);
+extern char **string_array_replace_line(char **array, int *linecount, char *repl, int repl_pos);

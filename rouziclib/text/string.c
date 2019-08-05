@@ -144,3 +144,46 @@ char *sprintf_ret(char *str, const char *format, ...)	// like sprintf but return
 
 	return str;
 }
+
+char **string_array_insert_lines(char **array, int *linecount, char **ins, int ins_count, int ins_pos)	// destroys array and makes a new one with lines inserted
+{
+	int i;
+	buffer_t s={0};
+
+	ins_pos = MINN(ins_pos, *linecount);
+
+	// Add the first part of the array line by line to s
+	for (i=0; i < ins_pos; i++)
+		bufprintf(&s, "%s\n", array[i]);
+
+	// Add the lines to insert to s
+	for (i=0; i < ins_count; i++)
+		bufprintf(&s, "%s\n", ins[i]);
+
+	// Add the rest of the array to s
+	for (i=ins_pos; i < *linecount; i++)
+		bufprintf(&s, "%s\n", array[i]);
+
+	free_2d(array, 1);
+
+	return arrayise_text(s.buf, linecount);
+}
+
+char **string_array_insert_line(char **array, int *linecount, char *ins, int ins_pos)
+{
+	return string_array_insert_lines(array, linecount, &ins, 1, ins_pos);
+}
+
+char **string_array_replace_line(char **array, int *linecount, char *repl, int repl_pos)	// destroys array and makes a new one with line replaced
+{
+	int i;
+	buffer_t s={0};
+
+	// Copy every line except switch the line to replace
+	for (i=0; i < *linecount; i++)
+		bufprintf(&s, "%s\n", (i==repl_pos) ? repl : array[i]);
+
+	free_2d(array, 1);
+
+	return arrayise_text(s.buf, linecount);
+}

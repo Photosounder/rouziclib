@@ -2,6 +2,7 @@ extern xy_t line_line_intersection(xy_t p1, xy_t p2, xy_t p3, xy_t p4);
 extern double pos_on_line(xy_t p1, xy_t p2, xy_t p);
 extern int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int exclusive);
 extern double point_line_distance(xy_t l1, xy_t l2, xy_t p3);
+extern double point_line_distance2(xy_t l1, xy_t l2, xy_t p3);
 extern void border_clip(double w, double h, xy_t *l1, xy_t *l2, double radius);
 extern void line_rect_clip(xy_t *l1, xy_t *l2, rect_t br);
 extern int keep_box_inside_area(rect_t *box, rect_t area);
