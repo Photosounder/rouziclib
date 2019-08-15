@@ -367,15 +367,25 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	fb.maxdim = sdl_screen_max_window_size();
 
 	fb.window = SDL_CreateWindow (	window_name,			// window title
-					-fb.maxdim.x-100,			// initial x position
+					-fb.maxdim.x-100,		// initial x position
 					SDL_WINDOWPOS_UNDEFINED,	// initial y position
 					fb.maxdim.x,			// width, in pixels
 					fb.maxdim.y,			// height, in pixels
+				#ifdef RL_VULKAN
+					SDL_WINDOW_VULKAN | flags);	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+				#else
 					SDL_WINDOW_OPENGL | flags);	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+				#endif
 	if (fb.window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
 
 	// Renderer and texture
+#ifdef RL_VULKAN
+	vk_init();
+
+	if (SDL_Vulkan_CreateSurface(fb.window, fb.vk.instance, &fb.vk.surface) == 0)
+		fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
+#else
 #ifdef RL_OPENCL_GL
 	gl_ctx = init_sdl_gl(fb.window);
 	fb.renderer = SDL_CreateRenderer(fb.window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
@@ -389,6 +399,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
 	if (fb.texture==NULL)
 		fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+#endif
 #endif
 	
 	if (fb.use_drawq==0)

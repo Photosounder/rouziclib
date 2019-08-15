@@ -112,11 +112,12 @@
 
 #include "libraries/opencl.c"
 #include "libraries/sdl.c"
-#include "libraries/devil.c"
+#include "libraries/vulkan.c"
 #include "libraries/clfft.c"
 #include "libraries/ffmpeg.c"
 #include "libraries/ffmpeg_enc.c"
 #include "libraries/opencv.c"
+#include "libraries/devil.c"
 #include "libraries/libsndfile.c"
 #include "libraries/libraw.c"
 #include "libraries/libjpeg.c"

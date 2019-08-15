@@ -312,6 +312,11 @@ int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const cha
 	return strncmp(var, fix, varlen)==0;
 }
 
+int strcmp_len2(const char *str1, const char *str2)
+{
+	return strncmp(str1, str2, strlen(str2));
+}
+
 char *find_pattern_in_string(const char *str, const char *pat)	// looks for matches from the end
 {
 	int i, ip, str_len, pat_len, match;

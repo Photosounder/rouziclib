@@ -60,11 +60,11 @@ pref_file_t pref_set_file_by_path(const char *path)
 	return pf;
 }
 
-pref_file_t pref_set_file_by_appdata_path(const char *folder)
+pref_file_t pref_set_file_by_appdata_path(const char *folder, const char *filename)
 {
 	pref_file_t pf={0};
 
-	pf.path = make_appdata_path(folder, "config.txt", 1);
+	pf.path = make_appdata_path(folder, filename, 1);
 	pref_file_load(&pf);
 
 	return pf;
@@ -77,7 +77,7 @@ int pref_find_loc_depth(pref_file_t *pf, const char *loc, int depth, int start, 
 
 	// Find the key at the given depth
 	memset(key, '\t', depth);					// indent the key
-	if (string_get_field(loc, ":", depth, &key[depth]) == 0)
+	if (string_get_field(loc, PREF_LOC_DELIM, depth, &key[depth]) == 0)
 		return -1;						// if loc isn't that deep
 
 	// Find where the key is declared (start)
@@ -153,9 +153,9 @@ double pref_handle_double(pref_file_t *pf, char *loc, double value, const char *
 		return NAN;
 
 	// Make key string
-	depth = string_count_fields(loc, ":") - 1;			// find the indentation depth
+	depth = string_count_fields(loc, PREF_LOC_DELIM) - 1;			// find the indentation depth
 	memset(key, '\t', depth);					// indent the key
-	if (string_get_field(loc, ":", depth, &key[depth]) == 0)	// get the key in the last field
+	if (string_get_field(loc, PREF_LOC_DELIM, depth, &key[depth]) == 0)	// get the key in the last field
 		return NAN;
 
 	// Try to read the value in the line
@@ -165,11 +165,8 @@ double pref_handle_double(pref_file_t *pf, char *loc, double value, const char *
 			if (mode_set==0 || read_value == value)		// return if get mode or if it's the same as the one written
 				return read_value;
 
-	// Recreate the line with the default value if the value couldn't be read because only the key is there yet
-	if (suffix)
-		new_line = sprintf_realloc(NULL, NULL, 0, "%s: %g %s", key, value, suffix);
-	else
-		new_line = sprintf_realloc(NULL, NULL, 0, "%s: %g", key, value);
+	// Recreate the line with the provided value
+	new_line = sprintf_alloc("%s: %g%s", key, value, suffix ? suffix : "");
 	pf->lines = string_array_replace_line(pf->lines, &pf->linecount, new_line, line_pos);
 	free(new_line);
 
@@ -187,4 +184,116 @@ double pref_get_double(pref_file_t *pf, char *loc, double def_value, const char 
 void pref_set_double(pref_file_t *pf, char *loc, double new_value, const char *suffix)
 {
 	pref_handle_double(pf, loc, new_value, suffix, 1);
+}
+
+char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *string, int mode_set)
+{
+	int i, n=0, line_pos, depth;
+	char key[64], *new_line, *read_string;
+
+	// Find the line for loc
+	line_pos = pref_find_loc(pf, loc);
+	if (line_pos < 0)
+		return NULL;
+
+	// Make key string
+	depth = string_count_fields(loc, PREF_LOC_DELIM) - 1;			// find the indentation depth
+	memset(key, '\t', depth);					// indent the key
+	if (string_get_field(loc, PREF_LOC_DELIM, depth, &key[depth]) == 0)	// get the key in the last field
+		return NULL;
+
+	// Try to read the string in the line
+	char *p = strstr_after(pf->lines[line_pos], key);		// find what's after the key in the key's line
+	if (p)
+	{
+		if (strncmp(p, string_prefix, strlen(string_prefix))==0)	// if the prefix matches
+		{
+			read_string = &p[strlen(string_prefix)];
+
+			if (mode_set==0 || strcmp(read_string, string)==0)	// in set mode if it's the same string as the one written
+				return read_string;				// or in get mode we've got what we need
+		}
+	}
+
+	#ifdef _WIN32			// Microsoft retards thought it was a good idea to break the standard by disabling %n in printf...
+	_set_printf_count_output(1);	// this is why we need gulags
+	#endif
+
+	// Recreate the line with the provided string
+	new_line = sprintf_alloc("%s%s%n%s", key, string_prefix, &n, string);
+	pf->lines = string_array_replace_line(pf->lines, &pf->linecount, new_line, line_pos);
+	free(new_line);
+
+	if (mode_set)
+		pref_file_save_thread_launch(pf);
+
+	return &pf->lines[line_pos][n];		// pointer to the written string in the updated line
+}
+
+char *pref_get_string(pref_file_t *pf, char *loc, char *def_string)
+{
+	return pref_handle_string(pf, loc, ": ", def_string, 0);
+}
+
+void pref_set_string(pref_file_t *pf, char *loc, char *new_string)
+{
+	pref_handle_string(pf, loc, ": ", new_string, 1);
+}
+
+int pref_get_onoff(pref_file_t *pf, char *loc, int def_state)
+{
+	char *p;
+
+	p = pref_handle_string(pf, loc, ": ", def_state ? "on" : "off", 0);
+	if (p == NULL)
+		return -1;
+
+	if (strcmp(p, "on")==0)		return 1;
+	if (strcmp(p, "off")==0)	return 0;
+
+	return -1;
+}
+
+void pref_set_onoff(pref_file_t *pf, char *loc, int new_state)
+{
+	pref_handle_string(pf, loc, ": ", new_state ? "on" : "off", 1);
+}
+
+xy_t pref_handle_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double v2, char *suffix, int mode_set)
+{
+	char *string, *p;
+	xy_t v = xy(NAN,NAN);
+
+	// Create string
+	string = sprintf_alloc("%g%s%g%s", v1, v_delim, v2, suffix ? suffix : "");
+
+	p = pref_handle_string(pf, loc, ": ", string, mode_set);
+	free(string);
+	if (p == NULL)
+		return v;
+
+	if (mode_set==0)
+	{
+		char *field = calloc(strlen(p)+1, sizeof(char));
+
+		if (string_get_field(p, v_delim, 0, field))
+			v.x = strtod(field, NULL);
+
+		if (string_get_field(p, v_delim, 1, field))
+			v.y = strtod(field, NULL);
+
+		free(field);
+	}
+
+	return v;
+}
+
+xy_t pref_get_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double v2, char *suffix)
+{
+	return pref_handle_2val(pf, loc, v1, v_delim, v2, suffix, 0);
+}
+
+void pref_set_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double v2, char *suffix)
+{
+	pref_handle_2val(pf, loc, v1, v_delim, v2, suffix, 1);
 }

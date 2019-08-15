@@ -10,7 +10,7 @@
 
 const char *get_cl_error_string(cl_int err)
 {
-	switch(err)
+	switch (err)
 	{
 		case 0: return "CL_SUCCESS";
 		case -1: return "CL_DEVICE_NOT_FOUND";

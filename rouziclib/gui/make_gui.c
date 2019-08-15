@@ -378,7 +378,7 @@ void gui_layout_add_elem(gui_layout_t *layout, int *id, const char **src, const 
 			else
 				break;
 
-	elem_line = sprintf_realloc(NULL, NULL, 0, "elem %d", *id);
+	elem_line = sprintf_alloc("elem %d", *id);
 
 	layout->init = 0;
 	make_gui_layout(layout, &elem_line, 1, NULL);

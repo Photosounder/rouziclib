@@ -142,4 +142,8 @@ typedef struct
 	int data_alloc_table_count;
 	int data_alloc_table_as;			// alloc size of the data_alloc_table in elements
 	hash_table_t hash_table;
+
+	#ifdef RL_VULKAN
+	vk_info_t vk;
+	#endif
 } framebuffer_t;

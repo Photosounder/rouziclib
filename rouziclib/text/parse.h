@@ -21,6 +21,7 @@ extern char *strstr_after(char *fullstr, char *substr);
 extern void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len);
 #endif
 extern int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix);
+extern int strcmp_len2(const char *str1, const char *str2);
 extern char *find_pattern_in_string(const char *str, const char *pat);
 extern char *find_date_time_in_string(const char *str);
 extern double parse_timestamp(const char *ts);

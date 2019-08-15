@@ -322,6 +322,9 @@
 		// Arg 3 is 0 for no appending (normal sprintf() behaviour) or 1 for appending, like sprintf(&string[strlen(string)], 
 		sprintf_realloc(&string, &alloc_count, 1, "%g", value);
 
+		// or for simple allocation
+		string = sprintf_alloc("%g", value);
+
 	// vsprintf equivalent but with allocation
 		va_start(args, format);
 		string = vsprintf_alloc(format, args);

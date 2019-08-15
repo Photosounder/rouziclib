@@ -66,8 +66,9 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "gui/inputprocessing_struct.h"
 #include "gui/focus_struct.h"
 #include "libraries/opencl_struct.h"		// used if RL_OPENCL is defined
+#include "libraries/vulkan_struct.h"		// used if RL_VULKAN is defined
 
-#include "graphics/graphics_struct.h"		// needs opencl, xyz
+#include "graphics/graphics_struct.h"		// needs xyz, opencl, vulkan
 #include "graphics/blending_struct.h"		// needs graphics
 #include "gui/controls_struct.h"		// needs textedit, inputprocessing, graphics
 #include "general/keyboard_struct.h"
@@ -181,11 +182,12 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 
 #include "libraries/opencl.h"		// used if RL_OPENCL is defined
 #include "libraries/sdl.h"		// used if RL_SDL is defined
-#include "libraries/devil.h"		// used if RL_DEVIL is defined
+#include "libraries/vulkan.h"		// used if RL_VULKAN is defined
 #include "libraries/clfft.h"		// used if RL_CLFFT is defined
 #include "libraries/ffmpeg.h"		// used if RL_FFMPEG is defined
 #include "libraries/ffmpeg_enc.h"	// used if RL_FFMPEG is defined
 #include "libraries/opencv.h"		// used if RL_OPENCV is defined
+#include "libraries/devil.h"		// used if RL_DEVIL is defined
 #include "libraries/libsndfile.h"	// used if RL_LIBSNDFILE is defined
 #include "libraries/libraw.h"		// used if RL_LIBRAW is defined
 #include "libraries/libjpeg.h"		// used if RL_LIBJPEG is defined
