@@ -198,12 +198,12 @@ char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *
 
 	// Make key string
 	depth = string_count_fields(loc, PREF_LOC_DELIM) - 1;			// find the indentation depth
-	memset(key, '\t', depth);					// indent the key
+	memset(key, '\t', depth);						// indent the key
 	if (string_get_field(loc, PREF_LOC_DELIM, depth, &key[depth]) == 0)	// get the key in the last field
 		return NULL;
 
 	// Try to read the string in the line
-	char *p = strstr_after(pf->lines[line_pos], key);		// find what's after the key in the key's line
+	char *p = strstr_after(pf->lines[line_pos], key);			// find what's after the key in the key's line
 	if (p)
 	{
 		if (strncmp(p, string_prefix, strlen(string_prefix))==0)	// if the prefix matches

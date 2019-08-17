@@ -176,9 +176,9 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	if (mouse->warp==0)
 		mouse->a = xyi_to_xy(sub_xyi(mpos, wr.p0));
 
-	mouse_button_update(&mouse->b.lmb, &mouse->b.quick_lmb, get_bit(but_state, 0), 0, mouse);
-	mouse_button_update(&mouse->b.mmb, &mouse->b.quick_mmb, get_bit(but_state, 1), 1, mouse);
-	mouse_button_update(&mouse->b.rmb, &mouse->b.quick_rmb, get_bit(but_state, 2), 2, mouse);
+	mouse_button_update(&mouse->b.lmb, &mouse->b.lmf, get_bit(but_state, 0), 0, mouse);
+	mouse_button_update(&mouse->b.mmb, &mouse->b.mmf, get_bit(but_state, 1), 1, mouse);
+	mouse_button_update(&mouse->b.rmb, &mouse->b.rmf, get_bit(but_state, 2), 2, mouse);
 }
 
 void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
@@ -213,17 +213,14 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	// Mouse button events
 	if (event.type==SDL_MOUSEBUTTONDOWN)
 	{
-		if (mouse->window_focus_flag != 2)	// if the window wasn't just clicked on to gain its focus
-		{
-			if (event.button.button==SDL_BUTTON_LEFT)
-				mouse_button_event(&mouse->b.lmb, &mouse->b.quick_lmb, 1);
+		if (event.button.button==SDL_BUTTON_LEFT)
+			mouse_button_event(&mouse->b.lmb, &mouse->b.lmf, 1);
 
-			if (event.button.button==SDL_BUTTON_RIGHT)
-				mouse_button_event(&mouse->b.rmb, &mouse->b.quick_rmb, 1);
-		}
+		if (event.button.button==SDL_BUTTON_RIGHT)
+			mouse_button_event(&mouse->b.rmb, &mouse->b.rmf, 1);
 
 		if (event.button.button==SDL_BUTTON_MIDDLE)
-			mouse_button_event(&mouse->b.mmb, &mouse->b.quick_mmb, 1);
+			mouse_button_event(&mouse->b.mmb, &mouse->b.mmf, 1);
 
 		if (event.button.clicks)
 			mouse->b.clicks = event.button.clicks;
@@ -232,13 +229,13 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	if (event.type==SDL_MOUSEBUTTONUP)
 	{
 		if (event.button.button==SDL_BUTTON_LEFT)
-			mouse_button_event(&mouse->b.lmb, &mouse->b.quick_lmb, -1);
+			mouse_button_event(&mouse->b.lmb, &mouse->b.lmf, -1);
 
 		if (event.button.button==SDL_BUTTON_RIGHT)
-			mouse_button_event(&mouse->b.rmb, &mouse->b.quick_rmb, -1);
+			mouse_button_event(&mouse->b.rmb, &mouse->b.rmf, -1);
 
 		if (event.button.button==SDL_BUTTON_MIDDLE)
-			mouse_button_event(&mouse->b.mmb, &mouse->b.quick_mmb, -1);
+			mouse_button_event(&mouse->b.mmb, &mouse->b.mmf, -1);
 	}
 
 	if (event.type==SDL_MOUSEWHEEL)

@@ -11,14 +11,14 @@ mouse_t init_mouse()
 	return mouse;
 }
 
-void flag_update_mouse_button(int *mb, int *quick_mb)
+void flag_update_mouse_button(int *mb, mousebut_flags_t *flags)
 {
 	flag_update(*mb);
 
-	if (*quick_mb)
+	if (flags->quick)
 	{
-		*mb = *quick_mb * 2;
-		*quick_mb = 0;
+		*mb = flags->quick * 2;
+		flags->quick = 0;
 	}
 }
 
@@ -33,34 +33,45 @@ void mouse_pre_event_proc(mouse_t *mouse)
 	memset(&mouse->ctrl_id->current, 0, sizeof(ctrl_id_t));
 	mouse->ctrl_id->hover_box_matched = 0;
 
-	flag_update_mouse_button(&mouse->b.lmb, &mouse->b.quick_lmb);
-	flag_update_mouse_button(&mouse->b.mmb, &mouse->b.quick_mmb);
-	flag_update_mouse_button(&mouse->b.rmb, &mouse->b.quick_rmb);
+	flag_update_mouse_button(&mouse->b.lmb, &mouse->b.lmf);
+	flag_update_mouse_button(&mouse->b.mmb, &mouse->b.mmf);
+	flag_update_mouse_button(&mouse->b.rmb, &mouse->b.rmf);
 	flag_update(mouse->window_focus_flag);
 	flag_update(mouse->window_minimised_flag);
 	flag_update(mouse->mouse_focus_flag);
 	mouse->d = XY0;
 }
 
-void mouse_button_event(int *mb, int *quick_mb, int way)
+void mouse_button_event(int *mb, mousebut_flags_t *flags, int way)
 {
 	if (*mb * way == -2)		// if quick press situation
-		*quick_mb = way;
+		flags->quick = way;
 	else
 		*mb = 2 * way;
+
+	if (*mb == -2)			// release click blocking when the click is released
+		flags->block = 0;
 }
 
-void mouse_button_update(int *mb, int *quick_mb, int new_state, int button_index, mouse_t *mouse)	// button index is 0 for lmb, 1 for mmb, 2 for rmb
+void mouse_button_update(int *mb, mousebut_flags_t *flags, int new_state, int button_index, mouse_t *mouse)	// button index is 0 for lmb, 1 for mmb, 2 for rmb
 {
 	if (abs(*mb)==2)	// we don't need to update the mouse button state from global polling if the event did it fine
 		return;
 
 	if (new_state == 0 && *mb >= 0)		// if the button is being released
+	{
 		*mb = -2;
+		flags->block = 0;
+	}
 
 	if (new_state && *mb <= 0)		// if the button is pressed
-		if (mouse->mouse_focus_flag >= 0 && mouse->window_focus_flag >= 0)	// make sure the click is in the window
+	{
+		if (mouse->window_focus_flag == 2 && (button_index==0 || button_index==2))
+			flags->block = 1;
+
+		if (mouse->mouse_focus_flag >= 0 && mouse->window_focus_flag >= 0 && flags->block==0)	// make sure the click is in the window
 			*mb = 2;
+	}
 }
 
 // see libraries/sdl.c for sdl_mouse_event_proc()

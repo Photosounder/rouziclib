@@ -6,8 +6,14 @@ typedef struct
 
 typedef struct
 {
+	int quick;	// flag when a click is released as soon as it's pressed
+	int block;	// flag when a click is to be ignored after window focus regain
+} mousebut_flags_t;
+
+typedef struct
+{
 	int lmb, mmb, rmb, wheel, clicks;
-	int quick_lmb, quick_mmb, quick_rmb;	// flag when a click is released as soon as it's pressed
+	mousebut_flags_t lmf, mmf, rmf;
 	xy_t orig;		// coordinates of the original click
 } mousebut_t;
 
