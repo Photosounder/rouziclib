@@ -282,6 +282,8 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		"elem 11", "type none", "pos	0	0", "dim	1;5	0;9", "off	0;6", "",
 		"elem 20", "type none", "pos	0	-0;10", "dim	1;2	0;6", "off	0;6", "",
 		"elem 21", "type none", "pos	0	-0;6;4", "dim	0;10	0;4", "off	0;6", "",
+		"elem 30", "type none", "pos	0	-0;3;6", "dim	1;6	0;2;6", "off	0;6	1", "",
+		"elem 31", "type none", "pos	0;10	-0;3;6", "dim	0;5	0;2;6", "off	1", "",
 	};
 
 	layout.offset = fit_into_area(box, make_rect_off(XY0, xy(2., 2.), xy(0.5, 0.5)), 0., &layout.sm);
@@ -390,6 +392,9 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	// Draw bottom label
 	draw_string_bestfit(font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+
+	// Draw units label
+	draw_string_bestfit(font, knob->unit_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 31 : 30, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
 	// Draw arc circle
 	draw_circle_arc(sc_xy(centre), set_xy(0.5*total_scale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);

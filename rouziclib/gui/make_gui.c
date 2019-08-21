@@ -25,6 +25,7 @@ void free_layout_elem(layout_elem_t *elem)
 		{
 			case gui_type_knob:
 				free(((knob_t *) elem->data)->fmt_str);
+				free(((knob_t *) elem->data)->unit_label);
 				break;
 
 			case gui_type_textedit:
@@ -98,7 +99,10 @@ void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, int dst_i
 		switch (src_elem->type)
 		{
 			case gui_type_knob:
-				*((knob_t *) dst_elem->data) = *((knob_t *) src_elem->data);
+				knob_t *kd_src = src_elem->data, *kd_dst = dst_elem->data;
+				*kd_dst = *kd_src;
+				kd_dst->fmt_str = make_string_copy(kd_src->fmt_str);
+				kd_dst->unit_label = make_string_copy(kd_src->unit_label);
 				break;
 
 			case gui_type_textedit:
@@ -351,6 +355,7 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 				if (n==0)
 					n = strlen(line);
 				p = &line[n];
+				free_null(&knob_data->fmt_str);
 				knob_data->fmt_str = make_string_copy(p[0] ? p : VALFMT_DEFAULT);
 				cur_elem->fmt_str_set = p[0]!='\0';
 			}
@@ -359,6 +364,22 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 				fprintf_rl(stderr, "The 'knob' command needs at least the first 4 arguments: '<min> <default> <max> <function (linear|log|recip)> (<format string>)' at line %d: \"%s\"\n", il, line);
 				return ;
 			}
+		}
+
+		if (strcmp(a, "knob_unit")==0)
+		{
+			if (cur_elem->data==NULL)
+			{
+				fprintf_rl(stderr, "Knob element data should have been initialised by a 'type knob' command before line %d: \"%s\"\n", il, line);
+				return ;
+			}
+
+			knob_data = (knob_t *) cur_elem->data;
+
+			free_null(&knob_data->unit_label);
+
+			if (sscanf(line, "knob_unit %[^\n]", b)==1)
+				knob_data->unit_label = make_string_copy(b);
 		}
 	}
 }
@@ -446,6 +467,9 @@ void sprint_gui_layout(gui_layout_t *layout, char **str, int *str_as)
 				if (cur_elem->fmt_str_set && knob_data->fmt_str)
 					sprintf_realloc(str, str_as, 1, " %s", knob_data->fmt_str);
 				sprintf_realloc(str, str_as, 1, "\n");
+
+				if (knob_data->unit_label)
+					sprintf_realloc(str, str_as, 1, "knob_unit %s\n", knob_data->unit_label);
 			}
 
 			// Positioning
