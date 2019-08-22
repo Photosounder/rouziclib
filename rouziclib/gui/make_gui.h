@@ -102,6 +102,7 @@ extern void draw_selmenu_entry_fromlayout(const int i, const char *label, gui_la
 extern char *gui_layout_make_code_for_unimp_elem(gui_layout_t *layout);
 extern void gui_layout_unimplemented_elems(gui_layout_t *layout);
 extern void gui_set_control_label(const char *new_label, gui_layout_t *layout, const int id);
+extern void gui_set_control_colour(col_t colour, gui_layout_t *layout, const int id);
 extern void gui_printf_to_label(gui_layout_t *layout, const int id, const int append, const char *format, ...);
 extern void gui_round_elem_posdim(gui_layout_t *layout, const int id, const double rounding);
 extern int print_to_layout_label(gui_layout_t *layout, const int id, const char *format, ...);

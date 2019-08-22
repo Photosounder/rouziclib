@@ -29,6 +29,7 @@ int pref_file_save_thread(pref_file_t *pf)
 
 void pref_file_save_thread_launch(pref_file_t *pf)
 {
+	static rl_thread_t thread_handle=NULL;
 	pref_file_t *pf_copy;
 
 	pf_copy = calloc(1, sizeof(pref_file_t));
@@ -38,8 +39,11 @@ void pref_file_save_thread_launch(pref_file_t *pf)
 	pf_copy->lines = make_string_array_copy(pf->lines, pf->linecount);
 	pf_copy->path = make_string_copy(pf->path);
 
+	// Wait for the thread to end if already running to avoid conflicts
+	rl_thread_join_and_null(&thread_handle);
+
 	// Launch the thread
-	rl_thread_create_detached(pref_file_save_thread, pf_copy);
+	rl_thread_create(&thread_handle, pref_file_save_thread, pf_copy);
 }
 
 void free_pref_file(pref_file_t *pf)

@@ -1040,6 +1040,18 @@ void gui_set_control_label(const char *new_label, gui_layout_t *layout, const in
 	//cur_elem->label_set = 1;
 }
 
+void gui_set_control_colour(col_t colour, gui_layout_t *layout, const int id)
+{
+	int ret;
+	layout_elem_t *cur_elem=NULL;
+
+	if (check_elem_id_validity(layout, id, 0)==0)	// if id isn't a valid layout element
+		return ;
+	cur_elem = &layout->elem[id];
+
+	cur_elem->colour = colour;
+}
+
 void gui_printf_to_label(gui_layout_t *layout, const int id, const int append, const char *format, ...)
 {
 	int ret;
