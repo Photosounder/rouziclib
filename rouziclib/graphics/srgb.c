@@ -38,12 +38,12 @@ lut_t get_lut_lsrgb()
 	{
 		init = 0;
 
-		lsrgb_l.lut_size = ONE+1;
+		lsrgb_l.lut_size = 65536;
 	
 		lsrgb_l.lutint = calloc (lsrgb_l.lut_size, sizeof(int32_t));
 	
 		for (i=0; i<lsrgb_l.lut_size; i++)
-			lsrgb_l.lutint[i] = lsrgb((double) i / ONEF) * 8160. + 0.5;	// 8160 = 255 * 32 (8.5 fixed point format)
+			lsrgb_l.lutint[i] = MINN(1., lsrgb((double) i / ONEF)) * 8160. + 0.5;	// 8160 = 255 * 32 (8.5 fixed point format)
 	}
 
 	return lsrgb_l;
