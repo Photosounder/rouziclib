@@ -88,18 +88,15 @@ int ff_load_stream_packet(ffstream_t *s)
 		if (packet.stream_index == s->stream_id)			// check that it's the right stream
 		{
 			ret = avcodec_send_packet(s->codec_ctx, &packet);	// supply raw packet data as input to a decoder
-			ffmpeg_retval(ret);
+			if (ret != AVERROR_EOF)
+				ffmpeg_retval(ret);
 
 			ret = avcodec_receive_frame(s->codec_ctx, s->frame);	// return decoded output data (in frame) from a decoder
-			ffmpeg_retval(ret);
+			if (ret != AVERROR_EOF)
+				ffmpeg_retval(ret);
 
 			if (ret >= 0)
 				result = 1;
-			else
-			{
-				if (ret != AVERROR(EAGAIN))
-					fprintf_rl(stderr, "err at timestamp %.3f s\n", ff_get_timestamp(s, packet.dts));
-			}
 		}
 
 		av_packet_unref(&packet);
@@ -107,21 +104,21 @@ int ff_load_stream_packet(ffstream_t *s)
 		if (result)
 			break;
 	}
-	
-	/*if (result==0)
-	{
-		avcodec_send_packet(s->codec_ctx, NULL);
-		ffmpeg_retval(ret);
 
-		while (ret==0)
-		{
-			ret = avcodec_receive_frame(s->codec_ctx, s->frame);	// return decoded output data (in frame) from a decoder
+	// Flush the decoder
+	if (result==0)
+	{
+		ret = avcodec_send_packet(s->codec_ctx, NULL);
+		if (ret != AVERROR_EOF)
 			ffmpeg_retval(ret);
 
-			if (ret >= 0)
-				result = 1;
-		}
-	}*/
+		ret = avcodec_receive_frame(s->codec_ctx, s->frame);
+		if (ret != AVERROR_EOF)
+			ffmpeg_retval(ret);
+
+		if (ret >= 0)
+			result = 1;
+	}
 
 	return result;
 }
@@ -468,6 +465,8 @@ ffframe_info_t ff_make_frame_info(ffstream_t *s)
 	fi.key_frame = s->frame->key_frame;
 	fi.pkt_pos = s->frame->pkt_pos;
 	fi.pts = s->frame->pkt_dts;
+	if (s->frame->pkt_dts == 0x8000000000000000)
+		fi.pts = s->frame->pkt_pts;
 	fi.ts = ff_get_timestamp(s, fi.pts);
 	fi.ts_end = ff_get_timestamp(s, fi.pts + s->frame->pkt_duration);
 

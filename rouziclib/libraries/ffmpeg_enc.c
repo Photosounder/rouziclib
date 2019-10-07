@@ -314,7 +314,6 @@ int ff_video_enc_write_frame(ff_videnc_t *d, AVFrame *frame)
 		else if (ret >= 0)
 		{
 			av_packet_rescale_ts(&pkt, d->codec_ctx->time_base, d->st->time_base);
-//fprintf_rl(stdout, "\n", pkt
 			pkt.stream_index = d->st->index;
 
 			// Write the compressed frame to the file

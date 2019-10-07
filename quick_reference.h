@@ -228,6 +228,9 @@
 		// or by HTTP
 		image_mm = load_mipmap_from_http(url, IMAGE_USE_SQRGB);
 
+	// Saving a raster image as a float RGB TIFF
+		save_image_tiff(out_path, r.f, r.dim, 4, 3, 32);
+
 	// Displaying
 		// penultimate argument set to 1 keeps the pixel aspect ratio
 		blit_in_rect(&r, sc_rect(image_frame), 1, LINEAR_INTERP);

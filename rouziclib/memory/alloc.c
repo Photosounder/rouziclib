@@ -133,3 +133,36 @@ size_t next_aligned_offset(size_t offset, const size_t size_elem)
 	else
 		return offset;
 }
+
+void add_to_alloc_list(void *ptr, alloc_list_t *list)
+{
+	alloc_enough(&list->list, list->len+=1, &list->as, sizeof(void *), 2.);		// enlarge list
+	list->list[list->len-1] = ptr;
+}
+
+void *malloc_list(size_t size, alloc_list_t *list)	// add allocated buffers to a list
+{
+	void *ptr = malloc(size);
+
+	add_to_alloc_list(ptr, list);
+
+	return ptr;
+}
+
+void *calloc_list(size_t nitems, size_t size, alloc_list_t *list)	// add allocated buffers to a list
+{
+	void *ptr = calloc(nitems, size);
+
+	add_to_alloc_list(ptr, list);
+
+	return ptr;
+}
+
+void free_alloc_list(alloc_list_t *list)
+{
+	for (int i=0; i < list->len; i++)
+		free_null(&list->list[i]);
+
+	free(list->list);
+	memset(list, 0, sizeof(alloc_list_t));
+}
