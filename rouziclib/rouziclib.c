@@ -97,6 +97,7 @@
 #include "fileio/image_bmp.c"
 #include "fileio/image_tiff.c"
 #include "fileio/image_tiff_lzw.c"
+#include "fileio/image_screen.c"
 #include "fileio/sound_format.c"
 #include "fileio/sound_aiff.c"
 #include "fileio/sound_wav.c"

@@ -166,6 +166,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/image_bmp.h"
 #include "fileio/image_tiff.h"
 #include "fileio/image_tiff_lzw.h"
+#include "fileio/image_screen.h"
 #include "fileio/sound_format.h"
 #include "fileio/sound_aiff.h"
 #include "fileio/sound_wav.h"
