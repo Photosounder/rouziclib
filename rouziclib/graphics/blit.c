@@ -442,7 +442,7 @@ void blit_scale_rotated(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_t r
 		blit_scale_rotated_dq(r, pscale, pos, angle, rot_centre, interp);
 }
 
-void blit_in_rect_rotated(raster_t *raster, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
+rect_t blit_in_rect_rotated(raster_t *raster, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
 {
 	xy_t pscale, pos;
 	rect_t image_frame = r;
@@ -454,4 +454,6 @@ void blit_in_rect_rotated(raster_t *raster, rect_t r, int keep_aspect_ratio, dou
 	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
 	blit_scale_rotated(raster, pscale, pos, angle, rot_centre, interp);
+
+	return wc_rect(image_frame);
 }

@@ -219,12 +219,9 @@ char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *
 		}
 	}
 
-	#ifdef _WIN32			// Microsoft retards thought it was a good idea to break the standard by disabling %n in printf...
-	_set_printf_count_output(1);	// this is why we need gulags
-	#endif
-
 	// Recreate the line with the provided string
-	new_line = sprintf_alloc("%s%s%n%s", key, string_prefix, &n, string);
+	new_line = sprintf_alloc("%s%s%s", key, string_prefix, string);
+	n = strlen(key) + strlen(string_prefix);
 	pf->lines = string_array_replace_line(pf->lines, &pf->linecount, new_line, line_pos);
 	free(new_line);
 

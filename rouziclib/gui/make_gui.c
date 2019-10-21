@@ -59,6 +59,7 @@ void free_gui_layout(gui_layout_t *layout)
 void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, int dst_id)
 {
 	layout_elem_t *src_elem, *dst_elem=NULL;
+	knob_t *kd_src, *kd_dst;
 
 	if (layout==NULL)
 		return;
@@ -99,7 +100,8 @@ void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, int dst_i
 		switch (src_elem->type)
 		{
 			case gui_type_knob:
-				knob_t *kd_src = src_elem->data, *kd_dst = dst_elem->data;
+				kd_src = src_elem->data;
+				kd_dst = dst_elem->data;
 				*kd_dst = *kd_src;
 				kd_dst->fmt_str = make_string_copy(kd_src->fmt_str);
 				kd_dst->unit_label = make_string_copy(kd_src->unit_label);

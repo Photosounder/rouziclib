@@ -334,13 +334,13 @@ void blit_mipmap_rotated(mipmap_t m, xy_t pscale, xy_t pos, double angle, xy_t r
 			blit_scale_rotated(&ml->r[it.y*ml->tilecount.x + it.x], ml_scale, add_xy(pos, mul_xy(ml_scale, xyi_to_xy(mul_xyi(it, ml->tiledim)))), angle, rot_centre, interp);
 }
 
-void blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
+rect_t blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
 {
 	xy_t pscale, pos;
 	rect_t image_frame = r;
 
 	if (m.lvl_count < 1 || m.lvl==NULL)
-		return ;
+		return wc_rect(image_frame);
 
 	if (keep_aspect_ratio)
 		image_frame = fit_rect_in_area( xyi_to_xy(m.fulldim), image_frame, xy(0.5, 0.5) );
@@ -349,6 +349,8 @@ void blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, do
 	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
 
 	blit_mipmap_rotated(m, pscale, pos, angle, rot_centre, interp);
+
+	return wc_rect(image_frame);
 }
 
 int get_largest_mipmap_lvl_index(mipmap_t m)

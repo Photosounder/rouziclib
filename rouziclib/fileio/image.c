@@ -1,4 +1,4 @@
-void convert_image_srgb8(raster_t *im, const uint8_t *data, const int mode)
+void convert_image_srgb8_fullarg(raster_t *im, const uint8_t *data, const int mode, int free_srgb)
 {
 	int i;
 	lut_t lut = get_lut_slrgb();
@@ -16,21 +16,27 @@ void convert_image_srgb8(raster_t *im, const uint8_t *data, const int mode)
 
 	if (mode & IMAGE_USE_LRGB)
 	{
-		im->l = calloc(pix_count, sizeof(lrgb_t));
+		if (im->l==NULL)
+			im->l = calloc(pix_count, sizeof(lrgb_t));
+
 		for (i=0; i < pix_count*4; i++)
 			((uint16_t *) im->l)[i] = lut.lutint[data[i]];
 	}
 
 	if (mode & IMAGE_USE_FRGB)
 	{
-		im->f = calloc(pix_count, sizeof(frgb_t));
+		if (im->f==NULL)
+			im->f = calloc(pix_count, sizeof(frgb_t));
+
 		for (i=0; i < pix_count*4; i++)
 			((float *) im->f)[i] = s8lrgb(data[i]);
 	}
 
 	if (mode & IMAGE_USE_SQRGB)
 	{
-		im->sq = calloc(pix_count, sizeof(sqrgb_t));
+		if (im->sq==NULL)
+			im->sq = calloc(pix_count, sizeof(sqrgb_t));
+
 		for (i=0; i < pix_count; i++)
 		{
 			im->sq[i].r = sqlut.lutint[((srgb_t *)data)[i].r] >> 2;
@@ -39,8 +45,9 @@ void convert_image_srgb8(raster_t *im, const uint8_t *data, const int mode)
 		}
 	}
 
-	if (mode & IMAGE_USE_SRGB == 0)		// free srgb in case it's there but isn't needed
-		free_null(&im->srgb);
+	if (free_srgb)
+		if (mode & IMAGE_USE_SRGB == 0)		// free srgb in case it's there but isn't needed
+			free_null(&im->srgb);
 }
 
 void convert_image_srgb16(raster_t *im, const uint16_t *data, const int mode)
