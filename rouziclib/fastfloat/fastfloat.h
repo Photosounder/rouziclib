@@ -28,8 +28,6 @@ extern double fastatan2(double y, double x);
 #define fastexp2	exp2
 #define fastpow		pow
 #define fastsqrt	sqrt
-#define fastcos		cos
-#define	fastsin		sin
 #define fastatan2	atan2
 #define fast_lsrgbf	lsrgb
 

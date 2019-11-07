@@ -43,6 +43,10 @@
 #define r_sq(r,x)	mpfr_sqr(r, x, MPFR_RNDN)
 #define r_sqrt(r,x)	mpfr_sqrt(r, x, MPFR_RNDN)
 #define r_exp(r,x)	mpfr_exp(r, x, MPFR_RNDN)
+#define r_log(r,x)	mpfr_log(r, x, MPFR_RNDN)
+#define r_log2(r,x)	mpfr_log2(r, x, MPFR_RNDN)
+#define r_log10(r,x)	mpfr_log10(r, x, MPFR_RNDN)
+#define r_exp10(r,x)	mpfr_exp10(r, x, MPFR_RNDN)
 
 extern void r_flipsign(real y, real x);
 extern void r_gaussian(real y, real x);

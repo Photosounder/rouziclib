@@ -38,6 +38,7 @@
 #include "math/physics.c"
 #include "fixedpoint/fp.c"
 #include "fastfloat/fastfloat.c"
+#include "fastfloat/fastcos.c"
 
 #include "graphics/graphics.c"
 #include "graphics/srgb.c"

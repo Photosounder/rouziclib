@@ -116,9 +116,57 @@ char *sprint_fractional_12(char *string, double v)
 	return string;
 }
 
-char *sprint_compile_date(char *string, const char *location)
+char *get_english_ordinal(int n)
 {
-	sprintf(string, "Compiled on %s at %s", __DATE__, __TIME__);
+	int i;
+	static char *ord[] = {"th", "st", "nd", "rd"};
+
+	n = abs(n);
+
+	i = n % 10;
+	if (i > 3 || n/10 % 10 == 1)		// _4 to _9 or 10 to 19 is th
+		i = 0;
+
+	return ord[i];
+}
+
+char *short_month_to_long_month(char *sm)
+{
+	static char *lm[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+
+	for (int i=0; i < 12; i++)
+		if (strncmp(sm, lm[i], 3)==0)
+			return lm[i];
+
+	return NULL;
+}
+
+char *date_macro_to_nice_date(char *string, const char *d)
+{
+	int day, year;
+	char month[16];
+
+	string[0] = '\0';
+
+	if (sscanf(d, "%s %d %d", month, &day, &year) == 3)
+		sprintf(string, "%s %d%s, %d", short_month_to_long_month(month), day, get_english_ordinal(day), year);
+
+	return string;
+}
+
+int get_date_macro_year(const char *d)
+{
+	int year=-1;
+
+	sscanf(d, "%*s %*d %d", &year);
+
+	return year;
+}
+
+char *sprint_compile_date_fullarg(char *string, const char *location, const char *d, const char *t)
+{
+	char nice_date[32];
+	sprintf(string, "Compiled on %s at %s", date_macro_to_nice_date(nice_date, d), t);
 	if (location)
 		sprintf(&string[strlen(string)], " in %s", location);
 

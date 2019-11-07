@@ -107,6 +107,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "math/physics.h"
 #include "fixedpoint/fp.h"			// used unless RL_EXCL_APPROX is defined
 #include "fastfloat/fastfloat.h"		// used unless RL_EXCL_APPROX is defined
+#include "fastfloat/fastcos.h"			// used unless RL_EXCL_APPROX is defined
 
 #include "graphics/graphics.h"
 #include "graphics/srgb.h"

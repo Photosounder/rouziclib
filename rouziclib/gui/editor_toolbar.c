@@ -336,7 +336,8 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 
 		free_2d(new_elem_src, 5);
 
-		lp->sel_id = elem_id;
+		if (lp)
+			lp->sel_id = elem_id;
 	}
 
 	for (i=gui_type_none; i < gui_type_count; i++)
