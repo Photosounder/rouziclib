@@ -33,3 +33,4 @@ extern int is_prime(int n);
 extern int next_prime(int n);
 extern int64_t next_power_of_2(int64_t n);
 extern int modulo_euclidian(int a, int b);
+extern int find_closest_entry_double(double *array, int n, double v);

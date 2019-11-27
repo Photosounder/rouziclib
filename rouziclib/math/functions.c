@@ -232,3 +232,21 @@ int modulo_euclidian(int a, int b)	// gives a modulo that is never negative, as 
 
 	return m;
 }
+
+int find_closest_entry_double(double *array, int n, double v)	// in a double array find the entry with the value closest to v
+{
+	int i, index=-1;
+	double d, min = DBL_MAX;
+
+	for (i=0; i < n; i++)
+	{
+		d = fabs(v-array[i]);
+		if (d < min)
+		{
+			min = d;
+			index = i;
+		}
+	}
+
+	return index;
+}
