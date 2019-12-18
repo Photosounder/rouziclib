@@ -129,8 +129,8 @@ double fastexp2(double x)
 	const double *c;
 	double c0, c1, c2;
 
-	xr = floor(x);	// real part of x
-	xf = x - xr;	// fractional part of x. xf = [0.0 , 1.0[
+	xr = floor(x);		// integer part of x
+	xf = x - xr;		// fractional part of x. xf = [0.0 , 1.0[
 	xf1 = xf + 1.;
 
 	exp = xr;

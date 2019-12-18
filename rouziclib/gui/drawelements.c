@@ -88,6 +88,17 @@ void draw_unit_grid_col(xy_t offset, double sm, col_t colour)
 	draw_unit_grid_level(offset, sm, 1./1728., colour);
 }
 
+void draw_unit_grid_decimal(xy_t offset, double sm, col_t colour)
+{
+	draw_unit_grid_level(offset, sm, 1000000., colour);
+	draw_unit_grid_level(offset, sm, 1000., colour);
+	draw_unit_grid_level(offset, sm, 1., colour);
+	draw_unit_grid_level(offset, sm, 1./10., colour);
+	draw_unit_grid_level(offset, sm, 1./100., colour);
+	draw_unit_grid_level(offset, sm, 1./1000., colour);
+	draw_unit_grid_level(offset, sm, 1e-6, colour);
+}
+
 void draw_rangebox(rect_t box, const char *label, col_t colour)
 {
 	if (check_box_on_screen(box)==0 || rect_max_side(box)*zc.scrscale < 0.1)

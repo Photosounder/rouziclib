@@ -1145,6 +1145,31 @@ int print_to_layout_textedit(gui_layout_t *layout, const int id, const int clear
 	return ret;
 }
 
+int print_to_layout_textedit_append(gui_layout_t *layout, const int id, const int clear_undo, const char *format, ...)
+{
+	int ret;
+	va_list args;
+	textedit_t *te;
+	buffer_t buf={0};
+
+	ret = check_elem_id_validity(layout, id, 0);
+	if (ret==0)
+		return ret;
+	te = (textedit_t *) layout->elem[id].data;
+
+	bufprintf(&buf, "%s", te->string);
+
+	va_start(args, format);
+	vbufprintf(&buf, format, args);
+	va_end(args);
+
+	ret = print_to_layout_textedit(layout, id, clear_undo, "%s", buf.buf);
+
+	free_buf(&buf);
+
+	return ret;
+}
+
 textedit_t *get_textedit_fromlayout(gui_layout_t *layout, const int id)
 {
 	textedit_t *te;

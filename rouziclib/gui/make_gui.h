@@ -107,6 +107,7 @@ extern void gui_printf_to_label(gui_layout_t *layout, const int id, const int ap
 extern void gui_round_elem_posdim(gui_layout_t *layout, const int id, const double rounding);
 extern int print_to_layout_label(gui_layout_t *layout, const int id, const char *format, ...);
 extern int print_to_layout_textedit(gui_layout_t *layout, const int id, const int clear_undo, const char *format, ...);
+extern int print_to_layout_textedit_append(gui_layout_t *layout, const int id, const int clear_undo, const char *format, ...);
 extern textedit_t *get_textedit_fromlayout(gui_layout_t *layout, const int id);
 extern char *get_textedit_string_fromlayout(gui_layout_t *layout, const int id);
 extern knob_t *get_knob_data_fromlayout(gui_layout_t *layout, const int id);

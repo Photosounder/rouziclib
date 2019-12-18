@@ -36,6 +36,7 @@
 #include "math/dct.c"
 #include "math/matrix.c"
 #include "math/physics.c"
+#include "math/erf_radlim.c"
 #include "fixedpoint/fp.c"
 #include "fastfloat/fastfloat.c"
 #include "fastfloat/fastcos.c"

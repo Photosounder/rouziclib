@@ -50,48 +50,14 @@ uint64_t double_get_mantissa(const double f)
 	return double_as_u64(f) & 0x000FFFFFFFFFFFFF;
 }
 
-float fastfloorf(float f)			// floor except it ignores the sign but conserves it, so fastfloor(-3.1) = -3
-{						// doesn't work with numbers >= 1e24
-	uint32_t *i = (uint32_t *) &f;
-	int exp;
-
-	if ((*i & 0x7FFFFFFF) >= 0x3F800000)		// if |f| >= 1.0
-	{
-		exp = float_get_exponent(f);
-
-		*i &= 0xFFFFFFFF << (23-exp);		// mask by excluding bits of the mantissa that are fractional
-	}
-	else
-		f = 0.f;
-
-	return f;
-}
-
-double fastfloor(double f)
-{
-	uint64_t *i = (uint64_t *) &f;
-	int exp;
-
-	if ((*i & 0x7FFFFFFFFFFFFFFF) >= 0x3FF0000000000000)	// if |f| >= 1.0
-	{
-		exp = double_get_exponent(f);
-
-		*i &= 0xFFFFFFFFFFFFFFFF << (52-exp);		// mask by excluding bits of the mantissa that are fractional
-	}
-	else
-		f = 0.;
-
-	return f;
-}
-
 float get_fractional_partf(float f)	// gets the fractional part of the number in the [0 , 1[ range, conserves the sign
 {
-	return f - fastfloorf(f);
+	return f - truncf(f);
 }
 
 double get_fractional_part(double f)
 {
-	return f - fastfloor(f);
+	return f - trunc(f);
 }
 
 double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a double

@@ -183,11 +183,32 @@ void textedit_add(textedit_t *te, char *str)
 	int orig_len=0, ins_len, new_pos, char_len;
 	char *clipboard=NULL;
 
-	if (te==NULL || te->read_only)
+	if (te==NULL)
 		return ;
 
 	if (te->string)
 		orig_len = strlen(te->string);
+
+	// Do things allowed in read_only
+	if (str==NULL && get_kb_cmd())
+	{
+		if (get_key_state_by_name("c") >= 2 || get_key_state_by_name("x") >= 2)	// Copy/Cut
+		{
+			textedit_copy_selection_clipboard(te);
+
+			if (get_key_state_by_name("x") >= 2 && te->read_only==0)
+				textedit_erase_selection(te, &orig_len);
+		}
+		else if (get_key_state_by_name("a") >= 2)		// Select All
+		{
+			te->sel0 = 0;
+			te->sel1 = strlen(te->string);
+			te->curpos = te->sel1;
+		}
+	}
+
+	if (te->read_only)
+		return ;
 
 	if (str)	// insert this string into the text
 	{
@@ -324,19 +345,6 @@ void textedit_add(textedit_t *te, char *str)
 					textedit_add(te, clipboard);
 					free(clipboard);
 				}
-			}
-			else if (get_key_state_by_name("c") >= 2 || get_key_state_by_name("x") >= 2)	// Copy/Cut TODO allow when read_only is on
-			{
-				textedit_copy_selection_clipboard(te);
-
-				if (get_key_state_by_name("x") >= 2)
-					textedit_erase_selection(te, &orig_len);
-			}
-			else if (get_key_state_by_name("a") >= 2)		// Select All
-			{
-				te->sel0 = 0;
-				te->sel1 = strlen(te->string);
-				te->curpos = te->sel1;
 			}
 			else if (get_key_state_by_name("z") >= 2)		// Undo/Redo
 			{

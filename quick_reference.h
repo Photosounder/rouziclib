@@ -178,7 +178,7 @@
 
 		// Example: using a text editor as a read-only log
 		get_textedit_fromlayout(&layout, id)->read_only = 1;
-		print_to_layout_textedit(&layout, id, 1, "");
+		print_to_layout_textedit_append(&layout, id, 1, "");
 		ctrl_textedit_fromlayout(&layout, id);
 
 	// Selection menu
