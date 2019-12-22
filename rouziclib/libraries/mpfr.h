@@ -30,8 +30,9 @@
 #define r_muli(x,y)	mpfr_mul_si(x, x, y, MPFR_RNDN)
 #define r_div(x,y)	mpfr_div(x, x, y, MPFR_RNDN)
 #define r_rdiv(r,x,y)	mpfr_div(r, x, y, MPFR_RNDN)
-#define r_fma(x,y,z)	mpfr_fma(x, x, y, z, MPFR_RNDN)
-#define r_rfma(x,y,z)	mpfr_rfma(x, x, y, z, MPFR_RNDN)
+#define r_divd(x,y)	mpfr_div_d(x, x, y, MPFR_RNDN)
+#define r_rddiv(r,x,y)	mpfr_d_div(r, x, y, MPFR_RNDN)
+#define r_fma(r,x,y,z)	mpfr_fma(r, x, y, z, MPFR_RNDN)
 #define r_pow(x,y)	mpfr_pow(x, x, y, MPFR_RNDN)
 #define r_rpow(r,x,y)	mpfr_pow(r, x, y, MPFR_RNDN)
 #define r_powi(x,y)	mpfr_pow_si(x, x, y, MPFR_RNDN)
@@ -48,7 +49,14 @@
 #define r_log10(r,x)	mpfr_log10(r, x, MPFR_RNDN)
 #define r_exp10(r,x)	mpfr_exp10(r, x, MPFR_RNDN)
 
+extern real *r_init_array(int count);
+extern void r_zero_array(real *a, int count);
+extern void r_free_array(real **a, int count);
 extern void r_flipsign(real y, real x);
 extern void r_gaussian(real y, real x);
+
+#else
+
+#define real double
 
 #endif

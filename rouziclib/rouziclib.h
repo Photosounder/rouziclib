@@ -77,6 +77,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "vector/vector_struct.h"		// needs xyz
 #include "vector_type/vector_type_struct.h"	// needs vector
 #include "fileio/fileball_struct.h"
+#include "libraries/mpfr.h"		// used if RL_MPFR is defined
 
 
 #include "general/macros.h"
@@ -105,6 +106,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "math/dct.h"
 #include "math/matrix.h"
 #include "math/physics.h"
+#include "math/polynomials.h"
 #include "math/erf_radlim.h"
 #include "fixedpoint/fp.h"			// used unless RL_EXCL_APPROX is defined
 #include "fastfloat/fastfloat.h"		// used unless RL_EXCL_APPROX is defined
@@ -199,7 +201,6 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "libraries/libminimp3.h"
 #include "libraries/libdr_flac.h"
 #include "libraries/zlib.h"		// uses zlib if RL_ZLIB is defined, otherwise miniz is used
-#include "libraries/mpfr.h"		// used if RL_MPFR is defined
 #include "libraries/fftpack.h"		// used unless RL_EXCL_FFTPACK is defined
 #include "libraries/cfftpack.h"		// used unless RL_EXCL_CFFTPACK is defined
 #include "libraries/tinyexpr.h"
