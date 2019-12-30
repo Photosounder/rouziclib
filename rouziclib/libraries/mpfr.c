@@ -1,11 +1,11 @@
 #ifdef RL_MPFR
 
-real *r_init_array(int count)
+real_t *r_init_array(int count)
 {
 	int i;
-	real *a;
+	real_t *a;
 
-	a = calloc(count, sizeof(real));
+	a = calloc(count, sizeof(real_t));
 
 	for (i=0; i < count; i++)
 		r_init(a[i]);
@@ -13,7 +13,7 @@ real *r_init_array(int count)
 	return a;
 }
 
-void r_zero_array(real *a, int count)
+void r_zero_array(real_t *a, int count)
 {
 	int i;
 
@@ -21,7 +21,7 @@ void r_zero_array(real *a, int count)
 		r_setd(a[i], 0.);
 }
 
-void r_free_array(real **a, int count)
+void r_free_array(real_t **a, int count)
 {
 	int i;
 
@@ -31,7 +31,7 @@ void r_free_array(real **a, int count)
 	free_null(a);
 }
 
-void r_flipsign(real y, real x)
+void r_flipsign(real_t y, real_t x)
 {
 	int new_sign;
 
@@ -39,7 +39,7 @@ void r_flipsign(real y, real x)
 	mpfr_setsign(y, x, new_sign, MPFR_RNDN);
 }
 
-void r_gaussian(real y, real x)
+void r_gaussian(real_t y, real_t x)
 {
 	r_set(y, x);
 	r_mul(y, y);

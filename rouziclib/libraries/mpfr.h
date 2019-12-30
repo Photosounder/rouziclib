@@ -8,7 +8,7 @@
 #include <mpfr.h>
 #include <mpf2mpfr.h>
 
-#define real	mpfr_t
+#define real_t	mpfr_t
 
 #define r_init(x)	mpfr_init_set_d(x, 0., MPFR_RNDN)
 #define r_free(x)	mpfr_clear(x)
@@ -49,14 +49,14 @@
 #define r_log10(r,x)	mpfr_log10(r, x, MPFR_RNDN)
 #define r_exp10(r,x)	mpfr_exp10(r, x, MPFR_RNDN)
 
-extern real *r_init_array(int count);
-extern void r_zero_array(real *a, int count);
-extern void r_free_array(real **a, int count);
-extern void r_flipsign(real y, real x);
-extern void r_gaussian(real y, real x);
+extern real_t *r_init_array(int count);
+extern void r_zero_array(real_t *a, int count);
+extern void r_free_array(real_t **a, int count);
+extern void r_flipsign(real_t y, real_t x);
+extern void r_gaussian(real_t y, real_t x);
 
 #else
 
-#define real double
+#define real_t double
 
 #endif

@@ -56,7 +56,7 @@ int string_get_field(char *string, char *delim, int n, char *field)	// copies th
 		strcpy(field, string);				// copy all that is left
 	else							// otherwise
 	{
-		snprintf(field, end-string, "%s", string);	// only copy what's in the field
+		snprintf(field, 1+end-string, "%s", string);	// only copy what's in the field
 		field[end-string] = 0;
 	}
 

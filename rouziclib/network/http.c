@@ -94,7 +94,7 @@ size_t http_get(char *url, int timeout, int retry, uint8_t **data, size_t *data_
 	}
 
 	domain = calloc(start_path-start_domain + 1, sizeof(char));
-	snprintf(domain, start_path-start_domain, "%s", &url[start_domain]);
+	snprintf(domain, start_path-start_domain + 1, "%s", &url[start_domain]);
 	sprintf_realloc(&request, NULL, 0, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", &url[start_path], domain);
 
 	ret = http_request(domain, "http", request, timeout, retry, data, data_alloc, DEFAULT);
