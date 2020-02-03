@@ -115,7 +115,7 @@ buffer_t buf_copy_part(buffer_t src, size_t start, size_t len)
 
 void buf_remove_first_bytes(buffer_t *s, size_t n)
 {
-	if (s->buf==NULL || s->as <= 0)
+	if (s->buf==NULL || s->as <= 0 || n==0)
 		return ;
 
 	if (s->as < n)
@@ -131,16 +131,18 @@ void buf_remove_first_bytes(buffer_t *s, size_t n)
 	s->len = MAXN(s->len - n, 0);
 }
 
-void buf_tail(buffer_t *s, int n)	// keeps only the n last lines
+int buf_tail(buffer_t *s, int n)	// keeps only the n last lines
 {
 	int linecount, start;
 
 	if (s->buf==NULL || s->as <= 0)
-		return ;
+		return 0;
 
 	linecount = get_string_linecount(s->buf, s->len);			// count the lines
 	start = string_find_start_nth_line(s->buf, s->len, linecount-n);	// find the start of the nth line from the bottom
 	buf_remove_first_bytes(s, start);					// remove everything before it
+
+	return MINN(n, linecount);
 }
 
 void bufprint_gmtime(buffer_t *s, time_t t)

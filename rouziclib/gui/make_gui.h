@@ -116,6 +116,7 @@ extern void gui_layout_registry_add(gui_layout_t *layout, const char *layout_nam
 extern void gui_layout_registry_reset();
 extern rect_t fit_sublayout_into_area(rect_t area0, gui_layout_t *sublayout, int main_area_id, xy_t offset, int save_os);
 extern rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_layout_t *sublayout, int main_area_id, xy_t offset);
+extern xy_t fit_area_into_layout_rect(gui_layout_t *layout, const int id, rect_t area1, xy_t offset, double *sm);
 extern void gui_parse_knob_data_string(gui_layout_t *layout, const int id, const char *line, buffer_t *buferr);
 
 #define ctrl_button_fromlayout(layout, id)	ctrl_button_fromlayout_offset(layout, id, XY0)

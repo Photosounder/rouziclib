@@ -613,7 +613,7 @@ void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, cons
 
 void draw_mousecursor(xy_t pos)
 {
-	col_t col = make_grey(0.5);
+	col_t col = make_grey(0.5), colb = make_grey(0.);
 	double sc = zc.iscrscale * 16.;
 	triangle_t tr;
 
@@ -622,10 +622,21 @@ void draw_mousecursor(xy_t pos)
 
 	if (mouse.window_focus_flag < 0 && mouse.mouse_focus_flag > 0)	// if the window is out of focus but mouse is over the window
 	{
-		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
-		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
-		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, 2.*sc))), sc_xy(add_xy(pos, xy(-2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
-		draw_line_thin(sc_xy(add_xy(pos, xy(0.*sc, -2.*sc))), sc_xy(add_xy(pos, xy(2.*sc, 0.*sc))), drawing_thickness, col, cur_blend, 1.);
+		double d;
+
+		d = zc.iscrscale * 31.;
+		drawq_bracket_open();
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
+		drawq_bracket_close(DQB_BLEND);
+
+		d = zc.iscrscale * 32.;
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, col, cur_blend, 1.);
+		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, col, cur_blend, 1.);
 		return ;
 	}
 
@@ -637,7 +648,7 @@ void draw_mousecursor(xy_t pos)
 	tr.c = sc_xy(add_xy(pos, xy(0.64*sc, -0.76837*sc)));
 
 	drawq_bracket_open();
-	draw_triangle_thin(triangle_dilate(tr, -1.), drawing_thickness, make_grey(0.), blend_alphablendfg, 2./3.);
+	draw_triangle_thin(triangle_dilate(tr, -1.), drawing_thickness, colb, blend_alphablendfg, 2./3.);
 	drawq_bracket_close(DQB_BLEND);
 
 	draw_triangle_thin(tr, drawing_thickness, col, cur_blend, 1.);

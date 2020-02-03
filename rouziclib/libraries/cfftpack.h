@@ -25,6 +25,4 @@ extern void cfft_2D_r2c_padded_fft(cfft_plan_t *plan, fft_real_t *in, size_t in_
 extern void cfft_1D_c2r_full_ifft(cfft_plan_t *plan, fft_real_t *in, fft_real_t *out, int n);
 extern void cfft_2D_c2r_full_ifft(cfft_plan_t *plan, fft_real_t *in, fft_real_t *out, xyi_t dim);
 
-extern void cfft_test();
-
 #endif

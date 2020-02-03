@@ -44,10 +44,29 @@ void mouse_pre_event_proc(mouse_t *mouse)
 
 void mouse_button_event(int *mb, mousebut_flags_t *flags, int way)
 {
+	#ifdef MOUSE_LOG
+	if (*mb * way == -2)
+		bufprintf(&mouse.log, "[%d] mouse_button_event() quick press\n", mouse.frame_index);
+	else
+		bufprintf(&mouse.log, "[%d] mouse_button_event() mb %d -> %d\n", mouse.frame_index, *mb, 2 * way);
+	#endif
+
 	if (*mb * way == -2)		// if quick press situation
 		flags->quick = way;
 	else
-		*mb = 2 * way;
+	{
+		if (*mb != way)		// if not *mb -1 -> -2 (happens when the click release comes from global polling and again later from event polling)
+			*mb = 2 * way;
+		#ifdef MOUSE_LOG
+		else
+			bufprintf(&mouse.log, "[%d] mouse_button_event() *mb %d -> %d avoided\n", mouse.frame_index, *mb, 2 * way);
+		#endif
+	}
+
+	#ifdef MOUSE_LOG
+	if (*mb == -2 && flags->block)
+		bufprintf(&mouse.log, "[%d] mouse_button_event() released click blocking\n", mouse.frame_index);
+	#endif
 
 	if (*mb == -2)			// release click blocking when the click is released
 		flags->block = 0;
@@ -62,6 +81,10 @@ void mouse_button_update(int *mb, mousebut_flags_t *flags, int new_state, int bu
 	{
 		*mb = -2;
 		flags->block = 0;
+
+		#ifdef MOUSE_LOG
+		bufprintf(&mouse->log, "[%d] mouse_button_update() button released\n", mouse->frame_index);
+		#endif
 	}
 
 	if (new_state && *mb <= 0)		// if the button is pressed
@@ -71,6 +94,13 @@ void mouse_button_update(int *mb, mousebut_flags_t *flags, int new_state, int bu
 
 		if (mouse->mouse_focus_flag >= 0 && mouse->window_focus_flag >= 0 && flags->block==0)	// make sure the click is in the window
 			*mb = 2;
+
+		#ifdef MOUSE_LOG
+		if (mouse->mouse_focus_flag >= 0 && mouse->window_focus_flag >= 0 && flags->block==0)
+			bufprintf(&mouse->log, "[%d] mouse_button_update() new click\n", mouse->frame_index);
+		else
+			bufprintf(&mouse->log, "[%d] mouse_button_update() new click blocked (mouse focus %d window focus %d block %d)\n", mouse->frame_index, mouse->mouse_focus_flag, mouse->window_focus_flag, flags->block);
+		#endif
 	}
 }
 
@@ -135,6 +165,32 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 
 	if (mouse->b.lmb==2)				// on click unselect any text editor
 		cur_textedit = NULL;
+
+	#ifdef MOUSE_LOG
+	// Write summary
+	//bufprintf(&mouse->log, "mouse_post_event_proc() summary:\n\ta %g %g   u %g %g   d %g %g   u_stored %g %g   prev_u %g %g\n", mouse->a.x, mouse->a.y, mouse->u.x, mouse->u.y, mouse->d.x, mouse->d.y, mouse->u_stored.x, mouse->u_stored.y, mouse->prev_u.x, mouse->prev_u.y);
+
+	// Trim and save
+	buf_tail(&mouse->log, 120);
+	mouse->frame_index++;
+
+	if (mouse->key_state[RL_SCANCODE_F8]==2 && get_kb_shift() && get_kb_cmd())
+	{
+		// Generate log filename
+		buffer_t filename={0};
+		bufprintf(&filename, "mouse log ");
+		bufprint_gmtime(&filename, time(NULL));
+		bufprintf(&filename, ".txt");
+		char *path = make_appdata_path("rouziclib", filename.buf, 1);
+		free_buf(&filename);
+
+		// Save and open
+		buf_save_raw_file(&mouse->log, path, "wb");
+		fprintf_rl(stdout, "Mouse log saved to %s\n", path);
+		system_open(path);
+		free(path);
+	}
+	#endif
 	
 	reset_insert_rect_array();			// nothing to do with the mouse but this is about the right place to put it
 }

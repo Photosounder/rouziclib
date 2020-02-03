@@ -12,7 +12,7 @@ extern buffer_t *append_buf(buffer_t *a, buffer_t *b);
 extern buffer_t buf_copy_part(buffer_t src, size_t start, size_t len);
 
 extern void buf_remove_first_bytes(buffer_t *s, size_t n);
-extern void buf_tail(buffer_t *s, int n);
+extern int buf_tail(buffer_t *s, int n);
 extern void bufprint_gmtime(buffer_t *s, time_t t);
 extern buffer_t buf_load_raw_file(const char *path);
 extern buffer_t buf_load_raw_file_dos_conv(const char *path);

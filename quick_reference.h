@@ -135,6 +135,10 @@
 		// offset decides towards which edges the fitting will go if the aspect ratios don't match
 		fit_sublayout_into_layout_rect(&window_layout, id_to_fit_into, &sublayout, id_of_frame, offset);
 
+	// Fit a rectangle into a layout's rectangle and get the offset and scale multiplier
+		// offset is the same as above, so set_xy(0.5) would centre everything
+		pos = fit_area_into_layout_rect(&layout, id, area, offset, &sm);
+
 	// Get the rect of a layout element
 		// the last argument is the provided offset
 		gui_layout_elem_comp_area_os(&layout, id, XY0);
@@ -318,6 +322,8 @@
 	// Alloc more in an array if needed
 		alloc_enough(&array, needed_count, &alloc_count, size_elem, inc_ratio);
 		alloc_enough(&array, count+=1, &alloc_count, size_elem, inc_ratio);
+		// This one protects the realloc with a mutex only if needed
+		alloc_enough_mutex(&array, count+=1, &alloc_count, size_elem, inc_ratio, &my_mutex);
 
 	// safe sprintf that reallocs the string if needed
 		// string can be NULL, then realloc will allocate it

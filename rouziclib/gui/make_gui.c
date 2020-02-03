@@ -1291,6 +1291,25 @@ rect_t fit_sublayout_into_layout_rect(gui_layout_t *toplayout, int rect_id, gui_
 	return area0;
 }
 
+xy_t fit_area_into_layout_rect(gui_layout_t *layout, const int id, rect_t area1, xy_t offset, double *sm)
+{
+	rect_t area0;
+	xy_t pos={0};
+	*sm = 1.;
+
+	if (check_elem_id_validity(layout, id, 0)==0)
+	{
+		fprintf_rl(stderr, "Invalid element #%d for layout in fit_area_into_layout_rect()\n", id);
+		return pos;
+	}
+
+	area0 = gui_layout_elem_comp_area_os(layout, id, XY0);
+	area0 = fit_rect_in_area(get_rect_dim(area1), area0, offset);
+	pos = fit_into_area(area0, area1, 0., sm);
+
+	return pos;
+}
+
 void gui_parse_knob_data_string(gui_layout_t *layout, const int id, const char *line, buffer_t *buferr)
 {
 	knob_t *knob_data;

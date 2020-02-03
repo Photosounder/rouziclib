@@ -510,6 +510,13 @@ double get_xyz_index(xyz_t v, const int index)
 	return 0.;
 }
 
+int cmp_xy_x_sort(xy_t *a, xy_t *b)	// xy comparison function (for qsort) sorting by x
+{
+	if (a->x > b->x) return 1;
+	if (a->x == b->x) return 0;
+	return -1;
+}
+
 matrix_t matrix_xyz(xyz_t x, xyz_t y, xyz_t z)
 {
 	matrix_t out;

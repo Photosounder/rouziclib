@@ -175,7 +175,7 @@ void system_open(const char *path)
 	#endif
 
 	#ifdef __APPLE__
-	char command[PATH_MAX+5];
+	char command[PATH_MAX+8];
 
 	sprintf(command, "open \"%s\"", path);
 	system(command);

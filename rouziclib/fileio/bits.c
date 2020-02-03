@@ -30,3 +30,17 @@ uint64_t get_bits_in_stream(uint8_t *stream, int64_t start_bit, int bit_count)
 
 	return r;
 }
+
+uint32_t reverse_bits32(uint32_t v)	// from http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
+{
+	v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);
+	v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);
+	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);
+	v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);
+	return (v >> 16           ) | ( v              << 16);
+}
+
+uint32_t reverse_n_bits32(uint32_t v, int n)
+{
+	return reverse_bits32(v) >> (32-n);
+}

@@ -210,9 +210,7 @@ void cfft_2D_c2r_full_ifft(cfft_plan_t *plan, fft_real_t *in, fft_real_t *out, x
 	cfft_copy_c2r(in, out, dim);
 }
 
-
-
-void cfft_test()
+/*void cfft_test()
 {
 	int i;
 	xyi_t dim;
@@ -232,6 +230,6 @@ void cfft_test()
 	fprintf_rl(stdout, "cfft_2D() took %d ms\n\n", get_time_diff(&td));
 
 	cfft_plan_free(&plan);
-}
+}*/
 
 #endif

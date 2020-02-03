@@ -36,6 +36,7 @@
 #include "math/dct.c"
 #include "math/matrix.c"
 #include "math/physics.c"
+#include "math/debug.c"
 #include "math/polynomials.c"
 #include "math/erf_radlim.c"
 #include "fixedpoint/fp.c"

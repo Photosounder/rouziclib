@@ -23,6 +23,13 @@ int get_key_state_by_name(const char *name)
 	return -1;
 }
 
+int get_kb_shift()  { return mouse.key_state[RL_SCANCODE_LSHIFT] | mouse.key_state[RL_SCANCODE_RSHIFT]; }
+int get_kb_ctrl()   { return mouse.key_state[RL_SCANCODE_LCTRL]  | mouse.key_state[RL_SCANCODE_RCTRL]; }
+int get_kb_guikey() { return mouse.key_state[RL_SCANCODE_LGUI]   | mouse.key_state[RL_SCANCODE_RGUI]; }
+int get_kb_alt()    { return mouse.key_state[RL_SCANCODE_LALT]   | mouse.key_state[RL_SCANCODE_RALT]; }
+int get_kb_enter()  { return mouse.key_state[RL_SCANCODE_RETURN] | mouse.key_state[RL_SCANCODE_RETURN2] | mouse.key_state[RL_SCANCODE_KP_ENTER]; }
+int get_kb_all_mods() { return get_kb_shift() | get_kb_ctrl() | get_kb_guikey() | get_kb_alt(); }
+
 void flag_update_keyboard_button(int *b, int *quick_b)
 {
 	if (*b >= 2)

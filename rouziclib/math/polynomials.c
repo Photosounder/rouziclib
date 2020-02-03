@@ -11,7 +11,7 @@ double eval_polynomial(double x, double *c, int degree)
 }
 
 #ifdef RL_MPFR
-void eval_polynomial_mpfr(real y, real x, real *c, int degree)
+void eval_polynomial_mpfr(real_t y, real_t x, real_t *c, int degree)
 {
 	int i;
 
@@ -25,6 +25,84 @@ void eval_polynomial_mpfr(real y, real x, real *c, int degree)
 	r_add(y, c[0]);
 }
 #endif
+
+double get_polynomial_error(double (*f)(double), double start, double end, double *c, int degree, int errmode)
+{
+	int i;
+	double x, y, fx, err;
+
+	err = 0.;
+	for (i=0; i<=1000; i++)
+	{
+		x = (double) i / 1000.;
+		x = x * (end-start) + start;
+		y = eval_polynomial(x, c, degree);
+		fx = f(x);
+
+		if (errmode==DIVMODE)
+		{
+			if (y < fx)
+				y = fx / y - 1.;
+			else
+				y = y / fx - 1.;
+		}
+		else
+			y = fabs(fx - y);
+		err = MAXN(err, y);
+	}
+
+	return err;
+}
+
+double get_polynomial_error_from_points(double *x, double *y, int p_count, double *c, int degree, int errmode)
+{
+	int i;
+	double err, yc;
+	
+	for (err=0., i=0; i < p_count; i++)
+	{
+		yc = eval_polynomial(x[i], c, degree);		
+
+		if (errmode==DIVMODE)
+		{
+			if (yc < y[i])
+				yc = y[i] / yc - 1.;
+			else
+				yc = yc / y[i] - 1.;
+		}
+		else
+			yc = fabs(y[i] - yc);
+		err = MAXN(err, yc);
+	}
+
+	return err;
+}
+
+char *print_polynomial(double *c, int degree, const char *x)
+{
+	int id, first=1;
+	buffer_t buf={0};
+
+	for (id=degree; id >= 0; id--)
+	{
+		if (fabs(c[id]) >= 1e-12)
+		{
+			if (first==0)
+				bufprintf(&buf, " %c ", c[id] < 0 ? '-' : '+');
+
+			bufprintf(&buf, "%g", first ? c[id] : fabs(c[id]));
+
+			if (id > 0)
+				bufprintf(&buf, "*%s", x);
+
+			if (id > 1)
+				bufprintf(&buf, "^%d", id);
+			first = 0;
+		}
+	}
+
+	return buf.buf;
+}
 
 void polynomial_addition(double *a, int adeg, double *b, int bdeg, double *c)
 {
@@ -135,7 +213,7 @@ void polynomial_x_substitution(double *a, int adeg, double *xs, int xsdeg, doubl
 }
 
 #ifdef RL_MPFR
-void polynomial_addition_mpfr(real *a, int adeg, real *b, int bdeg, real *c)
+void polynomial_addition_mpfr(real_t *a, int adeg, real_t *b, int bdeg, real_t *c)
 {
 	int i, mindeg = MINN(adeg, bdeg), maxdeg = MAXN(adeg, bdeg);
 
@@ -148,7 +226,7 @@ void polynomial_addition_mpfr(real *a, int adeg, real *b, int bdeg, real *c)
 	}
 }
 
-void polynomial_subtraction_mpfr(real *a, int adeg, real *b, int bdeg, real *c)
+void polynomial_subtraction_mpfr(real_t *a, int adeg, real_t *b, int bdeg, real_t *c)
 {
 	int i, mindeg = MINN(adeg, bdeg), maxdeg = MAXN(adeg, bdeg);
 
@@ -163,7 +241,7 @@ void polynomial_subtraction_mpfr(real *a, int adeg, real *b, int bdeg, real *c)
 	}
 }
 
-void polynomial_scalar_mul_mpfr(real *a, int adeg, real m, real *c)
+void polynomial_scalar_mul_mpfr(real_t *a, int adeg, real_t m, real_t *c)
 {
 	int i;
 
@@ -171,7 +249,7 @@ void polynomial_scalar_mul_mpfr(real *a, int adeg, real m, real *c)
 		r_rmul(c[i], a[i], m);
 }
 
-int polynomial_multiplication_mpfr(real *a, int adeg, real *b, int bdeg, real *c, int cdeg)
+int polynomial_multiplication_mpfr(real_t *a, int adeg, real_t *b, int bdeg, real_t *c, int cdeg)
 {
 	int ia, ib, deg, maxdeg=0;
 
@@ -195,10 +273,10 @@ int polynomial_multiplication_mpfr(real *a, int adeg, real *b, int bdeg, real *c
 	return maxdeg;
 }
 
-real *polynomial_power_mpfr(real *a, int adeg, int n, int *maxdegp)
+real_t *polynomial_power_mpfr(real_t *a, int adeg, int n, int *maxdegp)
 {
 	int i, j, maxdeg=0;
-	real *c0, *c1, *p;
+	real_t *c0, *c1, *p;
 
 	if (n==0)
 	{
@@ -235,10 +313,10 @@ real *polynomial_power_mpfr(real *a, int adeg, int n, int *maxdegp)
 	return c0;
 }
 
-void polynomial_x_substitution_mpfr(real *a, int adeg, real *xs, int xsdeg, real *c)
+void polynomial_x_substitution_mpfr(real_t *a, int adeg, real_t *xs, int xsdeg, real_t *c)
 {
 	int i, id, maxdeg;
-	real *exs;
+	real_t *exs;
 
 	for (id=0; id <= adeg; id++)
 	{
@@ -290,10 +368,10 @@ double *chebyshev_coefs(int degree)
 }
 
 #ifdef RL_MPFR
-real *chebyshev_coefs_mpfr(int degree)
+real_t *chebyshev_coefs_mpfr(int degree)
 {
 	int i;
-	real *t0, *t1, *t2, *p, *m;
+	real_t *t0, *t1, *t2, *p, *m;
 
 	t0 = r_init_array(degree+1);
 	r_setd(t0[0], 1.);
@@ -333,27 +411,27 @@ real *chebyshev_coefs_mpfr(int degree)
 }
 #endif
 
-double chebyshev_node(int degree, int node)		// node = 0,...,degree-1
+double chebyshev_node(double degree, double node)		// node = 0,...,degree-1
 {
-	if (degree==0 || node >= degree)
+	if (degree < 1. || node+0.5 < 0. || node+0.5 > degree)
 		return 0.;
 
-	return cos(pi * ((double) node + 0.5) / (double) degree);
+	return cos(pi * (node + 0.5) / degree);
 }
 
 #ifdef RL_MPFR
-void chebyshev_node_mpfr(real v, int degree, int node)
+void chebyshev_node_mpfr(real_t v, double degree, double node)
 {
-	if (degree==0 || node >= degree)
+	if (degree < 1. || node+0.5 < 0. || node+0.5 > degree)
 	{
 		r_setd(v, 0.);
 		return;
 	}
 
-	// cos(pi * ((double) node + 0.5) / (double) degree);
+	// cos(pi * (node + 0.5) / degree);
 	r_pi(v);
-	r_muld(v, (double) node + 0.5);
-	r_divd(v, (double) degree);
+	r_muld(v, node + 0.5);
+	r_divd(v, degree);
 	r_cos(v, v);
 }
 #endif
@@ -401,10 +479,10 @@ void polynomial_fit_on_points(xy_t *p, double *c, int degree)
 }
 
 #ifdef RL_MPFR
-void polynomial_fit_on_points_mpfr(real *x, real *y, real *c, int degree)
+void polynomial_fit_on_points_mpfr(real_t *x, real_t *y, real_t *c, int degree)
 {
 	int i, ii, id, j, deg;
-	real *lj, mj, ci;
+	real_t *lj, mj, ci;
 
 	for (i=0; i<degree+1; i++)
 		r_setd(c[i], 0.);
@@ -476,10 +554,10 @@ void polynomial_fit_on_function(double (*f)(double), double start, double end, d
 }
 
 #ifdef RL_MPFR
-void polynomial_fit_on_function_mpfr(void (*f)(real,real), real start, real end, real *c, int degree)
+void polynomial_fit_on_function_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int degree)
 {
 	int i;
-	real *x, *y, range;
+	real_t *x, *y, range;
 
 	// Init
 	r_init(range);
@@ -512,9 +590,7 @@ void polynomial_fit_on_function_mpfr(void (*f)(real,real), real start, real end,
 double chebyshev_multiplier_by_dct(double *y, int p_count, int id)	// look for the Chebyshev multiplier of degree id
 {
 	int i;
-	double x, sum=0., freq;
-
-	freq = pi * (double) id / (double) p_count;
+	double x, sum=0., freq = pi * (double) id / (double) p_count;
 
 	// DCT
 	for (x=0.5, i=0; i < p_count; i++, x+=1.)
@@ -528,43 +604,341 @@ double chebyshev_multiplier_by_dct(double *y, int p_count, int id)	// look for t
 	return sum;
 }
 
-void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree)
+void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, double end, double *c, int degree)
 {
-	int i, p_count = 1000;
-	double *y, cm, *cc, xs[2];
+	int id;
+	double cm, *cc, xs[2];
 
 	memset(c, 0, (degree+1)*sizeof(double));
-
-	y = calloc(p_count, sizeof(double));
 
 	// x substitution for the shifting
 	xs[0] = -2.*start/(end-start) - 1.;
 	xs[1] = 2. / (end-start);
 
+	// Compute the coefficients
+	for (id=0; id <= degree; id++)
+	{
+		cm = chebyshev_multiplier_by_dct(y, p_count, id);	// get the Chebyshev multiplier for degree id
+		cc = chebyshev_coefs(id);				// get the default polynomial coeficients
+		polynomial_scalar_mul(cc, id, cm, cc);			// apply the multiplier
+		polynomial_x_substitution(cc, id, xs, 1, c);		// shift the polynomial and add to c
+		free(cc);
+	}
+}
+
+void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree)
+{
+	int i, p_count = 1000;
+	double *y = calloc(p_count, sizeof(double));
+
 	// Compute the points
 	for (i=0; i < p_count; i++)
 		y[i] = f((end-start) * (0.5+0.5*chebyshev_node(p_count, i)) + start);
 
-	// Compute the coefficients
-	for (i=0; i <= degree; i++)
-	{
-		cm = chebyshev_multiplier_by_dct(y, p_count, i);	// get the Chebyshev multiplier for degree i
-		cc = chebyshev_coefs(i);				// get the default polynomial coeficients
-		polynomial_scalar_mul(cc, i, cm, cc);			// apply the multiplier
-		polynomial_x_substitution(cc, i, xs, 1, c);		// shift the polynomial and add to c
-		free(cc);
-
-		fprintf_rl(stdout, "coef for T_%d = %g\n", i, cm);
-	}
-
+	// Fit
+	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree);
 	free(y);
 }
 
-#ifdef RL_MPFR
-void chebyshev_multiplier_by_dct_mpfr(real v, real *y, int p_count, int id)	// look for the Chebyshev multiplier of degree id
+/*
+v0 = 10*x
+plot v1 = erf(v0)
+plot v2 = -1.8812e-10*v0^7 + 5.95468e-07*v0^5 - 0.000591814*v0^3 + 0.211477*v0
+plot v3 = 4.60844e-11*v0^7 - 1.46041e-07*v0^5 + 0.000141684*v0^3 - 0.0401948*v0
+plot v4 = (v1 - (v2 + c0*v3))*10
+
+
+plot v0 = exp(-x*x*100)
+v1 = 12.3198*x^8 - 27.945*x^6 + 21.227*x^4 - 6.03238*x^2 + 0.476735
+plot v2 = cos(acos(x)*  0)*0.120757+
+cos(acos(x)*  2)*-0.123411+cos(acos(x)*  4)*0.0832623+
+cos(acos(x)*  6)*-0.0591896+cos(acos(x)*  8)*0.0425347+
+cos(acos(x)* 10)*-0.0304192+cos(acos(x)* 12)*0.0214769+
+cos(acos(x)* 14)*-0.0148945+cos(acos(x)* 16)*0.0101084+
+cos(acos(x)* 18)*-0.0066917+cos(acos(x)* 20)*0.00430733+
+cos(acos(x)* 22)*-0.00268643+cos(acos(x)* 24)*0.0016166+
+cos(acos(x)* 26)*-0.000933467+cos(acos(x)* 28)*0.000513242+
+cos(acos(x)* 30)*-0.000265594+cos(acos(x)* 32)*0.000126873
+plot v3 = abs(v0-v1)/v2*0.3066*1
+v4 = 6.933738469e-1 +x*-1.537650315e-3 +x^2*-1.384847511e+1
++x^3*8.228637481e-2 +x^4*6.131494002e+1 +x^5*-5.585291021e-1
++x^6*-9.252052240e+1 +x^7*7.844065307e-1 +x^8*4.436068364e+1
+plot v5 = abs(v0-v4)*1
+plot v6 = 1e-9/(x-c0)
+
+plot v0 = gaussian((0.5+0.5*x)*10)
+plot v1 = (3.24426*x^7 - 0.635562*x^6 - 6.03683*x^5 + 1.69759*x^4
+ + 2.55079*x^3 - 0.548307*x^2 - 0.260136*x + 0.0219204 - v0)*10
+plot v3 = (cos(acos(x)*  0)*0.0338554+
+cos(acos(x)*  1)*-0.0188564+cos(acos(x)*  2)*0.00204312+
+cos(acos(x)*  3)*0.00394375+cos(acos(x)*  4)*-0.00429958+
+cos(acos(x)*  5)*0.00256535+cos(acos(x)*  6)*-0.000839876+
+cos(acos(x)*  7)*-0.000108108+cos(acos(x)*  8)*0.000347918+
+cos(acos(x)*  9)*-0.000237706)
+plot v4 = (1.639233702893998064336560647631011889651e-2
++x*-2.928766252335909864193805457528753979412e-1
++x^2*-4.474539206131717132308014291922265223296e-1
++x^3*2.787075293253191929012413648529849594347
++x^4*1.426790345951435341016863501393847789548
++x^5*-6.479284939695181168932746533466860369859
++x^6*-4.536696035358643058644213203913443690196e-1
++x^7*3.485086271675580226339713430689886173452 - v0) * 10
+*/
+
+/*double minmax_find_k(int p_count, double *y, double *a, double *b)	// find k that minimises the difference between y and a+k*b
+{
+	int i, it;
+	double k0=0., k1=0., k2=1.;
+	double err0, err1, err2;
+	double step=4., decrement=1./2.;
+
+	// Initial error
+	for (err0=0., i=0; i < p_count; i++)
+		err0 = MAXN(err0, fabs(y[i] - a[i]));
+	err2 = err1 = err0;
+
+	for (it=0; it < 200; it++)
+	{
+		// Eval error
+		for (err2=0., i=0; i < p_count; i++)
+			err2 = MAXN(err2, fabs(y[i] - (a[i] + k2*b[i])));
+
+		// Check if the precision is high enough
+		if (err0 / err1 - 1. < 1e-8 && err1 / err2 - 1. < 1e-8 && err0 != err1)
+			return k1;
+
+		if (err2 <= err1)			// if the error is still going down
+		{
+			err0 = err1;
+			err1 = err2;
+			k0 = k1;
+			k1 = k2;
+			k2 *= step;			// continue forward
+		}
+		else					// if the error is now going back up
+		{
+			k1 = k0;
+			if (k0==0.)
+				k2 *= 1./8.;
+			else
+				k2 = k0;		// go back to k0
+			err2 = err1 = err0;
+			step = pow(step, decrement);	// lower the step
+			k2 *= step;
+		}
+	}
+
+	return k2;
+}*/
+
+double minmax_find_k(int p_count, double *y, double *a, double *b, double *an, double *ye, int degree)
+{
+	int i, it;
+	double k0=0., k1=0., k2=1.;
+	double err0, err1, err2;
+	double step=4., decrement=1./2.;
+
+	// Initial error
+	for (err0=0., i=0; i < p_count; i++)
+		err0 = MAXN(err0, fabs(y[i] - a[i]));
+	err2 = err1 = err0;
+
+	for (it=0; it < 200; it++)
+	{
+		// Generate an = a + k*b
+		for (i=0; i < p_count; i++)
+			an[i] = a[i] + k2 * b[i];
+
+		// Fit an to generate ye
+		memset(ye, 0, p_count * sizeof(double));
+		for (int id=0; id < degree+1; id++)
+		{
+			double xi, freq = pi * (double) id / (double) p_count;
+			double cm = chebyshev_multiplier_by_dct(an, p_count, id);
+
+			for (xi=0.5, i=0; i < p_count; i++, xi+=1.)
+				ye[i] += cos(xi * freq) * cm;
+		}
+
+		// Eval error
+		for (err2=0., i=0; i < p_count; i++)
+			err2 = MAXN(err2, fabs(y[i] - ye[i]));
+
+		// Check if the precision is high enough
+		if (err0 / err1 - 1. < 1e-8 && err1 / err2 - 1. < 1e-8 && err0 != err1)
+			return k1;
+
+		if (err2 <= err1)			// if the error is still going down
+		{
+			err0 = err1;
+			err1 = err2;
+			k0 = k1;
+			k1 = k2;
+			k2 *= step;			// continue forward
+		}
+		else					// if the error is now going back up
+		{
+			k1 = k0;
+			if (k0==0.)
+				k2 *= 1./8.;
+			else
+				k2 = k0;		// go back to k0
+			err2 = err1 = err0;
+			step = pow(step, decrement);	// lower the step
+			k2 *= step;
+		}
+	}
+
+	return k2;
+}
+
+/*
+plot v1 = graph(3+floor(c0)*5, x)
+c0 = 0 0 59
+*/
+
+void error_curve_transform(double (*f)(double), int p_count, double start, double end, double *c, int degree, double *ye, double *env, double *env2, double *b, double *x, int it)
 {
 	int i;
-	real x, sum, freq;
+	double mx, v, env_sum, env_mul, off;
+	char name[64];
+
+	// Generate the imaginary part of ye for the error envelope
+	memset(env, 0, p_count * sizeof(double));
+	fprintf_rl(stdout, "ye coefs:\n");
+	for (int id=0; id < MINN(p_count, (degree+1)*8); id++)
+	{
+		double xi, freq = pi * (double) id / (double) p_count;
+		double cm = chebyshev_multiplier_by_dct(ye, p_count, id);
+
+		if (fabs(cm) > 1e-4)
+			fprintf_rl(stdout, "cos(acos(x)*%3d)*%g+\n", id, cm);
+		for (xi=0.5, i=0; i < p_count; i++, xi+=1.)
+			env[i] += sin(xi * freq) * cm;
+	}
+
+	off = sqrt(sq(ye[0]) + sq(env[0]));
+
+	// Generate reciprocal of the error envelope
+	for (i=0; i < p_count; i++)
+		env[i] = sqrt(sq(ye[i]) + sq(env[i]));
+	math_graph_add(x, env, p_count, sprintf_ret(name, "Envelope #%d", it));
+
+	// Offset the envelope
+	for (i=0; i < p_count; i++)
+		if (it > 20)
+			env2[i] = env[i];
+		else
+			env2[i] = env[i]*0.1 + off;
+
+	// Cumulate and normalise the envelope to produce a position map
+	for (env_sum=0., i=0; i < p_count; i++)
+		env_sum += env2[i];
+	env_mul = 1. / env_sum;
+
+	for (env_sum=0., i=0; i < p_count; i++)
+	{
+		v = env2[i];
+		env_sum += v;
+		mx = (env_sum - 0.5*v) * env_mul;			// mapped x within [0 , 1]
+		mx = (end-start) * (0.5+0.5*cos(pi * mx)) + start;	// mapped x within [start , end]
+
+		// Generate the b curve
+		b[i] = -(f(mx) - eval_polynomial(mx, c, degree)) / env[i];
+	}
+
+	math_graph_add(x, b, p_count, sprintf_ret(name, "B curve #%d", it));
+}
+
+void polynomial_fit_on_function_by_dct_minmax(double (*f)(double), double start, double end, double *c, int degree)
+{
+	int i, it, p_count = 10000;
+	char *str;
+	const char x_str[] = "x";
+	char name[64];
+	double v, k, err;
+	double *x = calloc(p_count, sizeof(double));
+	double *y = calloc(p_count, sizeof(double));
+	double *a = calloc(p_count, sizeof(double));
+	double *an = calloc(p_count, sizeof(double));
+	double *ye = calloc(p_count, sizeof(double));
+	double *env = calloc(p_count, sizeof(double));
+	double *env2 = calloc(p_count, sizeof(double));
+	double *b = calloc(p_count, sizeof(double));
+	double *ce = calloc(degree+1, sizeof(double));
+
+	free_math_graph_array();
+
+	// Compute the points
+	for (i=0; i < p_count; i++)
+	{
+		x[i] = (end-start) * (0.5+0.5*chebyshev_node(p_count, i)) + start;
+		y[i] = f(x[i]);
+	}
+	math_graph_add(x, y, p_count, "Original curve to fit");
+//	math_graph_add(x, y, p_count, sprintf_ret(name, ""));
+
+	// Fit
+	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree);
+	fprintf_rl(stdout, "c = %s\n", str=print_polynomial(c, degree, x_str));
+	free(str);
+	math_graph_add_y(c, degree+1, sprintf_ret(name, "Original polynomial coefs"));
+
+	// Eval error
+	err = get_polynomial_error_from_points(x, y, p_count, c, degree, NEGMODE);
+	fprintf_rl(stdout, "Preoptimisation error %g\n", err);
+
+	for (it=0; it < 60; it++)
+	{
+		err = get_polynomial_error_from_points(x, y, p_count, c, degree, NEGMODE);
+		fprintf_rl(stdout, "%d	error %g\n", it, err);
+
+		// Generate the error curve
+		for (i=0; i < p_count; i++)
+		{
+			a[i] = eval_polynomial(x[i], c, degree);
+			ye[i] = y[i] - a[i];
+		}
+
+		math_graph_add(x, a, p_count, sprintf_ret(name, "Polynomial curve #%d", it));
+		math_graph_add(x, ye, p_count, sprintf_ret(name, "Error curve #%d", it));
+
+		// Transform the error curve
+		error_curve_transform(f, p_count, start, end, c, degree, ye, env, env2, b, x, it);
+
+		// Find the optimal k for a+k*b
+		k = minmax_find_k(p_count, y, a, b, an, ye, degree);
+		fprintf_rl(stdout, "	k = %g\n", k);
+		// dampen k
+		k = k * 0.1;
+		
+		// a' = a + k*b
+		for (i=0; i < p_count; i++)
+			a[i] += k * b[i];
+		math_graph_add(x, a, p_count, sprintf_ret(name, "a' = a + %.4g*b curve #%d", k, it));
+
+		// Fit the curve
+		polynomial_fit_on_points_by_dct(a, p_count, start, end, c, degree);
+		fprintf_rl(stdout, "	c = %s\n", str=print_polynomial(c, degree, x_str));
+		free(str);
+	}
+
+	free(x);
+	free(y);
+	free(a);
+	free(an);
+	free(ye);
+	free(env);
+	free(env2);
+	free(b);
+	free(ce);
+}
+
+#ifdef RL_MPFR
+void chebyshev_multiplier_by_dct_mpfr(real_t v, real_t *y, int p_count, int id)	// look for the Chebyshev multiplier of degree id
+{
+	int i;
+	real_t x, sum, freq;
 
 	r_init(x);
 	r_init(sum);
@@ -599,15 +973,14 @@ void chebyshev_multiplier_by_dct_mpfr(real v, real *y, int p_count, int id)	// l
 	r_free(freq);
 }
 
-void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real,real), real start, real end, real *c, int degree)
+void polynomial_fit_on_points_by_dct_mpfr(real_t *y, int p_count, real_t start, real_t end, real_t *c, int degree)
 {
-	int i, p_count = 1000;
-	real *y, cm, *cc, *xs;
+	int i;
+	real_t cm, *cc, *xs;
 
 	r_init(cm);
 
 	xs = r_init_array(2);
-	y = r_init_array(p_count);
 	r_zero_array(c, degree+1);
 
 	// x substitution for the shifting
@@ -617,18 +990,6 @@ void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real,real), real start, re
 	r_subd(xs[0], 1.);
 
 	r_rddiv(xs[1], 2., xs[1]);	// xs[1] = 2. / (end-start);
-
-	// Compute the points
-	for (i=0; i < p_count; i++)
-	{
-		// y[i] = f((end-start) * (0.5+0.5*chebyshev_node(p_count, i)) + start);
-		chebyshev_node_mpfr(cm, p_count, i);
-		r_muld(cm, 0.5);
-		r_addd(cm, 0.5);
-		r_rsub(y[i], end, start);
-		r_fma(cm, y[i], cm, start);
-		f(y[i], cm);
-	}
 
 	// Compute the coefficients
 	for (i=0; i <= degree; i++)
@@ -641,7 +1002,33 @@ void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real,real), real start, re
 	}
 
 	r_free_array(&xs, 2);
-	r_free_array(&y, degree+1);
 	r_free(cm);
+}
+
+void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int degree)
+{
+	int i, p_count = 1000;
+	real_t *y, v;
+
+	r_init(v);
+	y = r_init_array(p_count);
+
+	// Compute the points
+	for (i=0; i < p_count; i++)
+	{
+		// y[i] = f((end-start) * (0.5+0.5*chebyshev_node(p_count, i)) + start);
+		chebyshev_node_mpfr(v, p_count, i);
+		r_muld(v, 0.5);
+		r_addd(v, 0.5);
+		r_rsub(y[i], end, start);
+		r_fma(v, y[i], v, start);
+		f(y[i], v);
+	}
+	r_free(v);
+
+	// Fit
+	polynomial_fit_on_points_by_dct_mpfr(y, p_count, start, end, c, degree);
+
+	r_free_array(&y, degree+1);
 }
 #endif

@@ -106,6 +106,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "math/dct.h"
 #include "math/matrix.h"
 #include "math/physics.h"
+#include "math/debug.h"
 #include "math/polynomials.h"
 #include "math/erf_radlim.h"
 #include "fixedpoint/fp.h"			// used unless RL_EXCL_APPROX is defined

@@ -579,7 +579,6 @@ void load_audio_full_ffmpeg(const char* input_filename)
 	while (ff_load_stream_packet(&s))
 	{
 		counter += s.frame->nb_samples;
-		//av C:\Users\user\Desktop\_to learn\movies\#3\Ennio Morricone - 2004 - The Good, The Bad And The Ugly [Flac-Cue]\Ennio Morricone - The Good, The Bad And The Ugly.flac
 		// raw sample printout
 		/*	for (int i=0; i<s.frame->nb_samples; i++)
 			for (int ic=0; ic<s.frame->channels; ic++)

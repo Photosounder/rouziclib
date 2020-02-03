@@ -34,4 +34,8 @@ typedef struct
 	mousebut_t b;
 	mouse_ctrl_id_t *ctrl_id;
 	int key_state[RL_NUM_SCANCODES], key_quick[RL_NUM_SCANCODES];	// keyboard state array, 0 = nothing, 1 = down, 2 = newly down, 3 = repeated down event
+	#ifdef MOUSE_LOG
+	int frame_index;
+	buffer_t log;
+	#endif
 } mouse_t;
