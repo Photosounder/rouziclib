@@ -20,6 +20,7 @@
 
 #include "memory/alloc.c"
 #include "memory/fill.c"
+#include "memory/swap.c"
 #include "memory/circular_buffer.c"
 #include "memory/generic_buffer.c"
 

@@ -15,11 +15,11 @@ clew:
 
 stb_image:
 	https://github.com/nothings/stb/blob/master/stb_image.h
-	v2.20, Feb 7, 2019
+	v2.25, Feb 2, 2020
 
 stb_image_write:
 	https://github.com/nothings/stb/blob/master/stb_image_write.h
-	v1.10, Feb 7, 2019
+	v1.14, Feb 2, 2020
 
 stb_vorbis:
 	https://github.com/nothings/stb/blob/master/stb_vorbis.c

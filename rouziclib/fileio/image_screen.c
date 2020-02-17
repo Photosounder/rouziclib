@@ -32,6 +32,7 @@ raster_t take_desktop_screenshot()
 	raster_t r={0};
 
 #ifdef _WIN32
+#ifdef RL_GDI32
 	// Capture the primary display
 	int nScreenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int nScreenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -59,6 +60,7 @@ raster_t take_desktop_screenshot()
 	ReleaseDC(hDesktopWnd, hDesktopDC);
 	DeleteDC(hCaptureDC);
 	DeleteObject(hCaptureBitmap);
+#endif
 #endif
 
 	return r;

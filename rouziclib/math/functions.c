@@ -87,22 +87,6 @@ int32_t rangelimit_i32(int32_t x, int32_t min, int32_t max)
 	return x;
 }
 
-void swap_double(double *a, double *b)
-{
-	double c = *a;
-
-	*a = *b;
-	*b = c;
-}
-
-void swap_i32(int32_t *a, int32_t *b)
-{
-	int32_t c = *a;
-
-	*a = *b;
-	*b = c;
-}
-
 void minmax_double(double *a, double *b)
 {
 	if (*a > *b)

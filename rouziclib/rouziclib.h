@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 
- * with MinGW's GCC make sure to use -lwinmm -lgdi32 and probably -w to turn off pointless warnings
+ * with MinGW's GCC make sure to use -lwinmm and probably -w to turn off pointless warnings
  * create a hard link like `mklink /J C:\<usual libs location>\include\rouziclib C:\msys\home\rouziclib` to include using <>
 
 ****************/
@@ -90,6 +90,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 
 #include "memory/alloc.h"
 #include "memory/fill.h"
+#include "memory/swap.h"
 #include "memory/circular_buffer.h"
 #include "memory/generic_buffer.h"
 
@@ -171,7 +172,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/image_bmp.h"
 #include "fileio/image_tiff.h"
 #include "fileio/image_tiff_lzw.h"
-#include "fileio/image_screen.h"
+#include "fileio/image_screen.h"	// works if RL_GDI32 is defined on Windows
 #include "fileio/sound_format.h"
 #include "fileio/sound_aiff.h"
 #include "fileio/sound_wav.h"

@@ -19,8 +19,6 @@ extern double rangewrap(double x, double low, double high);
 extern double rangelimit(double x, double min, double max);
 extern float rangelimitf(float x, float min, float max);
 extern int32_t rangelimit_i32(int32_t x, int32_t min, int32_t max);
-extern void swap_double(double *a, double *b);
-extern void swap_i32(int32_t *a, int32_t *b);
 extern void minmax_double(double *a, double *b);
 extern void minmax_i32(int32_t *a, int32_t *b);
 extern double normalised_notation_split(double number, double *m);
