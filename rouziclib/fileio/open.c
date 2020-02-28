@@ -49,7 +49,7 @@ uint8_t *load_raw_file(const char *path, size_t *size)
 
 	fseek(in_file, 0, SEEK_END);
 	fsize = ftell(in_file);
-	rewind (in_file);
+	rewind(in_file);
 
 	data = calloc (fsize+1, sizeof(uint8_t));
 	fread(data, 1, fsize, in_file);
@@ -78,7 +78,7 @@ uint8_t *load_raw_file_dos_conv(const char *path, size_t *size)	// loads raw fil
 
 	fseek(in_file, 0, SEEK_END);
 	fsize = ftell(in_file);
-	rewind (in_file);
+	rewind(in_file);
 
 	data = calloc (fsize+1, sizeof(uint8_t));
 

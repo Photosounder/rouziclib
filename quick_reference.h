@@ -428,7 +428,7 @@
 		double ts=0.;
 		get_time_diff_hr(&ts);
 		//< things to time >
-		fprintf_rl(stdout, "Things took %d sec\n\n", get_time_diff_hr(&ts));
+		fprintf_rl(stdout, "Things took %g sec\n\n", get_time_diff_hr(&ts));
 
 	// Paths
 		append_name_to_path(fullpath, path, name);	// puts 'path/name' into char fullpath[PATH_MAX*4], fullpath can be NULL in which case the function returns the allocated string

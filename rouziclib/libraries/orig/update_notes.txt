@@ -23,15 +23,15 @@ stb_image_write:
 
 stb_vorbis:
 	https://github.com/nothings/stb/blob/master/stb_vorbis.c
-	v1.15, Feb 7, 2019
+	v1.19, Feb 5, 2020
 
 minimp3:
 	https://github.com/lieff/minimp3/blob/master/minimp3.h
-	Sep 8, 2018
+	Feb 12, 2020
 
 dr_flac:
 	https://github.com/mackron/dr_libs/blob/master/dr_flac.h
-	Sep 11, 2018
+	Jan 30, 2020
 	when updating delete the whole drflac__fopen() function
 
 thread.h:
@@ -46,9 +46,9 @@ tinyexpr:
 	only download tinyexpr.[ch]
 
 xxhash:
-	https://github.com/Cyan4973/xxHash/blob/dev/xxhash.c
 	https://github.com/Cyan4973/xxHash/blob/dev/xxhash.h
-	Fed 4, 2019
+	https://github.com/Cyan4973/xxHash/blob/dev/xxh3.h
+	Fed 13, 2020
 
 miniz:
 	https://github.com/richgel999/miniz/releases

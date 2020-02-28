@@ -624,7 +624,7 @@ void draw_mousecursor(xy_t pos)
 	{
 		double d;
 
-		d = zc.iscrscale * 31.;
+		d = zc.iscrscale * (32. - sqrt(2.));
 		drawq_bracket_open();
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);

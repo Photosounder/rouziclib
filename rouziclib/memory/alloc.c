@@ -21,9 +21,6 @@ inline size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_cou
 		memset(&((uint8_t *)(*buffer))[alloc_count * size_elem], 0, (newsize-alloc_count) * size_elem);
 
 		alloc_count = newsize;
-
-		if (*buffer==NULL)
-			fprintf_rl(stderr, "realloc failed in alloc_enough() for alloc_count = %d\n", alloc_count);
 	}
 	
 	return alloc_count;

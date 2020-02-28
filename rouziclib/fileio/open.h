@@ -1,3 +1,13 @@
+#ifdef _WIN32
+	#define fseek(stream, offset, origin)	_fseeki64(stream, offset, origin)
+	#define ftell(stream)			_ftelli64(stream)
+#else
+#ifndef __APPLE__
+	#define fseek(stream, offset, origin)	fseeko64(stream, offset, origin)
+	#define ftell(stream)			ftello64(stream)
+#endif
+#endif
+
 extern FILE *fopen_utf8(const char *filename, const char *mode);
 extern FILE *fopen_mkdirs(const char *path, const char *mode);
 extern uint8_t *load_raw_file(const char *path, size_t *size);
