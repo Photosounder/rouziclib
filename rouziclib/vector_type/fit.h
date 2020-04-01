@@ -6,4 +6,4 @@ extern double find_best_string_width(vector_font_t *font, uint8_t *string, word_
 extern void draw_string_maxwidth(vector_font_t *font, uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp);
 extern void draw_string_bestfit(vector_font_t *font, uint8_t *string, rect_t box, const double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);
 extern double draw_string_bestfit_asis(vector_font_t *font, uint8_t *string, rect_t box, double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);
-extern void draw_string_fixed_thresh(vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);
+extern void draw_string_fixed_thresh(vector_font_t *font, uint8_t *string, rect_t box, const double thresh, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp);

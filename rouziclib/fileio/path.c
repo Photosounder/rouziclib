@@ -86,11 +86,11 @@ char *get_filename_from_path(char *fullpath)	// returns a pointer to the filenam
 		return NULL;
 	}
 
-	p = strrchr(fullpath, DIR_CHAR);	// look for DIR_CHAR
-	if (p == NULL)
-		return NULL;
-	else
+	p = find_last_dirchar(fullpath, 0);
+	if (p)
 		return &p[1];
+
+	return fullpath;
 }
 
 char *append_name_to_path(char *dest, char *path, char *name)	// appends name to path properly regardless of how path is ended
@@ -257,4 +257,20 @@ int is_path_video_file(char *path)
 	const char *list_ext[] = {"avi", "mp4", "mkv", "mov", "webm", "m2ts"};
 
 	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
+}
+
+int chdir_utf8(const char *dirname)
+{
+#ifdef _WIN32
+	int ret;
+	wchar_t *wpath;
+
+	wpath = utf8_to_utf16(dirname, NULL);
+	ret = _wchdir(wpath);
+	free(wpath);
+
+	return ret;
+#else
+	return chdir(dirname);
+#endif
 }

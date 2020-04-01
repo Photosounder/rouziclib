@@ -86,7 +86,7 @@ uint32_t utf8_to_unicode32(uint8_t *c, int32_t *index)
 	return v;
 }
 
-uint8_t *sprint_unicode(uint8_t *str, uint32_t c)	// str must be able to hold new 5 bytes and will be null-terminated by this function
+uint8_t *sprint_unicode(uint8_t *str, uint32_t c)	// str must be able to hold 1 to 5 bytes and will be null-terminated by this function
 {
 	const uint8_t m6 = 63;
 	const uint8_t	c10x	= 0x80,
@@ -97,7 +97,8 @@ uint8_t *sprint_unicode(uint8_t *str, uint32_t c)	// str must be able to hold ne
 	if (c < 0x0080)
 	{
 		str[0] = c;
-		str[1] = '\0';
+		if (c > 0)
+			str[1] = '\0';
 	}
 	else if (c < 0x0800)
 	{
@@ -215,7 +216,7 @@ uint32_t utf16_to_unicode32(uint16_t *c, int32_t *index)
 	return v;
 }
 
-uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold new 3 bytes and will be null-terminated by this function
+uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold 1 to 3 bytes and will be null-terminated by this function
 {
 	int c_size;
 
@@ -228,7 +229,8 @@ uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold ne
 	{
 		case 1:
 			str[0] = c;
-			str[1] = '\0';
+			if (c > 0)
+				str[1] = '\0';
 			break;
 
 		case 2:
@@ -245,27 +247,19 @@ uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold ne
 	return str;
 }
 
-uint16_t *utf8_to_utf16(const uint8_t *utf8, uint16_t *utf16)
+size_t strlen_utf8_to_utf16(const uint8_t *str)
 {
-	int i, j, len;
+	size_t i, count;
 	uint32_t c;
 
-	if (utf8==NULL)
-		return NULL;
-
-	len = strlen(utf8);
-
-	if (utf16==NULL)
-		utf16 = calloc(len+1, sizeof(uint16_t));
-
-	for (i=0, j=0; i <= len; i++)
+	for (i=0, count=0; ; i++)
 	{
-		c = utf8_to_unicode32(&utf8[i], &i);
-		sprint_utf16(&utf16[j], c);
-		j += codepoint_utf16_size(c);
-	}
+		if (str[i]==0)
+			return count;
 
-	return utf16;
+		c = utf8_to_unicode32(&str[i], &i);
+		count += codepoint_utf16_size(c);
+	}
 }
 
 size_t strlen_utf16_to_utf8(const uint16_t *str)
@@ -283,20 +277,39 @@ size_t strlen_utf16_to_utf8(const uint16_t *str)
 	}
 }
 
+uint16_t *utf8_to_utf16(const uint8_t *utf8, uint16_t *utf16)
+{
+	int i, j;
+	uint32_t c;
+
+	if (utf8==NULL)
+		return NULL;
+
+	if (utf16==NULL)
+		utf16 = calloc(strlen_utf8_to_utf16(utf8) + 1, sizeof(uint16_t));
+
+	for (i=0, j=0, c=1; c; i++)
+	{
+		c = utf8_to_unicode32(&utf8[i], &i);
+		sprint_utf16(&utf16[j], c);
+		j += codepoint_utf16_size(c);
+	}
+
+	return utf16;
+}
+
 uint8_t *utf16_to_utf8(const uint16_t *utf16, uint8_t *utf8)
 {
-	size_t i, j, len;
+	size_t i, j;
 	uint32_t c;
 
 	if (utf16==NULL)
 		return NULL;
 
-	len = strlen_utf16(utf16);
-
 	if (utf8==NULL)
 		utf8 = calloc(strlen_utf16_to_utf8(utf16) + 1, sizeof(uint8_t));
 
-	for (i=0, j=0; i < len; i++)
+	for (i=0, j=0, c=1; c; i++)
 	{
 		c = utf16_to_unicode32(&utf16[i], &i);
 		sprint_unicode(&utf8[j], c);

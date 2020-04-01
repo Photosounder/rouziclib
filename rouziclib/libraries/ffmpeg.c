@@ -87,6 +87,7 @@ int ff_load_stream_packet(ffstream_t *s)
 	{
 		if (packet.stream_index == s->stream_id)			// check that it's the right stream
 		{
+			s->byte_pos = packet.pos;
 			ret = avcodec_send_packet(s->codec_ctx, &packet);	// supply raw packet data as input to a decoder
 			if (ret != AVERROR_EOF)
 				ffmpeg_retval(ret);

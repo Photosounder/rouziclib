@@ -28,6 +28,21 @@ void draw_label(uint8_t *label, rect_t box, col_t colour, const int mode)
 	draw_string_bestfit(font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
 }
 
+void draw_text_block(uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
+{
+	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
+
+	if (total_scale < 1.)
+		return ;
+
+	intensity = intensity_scaling(total_scale, 24.);
+
+	//box.p0.x += 2.*scale/LINEVSPACING;
+	//box.p1.x -= 2.*scale/LINEVSPACING;
+
+	draw_string_fixed_thresh(font, label, sc_rect(box), thresh, 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
+}
+
 void display_dialog_enclosing_frame(rect_t box_os, double scale, char *label, col_t colour)
 {
 	rect_t label_box;

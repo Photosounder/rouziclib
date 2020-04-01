@@ -8,3 +8,4 @@ extern char *make_appdata_path(const char *dirname, const char *filename, const 
 extern int check_path_against_extension_list(char *path, const char *list_ext[], size_t list_count);
 extern int is_path_image_file(char *path);
 extern int is_path_video_file(char *path);
+extern int chdir_utf8(const char *dirname);

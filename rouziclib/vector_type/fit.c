@@ -169,6 +169,7 @@ void draw_string_maxwidth(vector_font_t *font, uint8_t *string, word_stats_t ws,
 	box = sort_rect(box);
 	p.x = box.p0.x;
 
+	// Horizontal alignment
 	if ((mode&3)!=ALIG_LEFT)
 	{
 		if ((mode&3)==ALIG_CENTRE)
@@ -178,8 +179,14 @@ void draw_string_maxwidth(vector_font_t *font, uint8_t *string, word_stats_t ws,
 			p.x += box.p1.x - box.p0.x;
 	}
 
-	p.y = 0.5*(box.p0.y+box.p1.y) + 3.*scale;			// puts the text right in the vertical middle of the box
-	p.y -= (double) (nlines-1) * 0.5 * LINEVSPACING * scale;	// shift it up depending on the number of lines
+	// Vertical alignment
+	if (mode & ALIG_TOP)
+		p.y = box.p0.y + 8.*scale;
+	else
+	{
+		p.y = 0.5*(box.p0.y+box.p1.y) + 3.*scale;			// puts the text right in the vertical middle of the box
+		p.y -= (double) (nlines-1) * 0.5 * LINEVSPACING * scale;	// shift it up depending on the number of lines
+	}
 
 	for (iw=0; iw < ws.word_count; )
 	{
@@ -264,23 +271,26 @@ double draw_string_bestfit_asis(vector_font_t *font, uint8_t *string, rect_t box
 	return scale;
 }
 
-void draw_string_fixed_thresh(vector_font_t *font, uint8_t *string, rect_t box, const double thresh, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_fixed_thresh(vector_font_t *font, uint8_t *string, rect_t box, const double thresh, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
-	double scale_ratio=1.;
+	double maxscale, maxwidth=0.;
 	int nlines;
-	xy_t boxdim, p;
+	xy_t boxdim;
 
 	if (string == NULL)
 		return;
 
 	ws = make_word_stats(font, string, mode);
 
-	//boxdim = abs_xy(div_xy(sub_xy(box.p1, box.p0), set_xy(scale)));
+	boxdim = get_rect_dim(box);
 
-	nlines = find_line_count_for_thresh(font, string, ws, mode, thresh, NULL);	// then the number of lines must be recounted
+	nlines = find_line_count_for_thresh(font, string, ws, mode, thresh, &maxwidth);		// then the number of lines must be recounted
 
-	draw_string_maxwidth(font, string, ws, box, scale*scale_ratio, colour, intensity, line_thick, mode, thresh, nlines, tp);
+	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*LINEVSPACING));			// find the scale needed for the text to fit the box with this many lines
+	scale = MINN(scale, maxscale);
+
+	draw_string_maxwidth(font, string, ws, box, scale, colour, intensity, line_thick, mode, thresh, nlines, tp);
 
 	free_word_stats(ws);
 }

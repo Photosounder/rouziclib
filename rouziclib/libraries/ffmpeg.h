@@ -33,6 +33,8 @@ typedef struct
 
 	ffframe_info_t *frame_info;
 	int frame_count, frame_as;
+
+	volatile int64_t byte_pos;
 } ffstream_t;
 
 extern int ff_init_stream(ffstream_t *s, const int stream_type);

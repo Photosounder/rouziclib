@@ -84,6 +84,8 @@ extern int ctrl_fromlayout_resizing(gui_layout_t *layout, const int id, const in
 
 extern void draw_label_fromlayout_in_rect(gui_layout_t *layout, const int id, const int mode, rect_t box_os);
 extern void draw_label_fromlayout(gui_layout_t *layout, const int id, const int mode);
+extern void draw_text_block_fromlayout_in_rect(gui_layout_t *layout, const int id, char *text_block, const int mode, double thresh, rect_t box_os);
+extern void draw_text_block_fromlayout(gui_layout_t *layout, const int id, char *text_block, const int mode, double thresh);
 extern void draw_rect_fromlayout_blending(const int type, const blend_func_t bf, gui_layout_t *layout, const int id);
 extern void draw_rect_fromlayout(const int type, gui_layout_t *layout, const int id);
 extern int ctrl_button_fromlayout_offset(gui_layout_t *layout, const int id, const xy_t offset);

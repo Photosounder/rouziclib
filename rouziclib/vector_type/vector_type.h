@@ -7,6 +7,7 @@
 #define PROPORTIONAL	0
 #define MONOSPACE	4
 #define MONODIGITS	8
+#define ALIG_TOP	16
 
 // TODO put that into font struct
 #define LETTERSPACING	1.5	// spacing between each letter

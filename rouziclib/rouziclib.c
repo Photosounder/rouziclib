@@ -112,6 +112,7 @@
 #include "fileio/process.c"
 #include "fileio/fileball.c"
 #include "fileio/prefs.c"
+#include "fileio/dialog.c"
 
 #include "network/network.c"
 #include "network/http.c"
