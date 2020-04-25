@@ -177,7 +177,7 @@ int utf16_char_size(uint16_t *c)
 {
 	if (c[0] <= 0xD7FF || c[0] >= 0xE000)
 		return 1;
-	else if (c[1])			// if there's an abrupt mid-character stream end
+	else if (c[1]==0)			// if there's an abrupt mid-character stream end
 		return 1;
 	else
 		return 2;

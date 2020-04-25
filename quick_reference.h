@@ -47,6 +47,12 @@
 		if (ctrl_checkbox(&state, "Tick this", offset_scale_rect(box, offset, sm), colour))
 			change = 1;
 
+	// Single radio
+		// returns 1 when the radio button is selected (much like a normal button)
+		static int sel_id = 0;
+		if (ctrl_radio(sel_id==i, "Option 1", offset_scale_rect(box, offset, sm), colour))
+			sel_id = i;
+
 	// List of radio controls
 		// init radio_sel with the default choice, not necessarily 0
 		// the box is for the first control, it's reproduced by an offset for the other controls
@@ -121,12 +127,12 @@
 
 	// Make a floating window
 		// 2nd argument is a int * that can be NULL if a close button isn't needed
-		// 4th argument must be a layout ID which by its rect defines the size of the window in local coordinates
+		// 5th argument must be a layout ID which by its rect defines the size of the window in local coordinates
 		static flwindow_t window={0};
 
 		flwindow_init_defaults(&window);
 		flwindow_init_pinned(&window);
-		draw_dialog_window_fromlayout(&window, &diag_on, &layout, 0);
+		draw_dialog_window_fromlayout(&window, &diag_on, NULL, &layout, 0);
 
 		// Example of window-defining elem
 		"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
@@ -207,7 +213,7 @@
 		// and by name (see https://wiki.libsdl.org/SDL_Keycode for names)
 		get_key_state_by_name("a")
 		// compare with >= 2 for once and repeating, == 2 for once and no repeating, != 0 for down at all
-		if (mouse.key_state[RL_SCANCODE_?] >= 2)
+		if (cur_textedit==NULL && mouse.key_state[RL_SCANCODE_?] >= 2)
 
 	// Get modifier keys
 		get_kb_shift() (also ctrl, guikey, alt)
@@ -224,7 +230,11 @@
 		r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);
 
 	// Loading an image as a raster
+		free_raster(&r);
 		r = load_image(path, IMAGE_USE_FRGB);
+
+	// Rescale raster (aspect ratio not conserved)
+		blit_scale_float_autoscale(r1.f, r1.dim, r0.f, r0.dim, 4, get_pixel_address_contig);
 
 	// Loading an image as a tiled mipmap
 		mipmap_t image_mm={0};

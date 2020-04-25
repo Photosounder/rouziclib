@@ -155,17 +155,17 @@ float *get_pixel_address_2d(void *ptr, xyi_t dim, xyi_t ip, int channels)
 	return &array[ip.y][ip.x*channels];
 }
 
-void blit_scale_float(void *bg, xyi_t bg_dim, void *fg, xyi_t fg_dim, const int channels, xy_t pscale, xy_t pos, float * (*get_pix_f)(void*,xyi_t,xyi_t,int))
+void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const int channels, xy_t pscale, xy_t pos, float * (*get_pix_f)(void*,xyi_t,xyi_t,int))
 {
 	int32_t ic;
 	xyi_t ip, jp, start, stop, jstart, jstop;
-	float *bg_p, *fg_p, sumf[4];
+	float *dst_p, *src_p, sumf[4];
 	xy_t p0, p1, pin, kr0, ikr0, kr1, ipscale = inv_xy(pscale), iw;
 	int32_t nsx, nsy;	// number of samples to get
 	double iw_xy;
 	interp_param_t param_x, param_y;
 
-	if (bg==NULL || fg==NULL || channels > 4)
+	if (dst==NULL || src==NULL || channels > 4)
 		return ;
 
 	kr1 = set_xy(1.0);
@@ -186,25 +186,25 @@ void blit_scale_float(void *bg, xyi_t bg_dim, void *fg, xyi_t fg_dim, const int 
 
 	// find start and stop indices
 	p0 = add_xy(pos, mul_xy(pscale, neg_xy(kr1)));
-	p1 = add_xy(pos, mul_xy(pscale, add_xy(kr1, xy(fg_dim.x-1, fg_dim.y-1))));
+	p1 = add_xy(pos, mul_xy(pscale, add_xy(kr1, xy(src_dim.x-1, src_dim.y-1))));
 
 	start.x = MAXN(0, floor(MINN(p0.x, p1.x))+1);
 	start.y = MAXN(0, floor(MINN(p0.y, p1.y))+1);
-	stop.x = MINN(bg_dim.x, ceil(MAXN(p0.x, p1.x)));
-	stop.y = MINN(bg_dim.y, ceil(MAXN(p0.y, p1.y)));
+	stop.x = MINN(dst_dim.x, ceil(MAXN(p0.x, p1.x)));
+	stop.y = MINN(dst_dim.y, ceil(MAXN(p0.y, p1.y)));
 
 	for (ip.y=start.y; ip.y<stop.y; ip.y++)
 	{
 		pin.y = ((double) ip.y - pos.y) * ipscale.y;
 		jstart.y = floor(pin.y - kr0.y)+1;		if (jstart.y < 0) jstart.y = 0;
-		jstop.y = ceil(pin.y + kr0.y);			if (jstop.y > fg_dim.y) jstop.y = fg_dim.y;
+		jstop.y = ceil(pin.y + kr0.y);			if (jstop.y > src_dim.y) jstop.y = src_dim.y;
 
 		for (ip.x=start.x; ip.x<stop.x; ip.x++)
 		{
 			pin.x = ((double) ip.x - pos.x) * ipscale.x;
 			jstart.x = floor(pin.x - kr0.x)+1;	if (jstart.x < 0) jstart.x = 0;
-			jstop.x = ceil(pin.x + kr0.x);		if (jstop.x > fg_dim.x) jstop.x = fg_dim.x;
-			//jstop.x = jstart.x + nsx;	if (jstop.x > fg_dim.x) jstop.x = fg_dim.x;
+			jstop.x = ceil(pin.x + kr0.x);		if (jstop.x > src_dim.x) jstop.x = src_dim.x;
+			//jstop.x = jstart.x + nsx;	if (jstop.x > src_dim.x) jstop.x = src_dim.x;
 
 			memset(sumf, 0, channels*sizeof(float));		// blank the new sum pixel
 
@@ -217,17 +217,29 @@ void blit_scale_float(void *bg, xyi_t bg_dim, void *fg, xyi_t fg_dim, const int 
 					iw.x = param_x.func((double) jp.x - pin.x, ikr0.x, param_x);
 					iw_xy = iw.x * iw.y;			// interpolation weight
 
-					fg_p = get_pix_f(fg, fg_dim, jp, channels);	// get the pixel pointer
+					src_p = get_pix_f(src, src_dim, jp, channels);	// get the pixel pointer
 					for (ic=0; ic<channels; ic++)
-						sumf[ic] += fg_p[ic] * iw_xy;
+						sumf[ic] += src_p[ic] * iw_xy;
 				}
 			}
 
-			bg_p = get_pix_f(bg, bg_dim, ip, channels);	// get the pixel pointer
+			dst_p = get_pix_f(dst, dst_dim, ip, channels);	// get the pixel pointer
 			for (ic=0; ic<channels; ic++)
-				bg_p[ic] += sumf[ic];
+				dst_p[ic] += sumf[ic];
 		}
 	}
+}
+
+void blit_scale_float_autoscale(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const int channels, float * (*get_pix_f)(void*,xyi_t,xyi_t,int))
+{
+	xy_t pscale, pos, dst_c, src_c;
+
+	pscale = div_xy(xyi_to_xy(dst_dim), xyi_to_xy(src_dim));
+	dst_c = sub_xy(mul_xy(xyi_to_xy(dst_dim), set_xy(0.5)), set_xy(0.5));	// dst*0.5-0.5
+	src_c = sub_xy(mul_xy(xyi_to_xy(src_dim), set_xy(0.5)), set_xy(0.5));	// src*0.5-0.5
+	pos = sub_xy(dst_c, mul_xy(src_c, pscale));				// dst_c - (src_c * pscale)
+
+	blit_scale_float(dst, dst_dim, src, src_dim, channels, pscale, pos, get_pix_f);
 }
 
 void image_downscale_fast_box(raster_t r0, raster_t *r1, const xyi_t ratio, const int mode)

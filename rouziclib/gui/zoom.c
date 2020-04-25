@@ -134,7 +134,7 @@ void calc_screen_limits(zoom_t *zc)
 		zc->scrscale = (double) fb.w / 18.;
 	zc->scrscale_unzoomed = zc->scrscale;
 
-	zc->limit_u = mul_xy(xy(fb.w, fb.h), set_xy(0.5/zc->scrscale));
+	zc->limit_u = mul_xy(xy(fb.w, fb.h), set_xy(0.5/zc->scrscale_unzoomed));
 
 	zc->scrscale *= zc->zoomscale;
 	zc->iscrscale = 1. / zc->scrscale;

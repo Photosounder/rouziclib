@@ -185,6 +185,9 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 {
 	SDL_Keymod mod_state;
 
+	if (event.type==SDL_DROPBEGIN)
+		SDL_RaiseWindow(fb.window);
+
 	if (event.type==SDL_WINDOWEVENT)
 	{
 		// SDL bug: SDL_WINDOWEVENT_ENTER and SDL_WINDOWEVENT_LEAVE aren't always triggered when holding the mouse button down

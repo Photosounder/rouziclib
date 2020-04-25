@@ -273,7 +273,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	ctrl_knob_state_t knob_state={0};
 	char str[64];
 	double v=NAN, t, t_off=0., th;
-	static double t_rate=0.;
+	static double t_rate=0., v_downonce=NAN;
 	xy_t p0, p1, centre = get_rect_centre(box);
 	static gui_layout_t layout={0};
 	const char *layout_src[] = {
@@ -319,7 +319,10 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		t_off = knob_state.vert_delta * 3./1728.;
 
 		if (knob_state.downonce)
+		{
 			t_rate = 0.;
+			v_downonce = v;
+		}
 
 		if (get_kb_alt() && knob_state.down)
 		{
@@ -335,6 +338,11 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			knob->edit.rect_brightness = 0.125;
 			cur_textedit = &knob->edit;
 		}
+	}
+	else	// release the mouse if the window focus is lost
+	{
+		mouse.warp_if_move = 0;
+		mouse.zoom_scroll_freeze = 0;
 	}
 
 	if (knob_state.down)
@@ -410,7 +418,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (v_orig)
 		*v_orig = v;
 
-	if (knob_state.uponce || knob_state.doubleclick || val_set_by_edit)	// the final value change when the mouse button is released
+	if ((knob_state.uponce && v_downonce != v) || knob_state.doubleclick || val_set_by_edit)	// the final value change when the mouse button is released
 		return 1;
 	if (knob_state.down && t_off != 0.)					// an ongoing value change when the mouse button is held down
 		return 2;

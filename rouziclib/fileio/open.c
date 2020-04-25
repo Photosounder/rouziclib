@@ -33,6 +33,26 @@ FILE *fopen_mkdirs(const char *path, const char *mode)
 	return fopen_utf8(path, mode);
 }
 
+size_t get_file_size(const char *path)
+{
+	FILE *in_file;
+	size_t fsize;
+	
+	in_file = fopen_utf8(path, "rb");
+
+	if (in_file==NULL)
+	{
+		fprintf_rl(stderr, "File '%s' not found.\n", path);
+		return NULL;
+	}
+
+	fseek(in_file, 0, SEEK_END);
+	fsize = ftell(in_file);
+	fclose(in_file);
+
+	return fsize;
+}
+
 uint8_t *load_raw_file(const char *path, size_t *size)
 {
 	FILE *in_file;

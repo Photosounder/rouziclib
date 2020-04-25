@@ -44,6 +44,7 @@ double fit_n_squares_in_area_fill_x(xy_t area_dim, int count, xyi_t *grid_count_
 		return min_of_xy(area_dim);
 	}
 
+	// FIXME the grid_count can be poorly chosen which returns a max_size of 0
 	n = (double) count;
 	size = sqrt(area_dim.x*area_dim.y / n);
 	grid_count = floor_xy(d1=div_xy(area_dim, set_xy(size)));	// starting point with minimum size
@@ -68,6 +69,13 @@ double fit_n_squares_in_area_fill_x(xy_t area_dim, int count, xyi_t *grid_count_
 		}
 
 	return max_size;
+}
+
+xy_t fit_n_rects_in_area(xy_t area_dim, xy_t rect_dim, int count, xyi_t *grid_count_ptr)
+{
+	double unit_size_sq = fit_n_squares_in_area(div_xy(area_dim, rect_dim), count, grid_count_ptr);
+
+	return mul_xy(set_xy(unit_size_sq), rect_dim);
 }
 
 xy_t fit_n_rects_in_area_fill_x(xy_t area_dim, xy_t rect_dim, int count, xyi_t *grid_count_ptr)

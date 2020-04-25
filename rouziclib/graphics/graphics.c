@@ -211,6 +211,9 @@ void cl_unref_raster(raster_t *r)
 
 	ptr = get_raster_buffer_ptr(r);
 
+	if (ptr == NULL)
+		return;
+
 	cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table
 	#endif
 }

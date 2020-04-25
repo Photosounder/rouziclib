@@ -169,7 +169,7 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 					state.vert_delta *= 1./32.;
 
 					if (mouse.mod_key[mouse_mod_ctrl])
-						state.vert_delta *= 1./32.;
+						state.vert_delta *= 1./256.;
 				}
 			}
 
