@@ -128,14 +128,11 @@ int get_raster_mode(raster_t r)
 	return -1;
 }
 
-srgb_t get_raster_pixel_in_srgb(raster_t r, const int index)
+srgb_t get_raster_pixel_in_srgb(raster_t r, const size_t index)
 {
 	srgb_t s={0};
 	frgb_t f;
 	lrgb_t l;
-	sqrgb_t sqp;
-	const float mul_rb = 1.f / (1023.f*1023.f);
-	const float mul_g = 1.f / (4092.f*4092.f);
 	static int init=1;
 	static lut_t lsrgb_l, lsrgb_fl_l;
 
@@ -154,13 +151,7 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const int index)
 		if (r.f)
 			f = clamp_frgba(r.f[index]);
 		else
-		{
-			sqp = r.sq[index];
-			f.r = (float) (sqp.r*sqp.r) * mul_rb;
-			f.g = (float) (sqp.g*sqp.g) * mul_g;
-			f.b = (float) (sqp.b*sqp.b) * mul_rb;
-			f.a = 1.f;
-		}
+			f = sqrgb_to_frgb(r.sq[index]);
 
 		s.r = lsrgb_fl(f.r, lsrgb_fl_l.lutint) + 16 >> 5;
 		s.g = lsrgb_fl(f.g, lsrgb_fl_l.lutint) + 16 >> 5;
@@ -182,6 +173,23 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const int index)
 	}
 
 	return s;
+}
+
+frgb_t get_raster_pixel_in_frgb(raster_t r, const size_t index)
+{
+	if (r.f)
+		return r.f[index];
+
+	if (r.l)
+		return lrgb_to_frgb(r.l[index]);
+
+	if (r.sq)
+		return sqrgb_to_frgb(r.sq[index]);
+
+	if (r.srgb)
+		return srgb_to_frgb(r.srgb[index]);
+
+	return make_colour_frgb(NAN, NAN, NAN, NAN);
 }
 
 void free_raster(raster_t *r)

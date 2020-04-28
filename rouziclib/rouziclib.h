@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 
- * with MinGW's GCC make sure to use -lwinmm and probably -w to turn off pointless warnings
+ * with MinGW's GCC make sure to use -lwinmm -lcomdlg and probably -w to turn off pointless warnings
  * create a hard link like `mklink /J C:\<usual libs location>\include\rouziclib C:\msys\home\rouziclib` to include using <>
 
 ****************/

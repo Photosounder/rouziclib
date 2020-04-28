@@ -216,7 +216,7 @@ uint32_t utf16_to_unicode32(uint16_t *c, int32_t *index)
 	return v;
 }
 
-uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold 1 to 3 bytes and will be null-terminated by this function
+uint16_t *sprint_utf16(uint16_t *str, uint32_t c)	// str must be able to hold 1 to 3 entries and will be null-terminated by this function
 {
 	int c_size;
 

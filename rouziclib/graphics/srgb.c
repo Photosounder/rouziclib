@@ -489,3 +489,23 @@ void srgb_change_order(srgb_t *in, srgb_t *out, const size_t count, const int or
 	for (size_t i=0; i < count; i++)
 		out[i] = srgb_change_order_pixel(in[i], order);
 }
+
+frgb_t srgb_to_frgb(srgb_t s)
+{
+	static int init=1;
+	static lut_t slrgb_l;
+	frgb_t f;
+
+	if (init)
+	{
+		init = 0;
+		slrgb_l = get_lut_slrgb();
+	}
+
+	f.r = slrgb_l.flut[s.r];
+	f.g = slrgb_l.flut[s.g];
+	f.b = slrgb_l.flut[s.b];
+	f.a = slrgb_l.flut[s.a];
+
+	return f;
+}

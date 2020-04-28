@@ -515,20 +515,20 @@ void write_tiff_ifd_entry(FILE *file, size_t *misc_start, int tag, int type, uin
 		fwrite_byte8(file, 0);
 }
 
-void save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int out_chan, int bpc)
+int save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int out_chan, int bpc)
 {
 	FILE *file;
 	size_t i, pix_count, ifd_index, misc_start;
 	int ic, byte_depth, sample_format, entry_count=12;
 
 	if (im==NULL || is0_xyi(dim))
-		return ;
+		return 0;
 
 	file = fopen_utf8(path, "wb");
 	if (file==NULL)
 	{
 		fprintf_rl(stderr, "save_image_tiff() couldn't open file '%s' for writing.\n", path);
-		return ;
+		return 0;
 	}
 
 	fprintf(file, "II*%c", 0);	// little endian TIFF tag
@@ -580,4 +580,6 @@ void save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int ou
 			fwrite_LE16(file, sample_format);
 
 	fclose(file);
+
+	return 1;
 }

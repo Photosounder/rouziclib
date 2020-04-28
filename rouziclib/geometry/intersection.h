@@ -17,3 +17,4 @@ extern recti_t recti_intersection(recti_t r1, recti_t r2);
 extern int check_box_circle_intersection(rect_t box, xy_t circ, double rad);
 extern int check_box_wholly_inside_circle(rect_t box, xy_t circ, double rad);
 extern int check_pixel_within_image(xyi_t pos, xyi_t im_dim);
+extern double angular_radius_of_circle(xy_t circ_pos, double circ_rad, xy_t pos);

@@ -43,16 +43,20 @@ raster_t load_image_mem_libstb_image(uint8_t *raw_data, size_t size, const int m
 	return im;
 }
 
-void save_image_srgb_libstb(const char *path, raster_t r, int jpg_quality)
+int save_image_srgb_libstb(const char *path, raster_t r, int jpg_quality)
 {
 	char ext[32];
 
 	extract_file_extension(path, ext);
 
 	if (strcmp(ext, "png")==0)
-		stbi_write_png(path, r.dim.x, r.dim.y, 4, r.srgb, r.dim.x * sizeof(srgb_t));
-	else if (strcmp(ext, "bmp")==0)
-		stbi_write_bmp(path, r.dim.x, r.dim.y, 4, r.srgb);
-	else if (strcmp(ext, "jpg")==0 || strcmp(ext, "jpeg")==0)
-		stbi_write_jpg(path, r.dim.x, r.dim.y, 4, r.srgb, jpg_quality);
+		return stbi_write_png(path, r.dim.x, r.dim.y, 4, r.srgb, r.dim.x * sizeof(srgb_t));
+	
+	if (strcmp(ext, "bmp")==0)
+		return stbi_write_bmp(path, r.dim.x, r.dim.y, 4, r.srgb);
+
+	if (strcmp(ext, "jpg")==0 || strcmp(ext, "jpeg")==0)
+		return stbi_write_jpg(path, r.dim.x, r.dim.y, 4, r.srgb, jpg_quality);
+
+	return 0;
 }

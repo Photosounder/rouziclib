@@ -33,3 +33,4 @@ extern void convert_frgb_to_lrgb();
 extern void convert_frgb_to_lrgb_ratio(const float ratio);
 extern srgb_t srgb_change_order_pixel(const srgb_t in, const int order);
 extern void srgb_change_order(srgb_t *in, srgb_t *out, const size_t count, const int order);
+extern frgb_t srgb_to_frgb(srgb_t s);

@@ -379,3 +379,14 @@ int check_pixel_within_image(xyi_t pos, xyi_t im_dim)
 
 	return 1;
 }
+
+double angular_radius_of_circle(xy_t circ_pos, double circ_rad, xy_t pos)
+{
+	double dist;
+	dist = hypot_xy(circ_pos, pos);
+
+	if (dist < circ_rad)
+		return pi;	// below the surface the diameter is the full circle
+
+	return asin(circ_rad/dist);
+}

@@ -243,8 +243,13 @@
 		// or by HTTP
 		image_mm = load_mipmap_from_http(url, IMAGE_USE_SQRGB);
 
-	// Saving a raster image as a float RGB TIFF
+	// Saving a frgb raster image as a float RGB TIFF
+		// return of 0 if it failed
 		save_image_tiff(out_path, r.f, r.dim, 4, 3, 32);
+
+	// Saving a raster image in any non-.buf format
+		// return of 0 if it failed
+		save_image(out_path, r, 92);
 
 	// Displaying
 		// penultimate argument set to 1 keeps the pixel aspect ratio

@@ -1,5 +1,5 @@
 #ifdef _WIN32
-char *save_file_dialog(char *filter)		// the filter must use \1 instead of \0 as separator
+char *save_file_dialog(char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif\1"
 {
 	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;
 	OPENFILENAMEW ofn={0};

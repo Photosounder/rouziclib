@@ -463,12 +463,12 @@ double max_of_xyz(xyz_t a)
 	return MAXN(MAXN(a.x, a.y), a.z);
 }
 
-double min_of_xyi(xyi_t a)
+int min_of_xyi(xyi_t a)
 {
 	return MINN(a.x, a.y);
 }
 
-double max_of_xyi(xyi_t a)
+int max_of_xyi(xyi_t a)
 {
 	return MAXN(a.x, a.y);
 }

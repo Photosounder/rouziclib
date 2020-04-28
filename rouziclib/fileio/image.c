@@ -136,6 +136,24 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 		free_null(&im->f);
 }
 
+void convert_image_to_srgb(raster_t im, srgb_t *data)
+{
+	int i;
+	size_t pix_count = mul_x_by_y_xyi(im.dim);
+	
+	for (i=0; i < pix_count; i++)
+		data[i] = get_raster_pixel_in_srgb(im, i);
+}
+
+void convert_image_to_frgb(raster_t im, frgb_t *data)
+{
+	int i;
+	size_t pix_count = mul_x_by_y_xyi(im.dim);
+	
+	for (i=0; i < pix_count; i++)
+		data[i] = get_raster_pixel_in_frgb(im, i);
+}
+
 void convert_image_to_srgb16(raster_t *im, uint16_t *data, const int mode, const int chan)
 {
 	int i, ic, v;
@@ -382,4 +400,45 @@ raster_t load_file_tiles_to_raster(const char *dir_path, const char *filename_fm
 	free(tile_r);
 
 	return full_im;
+}
+
+int save_image(char *path, raster_t r, int jpg_quality)
+{
+	int ret=0, free_srgb=0;
+	char ext[32];
+
+	extract_file_extension(path, ext);
+
+	// TIFF, 32-bit float
+	if (strstr(ext, "tif"))
+	{
+		if (r.f)
+			return save_image_tiff(path, r.f, r.dim, 4, 3, 32);
+		else
+		{
+			frgb_t *dataf = calloc(mul_x_by_y_xyi(r.dim), sizeof(frgb_t));
+			convert_image_to_frgb(r, dataf);
+			ret = save_image_tiff(path, dataf, r.dim, 4, 3, 32);
+			free(dataf);
+			return ret;
+		}
+	}
+
+	// Convert to 8-bit sRGB
+	if (r.srgb==NULL)
+	{
+		free_srgb = 1;
+		srgb_t *data = calloc(mul_x_by_y_xyi(r.dim), sizeof(srgb_t));
+		convert_image_to_srgb(r, data);
+		r.srgb = data;
+	}
+
+	// libstb
+	if (strcmp(ext, "png")==0 || strcmp(ext, "bmp")==0 || strcmp(ext, "jpg")==0 || strcmp(ext, "jpeg")==0)
+		ret = save_image_srgb_libstb(path, r, jpg_quality);
+
+	if (free_srgb)
+		free(r.srgb);
+
+	return ret;
 }
