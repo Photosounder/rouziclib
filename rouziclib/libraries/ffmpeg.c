@@ -499,7 +499,7 @@ void ff_make_frame_table(ffstream_t *s)
 	}
 }
 
-double ff_get_video_duration(ffstream_t *s, char *path)
+double ff_get_video_duration(ffstream_t *s, const char *path)
 {
 	int i, ret;
 	uint32_t td=0;
@@ -526,11 +526,12 @@ double ff_get_video_duration(ffstream_t *s, char *path)
 	return (double) s->fmt_ctx->duration / (double) AV_TIME_BASE;
 }
 
-raster_t ff_load_video_raster(ffstream_t *s, char *path, const int seek_mode, const double t, const int raster_mode)
+raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mode, const double t, const int raster_mode)
 {
 	int i, ret=0;
 	raster_t im={0};
 
+	// Init
 	if (s->fmt_ctx==NULL)
 	{
 		*s = ff_load_stream_init(path, AVMEDIA_TYPE_VIDEO);
@@ -538,6 +539,7 @@ raster_t ff_load_video_raster(ffstream_t *s, char *path, const int seek_mode, co
 			return im;
 	}
 
+	// Load AVFrame
 	switch (seek_mode)
 	{
 		case 0:		// next frame
@@ -553,6 +555,7 @@ raster_t ff_load_video_raster(ffstream_t *s, char *path, const int seek_mode, co
 			break;
 	}
 
+	// Convert frame data
 	if (ret)
 		if (raster_mode & IMAGE_USE_BUF)
 			im = ff_frame_to_buffer(s);
@@ -562,51 +565,128 @@ raster_t ff_load_video_raster(ffstream_t *s, char *path, const int seek_mode, co
 	return im;
 }
 
+// Audio
 
-// Tests
-void load_audio_full_ffmpeg(const char* input_filename)
+int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, const double t, float **bufp, size_t *buf_as, size_t *buf_pos)
 {
-	int i, ret, counter=0, v, ic;
-	ffstream_t s;
+	int i, ic, ret=0;
+	size_t buf_size;
 
-	s = ff_load_stream_init(input_filename, AVMEDIA_TYPE_AUDIO);
-	if (s.stream_id == -1)
-		return ;
-
-	int histo[8][256];
-	for (ic=0; ic<8; ic++)
-		memset(histo[ic], 0, 256*sizeof(int));
-
-	while (ff_load_stream_packet(&s))
+	// Init
+	if (s->fmt_ctx==NULL)
 	{
-		counter += s.frame->nb_samples;
-		// raw sample printout
-		/*	for (int i=0; i<s.frame->nb_samples; i++)
-			for (int ic=0; ic<s.frame->channels; ic++)
-			fprintf_rl(stdout, "%d%c", ((int16_t *) s.frame->data[ic])[i], ic < s.frame->channels-1 ? '\t' : '\n');
-			*/
-		for (int i=0; i<s.frame->nb_samples; i++)
-			for (int ic=0; ic<s.frame->channels; ic++)
-			{
-				if (s.frame->data[ic])
-					v = ((int16_t *) s.frame->data[ic])[i] + 32768;
-				else
-					v = ((int16_t *) s.frame->data[0])[i+ic*s.frame->nb_samples] + 32768;
-				histo[ic][v*20/65536]++;
-			}
-
-		//fprintf_rl(stdout, "%7d\n", counter);
+		*s = ff_load_stream_init(path, AVMEDIA_TYPE_AUDIO);
+		if (s->stream_id == -1)
+			return -1;
 	}
-	fprintf_rl(stdout, "samples: %d, duration = %.2f s\n", counter, (float) counter / (float) s.codec_ctx->sample_rate);
-	for (i=0; i<20; i++)
-		for (ic=0; ic<s.frame->channels; ic++)
-			if (histo[ic][i])
-				fprintf_rl(stdout, "%3.3f%%%c", 100. * (double) histo[ic][i] / (double) counter, ic < s.frame->channels-1 ? '\t' : '\n');
-			else
-				fprintf_rl(stdout, "    0%%%c", ic < s.frame->channels-1 ? '\t' : '\n');
+
+	// Load AVFrame
+	switch (seek_mode)
+	{
+		case 0:		// next frame
+			ret = ff_load_stream_packet(s);
+			break;
+
+		case 1:		// frame at time
+			ret = ff_find_frame_at_time(s, t);
+			break;
+	}
+
+	// Convert frame data
+	if (ret)
+	{
+		// Enlarge the output buffer
+		buf_size = *buf_pos + s->frame->nb_samples * s->frame->channels;
+		alloc_enough(bufp, buf_size, buf_as, sizeof(float), 1.5);
+
+		// Convert/copy samples
+		switch (s->codec_ctx->sample_fmt)
+		{
+			case AV_SAMPLE_FMT_U8:
+				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+					(*bufp)[*buf_pos + i] = ((int) ((uint8_t *)s->frame->data[0])[i] - 128) * 1.f/128.f;
+				break;
+
+			case AV_SAMPLE_FMT_U8P:
+				for (i=0; i < s->frame->nb_samples; i++)
+					for (ic=0; ic < s->frame->channels; ic++)
+						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((int) ((uint8_t *)s->frame->data[ic])[i] - 128) * 1.f/128.f;
+				break;
+
+			case AV_SAMPLE_FMT_S16:
+				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+					(*bufp)[*buf_pos + i] = ((int16_t *)s->frame->data[0])[i] * 1.f/32768.f;
+				break;
+
+			case AV_SAMPLE_FMT_S16P:
+				for (i=0; i < s->frame->nb_samples; i++)
+					for (ic=0; ic < s->frame->channels; ic++)
+						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((int16_t *)s->frame->data[ic])[i] * 1.f/32768.f;
+				break;
+
+			case AV_SAMPLE_FMT_S32:
+				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+					(*bufp)[*buf_pos + i] = ((int32_t *)s->frame->data[0])[i] * 1.f/2147483648.f;
+				break;
+
+			case AV_SAMPLE_FMT_S32P:
+				for (i=0; i < s->frame->nb_samples; i++)
+					for (ic=0; ic < s->frame->channels; ic++)
+						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((int32_t *)s->frame->data[ic])[i] * 1.f/2147483648.f;
+				break;
+
+			case AV_SAMPLE_FMT_FLT:
+				memcpy(&(*bufp)[*buf_pos], s->frame->data[0], s->frame->nb_samples * s->frame->channels * sizeof(float));
+				break;
+
+			case AV_SAMPLE_FMT_FLTP:
+				for (i=0; i < s->frame->nb_samples; i++)
+					for (ic=0; ic < s->frame->channels; ic++)
+						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((float *)s->frame->data[ic])[i];
+				break;
+
+			case AV_SAMPLE_FMT_DBL:
+				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+					(*bufp)[*buf_pos + i] = ((double *)s->frame->data[0])[i];
+				break;
+
+			case AV_SAMPLE_FMT_DBLP:
+				for (i=0; i < s->frame->nb_samples; i++)
+					for (ic=0; ic < s->frame->channels; ic++)
+						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((double *)s->frame->data[ic])[i];
+				break;
+		}
+
+		*buf_pos = buf_size;
+		return s->frame->nb_samples * s->frame->channels;
+	}
+
+	return -1;
+}
+
+float *ff_load_audio_fl32_full(const char *path, size_t *sample_count, int *channels, int *samplerate)
+{
+	int ret=0;
+	ffstream_t s={0};
+	float *buf=NULL;
+	size_t buf_as=0, buf_pos=0;
+
+	while (ret > -1)
+	{
+		ret = ff_load_audio_fl32(&s, path, 0, NAN, &buf, &buf_as, &buf_pos);
+
+		if (ret > -1)
+		{
+			*channels = s.frame->channels;
+			*samplerate = s.codec_ctx->sample_rate;
+		}
+	}
+
+	*sample_count = buf_pos / *channels;
 
 	ffstream_close_free(&s);
-	fprintf_rl(stdout, "Done.\n");
+
+	return buf;
 }
 
 #endif

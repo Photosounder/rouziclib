@@ -58,12 +58,13 @@ extern int ff_find_keyframe_for_time(ffstream_t *s, const double t);
 extern int ff_find_frame_at_time(ffstream_t *s, const double t);
 extern ffframe_info_t ff_make_frame_info(ffstream_t *s);
 extern void ff_make_frame_table(ffstream_t *s);
-extern double ff_get_video_duration(ffstream_t *s, char *path);
-extern raster_t ff_load_video_raster(ffstream_t *s, char *path, const int seek_mode, const double t, const int raster_mode);
+extern double ff_get_video_duration(ffstream_t *s, const char *path);
+extern raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mode, const double t, const int raster_mode);
+
+extern int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, const double t, float **bufp, size_t *buf_as, size_t *buf_pos);
+extern float *ff_load_audio_fl32_full(const char *path, size_t *sample_count, int *channels, int *samplerate);
 
 #define ff_load_video_next_raster(s, path, mode)	ff_load_video_raster(s, path, 0, 0., mode)
 #define ff_load_video_still(s, path, t, mode)	ff_load_video_raster(s, path, 1, t, mode)
-
-extern void load_audio_full_ffmpeg(const char* input_filename);
 
 #endif
