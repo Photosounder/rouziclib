@@ -2,19 +2,33 @@
 
 void mac_file_dialog_win_filter(NSSavePanel *dialog, const char *win_filter)
 {
-	char field[32];
-	int n = 1;
+	char *f0, *f1, *p;
+	int n0=1, n1;
 
 	if (win_filter==NULL)
 		return;
 
+	f0 = calloc(strlen(win_filter)+1, sizeof(char));
+	f1 = calloc(strlen(win_filter)+1, sizeof(char));
+
 	// Parse the windows filter and put each extension into an array
 	NSMutableArray *ma = [[NSMutableArray alloc] init];
 
-	while (string_get_field(win_filter, "\1", n, field))
+	while (string_get_field(win_filter, "\1", n0, f0))	// go through \1-delimited fields
 	{
-		[ma addObject:[NSString stringWithUTF8String: &field[2]]];
-		n += 2;
+		n1 = 0;
+		while (string_get_field(f0, ";", n1, f1))	// go through ;-delimited subfields
+		{
+			p = f1;
+			while (p[0]=='*' || p[0]=='.')		// skip *.
+				p = &p[1];
+
+			if (p[0])				// if there's anything left (which excludes "*.*")
+				[ma addObject:[NSString stringWithUTF8String: p]];
+
+			n1++;
+		}
+		n0 += 2;
 	}
 
 	// Convert mutable array to array
@@ -24,6 +38,9 @@ void mac_file_dialog_win_filter(NSSavePanel *dialog, const char *win_filter)
 	// Set the array list of file types to the dialog
 	if ([array count])
 		[dialog setAllowedFileTypes:array];
+
+	free(f0);
+	free(f1);
 }
 
 char *open_file_dialog(char *filter)
