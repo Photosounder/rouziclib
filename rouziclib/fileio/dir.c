@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#include "../libraries/dirent.c"
+#endif
+
 int dir_count(char *path, int *subdir_count, int *subfile_count)
 {
 	DIR *dirp;
