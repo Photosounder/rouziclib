@@ -26,6 +26,34 @@ void mac_file_dialog_win_filter(NSSavePanel *dialog, const char *win_filter)
 		[dialog setAllowedFileTypes:array];
 }
 
+char *open_file_dialog(char *filter)
+{
+	char *path=NULL;
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	NSWindow *keyWindow = [[NSApplication sharedApplication] keyWindow];    
+
+	NSOpenPanel *dialog = [NSOpenPanel openPanel];
+	[dialog setAllowsMultipleSelection:NO];		// Disable the selection of multiple files
+	[dialog setCanChooseFiles:YES];			// Enable the selection of files in the dialog
+	[dialog setCanChooseDirectories:NO];		// Enable the selection of directories in the dialog
+
+	// Add extension filters to the dialog
+	mac_file_dialog_win_filter(dialog, filter);
+
+	// Run the dialog and get the path
+	if ([dialog runModal] == NSModalResponseOK)
+		path = make_string_copy([[[dialog URL] path] UTF8String]);
+
+	[pool release];
+	[keyWindow makeKeyAndOrderFront:nil];
+
+	#ifdef RL_SDL
+	SDL_RaiseWindow(fb.window);
+	#endif
+
+	return path;
+}
+
 char *save_file_dialog(char *filter)	// the filter is the UTF-8 Windows filter with \1 instead of \0
 {
 	char *path=NULL;
@@ -44,5 +72,10 @@ char *save_file_dialog(char *filter)	// the filter is the UTF-8 Windows filter w
 
 	[pool release];
 	[keyWindow makeKeyAndOrderFront:nil];
+
+	#ifdef RL_SDL
+	SDL_RaiseWindow(fb.window);
+	#endif
+
 	return path;
 }
