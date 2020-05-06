@@ -142,3 +142,81 @@ blend_func_fl_t get_blend_fl_equivalent(const blend_func_t bf)
 
 	return blend_add_limit_fl;
 }
+
+#ifdef RL_INTEL_INTR
+void alphablend_lrgb_on_srgb_simd(__int64 *s0_ptr, __m256i *l_ptr, __m128i *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2
+{
+	__m256i s1, la, lb, Ca, Cb, Aa, Aai, alpha_shuf, shuf_a, shuf_b;
+	__m128i Co;
+	uint64_t alpha_concat;
+
+	// Load 4 lrgb pixels
+	Ca = _mm256_lddqu_si256(l_ptr);				// load 4 lrgb pixels (16 x i16)
+
+	// Special case detection using RGBA -> A
+	alpha_shuf = _mm256_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 24+7, 24+6, 16+7, 16+6, 8+7, 8+6, 7, 6);
+	_mm_storeu_si64(&alpha_concat, _mm256_castsi256_si128(_mm256_shuffle32_epi8(Ca, alpha_shuf)));	// shuffle all alphas to the lower 64 bits then store only those
+
+	if (alpha_concat==0)	// if the lrgb frontground is fully transparent
+	{
+		_mm_storeu_si128(s1_ptr, _mm_lddqu_si128((__m128i *) s0_ptr));	// copy the original 4 srgb pixels
+		return;
+	}
+
+	if (alpha_concat != 0x8000800080008000ULL)	// we do the blending math only if Aa != 32768
+	{
+		// RGBA -> AAAA for the 4 lrgb pixels
+		alpha_shuf = _mm256_set_epi8(24+7, 24+6, 24+7, 24+6, 24+7, 24+6, 24+7, 24+6, 16+7, 16+6, 16+7, 16+6, 16+7, 16+6, 16+7, 16+6, 8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 7, 6, 7, 6, 7, 6, 7, 6);
+		Aa = _mm256_shuffle32_epi8(Ca, alpha_shuf);
+		Aai = _mm256_sub_epi16(_mm256_set1_epi16(32768), Aa);	// 32768 - Aa
+
+		// Convert 4 srgb pixels to lrgb
+		la = _mm256_load_8xi8_as_8xi32(s0_ptr);			// load 2 first srgb0 pixels
+		la = _mm256_i32gather_epi32(lut0, la, 4);		// slrgb_l lookup, la is latent
+		lb = _mm256_load_8xi8_as_8xi32(&s0_ptr[1]);		// load 2 other srgb0 pixels
+		lb = _mm256_i32gather_epi32(lut0, lb, 4);		// slrgb_l lookup, lb is latent
+
+		// Make Cb by shuffling and uniting la and lb
+		shuf_a = _mm256_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 29, 28, 25, 24, 21, 20, 17, 16, 13, 12,  9,  8,  5,  4,  1,  0);
+		shuf_b = _mm256_set_epi8(29, 28, 25, 24, 21, 20, 17, 16, 13, 12,  9,  8,  5,  4,  1,  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		la = _mm256_shuffle32_epi8(la, shuf_a);
+		lb = _mm256_shuffle32_epi8(lb, shuf_b);
+		Cb = _mm256_or_si256(la, lb);
+
+		// Do the blending math
+		Ca = _mm256_mulhi_epu16(Ca, Aa);			// Ca*Aa >> 16
+		Cb = _mm256_mulhi_epu16(Cb, Aai);			// Cb*Aai >> 16
+		Ca = _mm256_add_epi16(Ca, Cb);
+		Ca = _mm256_slli_epi16(Ca, 1);				// <<= 1 to convert from 1.14 to 1.15
+	}
+
+	// Prepare for lsrgb lookup by splitting Ca
+	shuf_a = _mm256_set_epi8(-1, -1, 15, 14, -1, -1, 13, 12, -1, -1, 11, 10, -1, -1,  9,  8, -1, -1,  7,  6, -1, -1,  5,  4, -1, -1,  3,  2, -1, -1,  1,  0);
+	shuf_b = _mm256_set_epi8(-1, -1, 31, 30, -1, -1, 29, 28, -1, -1, 27, 26, -1, -1, 25, 24, -1, -1, 23, 22, -1, -1, 21, 20, -1, -1, 19, 18, -1, -1, 17, 16);
+	la = _mm256_shuffle32_epi8(Ca, shuf_a);
+	lb = _mm256_shuffle32_epi8(Ca, shuf_b);
+
+	// Lsrgb lookups
+	la = _mm256_i32gather_epi32(lut1, la, 4);		// lsrgb_l lookup, la is latent
+	lb = _mm256_i32gather_epi32(lut1, lb, 4);		// lsrgb_l lookup, lb is latent
+	la = _mm256_srli_epi32(la, 5);				// >>= 5 to make it 8 bit
+	lb = _mm256_srli_epi32(lb, 5);				// >>= 5 to make it 8 bit
+
+	// Pack from 32-bit to 8-bit
+	shuf_a = _mm256_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 28, 24, 20, 16, 12,  8,  4,  0);
+	shuf_b = _mm256_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 28, 24, 20, 16, 12,  8,  4,  0, -1, -1, -1, -1, -1, -1, -1, -1);
+	la = _mm256_shuffle32_epi8(la, shuf_a);
+	lb = _mm256_shuffle32_epi8(lb, shuf_b);
+	Co = _mm256_castsi256_si128(_mm256_or_si256(la, lb));
+
+	// Store result
+	_mm_storeu_si128(s1_ptr, Co);
+
+	/* Blending algorithm
+	if (Aa == 32768) return Ca;
+	else if (Aa == 0) return Cb;
+
+	Aai = 32768 - Aa;
+	Co = ( Ca*Aa + Cb*Aai ) >> 15;	// 1.LBD format*/
+}
+#endif

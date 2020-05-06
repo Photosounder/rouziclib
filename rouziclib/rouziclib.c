@@ -17,6 +17,7 @@
 #include "general/noop.c"
 #include "general/hashing.c"
 #include "general/threading.c"
+#include "general/intrinsics.c"
 
 #include "memory/alloc.c"
 #include "memory/fill.c"

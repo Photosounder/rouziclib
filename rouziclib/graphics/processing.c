@@ -188,10 +188,10 @@ void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const 
 	p0 = add_xy(pos, mul_xy(pscale, neg_xy(kr1)));
 	p1 = add_xy(pos, mul_xy(pscale, add_xy(kr1, xy(src_dim.x-1, src_dim.y-1))));
 
-	start.x = MAXN(0, floor(MINN(p0.x, p1.x))+1);
-	start.y = MAXN(0, floor(MINN(p0.y, p1.y))+1);
-	stop.x = MINN(dst_dim.x, ceil(MAXN(p0.x, p1.x)));
-	stop.y = MINN(dst_dim.y, ceil(MAXN(p0.y, p1.y)));
+	start.x = MAXN(0, floor(MINN(p0.x, p1.x)));
+	start.y = MAXN(0, floor(MINN(p0.y, p1.y)));
+	stop.x = MINN(dst_dim.x, ceil(MAXN(p0.x, p1.x)+1));	// not sure about the logic of the +1 but it works
+	stop.y = MINN(dst_dim.y, ceil(MAXN(p0.y, p1.y)+1));
 
 	for (ip.y=start.y; ip.y<stop.y; ip.y++)
 	{

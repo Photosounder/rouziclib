@@ -330,7 +330,7 @@ void convert_frgb_to_srgb(int mode)
 
 void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 {
-	int32_t i;
+	int32_t i=0;
 	lrgb_t p, l0;
 	static int init=1;
 	static lut_t lsrgb_l, slrgb_l;
@@ -344,7 +344,22 @@ void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 		slrgb_l = get_lut_slrgb();
 	}
 
-	for (i=0; i < pixc; i++)
+	// SIMD blending
+	#ifdef RL_INTEL_INTR
+	if (LBD==15 && check_cpuinfo(CPU_HAS_AVX2))
+	{
+		__m128i *s0_ptr = srgb0, *s1_ptr = srgb1;
+		__m256i *l_ptr = fb.r.l;
+		size_t step_count = pixc>>2;
+
+		for (i=0; i < step_count; i++)
+			alphablend_lrgb_on_srgb_simd(&s0_ptr[i], &l_ptr[i], &s1_ptr[i], slrgb_l.lutint, lsrgb_l.lutint);	// this makes it about 10% faster yay...
+
+		i <<= 2;
+	}
+	#endif
+
+	for (; i < pixc; i++)
 	{
 		p = fb.r.l[i];
 
@@ -480,13 +495,84 @@ srgb_t srgb_change_order_pixel(const srgb_t in, const int order)
 
 void srgb_change_order(srgb_t *in, srgb_t *out, const size_t count, const int order)
 {
+	size_t i=0;
+
 	if (order == ORDER_RGBA)
 		if (in == out)
 			return ;
 		else
 			memcpy(out, in, count * sizeof(srgb_t));
 
-	for (size_t i=0; i < count; i++)
+	// SIMD reordering
+	#ifdef RL_INTEL_INTR
+	if (check_cpuinfo(CPU_HAS_AVX))
+	{
+		__m256i *in256=in, *out256=out;
+		__m256i y0, y1, shuf_mask;
+		size_t step_count = count>>3;
+
+		// Make byte shuffling mask
+		switch (order)
+		{
+			case ORDER_ABGR:
+				shuf_mask = _mm256_set_epi8(12, 14, 13, 15, 8, 10, 9, 11, 4, 6, 5, 7, 0, 2, 1, 3, 12, 14, 13, 15, 8, 10, 9, 11, 4, 6, 5, 7, 0, 2, 1, 3);
+				break;
+
+			default:
+			case ORDER_BGRA:
+				shuf_mask = _mm256_set_epi8(15, 12, 13, 14, 11, 8, 9, 10, 7, 4, 5, 6, 3, 0, 1, 2, 15, 12, 13, 14, 11, 8, 9, 10, 7, 4, 5, 6, 3, 0, 1, 2);
+				break;
+
+			case ORDER_ARGB:
+				shuf_mask = _mm256_set_epi8(14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3);
+				break;
+		}
+
+		for (i=0; i < step_count; i++)
+		{
+			y0 = _mm256_lddqu_si256(&in256[i]);		// load 8 pixels
+			y1 = _mm256_shuffle_epi8(y0, shuf_mask);	// shuffle them
+			_mm256_storeu_si256(&out256[i], y1);		// store the shuffled pixels
+		}
+
+		i <<= 3;
+	}
+	else if (check_cpuinfo(CPU_HAS_SSSE3))
+	{
+		__m128i *in128=in, *out128=out;
+		__m128i x0, x1, shuf_mask;
+		size_t step_count = count>>2;
+
+		// Make byte shuffling mask
+		switch (order)
+		{
+			case ORDER_ABGR:
+				shuf_mask = _mm_set_epi8(12, 14, 13, 15, 8, 10, 9, 11, 4, 6, 5, 7, 0, 2, 1, 3);
+				break;
+
+			default:
+			case ORDER_BGRA:
+				shuf_mask = _mm_set_epi8(15, 12, 13, 14, 11, 8, 9, 10, 7, 4, 5, 6, 3, 0, 1, 2);
+				break;
+
+			case ORDER_ARGB:
+				shuf_mask = _mm_set_epi8(14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3);
+				break;
+		}
+
+		for (i=0; i < step_count; i++)
+		{
+			x0 = _mm_load_si128(&in128[i]);			// load 4 pixels
+			x1 = _mm_shuffle_epi8(x0, shuf_mask);		// shuffle them
+			_mm_store_si128(&out128[i], x1);		// store the shuffled pixels
+		}
+
+		i <<= 2;
+	}
+	#endif
+
+	// Fallback reordering
+	for (; i < count; i++)
 		out[i] = srgb_change_order_pixel(in[i], order);
 }
 

@@ -217,6 +217,9 @@ void *drawq_add_to_main_queue(const enum dq_type type)
 	int32_t end, *di = fb.drawq_data;
 	int entry_size = drawq_entry_size(type);
 
+	if (di==NULL)
+		return NULL;
+
 	// store the drawing parameters in the main drawing queue
 	end = di[DQ_END];
 	alloc_enough(&fb.drawq_data, end + entry_size + 1, &fb.drawq_as, sizeof(int32_t), 2.);

@@ -57,6 +57,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
 
 // Structs and includes needed elsewhere
+#include "general/intrinsics.h"
 #include "general/threading.h"
 #include "general/structs.h"
 #include "general/xyz_struct.h"

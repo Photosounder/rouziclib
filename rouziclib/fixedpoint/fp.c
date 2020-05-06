@@ -67,13 +67,13 @@ int32_t log2_ffo64(uint64_t x)	// returns the number of bits up to the most sign
 	return ffo_lut[x];
 }
 
-//#if defined(__x86_64__) || defined(_M_X64)
-#if (1==0)
+//#ifdef __x86_64__
+#if 0
 
 // compute mul_wide (a, b) >> s, for s in [0,63]
 int64_t mulshift (int64_t a, int64_t b, int s)
 {
-	int64_t res;
+	int64_t res;		// TODO use Intel intrinsics instead
 	__asm__ volatile (
 			"movq  %1, %%rax;\n\t"          // rax = a
 			"movq  %2, %%rdx;\n\t"          // rdx = b  

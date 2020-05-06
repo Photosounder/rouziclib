@@ -240,10 +240,10 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 	p0 = add_xy(pos, mul_xy(pscale, neg_xy(kr1)));
 	p1 = add_xy(pos, mul_xy(pscale, add_xy(kr1, xy(r.dim.x-1, r.dim.y-1))));
 
-	start.x = MAXN(0, floor(MINN(p0.x, p1.x))+1);
-	start.y = MAXN(0, floor(MINN(p0.y, p1.y))+1);
-	stop.x = MINN(fb.r.dim.x, ceil(MAXN(p0.x, p1.x)));
-	stop.y = MINN(fb.r.dim.y, ceil(MAXN(p0.y, p1.y)));
+	start.x = MAXN(0, floor(MINN(p0.x, p1.x)));
+	start.y = MAXN(0, floor(MINN(p0.y, p1.y)));
+	stop.x = MINN(fb.r.dim.x, ceil(MAXN(p0.x, p1.x)+1));	// not sure about the logic of the +1 but it works with LINEAR_INTERP
+	stop.y = MINN(fb.r.dim.y, ceil(MAXN(p0.y, p1.y)+1));
 
 	if (nsx*nsy == 1)		// if unfiltered nearest neighbour (only 1 pixel in -> 1 pixel out)
 	{
