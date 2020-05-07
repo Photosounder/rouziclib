@@ -12,7 +12,7 @@ void __cpuid(int *cpuinfo, int info)
 	);
 }
 
-uint64_t _xgetbv(uint32_t index)
+uint64_t rl_xgetbv(uint32_t index)
 {
 	uint32_t eax, edx;
 	__asm__ __volatile__(
@@ -52,7 +52,7 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 
 		case CPU_HAS_AVX:
 			if (info1[2] & (1 << 28) && info1[2] & (1 << 27))
-				ret = (_xgetbv(0) & 6) == 6;
+				ret = (rl_xgetbv(0) & 6) == 6;
 			break;
 
 		case CPU_HAS_AVX2:
@@ -64,6 +64,9 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 	return ret!=0;
 }
 
+#ifdef __GNUC__
+__attribute__((__target__("avx2")))
+#endif
 __m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf)	// AVX2
 {	// from https://stackoverflow.com/a/32535489/1675589
 	__m256i regAll0 = _mm256_permute2x128_si256(reg, reg, 0x00);
@@ -74,6 +77,9 @@ __m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf)	// AVX2
 	return res;
 }
 
+#ifdef __GNUC__
+__attribute__((__target__("avx2")))
+#endif
 __m256i _mm256_load_8xi8_as_8xi32(__int64 const *in)	// AVX2
 {
 	__m256i y0, y1, shuf_mask;
@@ -90,34 +96,25 @@ __m256i _mm256_load_8xi8_as_8xi32(__int64 const *in)	// AVX2
 	return y1;
 }
 
-__m256i _mm256_load_16xi8_as_16xi16(__m128i const *in)	// AVX2
-{
-	__m256i y0, y1, shuf_mask;
+#ifdef __GNUC__
+//extern __m128i _mm_loadu_si32(void const* mem_addr);	// GCC bug?
+#endif
 
-	// Load the 16 bytes into the lower 16 bytes of a __m256i
-	y0 = _mm256_castsi128_si256(_mm_lddqu_si128(in));
+#ifdef __GNUC__
+__attribute__((__target__("ssse3")))
+#endif
+__m128i _mm_load_4xi8_as_4xi32(__int32 const *in)	// SSSE3
+{
+	__m128i y0, y1, shuf_mask;
+
+	// Load the 4 bytes into the lower 4 bytes of a __m128i
+	y0 = _mm_loadu_si32(in);
 
 	// Shuffle mask to move the 8 bytes in the correct places
-	shuf_mask = _mm256_set_epi8(-1, 15, -1, 14, -1, 13, -1, 12, -1, 11, -1, 10, -1, 9, -1, 8, -1, 7, -1, 6, -1, 5, -1, 4, -1, 3, -1, 2, -1, 1, -1, 0);
+	shuf_mask = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 0);
 
 	// Shuffle
-	y1 = _mm256_shuffle32_epi8(y0, shuf_mask);
-
-	return y1;
-}
-
-__m256i _mm256_load_8xi16_as_8xi32(__m128i const *in)	// AVX2
-{
-	__m256i y0, y1, shuf_mask;
-
-	// Load the 8 words into the lower 16 bytes of a __m256i
-	y0 = _mm256_castsi128_si256(_mm_lddqu_si128(in));
-
-	// Shuffle mask to move the 16 bytes in the correct places
-	shuf_mask = _mm256_set_epi8(-1, -1, 15, 14, -1, -1, 13, 12, -1, -1, 11, 10, -1, -1, 9, 8, -1, -1, 7, 6, -1, -1, 5, 4, -1, -1, 3, 2, -1, -1, 1, 0);
-
-	// Shuffle
-	y1 = _mm256_shuffle32_epi8(y0, shuf_mask);
+	y1 = _mm_shuffle_epi8(y0, shuf_mask);
 
 	return y1;
 }

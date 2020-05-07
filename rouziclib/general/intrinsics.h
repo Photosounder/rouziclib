@@ -31,7 +31,9 @@ enum cpu_feat_n
 
 #ifdef __GNUC__
 extern void __cpuid(int *cpuinfo, int info);
-extern uint64_t _xgetbv(uint32_t index);
+extern uint64_t rl_xgetbv(uint32_t index);
+#else
+#define rl_xgetbv _xgetbv
 #endif
 
 extern int check_cpuinfo(const enum cpu_feat_n fid);
@@ -39,7 +41,7 @@ extern int check_cpuinfo(const enum cpu_feat_n fid);
 // AVX2 required
 extern __m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf);
 extern __m256i _mm256_load_8xi8_as_8xi32(__int64 const *in);
-extern __m256i _mm256_load_16xi8_as_16xi16(__m128i const *in);
-extern __m256i _mm256_load_8xi16_as_8xi32(__m128i const *in);
+
+extern __m128i _mm_load_4xi8_as_4xi32(__int32 const *in);
 
 #endif

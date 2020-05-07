@@ -445,6 +445,19 @@
 		//< things to time >
 		fprintf_rl(stdout, "Things took %g sec\n\n", get_time_diff_hr(&ts));
 
+		// Benchmark average
+		static int bench_count=0;
+		static double ts_accu=0.;
+		double ts=0.;
+		get_time_diff_hr(&ts);
+		//< things to time >
+		ts_accu += get_time_diff_hr(&ts);
+		if (++bench_count==200)
+		{
+			fprintf_rl(stdout, "Took %.3f ms/frame\n", 1000.*ts_accu / bench_count);
+			exit(0);
+		}
+
 	// Paths
 		append_name_to_path(fullpath, path, name);	// puts 'path/name' into char fullpath[PATH_MAX*4], fullpath can be NULL in which case the function returns the allocated string
 		remove_name_from_path(dirpath, fullpath);	// makes dirpath from fullpath without the final name (can be a folder) nor the last /. Any trailing input / is ignored
