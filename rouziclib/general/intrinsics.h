@@ -40,8 +40,8 @@ extern int check_cpuinfo(const enum cpu_feat_n fid);
 
 // AVX2 required
 extern __m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf);
-extern __m256i _mm256_load_8xi8_as_8xi32(__int64 const *in);
+extern __m256i _mm256_load_8xi8_as_8xi32(int64_t const *in);
 
-extern __m128i _mm_load_4xi8_as_4xi32(__int32 const *in);
+extern __m128i _mm_load_4xi8_as_4xi32(int32_t const *in);
 
 #endif

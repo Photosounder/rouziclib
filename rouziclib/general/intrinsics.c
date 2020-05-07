@@ -80,7 +80,7 @@ __m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf)	// AVX2
 #ifdef __GNUC__
 __attribute__((__target__("avx2")))
 #endif
-__m256i _mm256_load_8xi8_as_8xi32(__int64 const *in)	// AVX2
+__m256i _mm256_load_8xi8_as_8xi32(int64_t const *in)	// AVX2
 {
 	__m256i y0, y1, shuf_mask;
 
@@ -103,7 +103,7 @@ __m256i _mm256_load_8xi8_as_8xi32(__int64 const *in)	// AVX2
 #ifdef __GNUC__
 __attribute__((__target__("ssse3")))
 #endif
-__m128i _mm_load_4xi8_as_4xi32(__int32 const *in)	// SSSE3
+__m128i _mm_load_4xi8_as_4xi32(int32_t const *in)	// SSSE3
 {
 	__m128i y0, y1, shuf_mask;
 

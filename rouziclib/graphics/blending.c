@@ -147,7 +147,7 @@ blend_func_fl_t get_blend_fl_equivalent(const blend_func_t bf)
 #ifdef __GNUC__
 __attribute__((__target__("avx2")))
 #endif
-void alphablend_lrgb_on_srgb_simd128(__int32 *s0_ptr, __m128i *l_ptr, __int64 *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2
+void alphablend_lrgb_on_srgb_simd128(int32_t *s0_ptr, __m128i *l_ptr, int64_t *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2
 {
 	__m128i s1, la, lb, Ca, Cb, Aa, Aai, alpha_shuf, shuf_a, shuf_b, opaque_mask, alpha_mask, Co;
 
@@ -221,7 +221,7 @@ void alphablend_lrgb_on_srgb_simd128(__int32 *s0_ptr, __m128i *l_ptr, __int64 *s
 	Co = ( Ca*Aa + Cb*Aai ) >> 15;	// 1.LBD format*/
 }
 
-/*void alphablend_lrgb_on_srgb_simd256(__int64 *s0_ptr, __m256i *l_ptr, __m128i *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2, ~24% slower than the 128-bit version
+/*void alphablend_lrgb_on_srgb_simd256(int64_t *s0_ptr, __m256i *l_ptr, __m128i *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2, ~24% slower than the 128-bit version
 {
 	__m256i s1, la, lb, Ca, Cb, Aa, Aai, alpha_shuf, shuf_a, shuf_b, opaque_mask, alpha_mask;
 	__m128i Co;
