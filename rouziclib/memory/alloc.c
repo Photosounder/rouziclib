@@ -1,4 +1,4 @@
-inline size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio)	// increases a buffer's size to accomodate for the requested count if necessary
+size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio)	// increases a buffer's size to accomodate for the requested count if necessary
 {
 	size_t newsize;
 	void *p;
@@ -26,7 +26,7 @@ inline size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_cou
 	return alloc_count;
 }
 
-inline size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio, rl_mutex_t *mutex)
+size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio, rl_mutex_t *mutex)
 {
 	if (needed_count > alloc_count && mutex)
 	{
