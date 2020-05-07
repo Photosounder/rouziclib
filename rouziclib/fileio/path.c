@@ -194,9 +194,9 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 	SHGetFolderPathW(NULL, 0x001a /*CSIDL_APPDATA*/, NULL, 0, origpath_w);
 	//SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, origpath_w);
 	wchar_to_utf8(origpath_w, origpath);
-	#endif
 
-	#ifdef __APPLE__
+	#elif defined(__APPLE__)
+
 	glob_t globbuf;
 	char *origpath=NULL;
 
@@ -207,6 +207,9 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 		globfree(&globbuf);
 		return NULL;
 	}
+
+	#else
+	char origpath[] = "~/.config/";
 	#endif
 
 	dirpath = append_name_to_path(NULL, origpath, dirname);

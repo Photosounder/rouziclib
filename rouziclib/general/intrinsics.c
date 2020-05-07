@@ -85,7 +85,7 @@ __m256i _mm256_load_8xi8_as_8xi32(int64_t const *in)	// AVX2
 	__m256i y0, y1, shuf_mask;
 
 	// Load the 8 bytes into the lower 8 bytes of a __m256i
-	y0 = _mm256_castsi128_si256(_mm_loadu_si64(in));
+	y0 = _mm256_set_epi64x(0, 0, 0, *in);
 
 	// Shuffle mask to move the 8 bytes in the correct places
 	shuf_mask = _mm256_set_epi8(-1, -1, -1, 7, -1, -1, -1, 6, -1, -1, -1, 5, -1, -1, -1, 4, -1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 0);
@@ -97,10 +97,6 @@ __m256i _mm256_load_8xi8_as_8xi32(int64_t const *in)	// AVX2
 }
 
 #ifdef __GNUC__
-//extern __m128i _mm_loadu_si32(void const* mem_addr);	// GCC bug?
-#endif
-
-#ifdef __GNUC__
 __attribute__((__target__("ssse3")))
 #endif
 __m128i _mm_load_4xi8_as_4xi32(int32_t const *in)	// SSSE3
@@ -108,7 +104,7 @@ __m128i _mm_load_4xi8_as_4xi32(int32_t const *in)	// SSSE3
 	__m128i y0, y1, shuf_mask;
 
 	// Load the 4 bytes into the lower 4 bytes of a __m128i
-	y0 = _mm_loadu_si32(in);
+	y0 = _mm_set_epi32(0, 0, 0, *in);
 
 	// Shuffle mask to move the 8 bytes in the correct places
 	shuf_mask = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 0);

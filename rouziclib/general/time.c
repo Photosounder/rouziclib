@@ -45,7 +45,7 @@ double get_time_hr()	// High-resolution timing
 
 		#else
 		struct timespec rate;
-		clock_getres(CLOCKID, &rate);
+		clock_getres(CLOCK_MONOTONIC_RAW, &rate);
 		tick_dur = 1e-9 * (double) rate.tv_nsec;
 
 		#endif
@@ -61,8 +61,8 @@ double get_time_hr()	// High-resolution timing
 
 	#else
 	struct timespec now;
-	clock_gettime(CLOCKID, &now);
-	return (double) ((uint64_t) time.tv_sec*1000000000LL + time.tv_nsec) * tick_dur;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	return (double) ((uint64_t) now.tv_sec*1000000000LL + now.tv_nsec) * tick_dur;
 	#endif
 }
 
