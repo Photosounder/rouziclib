@@ -114,6 +114,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fixedpoint/fp.h"			// used unless RL_EXCL_APPROX is defined
 #include "fastfloat/fastfloat.h"		// used unless RL_EXCL_APPROX is defined
 #include "fastfloat/fastcos.h"			// used unless RL_EXCL_APPROX is defined
+#include "fastfloat/simd.h"			// used unless RL_EXCL_APPROX is defined
 
 #include "graphics/graphics.h"
 #include "graphics/srgb.h"
@@ -126,6 +127,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "graphics/drawrect.h"
 #include "graphics/drawprimitives.h"
 #include "graphics/drawqueue.h"
+#include "graphics/drawqueue_soft.h"
 #include "graphics/draw_effects.h"
 #include "graphics/processing.h"
 #include "graphics/mipmap.h"

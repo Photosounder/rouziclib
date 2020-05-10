@@ -44,6 +44,7 @@
 #include "fixedpoint/fp.c"
 #include "fastfloat/fastfloat.c"
 #include "fastfloat/fastcos.c"
+#include "fastfloat/simd.c"
 
 #include "graphics/graphics.c"
 #include "graphics/srgb.c"
@@ -56,6 +57,7 @@
 #include "graphics/drawrect.c"
 #include "graphics/drawprimitives.c"
 #include "graphics/drawqueue.c"
+#include "graphics/drawqueue_soft.c"
 #include "graphics/draw_effects.c"
 #include "graphics/processing.c"
 #include "graphics/mipmap.c"

@@ -370,10 +370,26 @@ xyi_t func3_xyi(xyi_t a, xyi_t b, xyi_t c, int (*f)(int,int,int))
 	return a;
 }
 
+xyi_t lshift_xyi(xyi_t a, int sh)
+{
+	a.x <<= sh;
+	a.y <<= sh;
+
+	return a;
+}
+
 xyi_t rshift_xyi(xyi_t a, int sh)
 {
 	a.x >>= sh;
 	a.y >>= sh;
+
+	return a;
+}
+
+xyi_t ceil_rshift_xyi(xyi_t a, int sh)
+{
+	a.x = ceil_rshift(a.x, sh);
+	a.y = ceil_rshift(a.y, sh);
 
 	return a;
 }

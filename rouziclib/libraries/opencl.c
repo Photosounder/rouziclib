@@ -390,8 +390,6 @@ cl_int init_fb_cl()
 
 	cl_make_srgb_tex();
 
-	data_cl_alloc(1);
-
 	return ret;
 }
 

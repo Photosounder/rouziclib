@@ -90,6 +90,7 @@ typedef struct
 	rect_t window_dl;	// window draw limit (based on the usual drawing thickness)
 	xyi_t maxdim;		// formerly max[wh]
 	int use_drawq;
+	int srgb_order;		// channel order of the sRGB output
 
 	#ifdef RL_SDL
 	void *window;
@@ -124,7 +125,7 @@ typedef struct
 	int entry_count;	// number of entries in the main queue
 
 	#ifdef RL_OPENCL
-	int first_frame_done, interop_sync;
+	int interop_sync;
 	int opt_clfinish, opt_glfinish, opt_interop;
 	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
 	uint32_t gltex;		// ID of the GL texture for cl_srgb
@@ -134,6 +135,7 @@ typedef struct
 	cl_mem data_cl;					// device buffer that contains all the needed data
 	#endif
 	size_t data_cl_as;				// alloc size of data_cl in bytes
+	int first_frame_done;
 	size_t data_copy_start;				// start of the range to copy
 	size_t data_space_start, data_space_end;	// position and end of the currently used space
 	int data_space_index;				// data_alloc_table index where to insert a new entry in the space

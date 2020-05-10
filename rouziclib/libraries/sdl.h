@@ -46,6 +46,7 @@ extern void sdl_graphics_init_autosize(const char *window_name, int flags, int w
 extern int sdl_handle_window_resize(zoom_t *zc);
 extern void sdl_flip_fb();
 extern int sdl_toggle_borderless_fullscreen();
+extern void sdl_quit_actions();
 
 extern void sdl_init_audio_not_wasapi();
 extern char *sdl_get_clipboard_dos_conv();

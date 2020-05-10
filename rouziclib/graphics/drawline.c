@@ -353,6 +353,8 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	xyi_t bb_dim;
 	
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+	if (fb.use_drawq==2)
+		grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002
 
 	if (fastabs(p2.x-p1.x)+fastabs(p2.y-p1.y) > 1e6)	// cut out lines that are in the millions of pixels
 		border_clip(fb.w-1, fb.h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen
@@ -373,11 +375,26 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	df = drawq_add_to_main_queue(DQT_LINE_THIN_ADD);
 	if (df==NULL)
 		return;
-	df[0] = p1.x;
-	df[1] = p1.y;
-	df[2] = p2.x;
-	df[3] = p2.y;
-	df[4] = 1./radius;
+	if (fb.use_drawq==1)
+	{
+		df[0] = p1.x;
+		df[1] = p1.y;
+		df[2] = p2.x;
+		df[3] = p2.y;
+		df[4] = 1./radius;
+	}
+	else
+	{
+		float iradius = 1./radius;
+		float th = atan2f(p2.y-p1.y, p2.x-p1.x);	// TODO optimise atan2
+		float costh = fastcosf_d2(-th) * iradius;
+		float sinth = fastsinf_d2(-th) * iradius;
+		df[0] = p1.x * costh - p1.y * sinth;		// r1x
+		df[1] = p1.x * sinth + p1.y * costh;		// r1y
+		df[2] = p2.x * costh - p2.y * sinth;		// r2x
+		df[3] = costh;
+		df[4] = sinth;
+	}
 	df[5] = colour.r * intensity;
 	df[6] = colour.g * intensity;
 	df[7] = colour.b * intensity;

@@ -44,6 +44,8 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 		break;	case CPU_HAS_SSE4_1:	ret = info1[2] & (1 << 19);
 		break;	case CPU_HAS_SSE4_2:	ret = info1[2] & (1 << 20);
 		break;	case CPU_HAS_FMA:	ret = info1[2] & (1 << 12);
+		break;	case CPU_HAS_BMI1:	ret = info7[1] & (1 << 3);
+		break;	case CPU_HAS_BMI2:	ret = info7[1] & (1 << 8);
 		break;	case CPU_HAS_AVX512F:	ret = info7[1] & (1 << 16);
 		break;	case CPU_HAS_AVX512PF:	ret = info7[1] & (1 << 26);
 		break;	case CPU_HAS_AVX512ER:	ret = info7[1] & (1 << 27);
@@ -67,7 +69,7 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 #ifdef __GNUC__
 __attribute__((__target__("avx2")))
 #endif
-__m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf)	// AVX2
+__m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf)
 {	// from https://stackoverflow.com/a/32535489/1675589
 	__m256i regAll0 = _mm256_permute2x128_si256(reg, reg, 0x00);
 	__m256i regAll1 = _mm256_permute2x128_si256(reg, reg, 0x11);
@@ -80,7 +82,7 @@ __m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf)	// AVX2
 #ifdef __GNUC__
 __attribute__((__target__("avx2")))
 #endif
-__m256i _mm256_load_8xi8_as_8xi32(int64_t const *in)	// AVX2
+__m256i _mm256_load_8xi8_as_8xi32(int64_t const *in)
 {
 	__m256i y0, y1, shuf_mask;
 
@@ -99,7 +101,7 @@ __m256i _mm256_load_8xi8_as_8xi32(int64_t const *in)	// AVX2
 #ifdef __GNUC__
 __attribute__((__target__("ssse3")))
 #endif
-__m128i _mm_load_4xi8_as_4xi32(int32_t const *in)	// SSSE3
+__m128i _mm_load_4xi8_as_4xi32(int32_t const *in)
 {
 	__m128i y0, y1, shuf_mask;
 
@@ -114,5 +116,13 @@ __m128i _mm_load_4xi8_as_4xi32(int32_t const *in)	// SSSE3
 
 	return y1;
 }
+
+#ifndef _mm_storeu_si32
+void _mm_storeu_si32(void* mem_addr, __m128i a)	// replacement for missing _mm_storeu_si32
+{
+	_mm_store_ss((float*) mem_addr, _mm_castsi128_ps(a));
+	return;
+}
+#endif
 
 #endif

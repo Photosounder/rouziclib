@@ -26,6 +26,14 @@ size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, siz
 	return alloc_count;
 }
 
+size_t alloc_enough_and_copy2(void **buffer, void *copy_src, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio)
+{
+	alloc_enough(buffer, needed_count, &alloc_count, size_elem, inc_ratio);
+	memcpy(*buffer, copy_src, needed_count * size_elem);
+
+	return alloc_count;
+}
+
 size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio, rl_mutex_t *mutex)
 {
 	if (needed_count > alloc_count && mutex)

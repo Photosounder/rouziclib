@@ -3,10 +3,13 @@ void cl_copy_buffer_to_device(void *buffer, size_t offset, size_t size)
 	if (size==0)
 		return ;
 
-	#ifdef RL_OPENCL
-	cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
-	CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device(), for fb.data_cl)", ret);
-	#endif
+	if (fb.use_drawq==1)
+	{
+		#ifdef RL_OPENCL
+		cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
+		CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device(), for fb.data_cl)", ret);
+		#endif
+	}
 }
 
 void cl_copy_raster_to_device(raster_t r, size_t offset)
@@ -27,9 +30,12 @@ void data_cl_alloc(int mb)
 	fb.data = calloc(fb.data_cl_as, 1);
 
 	#ifdef RL_OPENCL
-	cl_int ret;
-	fb.data_cl = clCreateBuffer(fb.clctx.context, CL_MEM_READ_WRITE, fb.data_cl_as, NULL, &ret);
-	CL_ERR_NORET("clCreateBuffer (in data_cl_alloc(), for fb.data_cl)", ret);
+	if (fb.use_drawq==1)
+	{
+		cl_int ret;
+		fb.data_cl = clCreateBuffer(fb.clctx.context, CL_MEM_READ_WRITE, fb.data_cl_as, NULL, &ret);
+		CL_ERR_NORET("clCreateBuffer (in data_cl_alloc(), for fb.data_cl)", ret);
+	}
 	#endif
 
 	fb.data_alloc_table_count = 0;
@@ -42,13 +48,20 @@ void data_cl_realloc(size_t buffer_size)
 	size_t orig_as, new_as;
 
 	#ifdef RL_OPENCL
-	cl_int ret = clFinish(fb.clctx.command_queue);
-	CL_ERR_NORET("clFinish in data_cl_realloc()", ret);
-
-	// free CL buffer
-	ret = clReleaseMemObject(fb.data_cl);
-	CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc(), for fb.data_cl)", ret);
+	cl_int ret;
+	if (fb.use_drawq==1)
+	{
+		ret = clFinish(fb.clctx.command_queue);
+		CL_ERR_NORET("clFinish in data_cl_realloc()", ret);
+	
+		// free CL buffer
+		ret = clReleaseMemObject(fb.data_cl);
+		CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc(), for fb.data_cl)", ret);
+	}
 	#endif
+
+	if (fb.use_drawq==2)
+		drawq_soft_finish();
 
 	// Calculate the new allocation size
 	orig_as = new_as = fb.data_cl_as;
@@ -73,9 +86,15 @@ void data_cl_realloc(size_t buffer_size)
 		fprintf_rl(stderr, "data_cl_realloc() made fb.data_cl smaller, %g MB to %g MB\n", (double) fb.data_cl_as / sq(1024.), (double) new_as / sq(1024.));
 
 	// Resize the local buffer and copy it back
-	alloc_enough(&fb.data, new_as, &fb.data_cl_as, 1, 1.);
-	fb.data_cl_as = new_as;
-	cl_copy_buffer_to_device(fb.data, 0, MINN(orig_as, fb.data_cl_as));	// enqueue copy of everything
+	if (fb.use_drawq)
+	{
+		alloc_enough(&fb.data, new_as, &fb.data_cl_as, 1, 1.);
+		fb.data_cl_as = new_as;
+	}
+
+	if (fb.use_drawq==1)
+		cl_copy_buffer_to_device(fb.data, 0, MINN(orig_as, fb.data_cl_as));	// enqueue copy of everything
+
 	fb.must_recalc_free_space = 1;
 
 	//fprintf_rl(stdout, "data_cl resized to %g MB\n", (double) fb.data_cl_as / sq(1024.));

@@ -79,7 +79,9 @@ extern xy_t func3_xy(xy_t a, xy_t b, xy_t c, double (*f)(double,double,double));
 extern xyz_t func3_xyz(xyz_t a, xyz_t b, xyz_t c, double (*f)(double,double,double));
 extern xyi_t func3_xyi(xyi_t a, xyi_t b, xyi_t c, int (*f)(int,int,int));
 
+extern xyi_t lshift_xyi(xyi_t a, int sh);
 extern xyi_t rshift_xyi(xyi_t a, int sh);
+extern xyi_t ceil_rshift_xyi(xyi_t a, int sh);
 
 extern xy_t min_xy(xy_t a, xy_t b);
 extern xyz_t min_xyz(xyz_t a, xyz_t b);

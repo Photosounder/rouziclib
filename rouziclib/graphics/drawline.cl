@@ -15,7 +15,7 @@
 	col.s0 = le[5];
 	col.s1 = le[6];
 	col.s2 = le[7];
-	col.s3 = 1.;
+	col.s3 = le[8];
 
 	rp.y = pf.x * sinth + pf.y * costh;
 

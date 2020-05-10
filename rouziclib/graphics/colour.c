@@ -47,6 +47,18 @@ lrgb_t frgb_to_lrgb(frgb_t cf)
 	return c;
 }
 
+srgb_t frgb_to_srgb(frgb_t cf)
+{
+	srgb_t c;
+
+	c.r = fast_lsrgbf(MINN(1., cf.r)) * 255.f + 0.5;
+	c.g = fast_lsrgbf(MINN(1., cf.g)) * 255.f + 0.5;
+	c.b = fast_lsrgbf(MINN(1., cf.b)) * 255.f + 0.5;
+	c.a = fast_lsrgbf(MINN(1., cf.a)) * 255.f + 0.5;
+
+	return c;
+}
+
 int is0_col(col_t col)
 {
 	if (col.r==0 && col.g==0 && col.b==0 && col.a==0)

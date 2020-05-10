@@ -339,6 +339,8 @@
 		alloc_enough(&array, count+=1, &alloc_count, size_elem, inc_ratio);
 		// This one protects the realloc with a mutex only if needed
 		alloc_enough_mutex(&array, count+=1, &alloc_count, size_elem, inc_ratio, &my_mutex);
+		// This one does a copy of a source array
+		alloc_enough_and_copy(&array, src_array, src_count, &alloc_count, size_elem, inc_ratio);
 
 	// safe sprintf that reallocs the string if needed
 		// string can be NULL, then realloc will allocate it

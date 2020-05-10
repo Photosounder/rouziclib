@@ -52,7 +52,7 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 
 	entry_count = entrylist[eli];
 
-	for (i=0; i<entry_count; i++)
+	for (i=0; i < entry_count; i++)
 	{
 		qi = entrylist[eli + i + 1];	// queue index
 

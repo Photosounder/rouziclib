@@ -97,7 +97,7 @@ void mouse_button_update(int *mb, mousebut_flags_t *flags, int new_state, int bu
 
 		#ifdef MOUSE_LOG
 		if (mouse->mouse_focus_flag >= 0 && mouse->window_focus_flag >= 0 && flags->block==0)
-			bufprintf(&mouse->log, "[%d] mouse_button_update() new click\n", mouse->frame_index);
+			bufprintf(&mouse->log, "[%d] mouse_button_update() new click (*mb %d, mouse focus flag %d)\n", mouse->frame_index, *mb, mouse->mouse_focus_flag);
 		else
 			bufprintf(&mouse->log, "[%d] mouse_button_update() new click blocked (mouse focus %d window focus %d block %d)\n", mouse->frame_index, mouse->mouse_focus_flag, mouse->window_focus_flag, flags->block);
 		#endif

@@ -349,7 +349,6 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	static int init=1;
 	SDL_DisplayMode dm;
 	SDL_GLContext gl_ctx;
-	int fmt_mode;
 
 	if (init)
 	{
@@ -380,43 +379,44 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
 
 	// Renderer and texture
-#ifdef RL_VULKAN
-	vk_init();
-
-	if (SDL_Vulkan_CreateSurface(fb.window, fb.vk.instance, &fb.vk.surface) == 0)
-		fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
-#else
-#ifdef RL_OPENCL_GL
-	gl_ctx = init_sdl_gl(fb.window);
-	fb.renderer = SDL_CreateRenderer(fb.window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
-	if (fb.renderer==NULL)
-		fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-#else
-	fb.renderer = SDL_CreateRenderer(fb.window, -1, SDL_RENDERER_PRESENTVSYNC);
-	if (fb.renderer==NULL)
-		fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-
-	fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
-	if (fb.texture==NULL)
-		fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
-#endif
-#endif
-	
-	if (fb.use_drawq==0)
+	if (fb.use_drawq==1)
 	{
-		if (fb.r.use_frgb==0)
-			fmt_mode = IMAGE_USE_LRGB;
-		else
-			fmt_mode = IMAGE_USE_FRGB;
+		#ifdef RL_VULKAN
+		vk_init();
+	
+		if (SDL_Vulkan_CreateSurface(fb.window, fb.vk.instance, &fb.vk.surface) == 0)
+			fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
+		#else
+		#ifdef RL_OPENCL_GL
+		gl_ctx = init_sdl_gl(fb.window);
+		fb.renderer = SDL_CreateRenderer(fb.window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
+		if (fb.renderer==NULL)
+			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+		#endif
+		#endif
+	}
+	else
+	{
+		fb.renderer = SDL_CreateRenderer(fb.window, -1, SDL_RENDERER_PRESENTVSYNC);
+		if (fb.renderer==NULL)
+			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+	
+		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
+		if (fb.texture==NULL)
+			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
 
-		fb.r = make_raster(NULL, XYI0, fb.maxdim, fmt_mode);
+		fb.srgb_order = ORDER_BGRA;
+
+		if (fb.use_drawq==0)
+			fb.r = make_raster(NULL, XYI0, fb.maxdim, fb.r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB);
 		// fb.r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
 	}
 
 	if (fb.use_drawq)
 	{
 		#ifdef RL_OPENCL
-		init_fb_cl();
+		if (fb.use_drawq==1)
+			init_fb_cl();
 		#endif
 
 		drawq_alloc();
@@ -469,33 +469,43 @@ int sdl_handle_window_resize(zoom_t *zc)
 		return 0;
 
 	#ifdef RL_OPENCL_GL
-	clFinish(fb.clctx.command_queue);	// wait for end of queue
+	if (fb.use_drawq==1)
+		clFinish(fb.clctx.command_queue);	// wait for end of queue
 	#endif
+
+	if (fb.use_drawq==2)
+		drawq_soft_finish();
 
 	fb.w = w;
 	fb.h = h;
 	fb.r.dim = xyi(fb.w, fb.h);
 
-	#ifndef RL_OPENCL_GL
-	#ifdef RL_OPENCL
-	if (fb.tex_lock)
+	int remake_tex = 1;
+	#ifdef RL_OPENCL_GL
+	if (fb.use_drawq==1)
+		remake_tex = 0;
+	#endif
+
+	if (remake_tex)
 	{
+		if (fb.tex_lock)
+		{
+			SDL_UnlockTexture(fb.texture);
+			fb.tex_lock = 0;
+		}
+
+		SDL_DestroyTexture(fb.texture);
+
+		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
+		if (fb.texture==NULL)
+			printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
+
+		// Blank the resized texture
+		int pitch;
+		SDL_LockTexture(fb.texture, NULL, &fb.r.srgb, &pitch);
+		memset(fb.r.srgb, 0, pitch * fb.r.dim.y);
 		SDL_UnlockTexture(fb.texture);
-		fb.tex_lock = 0;
 	}
-	#endif
-	SDL_DestroyTexture(fb.texture);
-
-	fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
-	if (fb.texture==NULL)
-		printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
-
-	// Blank the resized texture
-	int pitch;
-	SDL_LockTexture(fb.texture, NULL, &fb.r.srgb, &pitch);
-	memset(fb.r.srgb, 0, pitch * fb.r.dim.y);
-	SDL_UnlockTexture(fb.texture);
-	#endif
 
 	calc_screen_limits(zc);
 
@@ -508,19 +518,19 @@ void sdl_flip_fb()
 		fb.timing = calloc(fb.timing_as = fb.timing_count = 120, sizeof(frame_timing_t));
 	fb.timing[fb.timing_index].func_end = get_time_hr();
 
-	if (fb.use_drawq)
+	if (fb.use_drawq==1)
 	{
-	#ifdef RL_OPENCL
+		#ifdef RL_OPENCL
 		if (fb.first_frame_done && mouse.window_minimised_flag <= 0)
 		{
 			cl_int ret=0;
-		#ifdef RL_OPENCL_GL
+			#ifdef RL_OPENCL_GL
 			if (fb.opt_interop)
 			{
 				ret = clEnqueueReleaseGLObjects(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
 				CL_ERR_NORET("clEnqueueReleaseGLObjects in sdl_flip_fb()", ret);
 			}
-		#endif
+			#endif
 
 			// display srgb
 			if (fb.opt_clfinish)
@@ -529,8 +539,7 @@ void sdl_flip_fb()
 				CL_ERR_NORET("clFinish in sdl_flip_fb()", ret);
 			}
 
-		#ifdef RL_OPENCL_GL
-for(int i=0; i < 1; i++) {
+			#ifdef RL_OPENCL_GL
 			float hoff = 2. * (fb.h - fb.maxdim.y) / (double) fb.maxdim.y;
 			glLoadIdentity();             // Reset the projection matrix
 			glViewport(0, 0, fb.maxdim.x, fb.maxdim.y);
@@ -544,9 +553,11 @@ for(int i=0; i < 1; i++) {
 			glEnd();
 
 			SDL_GL_SwapWindow(fb.window);
-}
+
 			fb.timing[fb.timing_index].flip_end = get_time_hr();
-		#else
+
+			#else
+
 			if (fb.tex_lock)
 			{
 				SDL_UnlockTexture(fb.texture);
@@ -556,15 +567,36 @@ for(int i=0; i < 1; i++) {
 			SDL_RenderClear(fb.renderer);
 			SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 			SDL_RenderPresent(fb.renderer);
-
-		#endif
+			#endif
 		}
 		fb.first_frame_done = 1;
-	#endif
+		#endif
+	}
 
+	if (fb.use_drawq==2)
+	{
+		if (fb.first_frame_done)
+		{
+			drawq_soft_finish();
+
+			if (fb.tex_lock)
+			{
+				SDL_UnlockTexture(fb.texture);
+				fb.tex_lock = 0;
+			}
+
+			SDL_RenderClear(fb.renderer);
+			SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
+			SDL_RenderPresent(fb.renderer);
+		}
+		fb.first_frame_done = 1;
+	}
+
+	if (fb.use_drawq)
+	{
 		if (mouse.window_minimised_flag <= 0)
 			drawq_run();
-		else				// if the window is minimised just don't do any OpenCL/OpenGL stuff
+		else				// if the window is minimised just don't do any drawq stuff
 		{
 			drawq_reinit();
 			SDL_Delay(80);		// there's no more vsync therefore the loop can easily run at 500+ FPS without the delay
@@ -637,6 +669,16 @@ int sdl_toggle_borderless_fullscreen()
 	sdl_handle_window_resize(&zc);
 
 	return fb.fullscreen_on;
+}
+
+void sdl_quit_actions()
+{
+	if (fb.use_drawq==2)
+		drawq_soft_finish();
+
+	SDL_DestroyRenderer(fb.renderer);
+	SDL_DestroyWindow(fb.window);
+	SDL_Quit();
 }
 
 // Audio
