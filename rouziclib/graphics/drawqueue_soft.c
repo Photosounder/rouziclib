@@ -75,7 +75,7 @@ void dqsb_draw_line_thin_add(float *le, float *block, xy_t start_pos, const int 
 #ifdef __GNUC__
 __attribute__((__target__("avx2,ssse3")))
 #endif
-void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, int block_pix, int chan_stride)
+void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, xyi_t dim, int chan_stride)
 {
 	xyi_t ip;
 	int i;
@@ -103,11 +103,11 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 
 	index = _mm_set_epi32(chan_stride*3, chan_stride*2, chan_stride, 0);
 
-	for (ip.y=0; ip.y < block_pix; ip.y++)
+	for (ip.y=0; ip.y < dim.y; ip.y++)
 	{
 		i = ip.y * r_pitch;
 
-		for (ip.x=0; ip.x < block_pix; ip.x++, i++)
+		for (ip.x=0; ip.x < dim.x; ip.x++, i++)
 		{
 			f = _mm_i32gather_ps(block, index, 4);				// load frgb from block channel planes
 			sf = _mm_mul_ps(_mm_frgb_to_srgb(f), _mm_set_ps1(255.f));	// convert and multiply by 255
@@ -121,74 +121,91 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 
 typedef struct
 {
+	volatile thread_on;
 	rl_thread_t thread_handle;
-	uint8_t *data;
-	int32_t *drawq_data, *sector_pos, *entry_list;
-	size_t data_as, drawq_as, sector_list_as, entry_list_as;
-	int sector_size, sector_w, r_pitch, srgb_order;
-	srgb_t *srgb;
-	xyi_t r_dim;
+	rl_mutex_t proc_mtx, cont_mtx;
+	int current_locks;
+	uint8_t *volatile data;
+	int32_t *volatile drawq_data, *volatile sector_pos, *volatile entry_list;
+	volatile size_t data_as, drawq_as, sector_list_as, entry_list_as;
+	volatile int sector_size, sector_w, r_pitch, srgb_order;
+	srgb_t *volatile srgb;
+	volatile xyi_t r_dim;
 	float **block;
 	int thread_id, thread_count;
 } drawq_soft_data_t;
 
-#define DQS_THREADS 1
+#define DQS_THREADS 6
 drawq_soft_data_t *dqs_data=NULL;
 
 int drawq_soft_thread(drawq_soft_data_t *d)
 {
-	xyi_t ip, is, sec_dim;
-	float *df = d->drawq_data;
-	int32_t *di = d->drawq_data;
-	int32_t *poslist = d->sector_pos;
-	int32_t *entrylist = d->entry_list;
-	int ss = d->sector_size;
-	int sec_pix = 1 << ss;		// 1 << 4 = 16
-	int chan_stride = sec_pix*sec_pix;
+	xyi_t ip, is, bpos, sec_dim, out_dim;
+	float *df;
+	int32_t *di;
+	int ss, sec_pix, chan_stride;
 	int i, eli, qi, sec, entry_count;
-	frgb_t pv;
 	xy_t pos;
-	int brlvl = 0;			// bracket level
+	int brlvl;
 
+	rl_mutex_unlock(&d->cont_mtx);		// unlock cont_mtx so that the calling thread can go on
 	rl_thread_set_priority_high();
 
-	sec_dim = rshift_xyi(d->r_dim, ss);			// 1920x1080 >> 4 = 120x67
-	//sec_dim = ceil_rshift_xyi(d->r_dim, ss);		// 1920x1080 >> 4 = 120x68
+	while (d->thread_on)
+	{
+		rl_mutex_lock(&d->proc_mtx);
 
-	// Go through each sector
-	for (is.y=d->thread_id; is.y < sec_dim.y; is.y+=d->thread_count)
-		for (is.x=0; is.x < sec_dim.x; is.x++)
-		{
-			sec = is.y * d->sector_w + is.x;	// sector index
-			eli = poslist[sec];			// entry list index
-			if (eli < 0)				// if the index is -1 that means there's nothing to do
+		df = d->drawq_data;
+		di = d->drawq_data;
+		ss = d->sector_size;
+		sec_pix = 1 << ss;		// 1 << 4 = 16
+		chan_stride = sec_pix*sec_pix;
+		//sec_dim = rshift_xyi(d->r_dim, ss);			// 1920x1080 >> 4 = 120x67
+		sec_dim = ceil_rshift_xyi(d->r_dim, ss);		// 1920x1080 >> 4 = 120x68
+		brlvl = 0;			// bracket level
+
+		// Go through each sector
+		for (is.y=d->thread_id; is.y < sec_dim.y; is.y+=d->thread_count)
+			for (is.x=0; is.x < sec_dim.x; is.x++)
 			{
-				// Blank the whole sector
-				for (ip.y = is.y<<ss; ip.y < (is.y+1)<<ss; ip.y++)
-					memset(&d->srgb[ip.y*d->r_pitch + (is.x<<ss)], 0, sec_pix*sizeof(srgb_t));
-			}
-			else
-			{
-				memset(d->block[0], 0, chan_stride*4*sizeof(float));
+				bpos = lshift_xyi(is, ss);
+				out_dim = min_xyi(sub_xyi(d->r_dim, bpos), set_xyi(sec_pix));
 
-				ip = lshift_xyi(is, ss);
-				pos = xyi_to_xy(ip);
-				entry_count = entrylist[eli];
+				sec = is.y * d->sector_w + is.x;	// sector index
+				eli = d->sector_pos[sec];		// entry list index
 
-				// Go through each entry for this sector
-				for (i=0; i < entry_count; i++)
+				if (eli < 0)				// if the index is -1 that means there's nothing to do
 				{
-					qi = entrylist[eli + i + 1];	// queue index
-
-					switch (di[qi])			// type of the entry
-					{
-						case DQT_LINE_THIN_ADD:		dqsb_draw_line_thin_add(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);	break;
-					}
+					// Blank the whole sector
+					for (ip.y = bpos.y; ip.y < bpos.y+out_dim.y; ip.y++)
+						memset(&d->srgb[ip.y*d->r_pitch + bpos.x], 0, out_dim.x*sizeof(srgb_t));
 				}
+				else
+				{
+					memset(d->block[0], 0, chan_stride*4*sizeof(float));
 
-				dqs_block_to_srgb(&d->srgb[ip.y*d->r_pitch + ip.x], d->block[0], d->r_pitch, d->srgb_order, sec_pix, chan_stride);
+					pos = xyi_to_xy(bpos);
+					entry_count = d->entry_list[eli];
+
+					// Go through each entry for this sector
+					for (i=0; i < entry_count; i++)
+					{
+						qi = d->entry_list[eli + i + 1];	// queue index
+
+						switch (di[qi])				// type of the entry
+						{
+							case DQT_LINE_THIN_ADD:		dqsb_draw_line_thin_add(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);	break;
+						}
+					}
+
+					dqs_block_to_srgb(&d->srgb[bpos.y*d->r_pitch + bpos.x], d->block[0], d->r_pitch, d->srgb_order, out_dim, chan_stride);
+				}
 			}
-		}
+
+		rl_mutex_unlock(&d->proc_mtx);
+		rl_mutex_lock(&d->cont_mtx);
+		rl_mutex_unlock(&d->cont_mtx);
+	}
 
 	return 0;
 }
@@ -197,8 +214,31 @@ void drawq_soft_run()
 {
 	int i, r_pitch;
 
+	// Init once
 	if (dqs_data==NULL)
+	{
 		dqs_data = calloc(DQS_THREADS, sizeof(drawq_soft_data_t));
+
+		for (i=0; i < DQS_THREADS; i++)
+		{
+			drawq_soft_data_t *d = &dqs_data[i];
+
+			// Init everything permanent
+			d->thread_on = 1;
+			rl_mutex_init(&d->proc_mtx);
+			rl_mutex_init(&d->cont_mtx);
+			d->thread_id = i;
+			d->thread_count = DQS_THREADS;
+			d->block = calloc_2d(4, 1 << 2*fb.sector_size, 4*sizeof(float));	// alloc float blocks once, one block per bracket level
+
+			// Create thread
+			rl_mutex_lock(&d->proc_mtx);		// lock proc_mtx so the thread has to wait to proceed
+			rl_mutex_lock(&d->cont_mtx);
+			rl_thread_create(&d->thread_handle, drawq_soft_thread, d);
+			rl_mutex_lock(&d->cont_mtx);		// double lock cont_mtx so we can't go on until the thread unlocks it
+			rl_mutex_unlock(&d->cont_mtx);
+		}
+	}
 
 	// Acquire destination texture
 	#ifdef RL_SDL
@@ -219,20 +259,14 @@ void drawq_soft_run()
 		d->sector_size = fb.sector_size;
 		d->sector_w = fb.sector_w;
 
-		d->thread_id = i;
-		d->thread_count = DQS_THREADS;
-
 		d->srgb = fb.r.srgb;
 		d->r_dim = fb.r.dim;
 		d->srgb_order = fb.srgb_order;
 		d->r_pitch = r_pitch;
 
-		// Alloc float blocks once, one block per bracket level
-		if (d->block==NULL)
-			d->block = calloc_2d(4, 1 << 2*d->sector_size, 4*sizeof(float));
-
-		// Create thread
-		rl_thread_create(&d->thread_handle, drawq_soft_thread, d);
+		d->current_locks++;
+		rl_mutex_unlock(&d->proc_mtx);	// this makes the thread start processing this frame
+		rl_mutex_lock(&d->cont_mtx);	// will make the thread stop after processing is done
 	}
 }
 
@@ -248,6 +282,32 @@ void drawq_soft_finish()
 		drawq_soft_data_t *d = &dqs_data[i];
 
 		if (d)
+		if (d->current_locks==1)
+		{
+			d->current_locks--;
+			rl_mutex_lock(&d->proc_mtx);		// will make the thread wait for drawq_soft_run() to add the new frame data
+			rl_mutex_unlock(&d->cont_mtx);		// makes the thread complete the loop and wait for proc_mtx
+			//rl_thread_join_and_null(&d->thread_handle);
+		}
+	}
+}
+
+void drawq_soft_quit()
+{
+	int i;
+
+	if (dqs_data==NULL)
+		return ;
+
+	for (i=0; i < DQS_THREADS; i++)
+	{
+		drawq_soft_data_t *d = &dqs_data[i];
+
+		if (d)
+		{
+			d->thread_on = 0;
+			rl_mutex_unlock(&d->cont_mtx);
 			rl_thread_join_and_null(&d->thread_handle);
+		}
 	}
 }

@@ -72,18 +72,21 @@ void data_cl_realloc(size_t buffer_size)
 	while (new_as < fb.data_cl_as + buffer_size);
 
 	// Allocate the CL buffer and shrink it if needed
-	#ifdef RL_OPENCL
-	do
+	if (fb.use_drawq==1)
 	{
-		fb.data_cl = clCreateBuffer(fb.clctx.context, CL_MEM_READ_WRITE, new_as, NULL, &ret);
-		if (ret != CL_SUCCESS)			// if it's too much
-			new_as -= 8 << 20;		// remove 8 MB
-	}
-	while (ret != CL_SUCCESS);
-	#endif
+		#ifdef RL_OPENCL
+		do
+		{
+			fb.data_cl = clCreateBuffer(fb.clctx.context, CL_MEM_READ_WRITE, new_as, NULL, &ret);
+			if (ret != CL_SUCCESS)			// if it's too much
+				new_as -= 8 << 20;		// remove 8 MB
+		}
+		while (ret != CL_SUCCESS);
+		#endif
 
-	if (new_as < fb.data_cl_as)
-		fprintf_rl(stderr, "data_cl_realloc() made fb.data_cl smaller, %g MB to %g MB\n", (double) fb.data_cl_as / sq(1024.), (double) new_as / sq(1024.));
+		if (new_as < fb.data_cl_as)
+			fprintf_rl(stderr, "data_cl_realloc() made fb.data_cl smaller, %g MB to %g MB\n", (double) fb.data_cl_as / sq(1024.), (double) new_as / sq(1024.));
+	}
 
 	// Resize the local buffer and copy it back
 	if (fb.use_drawq)

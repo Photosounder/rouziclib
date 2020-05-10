@@ -555,6 +555,9 @@
 	// Function pointers as function arguments
 		 void some_function(int (*func_ptr_name)(void*,int))
 
+	// A volatile pointer to non-volatile data is declared like this:
+		int *volatile ptr;
+
 	// How to get one line from a string
 		n=0;
 		sscanf(p, "%[^\n]\n%n", line, &n);

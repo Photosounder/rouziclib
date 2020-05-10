@@ -588,6 +588,7 @@ void sdl_flip_fb()
 			SDL_RenderClear(fb.renderer);
 			SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 			SDL_RenderPresent(fb.renderer);
+			fb.timing[fb.timing_index].flip_end = get_time_hr();
 		}
 		fb.first_frame_done = 1;
 	}
@@ -616,6 +617,7 @@ void sdl_flip_fb()
 		SDL_RenderClear(fb.renderer);
 		SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 		SDL_RenderPresent(fb.renderer);
+		fb.timing[fb.timing_index].flip_end = get_time_hr();
 
 		screen_blank();
 	}
@@ -674,7 +676,7 @@ int sdl_toggle_borderless_fullscreen()
 void sdl_quit_actions()
 {
 	if (fb.use_drawq==2)
-		drawq_soft_finish();
+		drawq_soft_quit();
 
 	SDL_DestroyRenderer(fb.renderer);
 	SDL_DestroyWindow(fb.window);

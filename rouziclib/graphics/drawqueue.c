@@ -127,11 +127,6 @@ void drawq_run()
 	}
 #endif
 
-	if (fb.use_drawq==2)
-	{
-		drawq_soft_finish();
-	}
-
 	fb.timing[fb.timing_index].interop_sync_end = get_time_hr();
 
 	// Make entry list for each sector
@@ -141,9 +136,9 @@ void drawq_run()
 	if (fb.use_drawq==2)
 		drawq_soft_run();
 
-#ifdef RL_OPENCL
 	if (fb.use_drawq==1)
 	{
+#ifdef RL_OPENCL
 		// Copy compiled lists to data_cl
 		cl_ulong drawq_data_index = cl_add_buffer_to_data_table(fb.drawq_data, fb.drawq_data[DQ_END]*sizeof(int32_t), sizeof(int32_t), NULL);
 		cl_ulong sector_pos_index = cl_add_buffer_to_data_table(fb.sector_pos, fb.sectors*sizeof(int32_t), sizeof(int32_t), NULL);
@@ -199,8 +194,13 @@ void drawq_run()
 		ret = clEnqueueReadBuffer(fb.clctx.command_queue, fb.cl_srgb, CL_FALSE, 0, mul_x_by_y_xyi(fb.r.dim)*4, fb.r.srgb, 0, NULL, NULL);
 		CL_ERR_NORET("clEnqueueReadBuffer (in drawq_run(), for fb.cl_srgb)", ret);
 		#endif
-	}
 #endif
+	}
+	else
+	{
+		fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
+		fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
+	}
 
 	drawq_reinit();	// clear/reinit the buffers
 }
