@@ -42,16 +42,13 @@ extern uint64_t rl_xgetbv(uint32_t index);
 
 extern int check_cpuinfo(const enum cpu_feat_n fid);
 
-// AVX2 required
-extern __m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf);
-extern __m256i _mm256_load_8xi8_as_8xi32(int64_t const *in);
-
-extern __m128i _mm_load_4xi8_as_4xi32(int32_t const *in);
-
 #ifndef _mm_storeu_si32
-extern void _mm_storeu_si32(void *mem_addr, __m128i a);
+extern void _mm_storeu_si32(void *mem_addr, __m128i a);  // SSE2
 #endif
 
+extern __m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex);  // SSE2
+
+// SSE
 #define _mm_abs_ps(v)	_mm_andnot_ps(_mm_set_ps1(-0.f), v)
 
 #endif

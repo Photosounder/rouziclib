@@ -145,44 +145,35 @@ blend_func_fl_t get_blend_fl_equivalent(const blend_func_t bf)
 
 #ifdef RL_INTEL_INTR
 #ifdef __GNUC__
-__attribute__((__target__("avx2")))
+__attribute__((__target__("ssse3,sse4.1")))
 #endif
-void alphablend_lrgb_on_srgb_simd128(int32_t *s0_ptr, __m128i *l_ptr, int64_t *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2
+void alphablend_lrgb_on_srgb_simd128(uint8_t *s0, __m128i *l_ptr, int64_t *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2
 {
-	__m128i s1, la, lb, Ca, Cb, Aa, Aai, alpha_shuf, shuf_a, shuf_b, opaque_mask, alpha_mask, Co;
+	__m128i Ca, Cb, Aa, Aai, alpha_mask, Co;
 
 	// Load 2 lrgb pixels
 	Ca = _mm_lddqu_si128(l_ptr);					// load 2 lrgb pixels (8 x i16)
 	alpha_mask = _mm_set_epi16(0xFFFF, 0, 0, 0, 0xFFFF, 0, 0, 0);
 
+	// Alpha testing
 	if (_mm_test_all_zeros(Ca, alpha_mask))				// if all 2 lrgb pixels are transparent
 	{
-		_mm_storeu_si64(s1_ptr, _mm_loadl_epi64(s0_ptr));	// copy the original 2 srgb pixels
+		_mm_storeu_si64(s1_ptr, _mm_loadl_epi64(s0));		// copy the original 2 srgb pixels
 		return;
 	}
 
-	opaque_mask = _mm_set_epi16(0x8000, 0, 0, 0, 0x8000, 0, 0, 0);
-	Aa = _mm_xor_si128(Ca, opaque_mask);				// zeroes alpha values that are 32768
+	// Zero alpha values that are 32768
+	Aa = _mm_xor_si128(Ca, _mm_set_epi16(0x8000, 0, 0, 0, 0x8000, 0, 0, 0));
 
+	// Blending
 	if (_mm_test_all_zeros(Aa, alpha_mask)==0)			// we do the blending math only if Aa != 32768
 	{
 		// RGBA -> AAAA for the 2 lrgb pixels
-		alpha_shuf = _mm_set_epi8(8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 7, 6, 7, 6, 7, 6, 7, 6);
-		Aa = _mm_shuffle_epi8(Ca, alpha_shuf);
+		Aa = _mm_shuffle_epi8(Ca, _mm_set_epi8(8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 7, 6, 7, 6, 7, 6, 7, 6));
 		Aai = _mm_sub_epi16(_mm_set1_epi16(32768), Aa);		// 32768 - Aa
 
 		// Convert 2 srgb pixels to lrgb
-		la = _mm_load_4xi8_as_4xi32(s0_ptr);			// load first srgb0 pixel
-		la = _mm_i32gather_epi32(lut0, la, 4);			// slrgb_l lookup, la is latent
-		lb = _mm_load_4xi8_as_4xi32(&s0_ptr[1]);		// load second srgb0 pixel
-		lb = _mm_i32gather_epi32(lut0, lb, 4);			// slrgb_l lookup, lb is latent
-
-		// Make Cb by shuffling and uniting la and lb
-		shuf_a = _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 13, 12,  9,  8,  5,  4,  1,  0);
-		shuf_b = _mm_set_epi8(13, 12,  9,  8,  5,  4,  1,  0, -1, -1, -1, -1, -1, -1, -1, -1);
-		la = _mm_shuffle_epi8(la, shuf_a);
-		lb = _mm_shuffle_epi8(lb, shuf_b);
-		Cb = _mm_or_si128(la, lb);
+		Cb = _mm_set_epi16(lut0[s0[7]], lut0[s0[6]], lut0[s0[5]], lut0[s0[4]], lut0[s0[3]], lut0[s0[2]], lut0[s0[1]], lut0[s0[0]]);
 
 		// Do the blending math
 		Ca = _mm_mulhi_epu16(Ca, Aa);				// Ca*Aa >> 16
@@ -191,24 +182,14 @@ void alphablend_lrgb_on_srgb_simd128(int32_t *s0_ptr, __m128i *l_ptr, int64_t *s
 		Ca = _mm_slli_epi16(Ca, 1);				// <<= 1 to convert from 1.14 to 1.15
 	}
 
-	// Prepare for lsrgb lookup by splitting Ca
-	shuf_a = _mm_set_epi8(-1, -1,  7,  6, -1, -1,  5,  4, -1, -1,  3,  2, -1, -1,  1,  0);
-	shuf_b = _mm_set_epi8(-1, -1, 15, 14, -1, -1, 13, 12, -1, -1, 11, 10, -1, -1,  9,  8);
-	la = _mm_shuffle_epi8(Ca, shuf_a);
-	lb = _mm_shuffle_epi8(Ca, shuf_b);
+	// Lookups for linear 1.15 to sRGB 8.5
+	uint16_t Cac[8];
+	_mm_store_si128(&Cac, Ca);
+	Co = _mm_set_epi16(lut1[Cac[7]], lut1[Cac[6]], lut1[Cac[5]], lut1[Cac[4]], lut1[Cac[3]], lut1[Cac[2]], lut1[Cac[1]], lut1[Cac[0]]);
 
-	// Lsrgb lookups
-	la = _mm_i32gather_epi32(lut1, la, 4);			// lsrgb_l lookup, la is latent
-	lb = _mm_i32gather_epi32(lut1, lb, 4);			// lsrgb_l lookup, lb is latent
-	la = _mm_srli_epi32(la, 5);				// >>= 5 to make it 8 bit
-	lb = _mm_srli_epi32(lb, 5);				// >>= 5 to make it 8 bit
-
-	// Pack from 32-bit to 8-bit
-	shuf_a = _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12,  8,  4,  0);
-	shuf_b = _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 12,  8,  4,  0, -1, -1, -1, -1);
-	la = _mm_shuffle_epi8(la, shuf_a);
-	lb = _mm_shuffle_epi8(lb, shuf_b);
-	Co = _mm_or_si128(la, lb);
+	// Shift and shuffle to pack from 16-bit sRGB 8.5 to 8-bit sRGB
+	Co = _mm_srli_epi16(Co, 5);	// >>= 5 to make it 8 bit
+	Co = _mm_shuffle_epi8(Co, _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 14, 12, 10, 8, 6,  4,  2,  0));
 
 	// Store result
 	_mm_storeu_si64(s1_ptr, Co);
@@ -220,72 +201,4 @@ void alphablend_lrgb_on_srgb_simd128(int32_t *s0_ptr, __m128i *l_ptr, int64_t *s
 	Aai = 32768 - Aa;
 	Co = ( Ca*Aa + Cb*Aai ) >> 15;	// 1.LBD format*/
 }
-
-/*void alphablend_lrgb_on_srgb_simd256(int64_t *s0_ptr, __m256i *l_ptr, __m128i *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2, ~24% slower than the 128-bit version
-{
-	__m256i s1, la, lb, Ca, Cb, Aa, Aai, alpha_shuf, shuf_a, shuf_b, opaque_mask, alpha_mask;
-	__m128i Co;
-
-	// Load 4 lrgb pixels
-	Ca = _mm256_lddqu_si256(l_ptr);					// load 4 lrgb pixels (16 x i16)
-	alpha_mask = _mm256_set_epi8(0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0);
-
-	if (_mm256_testz_si256(Ca, alpha_mask))				// if all 4 lrgb pixels are transparent
-	{
-		_mm_storeu_si128(s1_ptr, _mm_lddqu_si128(s0_ptr));	// copy the original 4 srgb pixels
-		return;
-	}
-
-	opaque_mask = _mm256_set_epi8(0x80, 0x00, 0, 0, 0, 0, 0, 0, 0x80, 0x00, 0, 0, 0, 0, 0, 0, 0x80, 0x00, 0, 0, 0, 0, 0, 0, 0x80, 0x00, 0, 0, 0, 0, 0, 0);
-	Aa = _mm256_xor_si256(Ca, opaque_mask);				// zeroes alpha values that are 32768
-
-	if (_mm256_testz_si256(Aa, alpha_mask)==0)			// we do the blending math only if Aa != 32768
-	{
-		// RGBA -> AAAA for the 4 lrgb pixels
-		alpha_shuf = _mm256_set_epi8(24+7, 24+6, 24+7, 24+6, 24+7, 24+6, 24+7, 24+6, 16+7, 16+6, 16+7, 16+6, 16+7, 16+6, 16+7, 16+6, 8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 7, 6, 7, 6, 7, 6, 7, 6);
-		Aa = _mm256_shuffle32_epi8(Ca, alpha_shuf);
-		Aai = _mm256_sub_epi16(_mm256_set1_epi16(32768), Aa);	// 32768 - Aa
-
-		// Convert 4 srgb pixels to lrgb
-		la = _mm256_load_8xi8_as_8xi32(s0_ptr);			// load 2 first srgb0 pixels
-		la = _mm256_i32gather_epi32(lut0, la, 4);		// slrgb_l lookup, la is latent
-		lb = _mm256_load_8xi8_as_8xi32(&s0_ptr[1]);		// load 2 other srgb0 pixels
-		lb = _mm256_i32gather_epi32(lut0, lb, 4);		// slrgb_l lookup, lb is latent
-
-		// Make Cb by shuffling and uniting la and lb
-		shuf_a = _mm256_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 29, 28, 25, 24, 21, 20, 17, 16, 13, 12,  9,  8,  5,  4,  1,  0);
-		shuf_b = _mm256_set_epi8(29, 28, 25, 24, 21, 20, 17, 16, 13, 12,  9,  8,  5,  4,  1,  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-		la = _mm256_shuffle32_epi8(la, shuf_a);
-		lb = _mm256_shuffle32_epi8(lb, shuf_b);
-		Cb = _mm256_or_si256(la, lb);
-
-		// Do the blending math
-		Ca = _mm256_mulhi_epu16(Ca, Aa);			// Ca*Aa >> 16
-		Cb = _mm256_mulhi_epu16(Cb, Aai);			// Cb*Aai >> 16
-		Ca = _mm256_add_epi16(Ca, Cb);
-		Ca = _mm256_slli_epi16(Ca, 1);				// <<= 1 to convert from 1.14 to 1.15
-	}
-
-	// Prepare for lsrgb lookup by splitting Ca
-	shuf_a = _mm256_set_epi8(-1, -1, 15, 14, -1, -1, 13, 12, -1, -1, 11, 10, -1, -1,  9,  8, -1, -1,  7,  6, -1, -1,  5,  4, -1, -1,  3,  2, -1, -1,  1,  0);
-	shuf_b = _mm256_set_epi8(-1, -1, 31, 30, -1, -1, 29, 28, -1, -1, 27, 26, -1, -1, 25, 24, -1, -1, 23, 22, -1, -1, 21, 20, -1, -1, 19, 18, -1, -1, 17, 16);
-	la = _mm256_shuffle32_epi8(Ca, shuf_a);
-	lb = _mm256_shuffle32_epi8(Ca, shuf_b);
-
-	// Lsrgb lookups
-	la = _mm256_i32gather_epi32(lut1, la, 4);		// lsrgb_l lookup, la is latent
-	lb = _mm256_i32gather_epi32(lut1, lb, 4);		// lsrgb_l lookup, lb is latent
-	la = _mm256_srli_epi32(la, 5);				// >>= 5 to make it 8 bit
-	lb = _mm256_srli_epi32(lb, 5);				// >>= 5 to make it 8 bit
-
-	// Pack from 32-bit to 8-bit
-	shuf_a = _mm256_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 28, 24, 20, 16, 12,  8,  4,  0);
-	shuf_b = _mm256_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 28, 24, 20, 16, 12,  8,  4,  0, -1, -1, -1, -1, -1, -1, -1, -1);
-	la = _mm256_shuffle32_epi8(la, shuf_a);
-	lb = _mm256_shuffle32_epi8(lb, shuf_b);
-	Co = _mm256_castsi256_si128(_mm256_or_si256(la, lb));
-
-	// Store result
-	_mm_storeu_si128(s1_ptr, Co);
-}*/
 #endif

@@ -328,9 +328,6 @@ void convert_frgb_to_srgb(int mode)
 	}
 }
 
-#ifdef __GNUC__
-__attribute__((__target__("avx2")))
-#endif
 void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 {
 	int32_t i=0;
@@ -348,13 +345,14 @@ void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 	}
 
 	// Benchmark results:
-	// 128-bit SIMD 5.9 ms/frame
-	// 256-bit SIMD 7.3 ms/frame
+	// SSE4 128-bit SIMD 4.6 ms/frame
+	// AVX2 128-bit SIMD 5.9 ms/frame
+	// AVX2 256-bit SIMD 7.3 ms/frame
 	// SISD fallback 10.1 ms/frame
 
 	// SIMD blending
 	#ifdef RL_INTEL_INTR
-	if (LBD==15 && check_cpuinfo(CPU_HAS_AVX2))
+	if (LBD==15 && check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
 	{
 		uint64_t *s0_ptr = srgb0, *s1_ptr = srgb1;
 		__m128i *l_ptr = fb.r.l;

@@ -8,40 +8,37 @@ __m128i _mm_index_from_vom_ps(__m128 x, const float offset, const uint32_t mask)
 	return r;
 }
 
-#ifdef __GNUC__
-__attribute__((__target__("avx2,fma")))
-#endif
 __m128 _mm_eval_poly_d1_lut_ps(__m128 x, const float *lut, __m128i index)
 {
 	__m128 r, c0, c1;
 
 	// Look up coefs in LUT
-	c0 = _mm_i32gather_ps(lut, index, 4);			// lookup c0
+	c0 = _mm_i32sgather_ps(lut, index);			// lookup c0
 	index = _mm_add_epi32(index, _mm_set1_epi32(1));	// index+1
-	c1 = _mm_i32gather_ps(lut, index, 4);			// lookup c1
+	c1 = _mm_i32sgather_ps(lut, index);			// lookup c1
 
 	// Polynomial
-	r = _mm_fmadd_ps(c1, x, c0);				// x*c1 + c0
+	r = _mm_mul_ps(c1, x);		// faster than _mm_fmadd_ps because the mulps can be done earlier
+	r = _mm_add_ps(r, c0);
 	return r;
 }
 
-#ifdef __GNUC__
-__attribute__((__target__("avx2,fma")))
-#endif
 __m128 _mm_eval_poly_d2_lut_ps(__m128 x, const float *lut, __m128i index)
 {
 	__m128 r, c0, c1, c2;
 
 	// Look up coefs in LUT
-	c0 = _mm_i32gather_ps(lut, index, 4);			// lookup c0
+	c0 = _mm_i32sgather_ps(lut, index);			// lookup c0
 	index = _mm_add_epi32(index, _mm_set1_epi32(1));	// index+1
-	c1 = _mm_i32gather_ps(lut, index, 4);			// lookup c1
+	c1 = _mm_i32sgather_ps(lut, index);			// lookup c1
 	index = _mm_add_epi32(index, _mm_set1_epi32(1));	// index+1
-	c2 = _mm_i32gather_ps(lut, index, 4);			// lookup c2
+	c2 = _mm_i32sgather_ps(lut, index);			// lookup c2
 
 	// Polynomial
-	r = _mm_fmadd_ps(c2, x, c1);
-	r = _mm_fmadd_ps(r, x, c0);
+	r = _mm_mul_ps(c2, x);
+	r = _mm_add_ps(r, c1);
+	r = _mm_mul_ps(r, x);
+	r = _mm_add_ps(r, c0);
 	return r;
 }
 
@@ -93,7 +90,6 @@ __m128 _mm_frgb_to_srgb(__m128 x)	// output is [0.f , 1.f]
 	index = _mm_mullo_epi32(_mm_srli_epi32(index, ish), _mm_set1_epi32(3));
 
 	r = _mm_eval_poly_d2_lut_ps(x, lut, index);
-	//r = _mm_mul_ps(r, _mm_set_ps1(255.f));
 	return r;
 }
 

@@ -1,7 +1,4 @@
-#ifdef __GNUC__
-__attribute__((__target__("fma")))
-#endif
-void dqsb_draw_line_thin_add(float *le, float *block, xy_t start_pos, const int bs, int chan_stride)	// AVX2
+void dqsb_draw_line_thin_add(float *le, float *block, xy_t start_pos, const int bs, int chan_stride)	// SSE2
 {
 	// Generic variables
 	xyi_t ip;
@@ -39,8 +36,8 @@ void dqsb_draw_line_thin_add(float *le, float *block, xy_t start_pos, const int 
 			xv = _mm_add_ps(_mm_set_ps1(x), _mm_set_ps(3.f, 2.f, 1.f, 0.f));
 
 			// Rotate coordinates
-			rpx = _mm_fmsub_ps(xv, costh, ysin);
-			rpy = _mm_fmadd_ps(xv, sinth, ycos);
+			rpx = _mm_mul_ps(xv, costh);	rpy = _mm_mul_ps(xv, sinth);
+			rpx = _mm_sub_ps(rpx, ysin);	rpy = _mm_add_ps(rpy, ycos);
 
 			// Distances
 			d1y = _mm_abs_ps(_mm_sub_ps(rpy, r1y));
@@ -65,7 +62,7 @@ void dqsb_draw_line_thin_add(float *le, float *block, xy_t start_pos, const int 
 				for (ic=0; ic < 4; ic++)
 				{
 					bp = (__m128 *) &block[ic*chan_stride + ib];
-					*bp = _mm_fmadd_ps(weight, col[ic], *bp);
+					*bp = _mm_add_ps(_mm_mul_ps(weight, col[ic]), *bp);
 				}
 			}
 		}
@@ -73,12 +70,12 @@ void dqsb_draw_line_thin_add(float *le, float *block, xy_t start_pos, const int 
 }
 
 #ifdef __GNUC__
-__attribute__((__target__("avx2,ssse3")))
+__attribute__((__target__("ssse3")))
 #endif
-void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, xyi_t dim, int chan_stride)
+void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, xyi_t dim, int ss, int chan_stride) // SSSE3, calls SSE4.1
 {
 	xyi_t ip;
-	int i;
+	int i, ib;
 	__m128 f, sf;
 	__m128i index, sv, shuf_mask;
 
@@ -106,10 +103,12 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 	for (ip.y=0; ip.y < dim.y; ip.y++)
 	{
 		i = ip.y * r_pitch;
+		ib = ip.y << ss;
 
-		for (ip.x=0; ip.x < dim.x; ip.x++, i++)
+		for (ip.x=0; ip.x < dim.x; ip.x++, i++, ib++)
 		{
-			f = _mm_i32gather_ps(block, index, 4);				// load frgb from block channel planes
+			// Load frgb from block channel planes
+			f = _mm_set_ps(block[chan_stride*3 + ib], block[chan_stride*2 + ib], block[chan_stride + ib], block[ib]);
 			sf = _mm_mul_ps(_mm_frgb_to_srgb(f), _mm_set_ps1(255.f));	// convert and multiply by 255
 			sv = _mm_cvtps_epi32(sf);					// cast to 32-bit int (rounded, no dithering)
 			sv = _mm_shuffle_epi8(sv, shuf_mask);				// reorder the channels and pack them into the lower 32-bits
@@ -135,7 +134,7 @@ typedef struct
 	int thread_id, thread_count;
 } drawq_soft_data_t;
 
-#define DQS_THREADS 6
+#define DQS_THREADS 1
 drawq_soft_data_t *dqs_data=NULL;
 
 int drawq_soft_thread(drawq_soft_data_t *d)
@@ -198,7 +197,7 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 						}
 					}
 
-					dqs_block_to_srgb(&d->srgb[bpos.y*d->r_pitch + bpos.x], d->block[0], d->r_pitch, d->srgb_order, out_dim, chan_stride);
+					dqs_block_to_srgb(&d->srgb[bpos.y*d->r_pitch + bpos.x], d->block[0], d->r_pitch, d->srgb_order, out_dim, ss, chan_stride);
 				}
 			}
 

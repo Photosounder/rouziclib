@@ -66,57 +66,6 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 	return ret!=0;
 }
 
-#ifdef __GNUC__
-__attribute__((__target__("avx2")))
-#endif
-__m256i _mm256_shuffle32_epi8(__m256i reg, __m256i shuf)
-{	// from https://stackoverflow.com/a/32535489/1675589
-	__m256i regAll0 = _mm256_permute2x128_si256(reg, reg, 0x00);
-	__m256i regAll1 = _mm256_permute2x128_si256(reg, reg, 0x11);
-	__m256i resR0 = _mm256_shuffle_epi8(regAll0, shuf);
-	__m256i resR1 = _mm256_shuffle_epi8(regAll1, shuf);
-	__m256i res = _mm256_blendv_epi8(resR1, resR0, _mm256_cmpgt_epi8(_mm256_set1_epi8(16), shuf));
-	return res;
-}
-
-#ifdef __GNUC__
-__attribute__((__target__("avx2")))
-#endif
-__m256i _mm256_load_8xi8_as_8xi32(int64_t const *in)
-{
-	__m256i y0, y1, shuf_mask;
-
-	// Load the 8 bytes into the lower 8 bytes of a __m256i
-	y0 = _mm256_set_epi64x(0, 0, 0, *in);
-
-	// Shuffle mask to move the 8 bytes in the correct places
-	shuf_mask = _mm256_set_epi8(-1, -1, -1, 7, -1, -1, -1, 6, -1, -1, -1, 5, -1, -1, -1, 4, -1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 0);
-
-	// Shuffle
-	y1 = _mm256_shuffle32_epi8(y0, shuf_mask);
-
-	return y1;
-}
-
-#ifdef __GNUC__
-__attribute__((__target__("ssse3")))
-#endif
-__m128i _mm_load_4xi8_as_4xi32(int32_t const *in)
-{
-	__m128i y0, y1, shuf_mask;
-
-	// Load the 4 bytes into the lower 4 bytes of a __m128i
-	y0 = _mm_set_epi32(0, 0, 0, *in);
-
-	// Shuffle mask to move the 8 bytes in the correct places
-	shuf_mask = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 0);
-
-	// Shuffle
-	y1 = _mm_shuffle_epi8(y0, shuf_mask);
-
-	return y1;
-}
-
 #ifndef _mm_storeu_si32
 void _mm_storeu_si32(void* mem_addr, __m128i a)	// replacement for missing _mm_storeu_si32
 {
@@ -124,5 +73,14 @@ void _mm_storeu_si32(void* mem_addr, __m128i a)	// replacement for missing _mm_s
 	return;
 }
 #endif
+
+__m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex)	// faster than _mm_i32gather_ps and without AVX2
+{
+	uint32_t index[4];
+	__m128 r;
+	_mm_store_si128(&index, vindex);
+	r = _mm_set_ps(base_addr[index[3]], base_addr[index[2]], base_addr[index[1]], base_addr[index[0]]);
+	return r;
+}
 
 #endif

@@ -18,6 +18,5 @@ extern blend_func_t cur_blend;
 
 extern lrgb_t blend_alphablend_sep_alpha(lrgb_t Cb, lrgb_t Ca, int Ab, int Aa);
 #ifdef RL_INTEL_INTR
-extern void alphablend_lrgb_on_srgb_simd128(int32_t *s0_ptr, __m128i *l_ptr, int64_t *s1_ptr, int32_t *lut0, int32_t *lut1);
-//extern void alphablend_lrgb_on_srgb_simd256(int64_t *s0_ptr, __m256i *l_ptr, __m128i *s1_ptr, int32_t *lut0, int32_t *lut1);
+extern void alphablend_lrgb_on_srgb_simd128(uint8_t *s0, __m128i *l_ptr, int64_t *s1_ptr, int32_t *lut0, int32_t *lut1);  // SSSE3,SSE4.1
 #endif

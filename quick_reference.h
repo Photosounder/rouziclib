@@ -460,6 +460,25 @@
 			exit(0);
 		}
 
+		// Benchmark high frequency short function in-situ in nanoseconds
+		static uint64_t bench_count=0;
+		static double ts_accu=0.;
+		double ts=0.;
+		get_time_diff_hr(&ts);
+
+		//< things to time >
+		bench_function();
+
+		ts_accu += get_time_diff_hr(&ts);
+		get_time_diff_hr(&ts);
+		ts_accu -= get_time_diff_hr(&ts);
+		if ((++bench_count & 0xFFFFFF) == 0)
+		{
+			fprintf_rl(stdout, "Took %.3f nanoseconds/call\n", 1e9*ts_accu / bench_count);
+			ts_accu *= 0.75;
+			bench_count = bench_count*3/4;
+		}
+
 	// Paths
 		append_name_to_path(fullpath, path, name);	// puts 'path/name' into char fullpath[PATH_MAX*4], fullpath can be NULL in which case the function returns the allocated string
 		remove_name_from_path(dirpath, fullpath);	// makes dirpath from fullpath without the final name (can be a folder) nor the last /. Any trailing input / is ignored
@@ -554,6 +573,10 @@
 
 	// Function pointers as function arguments
 		 void some_function(int (*func_ptr_name)(void*,int))
+
+	// Force a CALL instruction to a function using a volatile function pointer
+		static __m128 (*volatile bench_function)(__m128) = some_function;
+		v = bench_function(a);
 
 	// A volatile pointer to non-volatile data is declared like this:
 		int *volatile ptr;
