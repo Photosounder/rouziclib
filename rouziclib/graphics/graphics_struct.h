@@ -38,7 +38,6 @@ typedef struct
 	int buf_fmt;		// format of the buffer, 10 for YUV 8-bit, 11 for YUV 10-bit, 12 for YUV 12-bit
 	int use_frgb;
 	int as;			// alloc size in pixels
-	// TODO consider a flag to indicate that the host-side raster has been updated since the last copy to the device to trigger a new copy
 	
 	int table_index;		// index in the cl_data allocation table
 } raster_t;
@@ -57,6 +56,10 @@ typedef struct
 	int lvl_count;
 	xyi_t fulldim;
 	size_t total_bytes;
+	#ifdef RL_INTEL_INTR
+	__m128 (*get_pixel_ps)(raster_t*,const size_t);
+	void (*set_pixel_ps)(raster_t*,const size_t,__m128);
+	#endif
 } mipmap_t;
 
 typedef struct

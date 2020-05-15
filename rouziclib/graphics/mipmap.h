@@ -5,6 +5,7 @@ extern void alloc_mipmap_level(mipmap_level_t *ml, xyi_t fulldim, xyi_t tilesize
 extern void *get_tile_pixel_ptr(mipmap_level_t ml, xyi_t pos, const int mode);
 extern frgb_t get_tile_pixel(mipmap_level_t ml, xyi_t pos);
 extern void set_tile_pixel(mipmap_level_t ml, xyi_t pos, frgb_t pv);
+extern void mipmap_set_functions(mipmap_t *m, const int mode);	// SSSE3
 extern void copy_from_raster_to_tiles(raster_t r, mipmap_level_t ml, const int mode);
 extern void tile_downscale_fast_box(mipmap_level_t r0, mipmap_level_t r1, const xyi_t ratio);
 extern void tile_downscale_box_2x2(mipmap_level_t ml0, mipmap_level_t ml1, const int mode);

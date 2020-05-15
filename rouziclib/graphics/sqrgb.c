@@ -53,17 +53,3 @@ sqrgb_t average_sqrgb_4(sqrgb_t a, sqrgb_t b, sqrgb_t c, sqrgb_t d)
 
 	return sum;
 }
-
-frgb_t sqrgb_to_frgb(sqrgb_t s)
-{
-	frgb_t f;
-	const float mul_rb = 1.f / (1023.f*1023.f);
-	const float mul_g = 1.f / (4092.f*4092.f);
-
-	f.r = (float) (s.r*s.r) * mul_rb;
-	f.g = (float) (s.g*s.g) * mul_g;
-	f.b = (float) (s.b*s.b) * mul_rb;
-	f.a = 1.f;
-
-	return f;
-}

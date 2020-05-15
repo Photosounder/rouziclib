@@ -47,6 +47,7 @@
 #include "fastfloat/simd.c"
 
 #include "graphics/graphics.c"
+#include "graphics/pixel_conv.c"
 #include "graphics/srgb.c"
 #include "graphics/sqrgb.c"
 #include "graphics/yuv.c"
@@ -57,7 +58,9 @@
 #include "graphics/drawrect.c"
 #include "graphics/drawprimitives.c"
 #include "graphics/drawqueue.c"
-#include "graphics/drawqueue_soft.c"
+#include "graphics/drawqueue/drawqueue_soft.c"
+#include "graphics/drawqueue/drawrect.c"
+#include "graphics/drawqueue/drawline.c"
 #include "graphics/draw_effects.c"
 #include "graphics/processing.c"
 #include "graphics/mipmap.c"

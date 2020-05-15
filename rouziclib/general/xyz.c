@@ -32,7 +32,6 @@ xy_t xyz_to_xy(const xyz_t in)
 
 	out.x = in.x;
 	out.y = in.y;
-
 	return out;
 }
 
@@ -43,7 +42,6 @@ xyz_t xy_to_xyz(const xy_t in)
 	out.x = in.x;
 	out.y = in.y;
 	out.z = 0.;
-
 	return out;
 }
 
@@ -53,7 +51,6 @@ xy_t xyi_to_xy(const xyi_t in)
 
 	out.x = in.x;
 	out.y = in.y;
-
 	return out;
 }
 
@@ -64,7 +61,6 @@ xyz_t xyi_to_xyz(const xyi_t in)
 	out.x = in.x;
 	out.y = in.y;
 	out.z = 0.;
-
 	return out;
 }
 
@@ -74,7 +70,6 @@ xyi_t xy_to_xyi(const xy_t in)
 
 	out.x = in.x;
 	out.y = in.y;
-
 	return out;
 }
 
@@ -290,7 +285,6 @@ xy_t sign_xy(xy_t a)
 {
 	a.x = sign(a.x);
 	a.y = sign(a.y);
-
 	return a;
 }
 
@@ -302,6 +296,13 @@ int isnan_xy(xy_t a)
 int isfinite_xy(xy_t a)
 {
 	return isfinite(a.x) && isfinite(a.y);
+}
+
+xyi_t cmp_ge_xyi(xyi_t a, xyi_t b)
+{
+	a.x = a.x >= b.x;
+	a.y = a.y >= b.y;
+	return a;
 }
 
 xy_t func1_xy(xy_t a, double (*f)(double))
@@ -374,7 +375,6 @@ xyi_t lshift_xyi(xyi_t a, int sh)
 {
 	a.x <<= sh;
 	a.y <<= sh;
-
 	return a;
 }
 
@@ -382,7 +382,6 @@ xyi_t rshift_xyi(xyi_t a, int sh)
 {
 	a.x >>= sh;
 	a.y >>= sh;
-
 	return a;
 }
 
@@ -390,7 +389,13 @@ xyi_t ceil_rshift_xyi(xyi_t a, int sh)
 {
 	a.x = ceil_rshift(a.x, sh);
 	a.y = ceil_rshift(a.y, sh);
+	return a;
+}
 
+xyi_t and_xyi(xyi_t a, int mask)
+{
+	a.x &= mask;
+	a.y &= mask;
 	return a;
 }
 

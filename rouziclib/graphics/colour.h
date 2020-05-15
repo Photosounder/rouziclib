@@ -47,9 +47,6 @@ enum
 
 extern lrgb_t make_colour_lin(const double r, const double g, const double b, const double a);
 extern frgb_t make_colour_frgb(const double r, const double g, const double b, const double a);
-extern frgb_t lrgb_to_frgb(lrgb_t cl);
-extern lrgb_t frgb_to_lrgb(frgb_t cf);
-extern srgb_t frgb_to_srgb(frgb_t cf);
 extern srgb_t make_colour_srgb_s(int r, int g, int b, int a);
 extern lrgb_t make_colour_srgb_l(int r, int g, int b, int a);
 extern frgb_t make_colour_srgb_f(int r, int g, int b, int a);

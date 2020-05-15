@@ -42,16 +42,12 @@ __m128 _mm_eval_poly_d2_lut_ps(__m128 x, const float *lut, __m128i index)
 	return r;
 }
 
-__m128 _mm_gaussian_d1_ps(__m128 x)
+__m128 _mm_gaussian_d1_ps(__m128 x) 	// runs in 8 cycles
 {
 	#include "fastgauss_d1.h"	// contains the LUT, offset and limit
 	__m128i index;
 
 	x = _mm_abs_ps(x);						// x = |x|
-
-	//if (_mm_movemask_ps(_mm_cmplt_ps(x, _mm_set_ps1(limit))) == 0)	// if all |x| >= limit
-	//	return _mm_setzero_ps();
-
 	x = _mm_min_ps(x, _mm_set_ps1(limit));				// x > 4 becomes 4
 
 	index = _mm_index_from_vom_ps(x, offset, 0x007FFFFE);
@@ -82,8 +78,7 @@ __m128 _mm_frgb_to_srgb(__m128 x)	// output is [0.f , 1.f]
 	__m128i index, offset = _mm_set1_epi32(0x3B4D2E1C);	// 0.0031308f
 
 	// Clamp x
-	x = _mm_max_ps(x, _mm_setzero_ps());
-	x = _mm_min_ps(x, _mm_set_ps1(1.f));
+	x = _mm_clamp_ps(x);
 
 	// Make index
 	index = _mm_sub_epi32(_mm_castps_si128(_mm_add_ps(x, _mm_set_ps1(0.0031308f))), offset);

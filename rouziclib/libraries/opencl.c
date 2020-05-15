@@ -217,6 +217,7 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 		}
 	}
 
+	#if 0
 	if (ret_num_devices==0)				// if a non-GPU wasn't found try again with CPUs included
 		for (i=0; i<ret_num_platforms; i++)	// go through all the platforms
 		{
@@ -228,6 +229,7 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 				break;
 			}
 		}
+	#endif
 	CL_ERR_RET("clGetDeviceIDs (in init_cl_context)", ret);
 	c->device_id = device_id[0];
 
@@ -381,11 +383,11 @@ cl_int init_fb_cl()
 		deinit_clctx(&fb.clctx);
 	}
 
-#ifdef RL_OPENCL_GL
+	#ifdef RL_OPENCL_GL
 	ret = init_cl_context(&fb.clctx, 1);
-#else
+	#else
 	ret = init_cl_context(&fb.clctx, 0);
-#endif
+	#endif
 	CL_ERR_RET("init_cl_context", ret);
 
 	cl_make_srgb_tex();
@@ -394,6 +396,34 @@ cl_int init_fb_cl()
 }
 
 #endif
+
+int check_opencl()
+{
+#ifdef RL_OPENCL
+	clctx_t clctx={0};
+	cl_int ret;
+	static int init=0, init_failed=0;
+
+	if (init_failed)
+		return 0;
+
+	if (init)
+		return 1;
+
+	init_failed = 1;
+
+	// Try creating a context then destroy it
+	ret = init_cl_context(&clctx, 0);
+	CL_ERR_RET("check_opencl", ret);
+	deinit_clctx(&clctx);
+
+	init_failed = 0;
+	init = 1;
+	return 1;
+#else
+	return 0;
+#endif
+}
 
 void dialog_cl_gl_interop_options(rect_t area, int parent_on, int *detached)
 {

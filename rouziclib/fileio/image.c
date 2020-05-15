@@ -276,7 +276,10 @@ mipmap_t load_mipmap_lib(image_load_mem_func_t load_func, const char *path, cons
 	if (get_raster_buffer_for_mode(image, mode)==NULL)
 		return m;
 
+		double ts=0.;
+		get_time_diff_hr(&ts);
 	m = raster_to_tiled_mipmaps_fast_defaults(image, mode);
+		fprintf_rl(stdout, "raster_to_tiled_mipmaps_fast_defaults() took %g sec\n\n", get_time_diff_hr(&ts));
 	free_raster(&image);
 
 	return m;

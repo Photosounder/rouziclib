@@ -1,31 +1,6 @@
-#ifdef RL_INTEL_INTR
-
-#ifdef __GNUC__
-void __cpuid(int *cpuinfo, int info)
-{
-	__asm__ __volatile__(
-		"xchg %%ebx, %%edi;"
-		"cpuid;"
-		"xchg %%ebx, %%edi;"
-		:"=a" (cpuinfo[0]), "=D" (cpuinfo[1]), "=c" (cpuinfo[2]), "=d" (cpuinfo[3])
-		:"0" (info)
-	);
-}
-
-uint64_t rl_xgetbv(uint32_t index)
-{
-	uint32_t eax, edx;
-	__asm__ __volatile__(
-		"xgetbv;"
-		: "=a" (eax), "=d"(edx)
-		: "c" (index)
-	);
-	return ((uint64_t) edx << 32) | eax;
-}
-#endif
-
 int check_cpuinfo(const enum cpu_feat_n fid)
 {
+#ifdef RL_INTEL_INTR
 	static int info1[4], info7[4], init=1;
 	int ret=0;
 
@@ -64,7 +39,35 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 	}
 
 	return ret!=0;
+#endif
+	return 0;
 }
+
+#ifdef RL_INTEL_INTR
+
+#ifdef __GNUC__
+void __cpuid(int *cpuinfo, int info)
+{
+	__asm__ __volatile__(
+		"xchg %%ebx, %%edi;"
+		"cpuid;"
+		"xchg %%ebx, %%edi;"
+		:"=a" (cpuinfo[0]), "=D" (cpuinfo[1]), "=c" (cpuinfo[2]), "=d" (cpuinfo[3])
+		:"0" (info)
+	);
+}
+
+uint64_t rl_xgetbv(uint32_t index)
+{
+	uint32_t eax, edx;
+	__asm__ __volatile__(
+		"xgetbv;"
+		: "=a" (eax), "=d"(edx)
+		: "c" (index)
+	);
+	return ((uint64_t) edx << 32) | eax;
+}
+#endif
 
 #ifndef _mm_storeu_si32
 void _mm_storeu_si32(void* mem_addr, __m128i a)	// replacement for missing _mm_storeu_si32

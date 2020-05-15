@@ -51,6 +51,7 @@ extern xy_t neg_y(xy_t a);
 extern xy_t sign_xy(xy_t a);
 extern int isnan_xy(xy_t a);
 extern int isfinite_xy(xy_t a);
+extern xyi_t cmp_ge_xyi(xyi_t a, xyi_t b);
 
 #define abs_xy(a)	func1_xy(a, fabs)
 #define abs_xyz(a)	func1_xyz(a, fabs)
@@ -82,6 +83,7 @@ extern xyi_t func3_xyi(xyi_t a, xyi_t b, xyi_t c, int (*f)(int,int,int));
 extern xyi_t lshift_xyi(xyi_t a, int sh);
 extern xyi_t rshift_xyi(xyi_t a, int sh);
 extern xyi_t ceil_rshift_xyi(xyi_t a, int sh);
+extern xyi_t and_xyi(xyi_t a, int mask);
 
 extern xy_t min_xy(xy_t a, xy_t b);
 extern xyz_t min_xyz(xyz_t a, xyz_t b);

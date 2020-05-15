@@ -83,7 +83,7 @@ void drawq_run()
 {
 #ifdef RL_OPENCL
 	const char clsrc_draw_queue[] =
-	#include "drawqueue.cl.h"
+	#include "drawqueue/opencl/drawqueue.cl.h"
 
 	int32_t i;
 	cl_int ret, randseed;

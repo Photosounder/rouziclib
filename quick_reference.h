@@ -465,6 +465,7 @@
 		static double ts_accu=0.;
 		double ts=0.;
 		get_time_diff_hr(&ts);
+		get_time_diff_hr(&ts);
 
 		//< things to time >
 		bench_function();

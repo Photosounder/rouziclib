@@ -1,73 +1,4 @@
-void dqsb_draw_line_thin_add(float *le, float *block, xy_t start_pos, const int bs, int chan_stride)	// SSE2
-{
-	// Generic variables
-	xyi_t ip;
-	float y, x;
-	__m128 yv, xv, *bp;
-	int ic, ib=0;
-
-	// Specific variables
-	__m128 r1x, r1y, r2x, costh, sinth, col[4];
-	__m128 rpx, rpy, ycos, ysin, weight;
-	__m128 d1y, d1x, d2x;
-	const float gl = 2.96;	// gaussian drawing limit
-
-	r1x = _mm_set_ps1(le[0]);
-	r1y = _mm_set_ps1(le[1]);
-	r2x = _mm_set_ps1(le[2]);
-	costh = _mm_set_ps1(le[3]);
-	sinth = _mm_set_ps1(le[4]);
-	col[0] = _mm_set_ps1(le[5]);
-	col[1] = _mm_set_ps1(le[6]);
-	col[2] = _mm_set_ps1(le[7]);
-	col[3] = _mm_set_ps1(le[8]);
-
-	// Load parameters
-
-	for (y=start_pos.y, ip.y=0; ip.y < bs; ip.y++, y+=1.f)
-	{
-		yv = _mm_set_ps1(y);
-		ycos = _mm_mul_ps(yv, costh);
-		ysin = _mm_mul_ps(yv, sinth);
-
-		for (x=start_pos.x, ip.x=0; ip.x < bs; ip.x+=4, x+=4.f, ib+=4)
-		{
-			// Initialise coordinates
-			xv = _mm_add_ps(_mm_set_ps1(x), _mm_set_ps(3.f, 2.f, 1.f, 0.f));
-
-			// Rotate coordinates
-			rpx = _mm_mul_ps(xv, costh);	rpy = _mm_mul_ps(xv, sinth);
-			rpx = _mm_sub_ps(rpx, ysin);	rpy = _mm_add_ps(rpy, ycos);
-
-			// Distances
-			d1y = _mm_abs_ps(_mm_sub_ps(rpy, r1y));
-			d2x = _mm_sub_ps(rpx, r2x);
-			d1x = _mm_sub_ps(rpx, r1x);
-
-			// Distance checks
-			if (_mm_movemask_ps(_mm_cmplt_ps(d1y, _mm_set_ps1(gl))))
-			if (_mm_movemask_ps(_mm_cmplt_ps(d2x, _mm_set_ps1(gl))))
-			if (_mm_movemask_ps(_mm_cmpgt_ps(d1x, _mm_set_ps1(-gl))))
-			{
-				// Compute pixel weight
-				if (_mm_movemask_ps(_mm_cmple_ps(d2x, _mm_set_ps1(-gl))) & _mm_movemask_ps(_mm_cmpge_ps(d1x, _mm_set_ps1(gl))))	// if we're far from the ends
-					weight = _mm_gaussian_d1_ps(d1y);		// do only the Gaussian weight
-				else							// otherwise do the ends too
-				{
-					weight = _mm_sub_ps( _mm_erfr_d1_ps(d1x) , _mm_erfr_d1_ps(d2x) );
-					weight = _mm_mul_ps(weight, _mm_gaussian_d1_ps(d1y));
-				}
-
-				// Add weighted colour
-				for (ic=0; ic < 4; ic++)
-				{
-					bp = (__m128 *) &block[ic*chan_stride + ib];
-					*bp = _mm_add_ps(_mm_mul_ps(weight, col[ic]), *bp);
-				}
-			}
-		}
-	}
-}
+#ifdef RL_INTEL_INTR
 
 #ifdef __GNUC__
 __attribute__((__target__("ssse3")))
@@ -77,7 +8,7 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 	xyi_t ip;
 	int i, ib;
 	__m128 f, sf;
-	__m128i index, sv, shuf_mask;
+	__m128i sv, shuf_mask;
 
 	switch (srgb_order)
 	{
@@ -98,8 +29,6 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 			break;
 	}
 
-	index = _mm_set_epi32(chan_stride*3, chan_stride*2, chan_stride, 0);
-
 	for (ip.y=0; ip.y < dim.y; ip.y++)
 	{
 		i = ip.y * r_pitch;
@@ -113,10 +42,11 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 			sv = _mm_cvtps_epi32(sf);					// cast to 32-bit int (rounded, no dithering)
 			sv = _mm_shuffle_epi8(sv, shuf_mask);				// reorder the channels and pack them into the lower 32-bits
 			_mm_storeu_si32(&srgb[i], sv);					// save final pixel to framebuffer
-			index = _mm_add_epi32(index, _mm_set1_epi32(1));		// increment indexes
 		}
 	}
 }
+
+#endif
 
 typedef struct
 {
@@ -139,6 +69,7 @@ drawq_soft_data_t *dqs_data=NULL;
 
 int drawq_soft_thread(drawq_soft_data_t *d)
 {
+#ifdef RL_INTEL_INTR
 	xyi_t ip, is, bpos, sec_dim, out_dim;
 	float *df;
 	int32_t *di;
@@ -193,7 +124,25 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 
 						switch (di[qi])				// type of the entry
 						{
-							case DQT_LINE_THIN_ADD:		dqsb_draw_line_thin_add(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);	break;
+								case DQT_LINE_THIN_ADD:		dqsb_draw_line_thin_add	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_POINT_ADD:		dqsb_draw_point_add	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							//break;	case DQT_RECT_FULL:		dqsb_draw_rect_full_add	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_RECT_BLACK:		dqsb_draw_black_rect	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_PLAIN_FILL:		dqsb_draw_plain_fill_add(&df[qi+1], d->block[brlvl],               chan_stride);
+							/*break;	case DQT_GAIN:			dqsb_pv * df[qi+1];
+							break;	case DQT_GAIN_PARAB:		dqsb_gain_parabolic(pv, df[qi+1]);
+							break;	case DQT_LUMA_COMPRESS:		dqsb_luma_compression(pv, df[qi+1]);
+							break;	case DQT_COL_MATRIX:		dqsb_colour_matrix(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_CLIP:			dqsb_min(pv, df[qi+1]);
+							break;	case DQT_CLAMP:			dqsb_clamp(pv, 0.f, 1.f);
+							break;	case DQT_CIRCLE_FULL:		dqsb_draw_circle_full_add(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_CIRCLE_HOLLOW:		dqsb_draw_circle_hollow_add(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	//case DQT_BLIT_BILINEAR:	dqsb_blit_sprite_bilinear(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_BLIT_FLATTOP:		dqsb_blit_sprite_flattop(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_BLIT_FLATTOP_ROT:	dqsb_blit_sprite_flattop_rot(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	//case DQT_BLIT_PHOTO:		dqsb_blit_photo(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_TEST1:			dqsb_drawgradienttest(d->block[brlvl], pos, sec_pix, chan_stride);
+							*/break;
 						}
 					}
 
@@ -206,6 +155,7 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 		rl_mutex_unlock(&d->cont_mtx);
 	}
 
+#endif
 	return 0;
 }
 

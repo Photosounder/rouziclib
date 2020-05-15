@@ -18,6 +18,8 @@ enum cpu_feat_n
 	CPU_FEATURE_COUNT
 };
 
+extern int check_cpuinfo(const enum cpu_feat_n fid);
+
 #if (defined(_M_AMD64) || defined(_M_X64) || defined(__amd64) ) && !defined(__x86_64__)
 	#define __x86_64__
 #endif
@@ -40,7 +42,9 @@ extern uint64_t rl_xgetbv(uint32_t index);
 #define rl_xgetbv _xgetbv
 #endif
 
-extern int check_cpuinfo(const enum cpu_feat_n fid);
+#endif
+
+#ifdef RL_INTEL_INTR
 
 #ifndef _mm_storeu_si32
 extern void _mm_storeu_si32(void *mem_addr, __m128i a);  // SSE2
@@ -50,5 +54,11 @@ extern __m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex);  // SSE
 
 // SSE
 #define _mm_abs_ps(v)	_mm_andnot_ps(_mm_set_ps1(-0.f), v)
+#define _mm_neg_ps(v)	_mm_xor_ps(v, _mm_set_ps1(-0.f))
+#define _mm_clamp_ps(v)	_mm_min_ps(_mm_max_ps(v, _mm_setzero_ps()), _mm_set_ps1(1.f))
+
+// SSSE3
+#define _mm_cvtepu32_epi16(v)	_mm_shuffle_epi8(v, _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 13, 12, 9, 8, 5, 4, 1, 0))
+#define _mm_cvtepu32_epi8(v)	_mm_shuffle_epi8(v, _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12, 8, 4, 0))
 
 #endif

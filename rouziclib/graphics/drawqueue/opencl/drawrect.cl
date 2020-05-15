@@ -1,3 +1,17 @@
+float4 draw_plain_fill_add(global float *le, float4 pv)
+{
+	float4 col;
+
+	col.s0 = le[0];
+	col.s1 = le[1];
+	col.s2 = le[2];
+	col.s3 = 1.;
+
+	pv += col;
+
+	return pv;
+}
+
 float4 draw_rect_full_add(global float *le, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
@@ -50,4 +64,3 @@ float4 draw_black_rect(global float *le, float4 pv)
 
 	return pv;
 }
-

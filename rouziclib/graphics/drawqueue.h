@@ -1,4 +1,4 @@
-#include "drawqueue_enums.h"
+#include "drawqueue/drawqueue_enums.h"
 
 extern void drawq_reinit();
 extern void drawq_alloc();

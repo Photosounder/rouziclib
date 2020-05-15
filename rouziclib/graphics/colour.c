@@ -22,43 +22,6 @@ frgb_t make_colour_frgb(const double r, const double g, const double b, const do
 	return c;
 }
 
-frgb_t lrgb_to_frgb(lrgb_t cl)
-{
-	frgb_t c;
-	const float ratio = 1.f/ONEF;
-
-	c.r = (float) cl.r * ratio;
-	c.g = (float) cl.g * ratio;
-	c.b = (float) cl.b * ratio;
-	c.a = (float) cl.a * ratio;
-
-	return c;
-}
-
-lrgb_t frgb_to_lrgb(frgb_t cf)
-{
-	lrgb_t c;
-
-	c.r = MINN(1., cf.r) * ONEF + 0.5;
-	c.g = MINN(1., cf.g) * ONEF + 0.5;
-	c.b = MINN(1., cf.b) * ONEF + 0.5;
-	c.a = MINN(1., cf.a) * ONEF + 0.5;
-
-	return c;
-}
-
-srgb_t frgb_to_srgb(frgb_t cf)
-{
-	srgb_t c;
-
-	c.r = fast_lsrgbf(MINN(1., cf.r)) * 255.f + 0.5;
-	c.g = fast_lsrgbf(MINN(1., cf.g)) * 255.f + 0.5;
-	c.b = fast_lsrgbf(MINN(1., cf.b)) * 255.f + 0.5;
-	c.a = fast_lsrgbf(MINN(1., cf.a)) * 255.f + 0.5;
-
-	return c;
-}
-
 int is0_col(col_t col)
 {
 	if (col.r==0 && col.g==0 && col.b==0 && col.a==0)

@@ -31,43 +31,50 @@ void *get_tile_pixel_ptr(mipmap_level_t ml, xyi_t pos, const int mode)
 	pt = sub_xyi(pos, mul_xyi(ti, ml.tiledim));	// position in tile
 
 	tile_ptr = &ml.r[ti.y * ml.tilecount.x + ti.x];
+	uint8_t *buf = get_raster_buffer_for_mode(*tile_ptr, mode);
+	size_t pix_size = get_raster_mode_elem_size(mode);
 
-	if (mode & IMAGE_USE_SQRGB)
-		return &tile_ptr->sq[pt.y * tile_ptr->dim.x + pt.x];
-	else
-		return &tile_ptr->f[pt.y * tile_ptr->dim.x + pt.x];
+	return &buf[(pt.y * tile_ptr->dim.x + pt.x)*pix_size];
 }
 
-/*frgb_t get_tile_pixel(mipmap_level_t ml, xyi_t pos)
+void mipmap_set_functions(mipmap_t *m, const int mode)
 {
-	frgb_t pv={0};
-	frgb_t *pp;
+	#ifdef RL_INTEL_INTR
+	switch (mode)
+	{
+		case IMAGE_USE_FRGB:
+			m->get_pixel_ps = _mm_get_raster_pixel_frgb_to_ps;
+			m->set_pixel_ps = _mm_set_raster_pixel_ps_to_frgb;
+			break;
 
-	pp = get_tile_pixel_ptr(ml, pos);
-	if (pp==NULL)
-		return pv;
-	else
-		pv = *pp;
+		case IMAGE_USE_LRGB:
+			m->get_pixel_ps = _mm_get_raster_pixel_lrgb_to_ps;
+			m->set_pixel_ps = _mm_set_raster_pixel_ps_to_lrgb;
+			break;
 
-	return pv;
+		case IMAGE_USE_SRGB:
+			m->get_pixel_ps = _mm_get_raster_pixel_srgb_to_ps;
+			m->set_pixel_ps = _mm_set_raster_pixel_ps_to_srgb;
+			break;
+
+		case IMAGE_USE_SQRGB:
+			m->get_pixel_ps = _mm_get_raster_pixel_sqrgb_to_ps;
+			m->set_pixel_ps = _mm_set_raster_pixel_ps_to_sqrgb;
+			break;
+
+		default:
+			fprintf_rl(stderr, "Invalid raster mode %d specified in mipmap_set_functions()\n", mode);
+	}
+	#endif
 }
-
-void set_tile_pixel(mipmap_level_t ml, xyi_t pos, frgb_t pv)
-{
-	frgb_t *pp;
-
-	pp = get_tile_pixel_ptr(ml, pos);
-	if (pp==NULL)
-		return ;
-	else
-		*pp = pv;
-}*/
 
 void copy_from_raster_to_tiles(raster_t r, mipmap_level_t ml, const int mode)
 {
 	xyi_t it, rdim, tilestart, pstart;
 	int iy;
 	frgb_t *pp;
+	size_t pix_size = get_raster_mode_elem_size(mode);
+	uint8_t *buf = get_raster_buffer_for_mode(r, mode);
 
 	for (it.y=0; it.y < ml.tilecount.y; it.y++)
 		for (it.x=0; it.x < ml.tilecount.x; it.x++)	// this copies a rect from the raster into the matching tile, line by line
@@ -80,10 +87,7 @@ void copy_from_raster_to_tiles(raster_t r, mipmap_level_t ml, const int mode)
 				pstart = add_xyi(tilestart, xyi(0, iy));
 				pp = get_tile_pixel_ptr(ml, pstart, mode);
 
-				if (mode & IMAGE_USE_SQRGB)
-					memcpy(pp, &r.sq[pstart.y*r.dim.x + pstart.x], rdim.x*sizeof(sqrgb_t));
-				else
-					memcpy(pp, &r.f[pstart.y*r.dim.x + pstart.x], rdim.x*sizeof(frgb_t));
+				memcpy(pp, &buf[(pstart.y*r.dim.x + pstart.x)*pix_size], rdim.x*pix_size);
 			}
 		}
 }
@@ -235,23 +239,456 @@ mipmap_t raster_to_tiled_mipmaps_fast(raster_t r, xyi_t tilesize, xyi_t mindim, 
 	alloc_mipmap_level(&m.lvl[0], m.fulldim, tilesize, mode);
 	copy_from_raster_to_tiles(r, m.lvl[0], mode);
 
-	for (i=1; i<m.lvl_count; i++)
+	for (i=1; i < m.lvl_count; i++)
 	{
 		m.lvl[i].fulldim = div_round_up_xyi(m.lvl[i-1].fulldim, set_xyi(2));
 		m.lvl[i].scale = mul_xy(m.lvl[i-1].scale, set_xy(2.));
 		alloc_mipmap_level(&m.lvl[i], m.lvl[i].fulldim, tilesize, mode);
+		m.total_bytes += m.lvl[i].total_bytes;
+
 		//tile_downscale_fast_box(m.lvl[i-1], m.lvl[i], set_xyi(2));
 		tile_downscale_box_2x2(m.lvl[i-1], m.lvl[i], mode);
 	}
-	
-	for (i=0; i<m.lvl_count; i++)
-		m.total_bytes += m.lvl[i].total_bytes;
 
 	return m;
 }
 
+#ifdef RL_INTEL_INTR
+
+#define LC 5
+__m128 mipmap_make_fast_pixel_lvl4(mipmap_t *m, const xyi_t iro, xyi_t ipo)
+{
+	__m128 pix[LC][4], ave[LC];
+	int i, i1, i2, i3, i4, il, ilo=LC-1, posy[LC], stride[LC];
+	xyi_t ip[LC], ir[LC], ge;
+	raster_t *rp[LC];
+
+	il = LC-1;
+	ir[il] = iro;
+	ip[il] = ipo;
+
+	// ir and ip for each level
+	for (il=LC-2; il >= 0; il--)
+	{
+		// Calculate the next values
+		ip[il] = lshift_xyi(ip[il+1], 1);	// next pixel start position (tile-relative)
+		ir[il] = lshift_xyi(ir[il+1], 1);	// next tile position
+	
+		// Adjust values if the next 4 pixels are on another tile
+		ge = cmp_ge_xyi(ip[il], m->lvl[il].tiledim);	// 1 if we must move to the next tile
+		ir[il] = add_xyi(ir[il], ge);
+		ip[il] = sub_xyi(ip[il], mul_xyi(ge, m->lvl[il].tiledim));
+	}
+
+	for (il=LC-1; il >= 0; il--)
+	{
+		rp[il] = &m->lvl[il].r[ir[il].y * m->lvl[il].tilecount.x + ir[il].x];
+		stride[il] = rp[il]->dim.x;
+		posy[il] = ip[il].y * stride[il];
+	}
+
+	// This is how I derecursivise the last levels of mipmap
+	i4=0;
+	i3=0;
+lvl2_start:
+	i2=0;
+lvl1_start:
+	i1=0;
+lvl0_start:
+	// Read the four pixels from mipmap level 0
+	pix[0][0] = m->get_pixel_ps(rp[0], posy[0] + ip[0].x);
+	pix[0][1] = m->get_pixel_ps(rp[0], posy[0] + ip[0].x+1);
+	pix[0][2] = m->get_pixel_ps(rp[0], posy[0] + stride[0] + ip[0].x);
+	pix[0][3] = m->get_pixel_ps(rp[0], posy[0] + stride[0] + ip[0].x+1);
+
+	// Level 1 average and write pixel to mipmap
+	pix[1][i1] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[0][0], pix[0][1]) , _mm_add_ps(pix[0][2], pix[0][3])));
+	m->set_pixel_ps(rp[1], posy[1] + ip[1].x, pix[1][i1]);
+
+	switch (i1)
+	{
+		case 0:
+			i1 = 2;
+			posy[1] += stride[1];
+			posy[0] += stride[0]<<1;
+			goto lvl0_start;
+			break;
+
+		case 2:
+			i1 = 3;
+			ip[1].x += 1;
+			ip[0].x += 2;
+			goto lvl0_start;
+			break;
+
+		case 3:
+			i1 = 1;
+			posy[1] -= stride[1];
+			posy[0] -= stride[0]<<1;
+			goto lvl0_start;
+			break;
+
+		case 1:
+			ip[1].x -= 1;
+			ip[0].x -= 2;
+			break;
+	}
+
+	// Level 2 average and write pixel to mipmap
+	pix[2][i2] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[1][0], pix[1][1]) , _mm_add_ps(pix[1][2], pix[1][3])));
+	m->set_pixel_ps(rp[2], posy[2] + ip[2].x, pix[2][i2]);
+
+	switch (i2)
+	{
+		case 0:
+			i2 = 2;
+			posy[2] += stride[2];
+			posy[1] += stride[1]<<1;
+			posy[0] += stride[0]<<2;
+			goto lvl1_start;
+			break;
+
+		case 2:
+			i2 = 3;
+			ip[2].x += 1;
+			ip[1].x += 2;
+			ip[0].x += 4;
+			goto lvl1_start;
+			break;
+
+		case 3:
+			i2 = 1;
+			posy[2] -= stride[2];
+			posy[1] -= stride[1]<<1;
+			posy[0] -= stride[0]<<2;
+			goto lvl1_start;
+			break;
+
+		case 1:
+			ip[2].x -= 1;
+			ip[1].x -= 2;
+			ip[0].x -= 4;
+			break;
+	}
+
+	// Level 3 average and write pixel to mipmap
+	pix[3][i3] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[1][0], pix[1][1]) , _mm_add_ps(pix[1][2], pix[1][3])));
+	m->set_pixel_ps(rp[3], posy[3] + ip[3].x, pix[3][i3]);
+
+	switch (i3)
+	{
+		case 0:
+			i3 = 2;
+			posy[3] += stride[3];
+			posy[2] += stride[2]<<1;
+			posy[1] += stride[1]<<2;
+			posy[0] += stride[0]<<3;
+			goto lvl2_start;
+			break;
+
+		case 2:
+			i3 = 3;
+			ip[3].x += 1;
+			ip[2].x += 2;
+			ip[1].x += 4;
+			ip[0].x += 8;
+			goto lvl2_start;
+			break;
+
+		case 3:
+			i3 = 1;
+			posy[3] -= stride[3];
+			posy[2] -= stride[2]<<1;
+			posy[1] -= stride[1]<<2;
+			posy[0] -= stride[0]<<3;
+			goto lvl2_start;
+			break;
+
+		case 1:
+			ip[3].x -= 1;
+			ip[2].x -= 2;
+			ip[1].x -= 4;
+			ip[0].x -= 8;
+			break;
+	}
+
+	// Level 4 average and write pixel to mipmap
+	pix[4][i4] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[1][0], pix[1][1]) , _mm_add_ps(pix[1][2], pix[1][3])));
+	m->set_pixel_ps(rp[4], posy[4] + ip[4].x, pix[4][i4]);
+
+	return pix[4][0];
+}
+#undef LC
+
+__m128 mipmap_make_fast_pixel_recursively(mipmap_t *m, const int il0, const xyi_t ir0, xyi_t ip0)
+{
+	__m128 pix0, pix1, pix2, pix3;
+	int il1;
+	xyi_t ip1, ir1, ge;
+	
+	// Calculate the next values
+	il1 = il0-1;			// next mipmap level
+	ip1 = lshift_xyi(ip0, 1);	// next pixel start position (tile-relative)
+	ir1 = lshift_xyi(ir0, 1);	// next tile position
+
+	// Adjust values if the next 4 pixels are on another tile
+	ge = cmp_ge_xyi(ip1, m->lvl[il1].tiledim);	// 1 if we must move to the next tile
+	ir1 = add_xyi(ir1, ge);
+	ip1 = sub_xyi(ip1, mul_xyi(ge, m->lvl[il1].tiledim));
+
+	switch (il1)
+	{
+		case 4:
+			// Recursively obtain the four needed pixels
+			pix0 = mipmap_make_fast_pixel_lvl4(m, ir1, ip1);
+			ip1.x++;
+			pix1 = mipmap_make_fast_pixel_lvl4(m, ir1, ip1);
+			ip1.y++;
+			pix3 = mipmap_make_fast_pixel_lvl4(m, ir1, ip1);
+			ip1.x--;
+			pix2 = mipmap_make_fast_pixel_lvl4(m, ir1, ip1);
+			break;
+
+		case 0:
+			// Read the four pixels from mipmap level 0
+			mipmap_level_t *ml = &m->lvl[il1];
+			raster_t *rp = &ml->r[ir1.y * ml->tilecount.x + ir1.x];
+			pix0 = m->get_pixel_ps(rp, ip1.y * rp->dim.x + ip1.x);
+			pix1 = m->get_pixel_ps(rp, ip1.y * rp->dim.x + ip1.x+1);
+			pix2 = m->get_pixel_ps(rp, (ip1.y+1) * rp->dim.x + ip1.x);
+			pix3 = m->get_pixel_ps(rp, (ip1.y+1) * rp->dim.x + ip1.x+1);
+			break;
+
+		default:
+			// Recursively obtain the four needed pixels
+			pix0 = mipmap_make_fast_pixel_recursively(m, il1, ir1, ip1);
+			ip1.x++;
+			pix1 = mipmap_make_fast_pixel_recursively(m, il1, ir1, ip1);
+			ip1.y++;
+			pix3 = mipmap_make_fast_pixel_recursively(m, il1, ir1, ip1);
+			ip1.x--;
+			pix2 = mipmap_make_fast_pixel_recursively(m, il1, ir1, ip1);
+	}
+
+	// Average the 4 pixels into one
+	pix0 = _mm_add_ps(pix0, pix1);
+	pix2 = _mm_add_ps(pix2, pix3);
+	pix0 = _mm_add_ps(pix0, pix2);
+	pix0 = _mm_mul_ps(pix0, _mm_set_ps1(0.25f));
+
+	// Write the pixel to the mipmap
+	mipmap_level_t *ml = &m->lvl[il0];
+	raster_t *rp = &ml->r[ir0.y * ml->tilecount.x + ir0.x];
+	m->set_pixel_ps(rp, ip0.y * rp->dim.x + ip0.x, pix0);
+
+	return pix0;
+}
+
+__m128 mipmap_make_edge_pixel_recursively(mipmap_t *m, const int il0, const xyi_t ir0, xyi_t ip0, const int end_lvl)
+{
+	__m128 pix0, pix1, pix2, pix3;
+	int il1, exist[4]={0};
+	xyi_t ip1, ir1, ge;
+	mipmap_level_t *ml;
+	raster_t *rp;
+	
+	// Calculate the next values
+	il1 = il0-1;			// next mipmap level
+	ip1 = lshift_xyi(ip0, 1);	// next pixel start position (tile-relative)
+	ir1 = lshift_xyi(ir0, 1);	// next tile position
+
+	// Adjust values if the next 4 pixels are on another tile
+	ge = cmp_ge_xyi(ip1, m->lvl[il1].tiledim);	// 1 if we must move to the next tile
+	ir1 = add_xyi(ir1, ge);
+	ip1 = sub_xyi(ip1, mul_xyi(ge, m->lvl[il1].tiledim));
+
+	ml = &m->lvl[il1];
+	rp = &ml->r[ir1.y * ml->tilecount.x + ir1.x];
+
+	// Check if the pixels all exist
+	exist[1] = (ip1.x+1 < rp->dim.x);
+	exist[2] = (ip1.y+1 < rp->dim.y);
+	exist[3] = (ip1.x+1 < rp->dim.x && ip1.y+1 < rp->dim.y);
+
+	if (exist[1]==0) pix1 = _mm_setzero_ps();
+	if (exist[2]==0) pix2 = _mm_setzero_ps();
+	if (exist[3]==0) pix3 = _mm_setzero_ps();
+
+	if (il1==end_lvl)
+	{
+		// Read the four pixels from mipmap level 0
+		pix0 = m->get_pixel_ps(rp, ip1.y * rp->dim.x + ip1.x);
+		if (exist[1]) pix1 = m->get_pixel_ps(rp, ip1.y * rp->dim.x + ip1.x+1);
+		if (exist[2]) pix2 = m->get_pixel_ps(rp, (ip1.y+1) * rp->dim.x + ip1.x);
+		if (exist[3]) pix3 = m->get_pixel_ps(rp, (ip1.y+1) * rp->dim.x + ip1.x+1);
+	}
+	else
+	{
+		// Recursively obtain the four needed pixels
+		pix0 = mipmap_make_edge_pixel_recursively(m, il1, ir1, ip1, end_lvl);
+		ip1.x++;
+		if (exist[1]) pix1 = mipmap_make_edge_pixel_recursively(m, il1, ir1, ip1, end_lvl);
+		ip1.y++;
+		if (exist[3]) pix3 = mipmap_make_edge_pixel_recursively(m, il1, ir1, ip1, end_lvl);
+		ip1.x--;
+		if (exist[2]) pix2 = mipmap_make_edge_pixel_recursively(m, il1, ir1, ip1, end_lvl);
+	}
+
+	// Average the 4 pixels into one
+	pix0 = _mm_add_ps(pix0, pix1);
+	pix2 = _mm_add_ps(pix2, pix3);
+	pix0 = _mm_add_ps(pix0, pix2);
+	pix0 = _mm_mul_ps(pix0, _mm_set_ps1(0.25f));
+
+	// Write the pixel to the mipmap
+	ml = &m->lvl[il0];
+	rp = &ml->r[ir0.y * ml->tilecount.x + ir0.x];
+	m->set_pixel_ps(rp, ip0.y * rp->dim.x + ip0.x, pix0);
+
+	return pix0;
+}
+
+mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_t mindim, const int mode)
+{
+	int i, start_lvl=0, final_lvl;
+	mipmap_t m={0};
+	xyi_t ip, ipt, ir, fast_dim;
+	__m128 pv;
+
+	// Init mipmap structure
+	m.fulldim = r.dim;
+	m.lvl_count = 1. + log2(max_of_xy(div_xy(xyi_to_xy(m.fulldim), xyi_to_xy(mindim))));
+	m.lvl_count = MAXN(m.lvl_count, 1);
+	final_lvl = m.lvl_count-1;
+	m.lvl = calloc(m.lvl_count, sizeof(mipmap_level_t));
+	m.total_bytes = m.lvl_count * sizeof(mipmap_level_t);
+	mipmap_set_functions(&m, mode);
+
+	// Make the first level, a tiled copy of the original
+	m.lvl[0].scale = set_xy(1.);
+	alloc_mipmap_level(&m.lvl[0], m.fulldim, tilesize, mode);
+	copy_from_raster_to_tiles(r, m.lvl[0], mode);
+
+	if (m.lvl_count==0)
+		return m;
+
+	// Allocate all levels
+	for (i=1; i < m.lvl_count; i++)
+	{
+		m.lvl[i].fulldim = div_round_up_xyi(m.lvl[i-1].fulldim, set_xyi(2));
+		m.lvl[i].scale = mul_xy(m.lvl[i-1].scale, set_xy(2.));
+		alloc_mipmap_level(&m.lvl[i], m.lvl[i].fulldim, tilesize, mode);
+		m.total_bytes += m.lvl[i].total_bytes;
+	}
+
+	// Select a level to start from
+	fast_dim = m.fulldim;
+	for (i=m.lvl_count-1; i > 0; i--)
+	{
+		int fast_count, edge_count;
+		fast_dim = and_xyi(m.fulldim, -(1<<i));
+		fast_count = mul_x_by_y_xyi(fast_dim);
+		edge_count = mul_x_by_y_xyi(m.fulldim) - fast_count;
+
+		if (fast_count > edge_count * 50 )	// if fast pixels are > 50x more than edge pixels
+		{
+			start_lvl = i;
+			fast_dim = rshift_xyi(fast_dim, start_lvl);
+			break;
+		}
+	}
+
+	// Collect the pixels
+	for (ir.y=0, ip.y=0, ipt.y=0; ip.y < fast_dim.y; ip.y++, ipt.y++)
+	{
+		if (ipt.y == m.lvl[start_lvl].tiledim.y)	// if we need to move to the next tile
+		{
+			ir.y++;
+			ipt.y = 0;
+		}
+
+		// Fast pixels
+		for (ir.x=0, ip.x=0, ipt.x=0; ip.x < fast_dim.x; ip.x++, ipt.x++)
+		{
+			if (ipt.x == m.lvl[start_lvl].tiledim.x)
+			{
+				ir.x++;
+				ipt.x = 0;
+			}
+
+			mipmap_make_fast_pixel_recursively(&m, start_lvl, ir, ip);
+		}
+
+		// Right edge pixels
+		for (; ip.x < m.lvl[start_lvl].fulldim.x; ip.x++, ipt.x++)
+		{
+			if (ipt.x == m.lvl[start_lvl].tiledim.x)
+			{
+				ir.x++;
+				ipt.x = 0;
+			}
+
+			mipmap_make_edge_pixel_recursively(&m, start_lvl, ir, ip, 0);
+		}
+	}
+
+	// Collect the potential bottom edge pixels
+	if (fast_dim.x < m.lvl[start_lvl].fulldim.x)
+	for (; ip.y < m.lvl[start_lvl].fulldim.y; ip.y++, ipt.y++)
+	{
+		if (ipt.y == m.lvl[start_lvl].tiledim.y)	// if we need to move to the next tile
+		{
+			ir.y++;
+			ipt.y = 0;
+		}
+
+		for (ir.x=0, ip.x=0, ipt.x=0; ip.x < m.lvl[start_lvl].fulldim.x; ip.x++, ipt.x++)
+		{
+			if (ipt.x == m.lvl[start_lvl].tiledim.x)
+			{
+				ir.x++;
+				ipt.x = 0;
+			}
+
+			mipmap_make_edge_pixel_recursively(&m, start_lvl, ir, ip, 0);
+		}
+	}
+
+	// Collect the pixels for the remaining levels
+	if (final_lvl > start_lvl)
+	for (ir.y=0, ip.y=0, ipt.y=0; ip.y < m.lvl[final_lvl].fulldim.y; ip.y++, ipt.y++)
+	{
+		if (ipt.y == m.lvl[final_lvl].tiledim.y)	// if we need to move to the next tile
+		{
+			ir.y++;
+			ipt.y = 0;
+		}
+
+		// All pixels
+		for (ir.x=0, ip.x=0, ipt.x=0; ip.x < m.lvl[final_lvl].fulldim.x; ip.x++, ipt.x++)
+		{
+			if (ipt.x == m.lvl[final_lvl].tiledim.x)
+			{
+				ir.x++;
+				ipt.x = 0;
+			}
+
+			mipmap_make_edge_pixel_recursively(&m, final_lvl, ir, ip, start_lvl);
+		}
+	}
+
+	return m;
+}
+
+#endif
+
 mipmap_t raster_to_tiled_mipmaps_fast_defaults(raster_t r, const int mode)
 {
+	#ifdef RL_INTEL_INTR
+	if (check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
+		return raster_to_tiled_mipmaps_fast_backwards(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
+	#endif
+
 	return raster_to_tiled_mipmaps_fast(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
 }
 
@@ -282,7 +719,7 @@ void free_mipmap(mipmap_t *m)
 	if (m==NULL)
 		return;
 
-	for (i=0; i<m->lvl_count; i++)
+	for (i=0; i < m->lvl_count; i++)
 		free_mipmap_level(&m->lvl[i]);
 
 	memset(m, 0, sizeof(mipmap_t));
@@ -295,7 +732,7 @@ void free_mipmap_array(mipmap_t *m, int count)
 	if (m == NULL)
 		return ;
 
-	for (i=0; i<count; i++)
+	for (i=0; i < count; i++)
 		free_mipmap(&m[i]);
 }
 

@@ -371,12 +371,32 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 					fb.maxdim.x,			// width, in pixels
 					fb.maxdim.y,			// height, in pixels
 				#ifdef RL_VULKAN
-					SDL_WINDOW_VULKAN | flags);	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+					SDL_WINDOW_VULKAN | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
 				#else
-					SDL_WINDOW_OPENGL | flags);	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+					SDL_WINDOW_OPENGL | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
 				#endif
+			);
+
 	if (fb.window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
+
+	// Check that the requested mode can work
+	if (fb.use_drawq==1)
+	{
+		#ifndef RL_OPENCL
+		fb.use_drawq = 2;
+		#else
+		if (check_opencl()==0)
+			fprintf_rl(stderr, "In sdl_graphics_init_full(): Cannot render using the OpenCL draw queue\n");
+		#endif
+	}
+
+	if (fb.use_drawq==2)
+		if (check_cpuinfo(CPU_HAS_SSSE3)==0 || check_cpuinfo(CPU_HAS_SSE4_1)==0)
+		{
+			fprintf_rl(stderr, "In sdl_graphics_init_full(): Cannot render using the software draw queue on a CPU that lacks SSSE3 or SSE4.1. Go buy a new computer, this ancient wreck is unworthy of running my code.\n");
+			fb.use_drawq = 0;
+		}
 
 	// Renderer and texture
 	if (fb.use_drawq==1)

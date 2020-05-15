@@ -1,6 +1,6 @@
-// cp drawqueue.cl drawqueue.cl.c && gcc -E -P drawqueue.cl.c | dos2unix > dq.cl && bin_to_c dq.cl && mv dq.cl.h drawqueue.cl.h && rm drawqueue.cl.c dq.cl
+// cd ~/../rouziclib/graphics/drawqueue/opencl/ && cp drawqueue.cl drawqueue.cl.c && gcc -E -P drawqueue.cl.c | dos2unix > dq.cl && bin_to_c dq.cl && mv dq.cl.h drawqueue.cl.h && rm drawqueue.cl.c dq.cl
 
-#include "drawqueue_enums.h"
+#include "../drawqueue_enums.h"
 #include "gaussian.cl"
 #include "blending.cl"
 #include "drawline.cl"
@@ -17,20 +17,6 @@ float4 drawgradienttest(float4 pv)
 	const float2 c = ss * 0.5f;
 
 	pv = -(pf.x - c.x) / (ss.x * 0.1f);
-
-	return pv;
-}
-
-float4 draw_plain_fill_add(global float *le, float4 pv)
-{
-	float4 col;
-
-	col.s0 = le[0];
-	col.s1 = le[1];
-	col.s2 = le[2];
-	col.s3 = 1.;
-
-	pv += col;
 
 	return pv;
 }
