@@ -262,6 +262,11 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 	float *im, *in_pixel;
 	size_t i, count;
 	int ic;
+	static float *s8lut=NULL;
+	frgb_t f;
+
+	if (s8lut==NULL)
+		s8lut = get_lut_slrgb().flut;
 
 	count = mul_x_by_y_xyi(info.dim);
 	im = calloc(count*out_chan, sizeof(float));
@@ -274,7 +279,7 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 			for (i=0; i < count; i++)
 			{
 				for (ic=0; ic < info.chan; ic++)
-					in_pixel[ic] = slrgb((double) ((uint8_t *) im_data)[i*info.chan + ic] * (1./255.));
+					in_pixel[ic] = s8lut[((uint8_t *) im_data)[i*info.chan + ic]];
 				tiff_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
 			}
 

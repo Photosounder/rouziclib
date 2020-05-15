@@ -287,7 +287,7 @@ __m128 mipmap_make_fast_pixel_lvl4(mipmap_t *m, const xyi_t iro, xyi_t ipo)
 		posy[il] = ip[il].y * stride[il];
 	}
 
-	// This is how I derecursivise the last levels of mipmap
+	// This is how I derecursivise the last levels of mipmap lmao
 	i4=0;
 	i3=0;
 lvl2_start:
@@ -439,7 +439,7 @@ __m128 mipmap_make_fast_pixel_recursively(mipmap_t *m, const int il0, const xyi_
 	switch (il1)
 	{
 		case 4:
-			// Recursively obtain the four needed pixels
+			// Obtain the four needed pixels using epic spaghetti code
 			pix0 = mipmap_make_fast_pixel_lvl4(m, ir1, ip1);
 			ip1.x++;
 			pix1 = mipmap_make_fast_pixel_lvl4(m, ir1, ip1);

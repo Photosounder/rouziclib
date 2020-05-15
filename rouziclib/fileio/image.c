@@ -53,8 +53,6 @@ void convert_image_srgb8_fullarg(raster_t *im, const uint8_t *data, const int mo
 void convert_image_srgb16(raster_t *im, const uint16_t *data, const int mode)
 {
 	int i;
-	lut_t lut = get_lut_slrgb();
-	lut_t sqlut = get_lut_ssqrgb();
 	const double ratio = 1./65535.;
 	size_t pix_count = mul_x_by_y_xyi(im->dim);
 
@@ -95,14 +93,20 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 {
 	int i;
 	size_t pix_count = mul_x_by_y_xyi(im->dim);
+	frgb_t *f = data;
 
 	if (mode & IMAGE_USE_SRGB)
 	{
-		lut_t lsrgb_fl_l = get_lut_lsrgb_fl();
-
 		im->srgb = calloc(pix_count, sizeof(srgb_t));
-		for (i=0; i < pix_count*4; i++)
-			((uint8_t *) im->srgb)[i] = lsrgb_fl(rangelimitf(data[i], 0.f, 1.f), lsrgb_fl_l.lutint) >> 5;
+
+		#ifdef RL_INTEL_INTR
+		if (check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
+			for (i=0; i < pix_count; i++)
+				_mm_set_raster_pixel_ps_to_srgb(im, i, _mm_load_ps(&f[i]));
+		else
+		#endif
+			for (i=0; i < pix_count; i++)
+				im->srgb[i] = frgb_to_srgb(f[i]);
 	}
 
 	if (mode & IMAGE_USE_LRGB)
@@ -124,12 +128,14 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 	if (mode & IMAGE_USE_SQRGB)
 	{
 		im->sq = calloc(pix_count, sizeof(sqrgb_t));
+
+		#ifdef RL_INTEL_INTR
 		for (i=0; i < pix_count; i++)
-		{
-			im->sq[i].r = sqrtf(rangelimitf(data[i*4+0], 0.f, 1.f)) * 1023. + 0.5;
-			im->sq[i].g = sqrtf(rangelimitf(data[i*4+1], 0.f, 1.f)) * 4092. + 0.5;
-			im->sq[i].b = sqrtf(rangelimitf(data[i*4+2], 0.f, 1.f)) * 1023. + 0.5;
-		}
+			_mm_set_raster_pixel_ps_to_sqrgb(im, i, _mm_load_ps(&f[i]));
+		#else
+		for (i=0; i < pix_count; i++)
+			im->sq[i] = frgb_to_sqrgb(f[i]);
+		#endif
 	}
 
 	if (mode & IMAGE_USE_FRGB == 0)		// free f in case it's there but isn't needed
@@ -276,10 +282,7 @@ mipmap_t load_mipmap_lib(image_load_mem_func_t load_func, const char *path, cons
 	if (get_raster_buffer_for_mode(image, mode)==NULL)
 		return m;
 
-		double ts=0.;
-		get_time_diff_hr(&ts);
 	m = raster_to_tiled_mipmaps_fast_defaults(image, mode);
-		fprintf_rl(stdout, "raster_to_tiled_mipmaps_fast_defaults() took %g sec\n\n", get_time_diff_hr(&ts));
 	free_raster(&image);
 
 	return m;
