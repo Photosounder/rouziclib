@@ -84,3 +84,20 @@ void rl_mutex_destroy_free(rl_mutex_t **mutex)
 		memset(mutex, 0, sizeof(rl_mutex_t));
 	}
 }
+
+int32_t rl_atomic_get_and_set(int32_t *ptr, int32_t new_value)
+{
+	#ifdef _WIN32
+	return InterlockedExchange(ptr, new_value);
+
+	#elif defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__)
+
+	return __atomic_exchange_n(ptr, new_value, __ATOMIC_ACQ_REL);
+	/*int32_t old_value = (int32_t) __sync_lock_test_and_set(ptr, new_value);
+	__sync_lock_release(ptr);
+	return old_value;*/
+
+	#else 
+	#error Unknown platform.
+	#endif
+}

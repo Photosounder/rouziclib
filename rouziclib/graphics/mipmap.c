@@ -237,6 +237,7 @@ mipmap_t raster_to_tiled_mipmaps_fast(raster_t r, xyi_t tilesize, xyi_t mindim, 
 	// the first level is a tiled copy of the original
 	m.lvl[0].scale = set_xy(1.);
 	alloc_mipmap_level(&m.lvl[0], m.fulldim, tilesize, mode);
+	m.total_bytes += m.lvl[0].total_bytes;
 	copy_from_raster_to_tiles(r, m.lvl[0], mode);
 
 	for (i=1; i < m.lvl_count; i++)
@@ -567,6 +568,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 	// Make the first level, a tiled copy of the original
 	m.lvl[0].scale = set_xy(1.);
 	alloc_mipmap_level(&m.lvl[0], m.fulldim, tilesize, mode);
+	m.total_bytes += m.lvl[0].total_bytes;
 	copy_from_raster_to_tiles(r, m.lvl[0], mode);
 
 	if (m.lvl_count==0)

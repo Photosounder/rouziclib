@@ -420,6 +420,9 @@
 	// Yield
 		rl_thread_yield();
 
+	// Atomic equivalent of if (v) v=0;
+		if (rl_atomic_get_and_set(&v, 0))
+
 //**** Network ****
 
 	// Getting a file from HTTP (needs #define RL_INCL_NETWORK and perhaps #define RL_LIBCURL)
