@@ -24,6 +24,7 @@ stb_image_write:
 stb_vorbis:
 	https://github.com/nothings/stb/blob/master/stb_vorbis.c
 	v1.19, Feb 5, 2020
+	comment out the line that says '#define alloca __builtin_alloca'
 
 minimp3:
 	https://github.com/lieff/minimp3/blob/master/minimp3.h

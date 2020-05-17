@@ -5,7 +5,8 @@ typedef struct
 	double *plan, *plan_backup;	// FFT plan and its backup
 	int32_t *ifacg;		// FFT factors
 	int plan_init;		// whether or not the FFT plan has been initialised
-	int fft_size, alloc_size;
+	int fft_size;
+	size_t alloc_size;
 } fft_plan_t;
 
 extern void fftp(double *in, double *out, int n, int method, fft_plan_t *plan);

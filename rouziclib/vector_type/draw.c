@@ -76,7 +76,8 @@ int draw_vector_char_lookahead(vector_font_t *font, uint32_t c, const char *stri
 	letter_t *l;
 	double fixoff, wc1, wc2;
 	unicode_data_t ucd1, ucd2;
-	int i=0, ir=0, found = 0;
+	size_t i=0;
+	int ir=0, found = 0;
 	uint32_t cn;
 	xy_t noff=*off;
 	double scale_mod=1., offb=0., offt=0.;
@@ -249,7 +250,8 @@ void cursor_processing(vector_font_t *font, const char *string, uint32_t c, xy_t
 
 void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
 {
-	uint32_t i, is, c, co;
+	size_t i, is;
+	uint32_t c, co;
 	double w=0., base_off=0.;
 	xy_t off_ls=XY0;
 	int drawline=0;

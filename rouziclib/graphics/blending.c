@@ -184,7 +184,7 @@ void alphablend_lrgb_on_srgb_simd128(uint8_t *s0, __m128i *l_ptr, int64_t *s1_pt
 
 	// Lookups for linear 1.15 to sRGB 8.5
 	uint16_t Cac[8];
-	_mm_store_si128(&Cac, Ca);
+	_mm_store_si128((__m128i *) &Cac, Ca);
 	Co = _mm_set_epi16(lut1[Cac[7]], lut1[Cac[6]], lut1[Cac[5]], lut1[Cac[4]], lut1[Cac[3]], lut1[Cac[2]], lut1[Cac[1]], lut1[Cac[0]]);
 
 	// Shift and shuffle to pack from 16-bit sRGB 8.5 to 8-bit sRGB

@@ -5,7 +5,7 @@ enum
 };
 
 extern void draw_circle_lrgb(const int circlemode, xy_t pos, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
-extern void draw_circle_cl(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity);
+extern void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, double intensity);
 extern void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_circle_with_lines(xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_rect(rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity);
@@ -18,7 +18,7 @@ extern void draw_polar_glow(double cx, double cy, lrgb_t col, double colmul, dou
 extern void draw_gaussian_gradient(double cx, double cy, lrgb_t c0, lrgb_t c1, double gausrad, double gausoffx, double gausoffy, const blend_func_t bf);
 extern void draw_point_lrgb(xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
 extern void draw_point_frgb(xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity);
-extern void draw_point_dq(xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity);
+extern void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity);
 extern void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_point_on_row(xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
 extern void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, const blend_func_t bf, double intensity);

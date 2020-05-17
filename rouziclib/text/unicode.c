@@ -42,10 +42,10 @@ int codepoint_utf8_size(const uint32_t c)
 	return 0;
 }
 
-uint32_t utf8_to_unicode32(const uint8_t *c, int32_t *index)
+uint32_t utf8_to_unicode32(const uint8_t *c, size_t *index)
 {
 	uint32_t v;
-	int size;
+	size_t size;
 	const uint8_t m6 = 63, m5 = 31, m4 = 15, m3 = 7;
 
 	if (c==NULL)
@@ -191,10 +191,10 @@ int codepoint_utf16_size(uint32_t c)
 	return 0;
 }
 
-uint32_t utf16_to_unicode32(const uint16_t *c, int32_t *index)
+uint32_t utf16_to_unicode32(const uint16_t *c, size_t *index)
 {
 	uint32_t v;
-	int size;
+	size_t size;
 
 	size = utf16_char_size(c);
 
@@ -279,7 +279,7 @@ size_t strlen_utf16_to_utf8(const uint16_t *str)
 
 uint16_t *utf8_to_utf16(const uint8_t *utf8, uint16_t *utf16)
 {
-	int i, j;
+	size_t i, j;
 	uint32_t c;
 
 	if (utf8==NULL)

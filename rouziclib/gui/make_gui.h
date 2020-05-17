@@ -21,7 +21,7 @@ typedef struct
 	int type;
 	xy_t pos, dim, pos_off;
 	char *label;
-	int label_as;
+	size_t label_as;
 	col_t colour;
 	void *data;
 	ctrl_resize_rect_t resize_ctrl;
@@ -38,7 +38,8 @@ typedef struct
 
 typedef struct
 {
-	int init, elem_as, edit_on, sel_id, cur_elem_id;
+	int init, edit_on, sel_id, cur_elem_id;
+	size_t elem_as;
 	layout_elem_t *elem;
 	xy_t offset;
 	double sm;
@@ -67,7 +68,7 @@ extern void free_gui_layout(gui_layout_t *layout);
 extern void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, int dst_id);
 extern void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount, const char *layout_name);
 extern void gui_layout_add_elem(gui_layout_t *layout, int *id, const char **src, const int linecount);
-extern void sprint_gui_layout(gui_layout_t *layout, char **str, int *str_as);
+extern void sprint_gui_layout(gui_layout_t *layout, char **str, size_t *str_as);
 extern void gui_layout_init_pos_scale(gui_layout_t *layout, xy_t pos, double scale, xy_t offset, int force);
 
 extern int check_value_id_validity(gui_layout_t *layout, const int id, const int implemented);

@@ -18,7 +18,7 @@ size_t curl_rec_data(void *ptr, size_t size, size_t nmemb, buffer_t *buf)
 	return size*nmemb;
 }
 
-int curl_https_get(const char *url, int timeout, int retry, uint8_t **data, int *data_alloc)
+int curl_https_get(const char *url, int timeout, int retry, uint8_t **data, size_t *data_alloc)
 {
 	CURL *handle;
 	CURLcode res;

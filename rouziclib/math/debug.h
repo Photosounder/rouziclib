@@ -10,7 +10,7 @@ typedef struct
 	volatile int init;
 	rl_mutex_t mutex;
 	volatile size_t count, as;
-	volatile math_graph_t *graph;
+	math_graph_t *graph;
 } math_graph_array_t;
 
 extern math_graph_array_t graph_array;

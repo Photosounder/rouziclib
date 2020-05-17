@@ -15,11 +15,11 @@ float *load_sound_wav_mem(const uint8_t *data, size_t data_len, size_t *sample_c
 	}
 	p = &p[4+4];				// skip subchunk size
 
-	compression = read_LE16(p, &p);		// 1 for integer PCM, 3 for float, 0xFFFE for extensible
-	*channels = read_LE16(p, &p);
-	*samplerate = read_LE32(p, &p);
+	compression = read_LE16(p, (size_t *) &p);		// 1 for integer PCM, 3 for float, 0xFFFE for extensible
+	*channels = read_LE16(p, (size_t *) &p);
+	*samplerate = read_LE32(p, (size_t *) &p);
 	p = &p[4+2];				// skip byte rate, block align
-	bit_depth = read_LE16(p, &p);
+	bit_depth = read_LE16(p, (size_t *) &p);
 
 	// Sound data
 	p = memmem(data, data_len, "data", 4);
@@ -34,7 +34,7 @@ float *load_sound_wav_mem(const uint8_t *data, size_t data_len, size_t *sample_c
 	byte_depth = ceil_rshift(bit_depth, 3);		// bytes per sample
 	vol = 1.f / (float) (1LL << 8*byte_depth);	// volume multiplier
 
-	*sample_count = read_LE32(p, &p) / (*channels * byte_depth);
+	*sample_count = read_LE32(p, (size_t *) &p) / (*channels * byte_depth);
 	full_count = *sample_count * (size_t) *channels;
 
 	switch (byte_depth)

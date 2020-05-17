@@ -60,11 +60,9 @@ void free_null(void **ptr)
 void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t size_elem)
 {
 	size_t i;
-	uint8_t **array;
+	void **array;
 
-	array = calloc(ptr_count, sizeof(uint8_t *));
-	if (array==NULL)
-		return NULL;
+	array = calloc(ptr_count, sizeof(void *));
 
 	for (i=0; i < ptr_count; i++)
 		array[i] = calloc(size_buffers, size_elem);
@@ -155,7 +153,7 @@ size_t next_aligned_offset(size_t offset, const size_t size_elem)
 
 void add_to_alloc_list(void *ptr, alloc_list_t *list)
 {
-	alloc_enough(&list->list, list->len+=1, &list->as, sizeof(void *), 2.);		// enlarge list
+	alloc_enough((void **) &list->list, list->len+=1, &list->as, sizeof(void *), 2.);	// enlarge list
 	list->list[list->len-1] = ptr;
 }
 

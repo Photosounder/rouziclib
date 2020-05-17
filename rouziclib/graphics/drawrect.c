@@ -1,4 +1,4 @@
-void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, double intensity)
 {
 	float *df;
 	double grad;
@@ -230,7 +230,7 @@ void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t 
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_rect_full_dq(box, radius, col_to_frgb(colour), blend_add, intensity);
+		draw_rect_full_dq(box, radius, col_to_frgb(colour), intensity);
 	else
 		draw_rect_full_lrgb(box, radius, col_to_lrgb(colour), bf, intensity);
 }

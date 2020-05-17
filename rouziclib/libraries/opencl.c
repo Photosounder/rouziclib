@@ -126,7 +126,7 @@ void check_compilation_log(clctx_t *c, cl_program program)
 	size_t loglen;
 	char *log;
 
-	clGetProgramBuildInfo(program, c->device_id, CL_PROGRAM_BUILD_LOG, NULL, NULL, &loglen);
+	clGetProgramBuildInfo(program, c->device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &loglen);
 	log = calloc(loglen, sizeof(char));
 	clGetProgramBuildInfo(program, c->device_id, CL_PROGRAM_BUILD_LOG, loglen, log, NULL);
 	fprintf_rl(stderr, "OpenCL compilation failed:\n%s\n\n", log);

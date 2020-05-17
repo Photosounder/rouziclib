@@ -43,7 +43,7 @@ size_t get_file_size(const char *path)
 	if (in_file==NULL)
 	{
 		fprintf_rl(stderr, "File '%s' not found.\n", path);
-		return NULL;
+		return 0;
 	}
 
 	fseek(in_file, 0, SEEK_END);

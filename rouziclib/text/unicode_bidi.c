@@ -37,7 +37,8 @@ int bidicat_direction(int bc)
 
 int find_len_bidi_section(const char *string, int len, int bidi)
 {
-	int i, is, last_non_NSM=0, len_sec=0;
+	size_t i, is;
+	int last_non_NSM=0, len_sec=0;
 	uint32_t c;
 	unicode_data_t ucd;
 	int c_bidi;
@@ -48,7 +49,7 @@ int find_len_bidi_section(const char *string, int len, int bidi)
 	if (len < 0)
 		len = strlen(string);
 
-	for (i=0; i<len; i++)
+	for (i=0; i < len; i++)
 	{
 		is = i;
 		c = utf8_to_unicode32(&string[i], &i);

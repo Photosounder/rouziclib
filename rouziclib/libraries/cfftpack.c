@@ -73,9 +73,9 @@ int cfft_1D(cfft_plan_t *plan, fft_real_t *data, const int way)
 		return -1;
 
 	if (way==0)
-		cfft1f_(&plan->dim.x, &inc, data, &plan->dim.x, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
+		cfft1f_(&plan->dim.x, &inc, (fft_complex_t *) data, &plan->dim.x, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
 	else
-		cfft1b_(&plan->dim.x, &inc, data, &plan->dim.x, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
+		cfft1b_(&plan->dim.x, &inc, (fft_complex_t *) data, &plan->dim.x, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
 
 	return ret;
 }
@@ -88,9 +88,9 @@ int cfft_2D(cfft_plan_t *plan, fft_real_t *data, const int way)
 		return -1;
 
 	if (way==0)
-		cfft2f_(&plan->dim.x, &plan->dim.x, &plan->dim.y, data, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
+		cfft2f_(&plan->dim.x, &plan->dim.x, &plan->dim.y, (fft_complex_t *) data, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
 	else
-		cfft2b_(&plan->dim.x, &plan->dim.x, &plan->dim.y, data, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
+		cfft2b_(&plan->dim.x, &plan->dim.x, &plan->dim.y, (fft_complex_t *) data, plan->save, &plan->lensav, plan->work, &plan->lenwork, &ret);
 
 	return ret;
 }
@@ -140,7 +140,7 @@ void cfft_copy_r2c_pad(fft_real_t *in, size_t in_elemsize, void **pout, size_t *
 void cfft_copy_c2r(fft_real_t *in, fft_real_t *out, xyi_t dim)
 {
 	int i, count = mul_x_by_y_xyi(dim);
-	fft_complex_t *cin = in;
+	fft_complex_t *cin = (fft_complex_t *) in;
 
 	for (i=0; i < count; i++)
 		out[i] = cin[i].r;

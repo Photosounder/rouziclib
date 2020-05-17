@@ -76,40 +76,40 @@ void print_tiff_tag(uint8_t *data, uint8_t *p, uint32_t value32, int tag, int ty
 		case 1:		// u8
 		case 7:		// ?8
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", read_byte8(p, &p));
+				fprintf_rl(stdout, " %d", read_byte8(p, (size_t *) &p));
 			break;
 
 		case 6:		// s8
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", read_byte8s(p, &p));
+				fprintf_rl(stdout, " %d", read_byte8s(p, (size_t *) &p));
 			break;
 
 		case 3:		// u16
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", read16(p, &p));
+				fprintf_rl(stdout, " %d", read16(p, (size_t *) &p));
 			break;
 
 		case 8:		// s16
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", (int16_t) read16(p, &p));
+				fprintf_rl(stdout, " %d", (int16_t) read16(p, (size_t *) &p));
 			break;
 
 		case 4:		// u32
 		case 13:	// u32
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", read32(p, &p));
+				fprintf_rl(stdout, " %d", read32(p, (size_t *) &p));
 			break;
 
 		case 9:		// s32
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %d", (int32_t) read32(p, &p));
+				fprintf_rl(stdout, " %d", (int32_t) read32(p, (size_t *) &p));
 			break;
 
 		case 5:		// u32 / u32 rational
 			for (i=0; i < disp_count; i++)
 			{
-				num = read32(p, &p);
-				den = read32(p, &p);
+				num = read32(p, (size_t *) &p);
+				den = read32(p, (size_t *) &p);
 				fprintf_rl(stdout, "  %g (%d/%d)", (double) num / (double) den, num, den);
 			}
 			break;
@@ -117,20 +117,20 @@ void print_tiff_tag(uint8_t *data, uint8_t *p, uint32_t value32, int tag, int ty
 		case 10:	// s32 / s32 rational
 			for (i=0; i < disp_count; i++)
 			{
-				num = read32(p, &p);
-				den = read32(p, &p);
+				num = read32(p, (size_t *) &p);
+				den = read32(p, (size_t *) &p);
 				fprintf_rl(stdout, "  %g (%d/%d)", (double) (int32_t) num / (double) (int32_t) den, (int32_t) num, (int32_t) den);
 			}
 			break;
 
 		case 11:	// float
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %g", u32_as_float(read32(p, &p)));
+				fprintf_rl(stdout, " %g", u32_as_float(read32(p, (size_t *) &p)));
 			break;
 
 		case 12:	// double
 			for (i=0; i < disp_count; i++)
-				fprintf_rl(stdout, " %g", u64_as_double(read_LE64(p, &p)));
+				fprintf_rl(stdout, " %g", u64_as_double(read_LE64(p, (size_t *) &p)));
 			break;
 	}
 	if (count > disp_count && type != 2)
@@ -142,10 +142,10 @@ void load_tiff_ifd_entry(uint8_t *data, uint8_t *p, tiff_info_t *info)
 {
 	uint32_t tag, type, count, value16, value32, value, *ptr_value;
 
-	tag = read16(p, &p);
-	type = read16(p, &p);	// 3 means u16, 4 means u32
-	count = read32(p, &p);
-	ptr_value = p;
+	tag = read16(p, (size_t *) &p);
+	type = read16(p, (size_t *) &p);	// 3 means u16, 4 means u32
+	count = read32(p, (size_t *) &p);
+	ptr_value = (uint32_t *) p;
 	value16 = read16(p, NULL);
 	value32 = read32(p, NULL);
 	value = tiff_tag_type_size(type)==2 ? value16 : value32;
@@ -183,7 +183,7 @@ void load_tiff_ifd_entry(uint8_t *data, uint8_t *p, tiff_info_t *info)
 		case 273:	// offsets to data strips
 			info->offset_count = count;
 			if (count > 1)
-				info->data_offset = &data[value32];
+				info->data_offset = (uint32_t *) &data[value32];
 			else
 				info->data_offset = ptr_value;
 			break;
@@ -218,7 +218,7 @@ size_t load_tiff_ifd(uint8_t *data, size_t ifd_index, tiff_info_t *info)
 	uint8_t *p = &data[ifd_index];
 	int i, entry_count;
 
-	entry_count = read16(p, &p);
+	entry_count = read16(p, (size_t *) &p);
 
 	for (i=0; i < entry_count; i++)
 	{

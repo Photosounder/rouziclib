@@ -267,7 +267,7 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 	if (ctrl_button_fromlayout(&layout, 82) || (cont_gen_markup && mouse.b.lmb==-1 && cur_textedit != te && ret==0))	// Generate markup
 	{
 		char *new_src=NULL;
-		int new_src_as=0;
+		size_t new_src_as=0;
 		sprint_gui_layout(lp, &new_src, &new_src_as);
 		print_to_layout_textedit(&layout, 80, 0, "%s", new_src);
 		free(new_src);
@@ -323,7 +323,7 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 	gui_layout_selmenu_set_count(gui_type_count-gui_type_none, &layout, 50);
 	if (ctrl_selmenu_fromlayout(&layout, 50))
 	{
-		new_elem_src = calloc_2d(5, 32, sizeof(char));
+		new_elem_src = (char **) calloc_2d(5, 32, sizeof(char));
 		sprintf(new_elem_src[0], "type %s", layout_elem_type_name[selmenu_data->sel_id+gui_type_none]);
 		sprintf(new_elem_src[1], "pos	0	0");
 		sprintf(new_elem_src[2], "dim	2	1");

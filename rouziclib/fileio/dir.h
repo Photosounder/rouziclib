@@ -13,7 +13,7 @@ extern int dir_count(const char *path, int *subdir_count, int *subfile_count);
 extern void load_dir(const char *path, fs_dir_t *dir);
 extern void load_dir_depth(const char *path, fs_dir_t *dir, int max_depth);
 extern void print_dir_depth(fs_dir_t *dir, int current_depth);
-extern char *sprint_dir_depth_fullarg(fs_dir_t *dir, int current_depth, char **string, int *alloc_count);
+extern char *sprint_dir_depth_fullarg(fs_dir_t *dir, int current_depth, char **string, size_t *alloc_count);
 extern void free_dir(fs_dir_t *dir);
 extern void export_subfiles_to_file(FILE *file, fs_dir_t *dir, const int indent, const int path_full);
 extern int export_subfiles_to_path_fullarg(const char *path, fs_dir_t *dir, const int path_full);

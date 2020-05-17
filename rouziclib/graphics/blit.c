@@ -329,7 +329,8 @@ void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 	dqbuf_da = cl_add_raster_to_data_table(r);
 
 	// store the drawing parameters in the main drawing queue
-	df = di = drawq_add_to_main_queue(flattop ? DQT_BLIT_FLATTOP : DQT_BLIT_BILINEAR);
+	di = drawq_add_to_main_queue(flattop ? DQT_BLIT_FLATTOP : DQT_BLIT_BILINEAR);
+	df = (float *) di;
 	di[0] = dqbuf_da;
 	di[1] = dqbuf_da >> 32;
 	di[2] = r->dim.x;
@@ -407,7 +408,8 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 	dqbuf_da = cl_add_raster_to_data_table(r);
 
 	// store the drawing parameters in the main drawing queue
-	df = di = drawq_add_to_main_queue(DQT_BLIT_FLATTOP_ROT);
+	di = drawq_add_to_main_queue(DQT_BLIT_FLATTOP_ROT);
+	df = (float *) di;
 	di[0] = dqbuf_da;
 	di[1] = dqbuf_da >> 32;
 	di[2] = r->dim.x;

@@ -47,11 +47,11 @@ float *load_sound_aiff_mem(const uint8_t *data, size_t data_len, size_t *sample_
 	}
 	p = &p[4];
 
-	chunk_size = read_BE32(p, &p);
-	*channels = read_BE16(p, &p);
-	*sample_count = read_BE32(p, &p);
-	bit_depth = read_BE16(p, &p);
-	*samplerate = nearbyint(read_BE80_float_to_double(p, &p));
+	chunk_size = read_BE32(p, (size_t *) &p);
+	*channels = read_BE16(p, (size_t *) &p);
+	*sample_count = read_BE32(p, (size_t *) &p);
+	bit_depth = read_BE16(p, (size_t *) &p);
+	*samplerate = nearbyint(read_BE80_float_to_double(p, (size_t *) &p));
 	if (chunk_size > 18)		// if there's a compression specified
 	{
 		if (strncmp(p, "sowt", 4)==0)	compression = 1;	// LE snd

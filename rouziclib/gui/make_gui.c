@@ -415,7 +415,7 @@ void gui_layout_add_elem(gui_layout_t *layout, int *id, const char **src, const 
 	}
 }
 
-void sprint_gui_layout(gui_layout_t *layout, char **str, int *str_as)
+void sprint_gui_layout(gui_layout_t *layout, char **str, size_t *str_as)
 {
 	int id, any_v_printed=0;
 	layout_elem_t *cur_elem=NULL;
@@ -941,7 +941,8 @@ void draw_selmenu_entry_fromlayout(const int i, const char *label, gui_layout_t 
 
 char *gui_layout_make_code_for_unimp_elem(gui_layout_t *layout)
 {
-	int id, str_as=0;
+	int id;
+	size_t str_as=0;
 	char *str=NULL;
 
 	if (layout==NULL)

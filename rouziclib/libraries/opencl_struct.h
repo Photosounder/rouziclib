@@ -1,5 +1,6 @@
 #ifdef RL_OPENCL
 
+#define clew_STATIC
 #include "orig/clew.h"
 
 #ifdef RL_OPENCL_GL

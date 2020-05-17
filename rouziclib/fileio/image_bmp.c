@@ -52,7 +52,7 @@ void save_raster_bmp(char *path, raster_t im)
 			fwrite(&zero, 1, 1, f);	// write padding bytes
 	}
 
-	fwrite_LE16(0, f);
+	fwrite_LE16(f, 0);
 
 	fclose(f);
 }

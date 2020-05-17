@@ -153,9 +153,12 @@ sqrgb_t frgb_to_sqrgb(frgb_t f)
 #ifdef RL_INTEL_INTR
 void _mm_set_raster_pixel_ps_to_frgb(raster_t *r, const size_t index, __m128 f)
 {
-	_mm_storeu_ps(&r->f[index], f);
+	_mm_storeu_ps((float *) &r->f[index], f);
 }
 
+#ifdef __GNUC__
+__attribute__((__target__("ssse3")))
+#endif
 void _mm_set_raster_pixel_ps_to_lrgb(raster_t *r, const size_t index, __m128 f)
 {
 	__m128i lv;
@@ -171,6 +174,10 @@ void _mm_set_raster_pixel_ps_to_lrgb(raster_t *r, const size_t index, __m128 f)
 	lv = _mm_cvtepu32_epi16(lv);
 	_mm_storeu_si64(&r->l[index], lv);
 }
+
+#ifdef __GNUC__
+__attribute__((__target__("ssse3")))
+#endif
 void _mm_set_raster_pixel_ps_to_srgb(raster_t *r, const size_t index, __m128 f)
 {
 	__m128i sv;
@@ -199,7 +206,7 @@ void _mm_set_raster_pixel_ps_to_sqrgb(raster_t *r, const size_t index, __m128 f)
 
 	// Convert from float to sqrgb
 	sv = _mm_cvtps_epi32(f);
-	_mm_store_si128(sa, sv);	// put integers in array
+	_mm_store_si128((__m128i *) sa, sv);	// put integers in array
 	s.r = sa[0];			// store 32-bit integers in packed sqrgb format
 	s.g = sa[1];
 	s.b = sa[2];

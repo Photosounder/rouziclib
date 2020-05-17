@@ -67,7 +67,7 @@ void draw_circle_lrgb(const int circlemode, xy_t pos, double circrad, double rad
 	}
 }
 
-void draw_circle_cl(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, double intensity)
 {
 #ifdef RL_OPENCL
 	float *df;
@@ -183,7 +183,7 @@ void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, 
 		draw_circle_with_lines(pos, circrad, radius, colour, blend_add, intensity);
 	else*/
 		if (fb.use_drawq)
-			draw_circle_cl(circlemode, pos, circrad, radius, col_to_frgb(colour), blend_add, intensity);
+			draw_circle_dq(circlemode, pos, circrad, radius, col_to_frgb(colour), intensity);
 		else
 			draw_circle_lrgb(circlemode, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
 }
@@ -518,7 +518,7 @@ void draw_point_frgb(xy_t pos, double radius, frgb_t colour, const blend_func_fl
 	}
 }
 
-void draw_point_dq(xy_t pos, double radius, frgb_t colour, const blend_func_fl_t bf, double intensity)
+void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 {
 	double grad;
 	int32_t ix, iy;
@@ -562,7 +562,7 @@ void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, do
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_point_dq(pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
+		draw_point_dq(pos, radius, col_to_frgb(colour), intensity);
 	else if (fb.r.use_frgb)
 		draw_point_frgb(pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else

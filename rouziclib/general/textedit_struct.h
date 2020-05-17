@@ -7,7 +7,8 @@ enum te_mode
 typedef struct
 {
 	char *string;
-	int alloc_size, curpos;
+	size_t alloc_size;
+	int curpos;
 	uint32_t timestamp;
 } textundostate_t;
 
@@ -21,7 +22,8 @@ typedef struct
 typedef struct
 {
 	char *string;
-	int alloc_size, curpos, curpos_up, curpos_down, sel0, sel1;
+	size_t alloc_size;
+	int curpos, curpos_up, curpos_down, sel0, sel1;
 	xy_t click;
 	xy_t cur_screen_pos, cur_screen_pos_prev;
 	int click_on;

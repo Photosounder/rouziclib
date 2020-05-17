@@ -33,10 +33,10 @@ raster_t load_image_mem_libstb_image(uint8_t *raw_data, size_t size, const int m
 		b8 = stbi_load_from_memory(raw_data, size, &im.dim.x, &im.dim.y, &comp, 4);
 
 		if (mode & IMAGE_USE_SRGB)
-			im.srgb = b8;
+			im.srgb = (srgb_t *) b8;
 
 		convert_image_srgb8(&im, b8, mode);
-		if (im.srgb != b8)
+		if (im.srgb != (srgb_t *) b8)
 			free(b8);
 	}
 

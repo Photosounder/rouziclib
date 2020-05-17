@@ -87,7 +87,8 @@ void free_polyline(polyline_edit_t *pl)
 
 char *sprint_polyline(polyline_edit_t *pl)
 {
-	int i, string_alloc=0, prev_end_point=-1;
+	int i, prev_end_point=-1;
+	size_t string_alloc=0;
 	char *string=NULL, b1[32], b2[32];
 
 	for (i=0; i < pl->pv_count; i++)

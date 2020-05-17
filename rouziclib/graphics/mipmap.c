@@ -426,6 +426,8 @@ __m128 mipmap_make_fast_pixel_recursively(mipmap_t *m, const int il0, const xyi_
 	__m128 pix0, pix1, pix2, pix3;
 	int il1;
 	xyi_t ip1, ir1, ge;
+	mipmap_level_t *ml;
+	raster_t *rp;
 	
 	// Calculate the next values
 	il1 = il0-1;			// next mipmap level
@@ -452,8 +454,8 @@ __m128 mipmap_make_fast_pixel_recursively(mipmap_t *m, const int il0, const xyi_
 
 		case 0:
 			// Read the four pixels from mipmap level 0
-			mipmap_level_t *ml = &m->lvl[il1];
-			raster_t *rp = &ml->r[ir1.y * ml->tilecount.x + ir1.x];
+			ml = &m->lvl[il1];
+			rp = &ml->r[ir1.y * ml->tilecount.x + ir1.x];
 			pix0 = m->get_pixel_ps(rp, ip1.y * rp->dim.x + ip1.x);
 			pix1 = m->get_pixel_ps(rp, ip1.y * rp->dim.x + ip1.x+1);
 			pix2 = m->get_pixel_ps(rp, (ip1.y+1) * rp->dim.x + ip1.x);
@@ -478,8 +480,8 @@ __m128 mipmap_make_fast_pixel_recursively(mipmap_t *m, const int il0, const xyi_
 	pix0 = _mm_mul_ps(pix0, _mm_set_ps1(0.25f));
 
 	// Write the pixel to the mipmap
-	mipmap_level_t *ml = &m->lvl[il0];
-	raster_t *rp = &ml->r[ir0.y * ml->tilecount.x + ir0.x];
+	ml = &m->lvl[il0];
+	rp = &ml->r[ir0.y * ml->tilecount.x + ir0.x];
 	m->set_pixel_ps(rp, ip0.y * rp->dim.x + ip0.x, pix0);
 
 	return pix0;

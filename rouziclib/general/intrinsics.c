@@ -81,7 +81,7 @@ __m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex)	// faster than 
 {
 	uint32_t index[4];
 	__m128 r;
-	_mm_store_si128(&index, vindex);
+	_mm_store_si128((__m128i *) &index, vindex);
 	r = _mm_set_ps(base_addr[index[3]], base_addr[index[2]], base_addr[index[1]], base_addr[index[0]]);
 	return r;
 }

@@ -419,12 +419,12 @@ int save_image(char *path, raster_t r, int jpg_quality)
 	if (strstr(ext, "tif"))
 	{
 		if (r.f)
-			return save_image_tiff(path, r.f, r.dim, 4, 3, 32);
+			return save_image_tiff(path, (float *) r.f, r.dim, 4, 3, 32);
 		else
 		{
 			frgb_t *dataf = calloc(mul_x_by_y_xyi(r.dim), sizeof(frgb_t));
 			convert_image_to_frgb(r, dataf);
-			ret = save_image_tiff(path, dataf, r.dim, 4, 3, 32);
+			ret = save_image_tiff(path, (float *) dataf, r.dim, 4, 3, 32);
 			free(dataf);
 			return ret;
 		}

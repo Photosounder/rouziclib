@@ -313,11 +313,11 @@ void image_pixel_process_arg0(raster_t r, const int mode, void (*func)(void))
 
 	if (mode & IMAGE_USE_FRGB)
 		for (i=0; i < r.dim.x*r.dim.y; i++)
-			((void (*)(float *, float *))func)(&r.f[i], &r.f[i]);
+			((void (*)(float *, float *))func)((float *) &r.f[i], (float *) &r.f[i]);
 
 	if (mode & IMAGE_USE_LRGB)
 		for (i=0; i < r.dim.x*r.dim.y; i++)
-			((void (*)(uint16_t *, uint16_t *))func)(&r.f[i], &r.f[i]);
+			((void (*)(uint16_t *, uint16_t *))func)((uint16_t *) &r.l[i], (uint16_t *) &r.l[i]);
 }
 
 void image_pixel_process_arg1f(raster_t r, const int mode, void (*func)(void), float arg1)
@@ -332,12 +332,12 @@ void image_pixel_process_arg1f(raster_t r, const int mode, void (*func)(void), f
 
 	if (mode & IMAGE_USE_FRGB)
 		for (i=0; i < r.dim.x*r.dim.y; i++)
-			((void (*)(float *, float *, float))func)(&r.f[i], &r.f[i], arg1);
+			((void (*)(float *, float *, float))func)((float *) &r.f[i], (float *) &r.f[i], arg1);
 
 	arg1_int = nearbyint(arg1 * ONE);
 	if (mode & IMAGE_USE_LRGB)
 		for (i=0; i < r.dim.x*r.dim.y; i++)
-			((void (*)(uint16_t *, uint16_t *, int))func)(&r.f[i], &r.f[i], arg1_int);
+			((void (*)(uint16_t *, uint16_t *, int))func)((uint16_t *) &r.l[i], (uint16_t *) &r.l[i], arg1_int);
 }
 
 // Per-pixel processing functions

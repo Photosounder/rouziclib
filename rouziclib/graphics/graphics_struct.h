@@ -141,7 +141,7 @@ typedef struct
 	int first_frame_done;
 	size_t data_copy_start;				// start of the range to copy
 	size_t data_space_start, data_space_end;	// position and end of the currently used space
-	int data_space_index;				// data_alloc_table index where to insert a new entry in the space
+	size_t data_space_index;				// data_alloc_table index where to insert a new entry in the space
 	int must_recalc_free_space;
 	cl_data_alloc_t *data_alloc_table;		// table that lists allocations within the buffer
 	int data_alloc_table_count;

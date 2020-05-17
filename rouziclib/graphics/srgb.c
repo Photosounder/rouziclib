@@ -354,12 +354,12 @@ void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 	#ifdef RL_INTEL_INTR
 	if (LBD==15 && check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
 	{
-		uint64_t *s0_ptr = srgb0, *s1_ptr = srgb1;
-		__m128i *l_ptr = fb.r.l;
+		uint64_t *s0_ptr = (uint64_t *) srgb0, *s1_ptr = (uint64_t *) srgb1;
+		__m128i *l_ptr = (__m128i *) fb.r.l;
 		size_t step_count = pixc>>1;
 
 		for (i=0; i < step_count; i++)
-			alphablend_lrgb_on_srgb_simd128(&s0_ptr[i], &l_ptr[i], &s1_ptr[i], slrgb_l.lutint, lsrgb_l.lutint);
+			alphablend_lrgb_on_srgb_simd128((uint8_t *) &s0_ptr[i], &l_ptr[i], &s1_ptr[i], slrgb_l.lutint, lsrgb_l.lutint);
 
 		i <<= 1;
 	}
@@ -523,7 +523,7 @@ void srgb_change_order(srgb_t *in, srgb_t *out, const size_t count, const int or
 	#ifdef RL_INTEL_INTR
 	if (check_cpuinfo(CPU_HAS_SSSE3))
 	{
-		__m128i *in128=in, *out128=out;
+		__m128i *in128=(__m128i *) in, *out128=(__m128i *) out;
 		__m128i x0, x1, shuf_mask;
 		size_t step_count = count>>2;
 

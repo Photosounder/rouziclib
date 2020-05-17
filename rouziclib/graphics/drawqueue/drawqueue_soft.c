@@ -50,15 +50,15 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 
 typedef struct
 {
-	volatile thread_on;
+	volatile int thread_on;
 	rl_thread_t thread_handle;
 	rl_mutex_t proc_mtx, cont_mtx;
 	int current_locks;
-	uint8_t *volatile data;
-	int32_t *volatile drawq_data, *volatile sector_pos, *volatile entry_list;
+	uint8_t *data;
+	int32_t *drawq_data, *sector_pos, *entry_list;
 	volatile size_t data_as, drawq_as, sector_list_as, entry_list_as;
 	volatile int sector_size, sector_w, r_pitch, srgb_order;
-	srgb_t *volatile srgb;
+	srgb_t *srgb;
 	volatile xyi_t r_dim;
 	float **block;
 	int thread_id, thread_count;
@@ -87,7 +87,7 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 	{
 		rl_mutex_lock(&d->proc_mtx);
 
-		df = d->drawq_data;
+		df = (float *) d->drawq_data;
 		di = d->drawq_data;
 		ss = d->sector_size;
 		sec_pix = 1 << ss;		// 1 << 4 = 16
@@ -180,7 +180,7 @@ void drawq_soft_run()
 			rl_mutex_init(&d->cont_mtx);
 			d->thread_id = i;
 			d->thread_count = DQS_THREADS;
-			d->block = calloc_2d(4, 1 << 2*fb.sector_size, 4*sizeof(float));	// alloc float blocks once, one block per bracket level
+			d->block = (float **) calloc_2d(4, 1 << 2*fb.sector_size, 4*sizeof(float));	// alloc float blocks once, one block per bracket level
 
 			// Create thread
 			rl_mutex_lock(&d->proc_mtx);		// lock proc_mtx so the thread has to wait to proceed

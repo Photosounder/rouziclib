@@ -307,7 +307,8 @@ char *text_to_multiline_c_literal(const char *text, const int linebreak_mode)	//
 	const char line_start[] = "\t\t\"", line_end[] = "\",\n", line_sep[] = "\",";
 	char *lit=NULL;
 	uint8_t mb_char[5];
-	int i, j, lit_as=0, len=0, text_len = strlen(text), line_is_new=1, cp0=0, cp1=-1, cpp;
+	int j, len=0, text_len = strlen(text), line_is_new=1, cp0=0, cp1=-1, cpp;
+	size_t i, lit_as=0;
 
 	for (i=0; i < text_len+1; i++)
 	{

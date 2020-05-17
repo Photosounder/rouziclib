@@ -44,7 +44,8 @@ uint32_t find_arabic_form(uint32_t c, int form_type)	// get the codepoint for th
 
 uint32_t get_arabic_form(uint32_t c, const uint8_t *string, int len, int prev_con1)
 {
-	int i, con0, con1, next_con0=0, form=0;
+	size_t i;
+	int con0, con1, next_con0=0, form=0;
 	uint32_t cn;
 	unicode_data_t ucd;
 

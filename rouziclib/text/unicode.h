@@ -1,6 +1,6 @@
 extern int utf8_char_size(const uint8_t *c);
 extern int codepoint_utf8_size(const uint32_t c);
-extern uint32_t utf8_to_unicode32(const uint8_t *c, int32_t *index);
+extern uint32_t utf8_to_unicode32(const uint8_t *c, size_t *index);
 extern uint8_t *sprint_unicode(uint8_t *str, uint32_t c);
 extern int find_prev_utf8_char(const uint8_t *str, int pos);
 extern int find_next_utf8_char(const uint8_t *str, int pos);
@@ -8,7 +8,7 @@ extern int find_next_utf8_char(const uint8_t *str, int pos);
 extern size_t strlen_utf16(const uint16_t *str);
 extern int utf16_char_size(const uint16_t *c);
 extern int codepoint_utf16_size(uint32_t c);
-extern uint32_t utf16_to_unicode32(const uint16_t *c, int32_t *index);
+extern uint32_t utf16_to_unicode32(const uint16_t *c, size_t *index);
 extern uint16_t *sprint_utf16(uint16_t *str, uint32_t c);
 extern size_t strlen_utf8_to_utf16(const uint8_t *str);
 extern size_t strlen_utf16_to_utf8(const uint16_t *str);

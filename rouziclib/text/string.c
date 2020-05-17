@@ -76,9 +76,10 @@ char *string_tolower(char *str)
 	return str;
 }
 
-char *vsprintf_realloc(char **string, int *alloc_count, const int append, const char *format, va_list args)
+char *vsprintf_realloc(char **string, size_t *alloc_count, const int append, const char *format, va_list args)
 {
-	int len0=0, len1, zero=0;
+	int len0=0, len1;
+	size_t zero=0;
 	char *p=NULL;
 	va_list args_copy;
 
@@ -103,7 +104,7 @@ char *vsprintf_realloc(char **string, int *alloc_count, const int append, const 
 	return *string;
 }
 
-char *sprintf_realloc(char **string, int *alloc_count, const int append, const char *format, ...)	// like sprintf but expands the string alloc if needed
+char *sprintf_realloc(char **string, size_t *alloc_count, const int append, const char *format, ...)	// like sprintf but expands the string alloc if needed
 {
 	va_list args;
 	char *p=NULL;

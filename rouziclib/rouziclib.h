@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 
- * with MinGW's GCC make sure to use -lwinmm -lcomdlg32 -w (the latter to turn off pointless warnings)
+ * with MinGW's GCC make sure to use -lwinmm -lcomdlg32 -Wno-incompatible-pointer-types (the latter to turn off pointless warnings)
  * create a hard link like `mklink /J C:\<usual libs location>\include\rouziclib C:\msys\home\rouziclib` to include using <>
 
 ****************/
@@ -47,7 +47,9 @@ extern "C" {
 #ifdef _WIN32
 #define _WINSOCKAPI_	// prevents Winsock.h / Winsock2.h conflict
 #include <windows.h>
+#include <shlobj.h>
 #endif
+
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>

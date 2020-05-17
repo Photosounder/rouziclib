@@ -198,10 +198,10 @@ int ff_frgb_to_frame(ff_videnc_t *d, raster_t *r)
 
 		for (ip.y=0; ip.y < r->dim.y; ip.y+=2)
 		{
-			line_y0 = &d->frame->data[0][ip.y * d->frame->linesize[0]];
-			line_y1 = &d->frame->data[0][(ip.y+1) * d->frame->linesize[0]];
-			line_u = &d->frame->data[1][(ip.y>>1) * d->frame->linesize[1]];
-			line_v = &d->frame->data[2][(ip.y>>1) * d->frame->linesize[2]];
+			line_y0 = (uint16_t *) &d->frame->data[0][ip.y * d->frame->linesize[0]];
+			line_y1 = (uint16_t *) &d->frame->data[0][(ip.y+1) * d->frame->linesize[0]];
+			line_u = (uint16_t *) &d->frame->data[1][(ip.y>>1) * d->frame->linesize[1]];
+			line_v = (uint16_t *) &d->frame->data[2][(ip.y>>1) * d->frame->linesize[2]];
 
 			for (ip.x=0; ip.x < r->dim.x; ip.x+=2)
 			{

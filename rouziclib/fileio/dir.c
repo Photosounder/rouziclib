@@ -121,9 +121,10 @@ void print_dir_depth(fs_dir_t *dir, int current_depth)
 	}
 }
 
-char *sprint_dir_depth_fullarg(fs_dir_t *dir, int current_depth, char **string, int *alloc_count)
+char *sprint_dir_depth_fullarg(fs_dir_t *dir, int current_depth, char **string, size_t *alloc_count)
 {
-	int i, j, ac=0;
+	int i, j;
+	size_t ac=0;
 	char *p=NULL;
 
 	if (string==NULL)
@@ -318,7 +319,7 @@ int64_t get_volume_free_space(const char *path)
 
 	utf8_to_wchar(path, wpath);
 
-	if (GetDiskFreeSpaceExW(wpath, &free_space, NULL, NULL)==0)
+	if (GetDiskFreeSpaceExW(wpath, (PULARGE_INTEGER) &free_space, NULL, NULL)==0)
 	{
 		fprintf_rl(stderr, "GetLastError() in get_volume_free_space(): %d\n", GetLastError());
 		return -1;

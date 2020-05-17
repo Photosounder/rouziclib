@@ -772,7 +772,7 @@ void dropfile_event_proc(SDL_Event event)
 	if (event.type==SDL_DROPFILE)
 	{
 		dropfile.id_last++;
-		alloc_enough(&dropfile.path, dropfile.id_last+1, &dropfile.path_as, sizeof(char *), 1.5);
+		alloc_enough((void **) &dropfile.path, dropfile.id_last+1, &dropfile.path_as, sizeof(char *), 1.5);
 
 		dropfile.path[dropfile.id_last] = make_string_copy(event.drop.file);
 		SDL_free(event.drop.file);

@@ -2,7 +2,7 @@
 
 void dqsb_draw_plain_fill_add(float *le, float *block, int chan_stride)    // SSE
 {
-	__m128 *bp=block, col[4];
+	__m128 *bp=(__m128 *) block, col[4];
 	int ic, ib=0;
 
 	// Load parameters

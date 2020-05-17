@@ -54,7 +54,8 @@ double letter_width(vector_font_t *font, double pos, uint32_t c, double scale, c
 
 double calc_strwidth_len(vector_font_t *font, const uint8_t *string, double scale, const int mode, int32_t len)
 {
-	int32_t i, con_prev=0;
+	size_t i;
+	int con_prev=0;
 	uint32_t c, co, c_prev=0;
 	double w = 0.;
 	unicode_data_t ucd;
@@ -95,7 +96,8 @@ double calc_strwidth(vector_font_t *font, const uint8_t *string, double scale, c
 
 word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const int mode)
 {
-	int i, is, iw, prev_was_space=1, len = strlen(string);
+	size_t i, is, iw, len = strlen(string);
+	int prev_was_space=1;
 	uint32_t c, c_prev=0;
 	word_stats_t ws;
 

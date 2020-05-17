@@ -716,24 +716,24 @@ frgb_t clamp_frgba(frgb_t a)
 
 frgb_t frgb_diff(frgb_t a, frgb_t b)
 {
-	int ic;
 	frgb_t d;
-	float *af=&a, *bf=&b, *df=&d;
-
-	for (ic=0; ic < 4; ic++)
-		df[ic] = fabs(af[ic] - bf[ic]);
+	
+	d.r = fabs(a.r - b.r);
+	d.g = fabs(a.g - b.g);
+	d.b = fabs(a.b - b.b);
+	d.a = fabs(a.a - b.a);
 
 	return d;
 }
 
 frgb_t frgb_perceptual_diff(frgb_t a, frgb_t b)
 {
-	int ic;
 	frgb_t d;
-	float *af=&a, *bf=&b, *df=&d;
 
-	for (ic=0; ic < 4; ic++)
-		df[ic] = fabs(linear_to_Lab_L(af[ic]) - linear_to_Lab_L(bf[ic]));
+	d.r = fabs(linear_to_Lab_L(a.r) - linear_to_Lab_L(b.r));
+	d.g = fabs(linear_to_Lab_L(a.g) - linear_to_Lab_L(b.g));
+	d.b = fabs(linear_to_Lab_L(a.b) - linear_to_Lab_L(b.b));
+	d.a = fabs(linear_to_Lab_L(a.a) - linear_to_Lab_L(b.a));
 
 	return d;
 }
