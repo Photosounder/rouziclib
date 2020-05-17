@@ -43,7 +43,7 @@ enum		// inserting-spacing codepoints (must match font in ../vector_type/private
 
 extern void reset_insert_rect_array();
 extern void report_insert_rect_pos(xy_t pos, xy_t dim, int bidi, int index);
-extern int parse_insert_rect_charseq(xy_t p, xy_t *off, double scale, int bidi, int cp0, char *string);
+extern int parse_insert_rect_charseq(xy_t p, xy_t *off, double scale, int bidi, int cp0, const char *string);
 extern rect_t get_insert_rect_zc(zoom_t zc, int index);
 extern rect_t insert_rect_change_height(rect_t r, double low, double high);
 

@@ -23,7 +23,7 @@ char *open_file_dialog(char *filter)		// the filter must use \1 instead of \0 as
 
 	ret = GetOpenFileNameW(&ofn);
 
-	free(ofn.lpstrFilter);
+	free(wfilter);
 
 	#ifdef RL_SDL
 	SDL_RaiseWindow(fb.window);
@@ -60,7 +60,7 @@ char *save_file_dialog(char *filter)		// the filter must use \1 instead of \0 as
 
 	ret = GetSaveFileNameW(&ofn);
 
-	free(ofn.lpstrFilter);
+	free(wfilter);
 
 	#ifdef RL_SDL
 	SDL_RaiseWindow(fb.window);

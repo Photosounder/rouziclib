@@ -7,7 +7,7 @@ void convert_image_srgb8_fullarg(raster_t *im, const uint8_t *data, const int mo
 
 	if (mode & IMAGE_USE_SRGB)
 	{
-		if (im->srgb != data)
+		if (im->srgb != (srgb_t *) data)
 		{
 			im->srgb = calloc(pix_count, sizeof(srgb_t));
 			memcpy(im->srgb, data, pix_count * sizeof(srgb_t));
@@ -93,7 +93,7 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 {
 	int i;
 	size_t pix_count = mul_x_by_y_xyi(im->dim);
-	frgb_t *f = data;
+	const frgb_t *f = (const frgb_t *) data;
 
 	if (mode & IMAGE_USE_SRGB)
 	{
@@ -102,7 +102,7 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 		#ifdef RL_INTEL_INTR
 		if (check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
 			for (i=0; i < pix_count; i++)
-				_mm_set_raster_pixel_ps_to_srgb(im, i, _mm_load_ps(&f[i]));
+				_mm_set_raster_pixel_ps_to_srgb(im, i, _mm_load_ps((const float *) &f[i]));
 		else
 		#endif
 			for (i=0; i < pix_count; i++)
@@ -118,7 +118,7 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 
 	if (mode & IMAGE_USE_FRGB)
 	{
-		if (im->f != data)
+		if (im->f != (frgb_t *) data)
 		{
 			im->f = calloc(pix_count, sizeof(frgb_t));
 			memcpy(im->f, data, pix_count * sizeof(frgb_t));
@@ -131,7 +131,7 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 
 		#ifdef RL_INTEL_INTR
 		for (i=0; i < pix_count; i++)
-			_mm_set_raster_pixel_ps_to_sqrgb(im, i, _mm_load_ps(&f[i]));
+			_mm_set_raster_pixel_ps_to_sqrgb(im, i, _mm_load_ps((const float *) &f[i]));
 		#else
 		for (i=0; i < pix_count; i++)
 			im->sq[i] = frgb_to_sqrgb(f[i]);
@@ -295,7 +295,7 @@ raster_t load_image_mem_builtin(uint8_t *raw_data, size_t size, const int mode)
 	if (is_file_tiff_mem(raw_data))
 	{
 		im = load_tiff_mem_raster(raw_data);
-		convert_image_frgb(&im, im.f, mode);
+		convert_image_frgb(&im, (const float *) im.f, mode);
 	}
 	else
 		im = load_image_mem_libstb_image(raw_data, size, mode);

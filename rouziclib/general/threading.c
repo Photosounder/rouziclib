@@ -85,7 +85,7 @@ void rl_mutex_destroy_free(rl_mutex_t **mutex)
 	}
 }
 
-int32_t rl_atomic_get_and_set(int32_t *ptr, int32_t new_value)
+int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value)
 {
 	#ifdef _WIN32
 	return InterlockedExchange(ptr, new_value);

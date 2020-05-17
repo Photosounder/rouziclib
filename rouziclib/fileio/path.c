@@ -1,4 +1,4 @@
-char *find_last_dirchar(char *path, int ignore_trailing)
+const char *find_last_dirchar(const char *path, int ignore_trailing)
 {
 	int i, len;
 
@@ -18,9 +18,9 @@ char *find_last_dirchar(char *path, int ignore_trailing)
 	return NULL;
 }
 
-char *remove_name_from_path(char *dirpath, char *fullpath)	// removes the file or dir name after DIR_CHAR and DIR_CHAR itself
+char *remove_name_from_path(char *dirpath, const char *fullpath)	// removes the file or dir name after DIR_CHAR and DIR_CHAR itself
 {
-	char *p;
+	const char *p;
 	int len;
 	
 	if (dirpath)
@@ -47,7 +47,7 @@ char *remove_name_from_path(char *dirpath, char *fullpath)	// removes the file o
 	return dirpath;
 }
 
-char *remove_extension_from_path(char *dirpath, char *fullpath)
+char *remove_extension_from_path(char *dirpath, const char *fullpath)
 {
 	char *p;
 	int len;
@@ -76,9 +76,9 @@ char *remove_extension_from_path(char *dirpath, char *fullpath)
 	return dirpath;
 }
 
-char *get_filename_from_path(char *fullpath)	// returns a pointer to the filename in the path
+const char *get_filename_from_path(const char *fullpath)	// returns a pointer to the filename in the path
 {
-	char *p;
+	const char *p;
 
 	if (fullpath==NULL)
 	{
@@ -93,7 +93,7 @@ char *get_filename_from_path(char *fullpath)	// returns a pointer to the filenam
 	return fullpath;
 }
 
-char *append_name_to_path(char *dest, char *path, char *name)	// appends name to path properly regardless of how path is ended
+char *append_name_to_path(char *dest, const char *path, const char *name)	// appends name to path properly regardless of how path is ended
 {
 	int path_len, name_len, path_has_dirchar=0;
 
@@ -131,9 +131,9 @@ char *append_name_to_path(char *dest, char *path, char *name)	// appends name to
 	if (dest==path)		// in-place appending
 	{
 		if (path_has_dirchar)
-			sprintf(&path[path_len], "%s", name);
+			sprintf(&dest[path_len], "%s", name);
 		else
-			sprintf(&path[path_len], "%c%s", DIR_CHAR, name);
+			sprintf(&dest[path_len], "%c%s", DIR_CHAR, name);
 	}
 	else
 	{
@@ -232,7 +232,7 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 	return path;
 }
 
-int check_path_against_extension_list(char *path, const char *list_ext[], size_t list_count)
+int check_path_against_extension_list(const char *path, const char *list_ext[], size_t list_count)
 {
 	int i;
 	char ext[32];		// file extension
@@ -248,14 +248,14 @@ int check_path_against_extension_list(char *path, const char *list_ext[], size_t
 	return 0;
 }
 
-int is_path_image_file(char *path)
+int is_path_image_file(const char *path)
 {
 	const char *list_ext[] = {"jpg", "jpeg", "png", "tga", "targa", "bmp", "psd", "gif", "tif", "tiff"};
 
 	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
 }
 
-int is_path_video_file(char *path)
+int is_path_video_file(const char *path)
 {
 	const char *list_ext[] = {"avi", "mp4", "mkv", "mov", "webm", "m2ts"};
 

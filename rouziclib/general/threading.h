@@ -39,4 +39,4 @@ extern int rl_thread_join_and_null(rl_thread_t *thread_handle);
 extern rl_mutex_t *rl_mutex_init_alloc();
 extern void rl_mutex_destroy_free(rl_mutex_t **mutex);
 
-extern int32_t rl_atomic_get_and_set(int32_t *ptr, int32_t new_value);
+extern int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value);

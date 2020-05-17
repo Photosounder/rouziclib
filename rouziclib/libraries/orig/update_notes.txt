@@ -44,6 +44,7 @@ tinyexpr:
 	https://github.com/codeplea/tinyexpr/tree/logic
 	Jul 10, 2018
 	only download tinyexpr.[ch]
+	in tinyexpr.c replace 'te_fun2 t = s->function;' lines with 'const void *t = s->function;'
 
 xxhash:
 	https://github.com/Cyan4973/xxHash/blob/dev/xxhash.h

@@ -13,7 +13,7 @@ void draw_titled_roundrect_frame(xy_t pos, double radius, xy_t c, xy_t space, lr
 			9., 8., radius, colour, bf, 1.);
 }
 
-void draw_label(uint8_t *label, rect_t box, col_t colour, const int mode)
+void draw_label(const uint8_t *label, rect_t box, col_t colour, const int mode)
 {
 	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
 
@@ -28,7 +28,7 @@ void draw_label(uint8_t *label, rect_t box, col_t colour, const int mode)
 	draw_string_bestfit(font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
 }
 
-void draw_text_block(uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
+void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
 {
 	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
 

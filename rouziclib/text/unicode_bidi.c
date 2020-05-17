@@ -35,7 +35,7 @@ int bidicat_direction(int bc)
 	return 0;
 }
 
-int find_len_bidi_section(char *string, int len, int bidi)
+int find_len_bidi_section(const char *string, int len, int bidi)
 {
 	int i, is, last_non_NSM=0, len_sec=0;
 	uint32_t c;

@@ -201,7 +201,7 @@ int32_t count_linebreaks(FILE *file)
 	return i;
 }
 
-int check_file_is_readable(char *path)
+int check_file_is_readable(const char *path)
 {
 	FILE *file;
 	int ret=0;
@@ -216,7 +216,7 @@ int check_file_is_readable(char *path)
 	return ret;
 }
 
-int check_dir_exists(char *path)
+int check_dir_exists(const char *path)
 {
 	DIR *dir;
 	int ret=0;

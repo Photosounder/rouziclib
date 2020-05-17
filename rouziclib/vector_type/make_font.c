@@ -45,7 +45,7 @@ void add_codepoint_letter_lut_reference(vector_font_t *font)
 void font_parse_p_line(char *line, xy_t *pv, int *pid, letter_t *l)
 {
 	int n=0, ip;
-	char *p;
+	const char *p;
 
 	p = skip_whitespace(line);
 	if (p[0]=='p')
@@ -65,7 +65,7 @@ void font_parse_p_line(char *line, xy_t *pv, int *pid, letter_t *l)
 void font_parse_curveseg_line(char *line, xy_t *pv, int *pid, letter_t *l)
 {
 	int n=0, ip, d1_is_ratio=0, abs_angle=0;
-	char *p;
+	const char *p;
 	double th0=0.5*pi, th1=0., d0, d1=0.;
 	xy_t p0=XY0, p1, p2;
 
@@ -118,7 +118,7 @@ void font_parse_rect_line(char *line, xy_t *pv, int *pid, letter_t *l)
 	double num_seg=0., radius=0., start_angle=0.;
 	xy_t pn;
 	rect_t r;
-	char *p=line;
+	const char *p=line;
 
 	sscanf(p, " rect p%d %n", &pstart, &n);
 	p = &p[n];
@@ -147,7 +147,7 @@ void font_parse_circle_line(char *line, xy_t *pv, int *pid, letter_t *l)
 	int ip, n=0, pstart=0, pend=0;
 	double num_seg=0., radius=0., start_angle=0.;
 	xy_t centre=XY0, pn;
-	char *p=line;
+	const char *p=line;
 
 	sscanf(p, " circle p%d p%d %lf %n", &pstart, &pend, &num_seg, &n);
 	p = &p[n];
@@ -181,7 +181,8 @@ void font_parse_mirror_line(char *line, xy_t *pv, int *pid, letter_t *l)
 	int ip, op, n=0, p_first=0, p_last=0, p_start=0;
 	xy_t pn;
 	double mirror_pos=0.;
-	char hv, *p=line;
+	char hv;
+	const char *p=line;
 
 	sscanf(p, " mirror %c %n%*s p%d p%d p%d", &hv, &n, &p_first, &p_last, &p_start);
 	p = &p[n];
@@ -221,7 +222,7 @@ void font_add_line(int pA, int pB, int *lineA, int *lineB, letter_t *l)
 void font_parse_lines_line(char *line, xy_t *pv, int *pid, int *lineA, int *lineB, letter_t *l)
 {
 	int i, n, wl, to=0, pA=-1, pB, direction;
-	char *p, *pend;
+	const char *p, *pend;
 
 	pend = &line[strlen(line)];		// pointer to line's NULL terminator
 	p = skip_string(line, " lines %n");
@@ -280,7 +281,7 @@ void font_parse_lines_line(char *line, xy_t *pv, int *pid, int *lineA, int *line
 
 void font_parse_bounds_line(char *line, letter_t *l)
 {
-	char *p;
+	const char *p;
 
 	p = skip_string(line, " bounds %n");
 	
@@ -290,7 +291,7 @@ void font_parse_bounds_line(char *line, letter_t *l)
 
 void font_parse_vbounds_line(char *line, letter_t *l)
 {
-	char *p;
+	const char *p;
 
 	p = skip_string(line, " vbounds %n");
 	
@@ -301,7 +302,8 @@ void font_parse_vbounds_line(char *line, letter_t *l)
 void font_parse_transform_line(char *line, char *a, letter_t *l, glyphdata_t *gd, int group_start, int last_start)
 {
 	int i, n, todo=0, to_offset=1, start;
-	char *p, b[32];
+	const char *p;
+	char b[32];
 	double th;
 	xy_t o;
 	xyz_t v;
@@ -558,9 +560,10 @@ void make_glyph_vobj(letter_t *l, glyphdata_t *gd)
 	l->width = l->br - l->bl;
 }
 
-void font_block_process_line(char *line, vector_font_t *font)
+void font_block_process_line(const char *line, vector_font_t *font)
 {
-	char a[128], c, *p;
+	char a[128], c;
+	const char *p;
 	uint32_t cp;
 	int current_count;
 

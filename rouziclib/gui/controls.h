@@ -5,10 +5,10 @@
 // ctrl_button_state_t, ctrl_knob_state_t, ctrl_drag_state_t, ctrl_selectmenu_state_t, ctrl_id_t, ctrl_resize_rect_t
 
 extern int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr);
-extern int ctrl_button_chamf(uint8_t *name, rect_t box, col_t colour);
-extern int ctrl_checkbox(int *state, uint8_t *name, rect_t box, col_t colour);
+extern int ctrl_button_chamf(const uint8_t *name, rect_t box, col_t colour);
+extern int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour);
 extern int ctrl_checkbox_pin(int *state, rect_t box, col_t colour);
-extern int ctrl_radio(int state, uint8_t *name, rect_t box, col_t colour);
+extern int ctrl_radio(int state, const uint8_t *name, rect_t box, col_t colour);
 extern knob_t make_knob(char *main_label, double default_value, const knob_func_t func, double min, double max, char *fmt_str);
 extern rect_t selectmenu_rect(rect_t box, const int id);
 extern int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour);

@@ -17,5 +17,5 @@ extern int save_raw_file(const char *path, const char *mode, uint8_t *data, size
 extern int save_string_to_file(const char *path, const char *mode, char *string);
 extern int save_string_array_to_file(const char *path, const char *mode, char **array, int linecount);
 extern int32_t count_linebreaks(FILE *file);
-extern int check_file_is_readable(char *path);
-extern int check_dir_exists(char *path);
+extern int check_file_is_readable(const char *path);
+extern int check_dir_exists(const char *path);

@@ -1,6 +1,6 @@
 // UTF-8
 
-int utf8_char_size(uint8_t *c)
+int utf8_char_size(const uint8_t *c)
 {
 	const uint8_t	m0x	= 0x80, c0x	= 0x00,
 	      		m10x	= 0xC0, c10x	= 0x80,
@@ -32,7 +32,7 @@ int utf8_char_size(uint8_t *c)
 	return -1;			// if c[0] is a first byte but the other bytes don't match
 }
 
-int codepoint_utf8_size(uint32_t c)
+int codepoint_utf8_size(const uint32_t c)
 {
 	if (c < 0x0080) return 1;
 	if (c < 0x0800) return 2;
@@ -42,7 +42,7 @@ int codepoint_utf8_size(uint32_t c)
 	return 0;
 }
 
-uint32_t utf8_to_unicode32(uint8_t *c, int32_t *index)
+uint32_t utf8_to_unicode32(const uint8_t *c, int32_t *index)
 {
 	uint32_t v;
 	int size;
@@ -133,7 +133,7 @@ uint8_t *sprint_unicode(uint8_t *str, uint32_t c)	// str must be able to hold 1 
 	return str;
 }
 
-int find_prev_utf8_char(uint8_t *str, int pos)
+int find_prev_utf8_char(const uint8_t *str, int pos)
 {
 	if (pos > 0)
 	{
@@ -147,7 +147,7 @@ int find_prev_utf8_char(uint8_t *str, int pos)
 	return pos;
 }
 
-int find_next_utf8_char(uint8_t *str, int pos)
+int find_next_utf8_char(const uint8_t *str, int pos)
 {
 	int il;
 
@@ -173,7 +173,7 @@ size_t strlen_utf16(const uint16_t *str)
 			return i;
 }
 
-int utf16_char_size(uint16_t *c)
+int utf16_char_size(const uint16_t *c)
 {
 	if (c[0] <= 0xD7FF || c[0] >= 0xE000)
 		return 1;
@@ -191,7 +191,7 @@ int codepoint_utf16_size(uint32_t c)
 	return 0;
 }
 
-uint32_t utf16_to_unicode32(uint16_t *c, int32_t *index)
+uint32_t utf16_to_unicode32(const uint16_t *c, int32_t *index)
 {
 	uint32_t v;
 	int size;

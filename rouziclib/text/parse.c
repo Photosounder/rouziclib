@@ -1,19 +1,19 @@
-char *skip_string(const char *string, const char *skipstring)		// skipstring must be terminated by a %n
+const char *skip_string(const char *string, const char *skipstring)		// skipstring must be terminated by a %n
 {
 	int n=0;
 	sscanf(string, skipstring, &n);
 	return &string[n];
 }
 
-char *skip_whitespace(const char *string)
+const char *skip_whitespace(const char *string)
 {
 	return skip_string(string, " %n");
 }
 
-int string_count_fields(char *string, char *delim)
+int string_count_fields(const char *string, const char *delim)
 {
 	int count = 0;
-	char *p = string;
+	const char *p = string;
 
 	// Count fields
 	while (p)
@@ -27,11 +27,11 @@ int string_count_fields(char *string, char *delim)
 	return count;
 }
 
-int string_get_field(char *string, char *delim, int n, char *field)	// copies the Nth field (0 indexed) of string into field
+int string_get_field(const char *string, const char *delim, int n, char *field)	// copies the Nth field (0 indexed) of string into field
 {
 	int i;
 	size_t delim_len = strlen(delim);
-	char *end;
+	const char *end;
 
 	// If n is negative it means we count from the end, -1 is last, -2 the one before etc...
 	if (n < 0)
@@ -63,11 +63,11 @@ int string_get_field(char *string, char *delim, int n, char *field)	// copies th
 	return 1;
 }
 
-char *string_parse_fractional_12(const char *string, double *v)
+const char *string_parse_fractional_12(const char *string, double *v)
 {
 	int i, n=0, ret=1, count=0, neg=0;
 	double divisor=1., digit;
-	char *p = string;
+	const char *p = string;
 
 	*v = 0.;
 
@@ -79,7 +79,7 @@ char *string_parse_fractional_12(const char *string, double *v)
 		p++;
 	}
 
-	for (i=0; i<20 && ret==1; i++)
+	for (i=0; i < 20 && ret==1; i++)
 	{
 		n=0;
 		ret = sscanf(p, "%lf%n", &digit, &n);
@@ -122,7 +122,7 @@ xy_t doztof_xy(const char *str_x, const char *str_y)
 	return xy(doztof(str_x), doztof(str_y));
 }
 
-char *remove_after_char(char *string, char c)
+char *remove_after_char(char *string, const char c)
 {
 	char *p;
 
@@ -133,9 +133,9 @@ char *remove_after_char(char *string, char c)
 	return string;
 }
 
-int strlen_until_after_char(char *string, char c)	// length of a string until last occurence of c (included)
+int strlen_until_after_char(const char *string, const char c)	// length of a string until last occurence of c (included)
 {
-	char *p;
+	const char *p;
 
 	p = strrchr(string, c);
 	if (p)
@@ -144,7 +144,7 @@ int strlen_until_after_char(char *string, char c)	// length of a string until la
 		return 0;
 }
 
-char *remove_after_char_copy(char *string, char c)	// makes a cut copy of a string
+char *remove_after_char_copy(const char *string, const char c)	// makes a cut copy of a string
 {
 	int len;
 	char *cut;
@@ -160,7 +160,7 @@ char *remove_after_char_copy(char *string, char c)	// makes a cut copy of a stri
 	return cut;
 }
 
-int get_string_linecount(char *text, int len)
+int get_string_linecount(const char *text, int len)
 {
 	int i, linecount=0;
 
@@ -181,7 +181,7 @@ int get_string_linecount(char *text, int len)
 	return linecount;
 }
 
-int string_find_start_nth_line(char *text, int len, int n)	// n is the index of the line to find, the char index is returned
+int string_find_start_nth_line(const char *text, int len, int n)	// n is the index of the line to find, the char index is returned
 {
 	int i, il;
 
@@ -248,9 +248,10 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 	return array;
 }
 
-char *strstr_i(char *fullstr, char *substr)		// case insensitive substring search
+const char *strstr_i(const char *fullstr, const char *substr)		// case insensitive substring search
 {
-	char *fullstr_low, *substr_low, *p, *ret = NULL;
+	char *fullstr_low, *substr_low;
+	const char *p, *ret = NULL;
 
 	if (fullstr==NULL || substr==NULL)
 		return NULL;
@@ -268,9 +269,9 @@ char *strstr_i(char *fullstr, char *substr)		// case insensitive substring searc
 	return ret;
 }
 
-char *strstr_after(char *fullstr, char *substr)		// points to after the substring
+const char *strstr_after(const char *fullstr, const char *substr)		// points to after the substring
 {
-	char *p;
+	const char *p;
 
 	if (fullstr==NULL || substr==NULL)
 		return NULL;
@@ -296,7 +297,7 @@ void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// 
 	for (i=0; i <= l_len - s_len; i++)
 		if (l[i] == s[0])
 			if (memcmp(&l[i], s, s_len) == 0)
-				return &l[i];
+				return (void *) &l[i];
 
 	return NULL;
 }
@@ -317,7 +318,7 @@ int strcmp_len2(const char *str1, const char *str2)
 	return strncmp(str1, str2, strlen(str2));
 }
 
-char *find_pattern_in_string(const char *str, const char *pat)	// looks for matches from the end
+const char *find_pattern_in_string(const char *str, const char *pat)	// looks for matches from the end
 {
 	int i, ip, str_len, pat_len, match;
 
@@ -358,7 +359,7 @@ char *find_pattern_in_string(const char *str, const char *pat)	// looks for matc
 	return NULL;
 }
 
-char *find_date_time_in_string(const char *str)
+const char *find_date_time_in_string(const char *str)
 {
 	// pattern matches YYYY-MM-DD<?>hh.mm.ss
 	return find_pattern_in_string(str, "\376\376\376\376-\376\376-\376\376\377\376\376.\376\376.\376\376");
@@ -367,7 +368,7 @@ char *find_date_time_in_string(const char *str)
 double parse_timestamp(const char *ts)
 {
 	double t = NAN, hh=0., mm=0., ss=0.;
-	char *p;
+	const char *p;
 
 	if (p = find_pattern_in_string(ts, "\376\376:\376\376:\376\376"))	// see if it contains hours (HH)
 		sscanf(p, "%lg:%lg:%lg", &hh, &mm, &ss);
@@ -383,7 +384,7 @@ double parse_timestamp(const char *ts)
 	return (hh*60. + mm)*60. + ss;
 }
 
-int find_line_indentation_depth(char *line)	// returns how many \t the line starts with
+int find_line_indentation_depth(const char *line)	// returns how many \t the line starts with
 {
 	int depth = 0;
 

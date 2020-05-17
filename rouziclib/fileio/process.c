@@ -2,7 +2,7 @@
 
 PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags)
 {
-	STARTUPINFO si={0};
+	STARTUPINFOW si={0};
 	PROCESS_INFORMATION procinf={0};
 	wchar_t wcmd[32768];
 
@@ -32,7 +32,7 @@ PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags)
 
 PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags)
 {
-	STARTUPINFO si={0};
+	STARTUPINFOW si={0};
 	PROCESS_INFORMATION procinf={0};
 	char full_cmd[32768];
 	wchar_t wcmd[32768];

@@ -35,7 +35,7 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 	return butt_state.uponce;
 }
 
-int ctrl_button_chamf(uint8_t *name, rect_t box, col_t colour)
+int ctrl_button_chamf(const uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);
@@ -67,7 +67,7 @@ int ctrl_button_chamf(uint8_t *name, rect_t box, col_t colour)
 	return butt_state.uponce;
 }
 
-int ctrl_checkbox(int *state, uint8_t *name, rect_t box, col_t colour)
+int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);
@@ -123,7 +123,7 @@ int ctrl_checkbox_pin(int *state, rect_t box, col_t colour)
 	return butt_state.uponce;
 }
 
-int ctrl_radio(int state, uint8_t *name, rect_t box, col_t colour)
+int ctrl_radio(int state, const uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);

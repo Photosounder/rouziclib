@@ -71,7 +71,7 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 	return found;
 }
 
-int draw_vector_char_lookahead(vector_font_t *font, uint32_t c, char *string, xy_t p, xy_t *off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
+int draw_vector_char_lookahead(vector_font_t *font, uint32_t c, const char *string, xy_t p, xy_t *off, double scale, col_t colour, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
 	double fixoff, wc1, wc2;
@@ -169,7 +169,7 @@ void check_closest_cursor(xy_t off, double scale, xy_t expected_pos, double *clo
 
 col_t text_sel_col={0};
 
-void cursor_processing(vector_font_t *font, char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
+void cursor_processing(vector_font_t *font, const char *string, uint32_t c, xy_t p, xy_t off, double scale, xy_t expected_pos, int is, int curpos, int recur, const int mode, int bidi, int bidi_change, double line_thick, double *closest_deltapos)
 {
 	static int32_t sel0=0, sel1=0, newline=0;
 	static xy_t p0, p1;
@@ -247,7 +247,7 @@ void cursor_processing(vector_font_t *font, char *string, uint32_t c, xy_t p, xy
 	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[2], isa, &cur_textedit->curpos_down);
 }
 
-void draw_string_full(vector_font_t *font, char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
+void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, double glyph_limit, double line_limit, const int bidi, const int recur, text_param_t *tp)
 {
 	uint32_t i, is, c, co;
 	double w=0., base_off=0.;
@@ -406,12 +406,12 @@ void draw_string_full(vector_font_t *font, char *string, xy_t p, xy_t off, doubl
 		draw_line_thin(add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
 }
 
-void draw_string_len(vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)
+void draw_string_len(vector_font_t *font, const char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)
 {
 	draw_string_full(font, string, p, XY0, scale, colour, intensity, line_thick, mode, len, 0.2, 0.01, 2, 0, tp);
 }
 
-void draw_string(vector_font_t *font, char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string(vector_font_t *font, const char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	draw_string_len(font, string, p, scale, colour, intensity, line_thick, mode, -1, tp);
 }

@@ -74,7 +74,7 @@ jump_end:
 	return ret;
 }
 
-size_t http_get(char *url, int timeout, int retry, uint8_t **data, size_t *data_alloc)	// works both with or without http://
+size_t http_get(const char *url, int timeout, int retry, uint8_t **data, size_t *data_alloc)	// works both with or without http://
 {
 	char *domain=NULL, *request=NULL, *p;
 	int ret, start_domain=0, start_path=0;
@@ -105,7 +105,7 @@ size_t http_get(char *url, int timeout, int retry, uint8_t **data, size_t *data_
 	return ret;
 }
 
-size_t http_get_buf(char *url, int timeout, int retry, buffer_t *buf)
+size_t http_get_buf(const char *url, int timeout, int retry, buffer_t *buf)
 {
 	buf->len = http_get(url, timeout, retry, &buf->buf, &buf->as);
 

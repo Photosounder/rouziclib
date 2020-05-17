@@ -91,7 +91,7 @@ __m128 _mm_sqrgb_to_ps(sqrgb_t s)
 // Get pixel at index to frgb
 __m128 _mm_get_raster_pixel_frgb_to_ps(raster_t *r, const size_t index)
 {
-	__m128 v = _mm_loadu_ps(&r->f[index]);
+	__m128 v = _mm_loadu_ps((float *) &r->f[index]);
 	return v;
 }
 

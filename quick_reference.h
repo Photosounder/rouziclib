@@ -566,10 +566,10 @@
 		font = remake_font("vector_type/type_index.txt", font);
 
 	// Preferences
-		// initiating the default prefs struct
+		// Initiating the default prefs struct
  		pref_def = pref_set_file_by_appdata_path("Program name", "config.txt");
 
-		// getting and setting values
+		// Getting and setting values
 		samplerate = pref_get_double(&pref_def, "Audio output:Sample rate", 44100, " Hz");
 		pref_set_double(&pref_def, "Audio output:Sample rate", samplerate, " Hz");
 

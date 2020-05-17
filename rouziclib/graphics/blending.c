@@ -158,7 +158,7 @@ void alphablend_lrgb_on_srgb_simd128(uint8_t *s0, __m128i *l_ptr, int64_t *s1_pt
 	// Alpha testing
 	if (_mm_test_all_zeros(Ca, alpha_mask))				// if all 2 lrgb pixels are transparent
 	{
-		_mm_storeu_si64(s1_ptr, _mm_loadl_epi64(s0));		// copy the original 2 srgb pixels
+		_mm_storeu_si64(s1_ptr, _mm_loadl_epi64((__m128i *) s0));		// copy the original 2 srgb pixels
 		return;
 	}
 

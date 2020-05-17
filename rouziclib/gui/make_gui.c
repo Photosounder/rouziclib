@@ -122,7 +122,8 @@ void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, int dst_i
 void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount, const char *layout_name)
 {
 	int i, il, n, vint;
-	char *line, a[128], b[32], *p;
+	const char *line, *p;
+	char a[128], b[32];
 	layout_elem_t *cur_elem=NULL;
 	layout_value_t *cur_val=NULL;
 	knob_t *knob_data;
@@ -1342,7 +1343,8 @@ void gui_parse_knob_data_string(gui_layout_t *layout, const int id, const char *
 {
 	knob_t *knob_data;
 	int n;
-	char *p, b[32]={0};
+	const char *p;
+	char b[32]={0};
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;

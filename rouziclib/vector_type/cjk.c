@@ -104,7 +104,7 @@ vobj_t *vobj_fitted_cat(vobj_t **o, int count, rect_t *fit_rect, rect_t *obj_rec
 	return ro;
 }
 
-vobj_t *make_cjkdec_vobj_switch(const int dec_type, const int arg_count, vobj_t **ao, const rect_t *obj_rect)
+vobj_t *make_cjkdec_vobj_switch(const int dec_type, const int arg_count, vobj_t **ao, rect_t *obj_rect)
 {
 	int i;
 	double sum, pos, tr_scale;

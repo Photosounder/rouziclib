@@ -1,5 +1,5 @@
-_Thread_local uint16_t (*read16)(const uint8_t *, size_t *);
-_Thread_local uint32_t (*read32)(const uint8_t *, size_t *);
+_Thread_local uint16_t (*read16)(const void *, size_t *);
+_Thread_local uint32_t (*read32)(const void *, size_t *);
 
 // format documentation: https://www.adobe.io/content/dam/udp/en/open/standards/tiff/TIFF6.pdf
 // also https://github.com/GrokImageCompression/libtiff/blob/be9c1f7785dde43436be650c121a7b6377c04fc8/libtiff/tiff.h

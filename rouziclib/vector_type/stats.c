@@ -52,7 +52,7 @@ double letter_width(vector_font_t *font, double pos, uint32_t c, double scale, c
 	return glyph_width(font, pos, c, scale, mode);
 }
 
-double calc_strwidth_len(vector_font_t *font, uint8_t *string, double scale, const int mode, int32_t len)
+double calc_strwidth_len(vector_font_t *font, const uint8_t *string, double scale, const int mode, int32_t len)
 {
 	int32_t i, con_prev=0;
 	uint32_t c, co, c_prev=0;
@@ -88,12 +88,12 @@ double calc_strwidth_len(vector_font_t *font, uint8_t *string, double scale, con
 	return w;
 }
 
-double calc_strwidth(vector_font_t *font, uint8_t *string, double scale, const int mode)
+double calc_strwidth(vector_font_t *font, const uint8_t *string, double scale, const int mode)
 {
 	return calc_strwidth_len(font, string, scale, mode, -1);
 }
 
-word_stats_t make_word_stats(vector_font_t *font, uint8_t *string, const int mode)
+word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const int mode)
 {
 	int i, is, iw, prev_was_space=1, len = strlen(string);
 	uint32_t c, c_prev=0;
@@ -162,7 +162,7 @@ void free_word_stats(word_stats_t ws)
 }
 
 // gives to correct word length to use for adding to the length of the line starting at iw_start
-double get_word_length(vector_font_t *font, uint8_t *string, word_stats_t ws, const int mode, int iw_start, int iw)
+double get_word_length(vector_font_t *font, const uint8_t *string, word_stats_t ws, const int mode, int iw_start, int iw)
 {
 	const double space_width = letter_width(font, 0., ' ', 1., mode);
 	double width;
@@ -175,9 +175,9 @@ double get_word_length(vector_font_t *font, uint8_t *string, word_stats_t ws, co
 	return width;
 }
 
-double find_string_maxwidth_and_nlines(vector_font_t *font, uint8_t *string, const int mode, int *nlines, int empty_lines_count)
+double find_string_maxwidth_and_nlines(vector_font_t *font, const uint8_t *string, const int mode, int *nlines, int empty_lines_count)
 {
-	char *sol=string, *eol;
+	const char *sol=string, *eol;
 	double width, maxwidth=0.;
 
 	*nlines = 0;
@@ -202,9 +202,9 @@ double find_string_maxwidth_and_nlines(vector_font_t *font, uint8_t *string, con
 	}
 }
 
-double calc_strwidth_firstline(vector_font_t *font, uint8_t *string, double scale, const int mode, int32_t len, int *sonl)
+double calc_strwidth_firstline(vector_font_t *font, const uint8_t *string, double scale, const int mode, int32_t len, int *sonl)
 {
-	char *sol=string, *eol;
+	const char *sol=string, *eol;
 	double width, maxwidth=0.;
 	int32_t len_n;
 

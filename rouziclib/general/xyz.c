@@ -531,7 +531,7 @@ double get_xyz_index(xyz_t v, const int index)
 	return 0.;
 }
 
-int cmp_xy_x_sort(xy_t *a, xy_t *b)	// xy comparison function (for qsort) sorting by x
+int cmp_xy_x_sort(const xy_t *a, const xy_t *b)	// xy comparison function (for qsort) sorting by x
 {
 	if (a->x > b->x) return 1;
 	if (a->x == b->x) return 0;

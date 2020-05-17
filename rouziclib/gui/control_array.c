@@ -17,7 +17,7 @@ int get_state_checkbox_array(int *array, int len)
 	return state;
 }
 
-int ctrl_array_checkbox(int *array, int count, char **label, col_t *col, int col_count, rect_t box, xy_t pos_inc)
+int ctrl_array_checkbox(int *array, int count, const char **label, col_t *col, int col_count, rect_t box, xy_t pos_inc)
 {
 	int i, change=0;
 
@@ -30,7 +30,7 @@ int ctrl_array_checkbox(int *array, int count, char **label, col_t *col, int col
 	return change;
 }
 
-int ctrl_array_checkbox_with_all(int *array, int count, char *all_label, col_t all_col, char **label, col_t *col, int col_count, rect_t box, xy_t pos_inc)
+int ctrl_array_checkbox_with_all(int *array, int count, const char *all_label, col_t all_col, const char **label, col_t *col, int col_count, rect_t box, xy_t pos_inc)
 {
 	int status_all;
 
@@ -42,7 +42,7 @@ int ctrl_array_checkbox_with_all(int *array, int count, char *all_label, col_t a
 	return ctrl_array_checkbox(array, count, label, col, col_count, box, pos_inc);
 }
 
-int ctrl_array_radio(int *sel, int count, char **label, col_t *col, int col_count, rect_t box, xy_t pos_inc)
+int ctrl_array_radio(int *sel, int count, const char **label, col_t *col, int col_count, rect_t box, xy_t pos_inc)
 {
 	int i, change=0;
 

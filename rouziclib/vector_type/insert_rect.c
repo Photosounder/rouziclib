@@ -14,7 +14,7 @@ void report_insert_rect_pos(xy_t pos, xy_t dim, int bidi, int index)
 	rect_insert[index] = make_rect_off( pos, dim, xy(bidi==-2 ? 1. : 0., 0.) );
 }
 
-int parse_insert_rect_charseq(xy_t p, xy_t *off, double scale, int bidi, int cp0, char *string)
+int parse_insert_rect_charseq(xy_t p, xy_t *off, double scale, int bidi, int cp0, const char *string)
 {
 	int i, ir=0, cn;
 	double width=0.;

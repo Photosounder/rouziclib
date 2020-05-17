@@ -122,26 +122,30 @@ void fwrite_BE64(FILE *file, uint64_t w)
 }
 
 // Buffer read
-uint8_t read_byte8(const uint8_t *buf, size_t *index)	// used when function pointers are needed
+uint8_t read_byte8(const void *ptr, size_t *index)	// used when function pointers are needed
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += sizeof(uint16_t);
 
 	return buf[0];
 }
 
-int32_t read_byte8s(const uint8_t *buf, size_t *index)
+int32_t read_byte8s(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	return (int32_t) (int8_t) read_byte8(buf, index);
 }
 
-int32_t read_byte8s_offset(const uint8_t *buf, size_t *index)
+int32_t read_byte8s_offset(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	return (int32_t) read_byte8(buf, index) - 128;
 }
 
-uint16_t read_LE16(const uint8_t *buf, size_t *index)
+uint16_t read_LE16(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += sizeof(uint16_t);
 
@@ -152,42 +156,48 @@ uint16_t read_LE16(const uint8_t *buf, size_t *index)
 #endif
 }
 
-uint16_t read_BE16(const uint8_t *buf, size_t *index)
+uint16_t read_BE16(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += sizeof(uint16_t);
 
 	return (uint16_t) (buf[0] << 8) | buf[1];
 }
 
-int32_t read_LE16s(const uint8_t *buf, size_t *index)
+int32_t read_LE16s(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	return (int32_t) (int16_t) read_LE16(buf, index);
 }
 
-int32_t read_BE16s(const uint8_t *buf, size_t *index)
+int32_t read_BE16s(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	return (int32_t) (int16_t) read_BE16(buf, index);
 }
 
-uint32_t read_LE24(const uint8_t *buf, size_t *index)
+uint32_t read_LE24(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += 3;
 
 	return (uint32_t) (buf[2] << 16) | (buf[1] << 8) | buf[0];
 }
 
-uint32_t read_BE24(const uint8_t *buf, size_t *index)
+uint32_t read_BE24(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += 3;
 
 	return (uint32_t) (buf[0] << 16) | (buf[1] << 8) | buf[2];
 }
 
-int32_t read_LE24s(const uint8_t *buf, size_t *index)
+int32_t read_LE24s(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	int32_t u32;
 
 	u32 = read_LE24(buf, index);
@@ -197,8 +207,9 @@ int32_t read_LE24s(const uint8_t *buf, size_t *index)
 	return (int32_t) u32;
 }
 
-int32_t read_BE24s(const uint8_t *buf, size_t *index)
+int32_t read_BE24s(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	int32_t u32;
 
 	u32 = read_BE24(buf, index);
@@ -208,8 +219,9 @@ int32_t read_BE24s(const uint8_t *buf, size_t *index)
 	return (int32_t) u32;
 }
 
-uint32_t read_LE32(const uint8_t *buf, size_t *index)
+uint32_t read_LE32(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += sizeof(uint32_t);
 
@@ -220,16 +232,18 @@ uint32_t read_LE32(const uint8_t *buf, size_t *index)
 #endif
 }
 
-uint32_t read_BE32(const uint8_t *buf, size_t *index)
+uint32_t read_BE32(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += sizeof(uint32_t);
 
 	return (uint32_t) (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
 }
 
-uint64_t read_LE64(const uint8_t *buf, size_t *index)
+uint64_t read_LE64(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += sizeof(uint64_t);
 
@@ -240,8 +254,9 @@ uint64_t read_LE64(const uint8_t *buf, size_t *index)
 #endif
 }
 
-uint64_t read_BE64(const uint8_t *buf, size_t *index)
+uint64_t read_BE64(const void *ptr, size_t *index)
 {
+	const uint8_t *buf = ptr;
 	if (index)
 		*index += sizeof(uint64_t);
 

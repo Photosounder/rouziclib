@@ -1,5 +1,5 @@
 // finds a line that fits within thresh and returns the end word index and the actual line width
-double find_line_for_thresh(vector_font_t *font, uint8_t *string, word_stats_t ws, const int mode, double thresh, int iw_start, int *iw_end)
+double find_line_for_thresh(vector_font_t *font, const uint8_t *string, word_stats_t ws, const int mode, double thresh, int iw_start, int *iw_end)
 {
 	double line_length=0., ret=0.;
 	int iw;
@@ -19,7 +19,7 @@ double find_line_for_thresh(vector_font_t *font, uint8_t *string, word_stats_t w
 }
 
 // finds the number of lines that the string will be broken down to for a certain thresh
-int find_line_count_for_thresh(vector_font_t *font, uint8_t *string, word_stats_t ws, const int mode, double thresh, double *maxwidth)
+int find_line_count_for_thresh(vector_font_t *font, const uint8_t *string, word_stats_t ws, const int mode, double thresh, double *maxwidth)
 {
 	int iw, iw_end=0, line_count = 1;
 	double width;
@@ -70,7 +70,7 @@ int search_thresh(vector_font_t *font, search_thresh_t *st, double maxwidth, int
 }
 
 // find best threshold for fitting a string into nlines
-double find_string_width_for_nlines(vector_font_t *font, uint8_t *string, word_stats_t ws, int *nlines, const int mode, double *lower_bound)	// doesn't handle \n or \t
+double find_string_width_for_nlines(vector_font_t *font, const uint8_t *string, word_stats_t ws, int *nlines, const int mode, double *lower_bound)	// doesn't handle \n or \t
 {
 	const double space_width = letter_width(font, 0., ' ', 1., mode);
 	double maxwidth, total_end_length;
@@ -105,7 +105,7 @@ double find_string_width_for_nlines(vector_font_t *font, uint8_t *string, word_s
 }
 
 // finds best width by testing different line counts
-double find_best_string_width(vector_font_t *font, uint8_t *string, word_stats_t ws, const int mode, xy_t boxdim, int *nlines, double *scale_ratio)
+double find_best_string_width(vector_font_t *font, const uint8_t *string, word_stats_t ws, const int mode, xy_t boxdim, int *nlines, double *scale_ratio)
 {
 	int i, prev_nlines, nl_start;
 	double lower_bound=-1., thresh=0., prev_thresh, scale=0., prev_scale;
@@ -159,7 +159,7 @@ double find_best_string_width(vector_font_t *font, uint8_t *string, word_stats_t
 	return thresh;		// happens only if the longest line is a single word
 }
 
-void draw_string_maxwidth(vector_font_t *font, uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp)
+void draw_string_maxwidth(vector_font_t *font, const uint8_t *string, word_stats_t ws, rect_t box, double scale, col_t colour, double intensity, double line_thick, const int mode, double maxwidth, int nlines, text_param_t *tp)
 {
 	int i, iw, il, len, line_start=0, line_end=0, line_iw_start=0, line_iw_end=0, new_lw;
 	//const double space_width = letter_width(font, 0., ' ', 1., mode);
@@ -203,7 +203,7 @@ void draw_string_maxwidth(vector_font_t *font, uint8_t *string, word_stats_t ws,
 	}
 }
 
-void draw_string_bestfit(vector_font_t *font, uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_bestfit(vector_font_t *font, const uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
 	double thresh, box_thresh, scale_ratio;
@@ -238,7 +238,7 @@ void draw_string_bestfit(vector_font_t *font, uint8_t *string, rect_t box, const
 	free_word_stats(ws);
 }
 
-double draw_string_bestfit_asis(vector_font_t *font, uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+double draw_string_bestfit_asis(vector_font_t *font, const uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	int nlines=0;
 	double maxwidth, maxscale;
@@ -271,7 +271,7 @@ double draw_string_bestfit_asis(vector_font_t *font, uint8_t *string, rect_t box
 	return scale;
 }
 
-void draw_string_fixed_thresh(vector_font_t *font, uint8_t *string, rect_t box, const double thresh, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+void draw_string_fixed_thresh(vector_font_t *font, const uint8_t *string, rect_t box, const double thresh, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	word_stats_t ws;
 	double maxscale, maxwidth=0.;

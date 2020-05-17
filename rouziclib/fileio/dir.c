@@ -2,7 +2,7 @@
 #include "../libraries/dirent.c"
 #endif
 
-int dir_count(char *path, int *subdir_count, int *subfile_count)
+int dir_count(const char *path, int *subdir_count, int *subfile_count)
 {
 	DIR *dirp;
 	struct dirent *entry;
@@ -28,7 +28,7 @@ int dir_count(char *path, int *subdir_count, int *subfile_count)
 	return *subdir_count + *subfile_count;
 }
 
-void load_dir(char *path, fs_dir_t *dir)
+void load_dir(const char *path, fs_dir_t *dir)
 {
 	DIR *dirp;
 	struct dirent *entry;
@@ -78,7 +78,7 @@ void load_dir(char *path, fs_dir_t *dir)
 	closedir(dirp);
 }
 
-void load_dir_depth(char *path, fs_dir_t *dir, int max_depth)	// a max_depth of -1 means infinite, 0 excludes subfolders
+void load_dir_depth(const char *path, fs_dir_t *dir, int max_depth)	// a max_depth of -1 means infinite, 0 excludes subfolders
 {
 	int i;
 	char subdir_path[PATH_MAX*4];
@@ -195,7 +195,7 @@ void export_subfiles_to_file(FILE *file, fs_dir_t *dir, const int indent, const 
 				fprintf(file, "%s\n", dir->subfile[i].name);
 		}
 }
-int export_subfiles_to_path_fullarg(char *path, fs_dir_t *dir, const int path_full)
+int export_subfiles_to_path_fullarg(const char *path, fs_dir_t *dir, const int path_full)
 {
 	FILE *file;
 
@@ -243,7 +243,7 @@ void export_whole_dir_flat_to_file(FILE *file, fs_dir_t *dir, const int show_dir
 		fprintf(file, "%s%s%s\n", printed_path, dir_char, dir->subfile[i].name);
 }
 
-int export_whole_dir_flat_to_path(char *path, fs_dir_t *dir, const int show_dirs, const int remove_path)
+int export_whole_dir_flat_to_path(const char *path, fs_dir_t *dir, const int show_dirs, const int remove_path)
 {
 	FILE *file;
 
@@ -264,7 +264,7 @@ int export_whole_dir_flat_to_path(char *path, fs_dir_t *dir, const int show_dirs
 	return 1;
 }
 
-int dirent_test(char *path)
+int dirent_test(const char *path)
 {
 	int i;
 	fs_dir_t dir={0};
@@ -309,7 +309,7 @@ void get_volumes_path()
 #include <sys/statvfs.h>
 #endif
 
-int64_t get_volume_free_space(char *path)
+int64_t get_volume_free_space(const char *path)
 {
 #ifdef _WIN32
 	uint64_t free_space=0;
@@ -335,7 +335,7 @@ int64_t get_volume_free_space(char *path)
 #endif
 }
 
-double get_volume_free_space_gb(char *path)
+double get_volume_free_space_gb(const char *path)
 {
 	int64_t bytes;
 

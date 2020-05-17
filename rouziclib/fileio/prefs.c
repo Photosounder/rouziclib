@@ -163,7 +163,7 @@ double pref_handle_double(pref_file_t *pf, char *loc, double value, const char *
 		return NAN;
 
 	// Try to read the value in the line
-	char *p = strstr_after(pf->lines[line_pos], key);		// find what's after the key in the key's line
+	const char *p = strstr_after(pf->lines[line_pos], key);		// find what's after the key in the key's line
 	if (p)
 		if (sscanf(p, ": %lg", &read_value) == 1)		// if the value is found
 			if (mode_set==0 || read_value == value)		// return if get mode or if it's the same as the one written
@@ -190,10 +190,11 @@ void pref_set_double(pref_file_t *pf, char *loc, double new_value, const char *s
 	pref_handle_double(pf, loc, new_value, suffix, 1);
 }
 
-char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *string, int mode_set)
+const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *string, int mode_set)
 {
 	int i, n=0, line_pos, depth;
-	char key[64], *new_line, *read_string;
+	char key[64], *new_line;
+	const char *read_string;
 
 	// Find the line for loc
 	line_pos = pref_find_loc(pf, loc);
@@ -207,7 +208,7 @@ char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *
 		return NULL;
 
 	// Try to read the string in the line
-	char *p = strstr_after(pf->lines[line_pos], key);			// find what's after the key in the key's line
+	const char *p = strstr_after(pf->lines[line_pos], key);			// find what's after the key in the key's line
 	if (p)
 	{
 		if (strncmp(p, string_prefix, strlen(string_prefix))==0)	// if the prefix matches
@@ -231,7 +232,7 @@ char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *
 	return &pf->lines[line_pos][n];		// pointer to the written string in the updated line
 }
 
-char *pref_get_string(pref_file_t *pf, char *loc, char *def_string)
+const char *pref_get_string(pref_file_t *pf, char *loc, char *def_string)
 {
 	return pref_handle_string(pf, loc, ": ", def_string, 0);
 }
@@ -243,7 +244,7 @@ void pref_set_string(pref_file_t *pf, char *loc, char *new_string)
 
 int pref_get_onoff(pref_file_t *pf, char *loc, int def_state)
 {
-	char *p;
+	const char *p;
 
 	p = pref_handle_string(pf, loc, ": ", def_state ? "on" : "off", 0);
 	if (p == NULL)
@@ -262,7 +263,8 @@ void pref_set_onoff(pref_file_t *pf, char *loc, int new_state)
 
 xy_t pref_handle_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double v2, char *suffix, int mode_set)
 {
-	char *string, *p;
+	char *string;
+	const char *p;
 	xy_t v = xy(NAN,NAN);
 
 	// Create string

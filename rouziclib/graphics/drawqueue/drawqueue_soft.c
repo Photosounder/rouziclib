@@ -64,7 +64,9 @@ typedef struct
 	int thread_id, thread_count;
 } drawq_soft_data_t;
 
+#ifndef DQS_THREADS
 #define DQS_THREADS 1
+#endif
 drawq_soft_data_t *dqs_data=NULL;
 
 int drawq_soft_thread(drawq_soft_data_t *d)
@@ -126,7 +128,7 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 						{
 								case DQT_LINE_THIN_ADD:		dqsb_draw_line_thin_add	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
 							break;	case DQT_POINT_ADD:		dqsb_draw_point_add	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
-							//break;	case DQT_RECT_FULL:		dqsb_draw_rect_full_add	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	case DQT_RECT_FULL:		dqsb_draw_rect_full_add	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
 							break;	case DQT_RECT_BLACK:		dqsb_draw_black_rect	(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
 							break;	case DQT_PLAIN_FILL:		dqsb_draw_plain_fill_add(&df[qi+1], d->block[brlvl],               chan_stride);
 							/*break;	case DQT_GAIN:			dqsb_pv * df[qi+1];
