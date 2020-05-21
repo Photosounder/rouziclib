@@ -166,18 +166,22 @@ double pref_handle_double(pref_file_t *pf, char *loc, double value, const char *
 	const char *p = strstr_after(pf->lines[line_pos], key);		// find what's after the key in the key's line
 	if (p)
 		if (sscanf(p, ": %lg", &read_value) == 1)		// if the value is found
-			if (mode_set==0 || read_value == value)		// return if get mode or if it's the same as the one written
+			if (read_value == value)			// return if it's the same as the one written
 				return read_value;
 
-	// Recreate the line with the provided value
-	new_line = sprintf_alloc("%s: %g%s", key, value, suffix ? suffix : "");
-	pf->lines = string_array_replace_line(pf->lines, &pf->linecount, new_line, line_pos);
-	free(new_line);
+	// Remake the line if mode is get mode and the value is new or set mode and the value must be set anyway
+	if (mode_set || isnan(read_value))
+	{
+		// Recreate the line with the provided value
+		new_line = sprintf_alloc("%s: %g%s", key, value, suffix ? suffix : "");
+		pf->lines = string_array_replace_line(pf->lines, &pf->linecount, new_line, line_pos);
+		free(new_line);
+		read_value = value;
 
-	if (mode_set)
 		pref_file_save_thread_launch(pf);
+	}
 
-	return value;
+	return read_value;
 }
 
 double pref_get_double(pref_file_t *pf, char *loc, double def_value, const char *suffix)
@@ -194,7 +198,7 @@ const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, 
 {
 	int i, n=0, line_pos, depth;
 	char key[64], *new_line;
-	const char *read_string;
+	const char *read_string=NULL;
 
 	// Find the line for loc
 	line_pos = pref_find_loc(pf, loc);
@@ -215,21 +219,27 @@ const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, 
 		{
 			read_string = &p[strlen(string_prefix)];
 
-			if (mode_set==0 || strcmp(read_string, string)==0)	// in set mode if it's the same string as the one written
-				return read_string;				// or in get mode we've got what we need
+			if (string==NULL)					// if there's no default string set just return the read string
+				return read_string;
+			else if (strcmp(read_string, string)==0)		// in set mode if it's the same string as the one written
+				return read_string;
 		}
 	}
 
-	// Recreate the line with the provided string
-	new_line = sprintf_alloc("%s%s%s", key, string_prefix, string);
-	n = strlen(key) + strlen(string_prefix);
-	pf->lines = string_array_replace_line(pf->lines, &pf->linecount, new_line, line_pos);
-	free(new_line);
+	// Remake the line if mode is get mode and the value is new or set mode and the value must be set anyway
+	if (mode_set || read_string==NULL)
+	{
+		// Recreate the line with the provided string
+		new_line = sprintf_alloc("%s%s%s", key, string_prefix, string);
+		n = strlen(key) + strlen(string_prefix);
+		pf->lines = string_array_replace_line(pf->lines, &pf->linecount, new_line, line_pos);
+		free(new_line);
+		read_string = &pf->lines[line_pos][n];
 
-	if (mode_set)
 		pref_file_save_thread_launch(pf);
+	}
 
-	return &pf->lines[line_pos][n];		// pointer to the written string in the updated line
+	return read_string;		// pointer to the written string in the updated line
 }
 
 const char *pref_get_string(pref_file_t *pf, char *loc, char *def_string)

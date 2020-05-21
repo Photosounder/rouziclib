@@ -103,9 +103,9 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 
 	ws.full_length = calc_strwidth(font, string, 1., mode);
 
-	// count spaces (and therefore words)
-	for (ws.word_count=1, i=0; i<strlen(string); i++)
-		if (string[i]==' ')
+	// Count spaces (and therefore words)
+	for (ws.word_count=1, i=0; i < len; i++)
+		if (string[i]==' ' && string[i+1]!='\0')	// TODO do better than just count spaces
 			ws.word_count++;
 
 	ws.word_length = calloc(ws.word_count, sizeof(double));

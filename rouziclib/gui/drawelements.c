@@ -43,6 +43,18 @@ void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int m
 	draw_string_fixed_thresh(font, label, sc_rect(box), thresh, 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
 }
 
+void draw_text_at_scale(const uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
+{
+	double intensity, scale;
+
+	scale = get_rect_dim(box).x / thresh;
+	scale *= zc.scrscale;
+
+	intensity = intensity_scaling(scale, 1./4.);
+
+	draw_string(font, label, add_xy(xy(0., 8*scale), sc_xy(rect_p01(box))), scale, colour, intensity, drawing_thickness, mode, NULL);
+}
+
 void display_dialog_enclosing_frame(rect_t box_os, double scale, char *label, col_t colour)
 {
 	rect_t label_box;

@@ -518,7 +518,7 @@ int sdl_handle_window_resize(zoom_t *zc)
 
 		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
 		if (fb.texture==NULL)
-			printf("SDL_CreateTexture failed: %s\n", SDL_GetError());
+			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
 
 		// Blank the resized texture
 		int pitch;
@@ -638,6 +638,8 @@ void sdl_flip_fb()
 		SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 		SDL_RenderPresent(fb.renderer);
 		fb.timing[fb.timing_index].flip_end = get_time_hr();
+		fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
+		fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
 
 		screen_blank();
 	}
@@ -711,7 +713,7 @@ void sdl_init_audio_not_wasapi()
 	SDL_AudioQuit();	// quit the current audio driver, probably wasapi
 
 	// Init the first driver that isn't wasapi
-	for (i = 0; i < SDL_GetNumAudioDrivers(); ++i)
+	for (i=0; i < SDL_GetNumAudioDrivers(); i++)
 		if (strcmp("wasapi", SDL_GetAudioDriver(i)))	// if the driver isn't called "wasapi"
 		{
 			SDL_AudioInit(SDL_GetAudioDriver(i));	// initialise it

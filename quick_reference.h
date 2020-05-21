@@ -149,6 +149,9 @@
 		// the last argument is the provided offset
 		gui_layout_elem_comp_area_os(&layout, id, XY0);
 
+	// Set colour of layout element
+		gui_set_control_colour(col, &layout, id);
+
 	// Label
 		draw_label_fromlayout(&layout, id, ALIG_CENTRE | MONODIGITS);
 		// optionally the label can be set prior to drawing using this:
@@ -572,6 +575,19 @@
 		// Getting and setting values
 		samplerate = pref_get_double(&pref_def, "Audio output:Sample rate", 44100, " Hz");
 		pref_set_double(&pref_def, "Audio output:Sample rate", samplerate, " Hz");
+
+		// Strings
+		const char *driver_name = pref_get_string(&pref_def, "Audio output:Preferred driver", "directsound");
+		pref_set_string(&pref_def, "Audio output:Preferred driver", "winmm");
+
+		// On/off
+		key[livesynth_on] = pref_get_onoff(&pref_def, "Audio output:Live synthesis", 1);
+		pref_set_onoff(&pref_def, "Audio output:Live synthesis", key[livesynth_on]);
+
+		// Two values
+		// the last parameter can be NULL if there is no suffix
+		xy_t res = pref_get_2val(&pref_def, "Interface:Window dimensions", SCRN_W, "x", SCRN_H, NULL);
+		pref_set_2val(&pref_def, "Analysis:Frequency range", sound->anal.min, " - ", sound->anal.max, " Hz");
 
 //**** C syntax I can't ever remember ****
 

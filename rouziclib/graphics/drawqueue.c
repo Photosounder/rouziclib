@@ -81,7 +81,7 @@ void drawq_free()
 
 void drawq_run()
 {
-#ifdef RL_OPENCL
+	#ifdef RL_OPENCL
 	const char clsrc_draw_queue[] =
 	#include "drawqueue/opencl/drawqueue.cl.h"
 
@@ -120,12 +120,18 @@ void drawq_run()
 
 		if (fb.opt_interop)
 		{
-			ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
+			#if 1
+			ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, NULL, NULL);		// get the ownership of cl_srgb
+			#else
+			ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, NULL, &ev);		// get the ownership of cl_srgb
 			CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb.cl_srgb)", ret);
+			clWaitForEvents(1, &ev);
+			clReleaseEvent(ev);
+			#endif
 		}
 		#endif
 	}
-#endif
+	#endif
 
 	fb.timing[fb.timing_index].interop_sync_end = get_time_hr();
 
@@ -138,7 +144,7 @@ void drawq_run()
 
 	if (fb.use_drawq==1)
 	{
-#ifdef RL_OPENCL
+		#ifdef RL_OPENCL
 		// Copy compiled lists to data_cl
 		cl_ulong drawq_data_index = cl_add_buffer_to_data_table(fb.drawq_data, fb.drawq_data[DQ_END]*sizeof(int32_t), sizeof(int32_t), NULL);
 		cl_ulong sector_pos_index = cl_add_buffer_to_data_table(fb.sector_pos, fb.sectors*sizeof(int32_t), sizeof(int32_t), NULL);
@@ -194,12 +200,7 @@ void drawq_run()
 		ret = clEnqueueReadBuffer(fb.clctx.command_queue, fb.cl_srgb, CL_FALSE, 0, mul_x_by_y_xyi(fb.r.dim)*4, fb.r.srgb, 0, NULL, NULL);
 		CL_ERR_NORET("clEnqueueReadBuffer (in drawq_run(), for fb.cl_srgb)", ret);
 		#endif
-#endif
-	}
-	else
-	{
-		fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
-		fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
+		#endif
 	}
 
 	drawq_reinit();	// clear/reinit the buffers

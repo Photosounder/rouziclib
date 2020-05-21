@@ -307,17 +307,6 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 		free(unimp_code);
 	}
 
-	// Layout selection
-	draw_label_fromlayout(&layout, 121, ALIG_LEFT);	
-
-	selmenu_data = layout.elem[120].data;
-	gui_layout_selmenu_set_count(layout_reg.reg_count, &layout, 120);
-	if (ctrl_selmenu_fromlayout(&layout, 120))
-		lp = layout_reg.sel_p = layout_reg.reg[selmenu_data->sel_id % layout_reg.reg_count].lp;
-
-	for (i=0; i < layout_reg.reg_count; i++)
-		draw_selmenu_entry_fromlayout(i, layout_reg.reg[i].name, &layout, 120);
-
 	// Create buttons
 	selmenu_data = layout.elem[50].data;
 	gui_layout_selmenu_set_count(gui_type_count-gui_type_none, &layout, 50);
@@ -342,6 +331,17 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 
 	for (i=gui_type_none; i < gui_type_count; i++)
 		draw_selmenu_entry_fromlayout(i-gui_type_none, layout_elem_type_name[i], &layout, 50);
+
+	// Layout selection
+	draw_label_fromlayout(&layout, 121, ALIG_LEFT);	
+
+	selmenu_data = layout.elem[120].data;
+	gui_layout_selmenu_set_count(layout_reg.reg_count, &layout, 120);
+	if (ctrl_selmenu_fromlayout(&layout, 120))
+		lp = layout_reg.sel_p = layout_reg.reg[selmenu_data->sel_id % layout_reg.reg_count].lp;
+
+	for (i=0; i < layout_reg.reg_count; i++)
+		draw_selmenu_entry_fromlayout(i, layout_reg.reg[i].name, &layout, 120);
 
 	// Logic
 

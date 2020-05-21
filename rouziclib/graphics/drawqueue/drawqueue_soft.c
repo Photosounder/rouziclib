@@ -62,6 +62,7 @@ typedef struct
 	volatile xyi_t r_dim;
 	float **block;
 	int thread_id, thread_count;
+	frame_timing_t *timing;
 } drawq_soft_data_t;
 
 #ifndef DQS_THREADS
@@ -86,6 +87,10 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 	while (d->thread_on)
 	{
 		rl_mutex_lock(&d->proc_mtx);
+
+		if (d->thread_id==0)
+			d->timing->thread_start = get_time_hr();
+
 
 		df = (float *) d->drawq_data;
 		di = d->drawq_data;
@@ -152,8 +157,10 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 				}
 			}
 
+		d->timing->thread_end = get_time_hr();
+
 		rl_mutex_unlock(&d->proc_mtx);
-		rl_mutex_lock(&d->cont_mtx);
+		rl_mutex_lock(&d->cont_mtx);		// Wait to be allowed to continue by drawq_soft_finish
 		rl_mutex_unlock(&d->cont_mtx);
 	}
 
@@ -198,17 +205,33 @@ void drawq_soft_run()
 	#endif
 	r_pitch /= sizeof(srgb_t);
 
+	
+	fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
+
 	for (i=0; i < DQS_THREADS; i++)
 	{
 		drawq_soft_data_t *d = &dqs_data[i];
+		drawq_soft_data_t *d0 = &dqs_data[0];
 
 		// Realloc and copy data
-		alloc_enough_and_copy(&d->data, fb.data, fb.data_cl_as, &d->data_as, 1, 1.);
-		alloc_enough_and_copy(&d->drawq_data, fb.drawq_data, fb.drawq_data[DQ_END], &d->drawq_as,  sizeof(int32_t), 1.5);
-		alloc_enough_and_copy(&d->sector_pos, fb.sector_pos, fb.sectors, &d->sector_list_as,       sizeof(int32_t), 1.5);
-		alloc_enough_and_copy(&d->entry_list, fb.entry_list, fb.entry_list_end, &d->entry_list_as, sizeof(int32_t), 1.5);
+		if (i==0)
+		{
+			alloc_enough_and_copy(&d->data, fb.data, fb.data_cl_as, &d->data_as, 1, 1.);
+			alloc_enough_and_copy(&d->drawq_data, fb.drawq_data, fb.drawq_data[DQ_END], &d->drawq_as,  sizeof(int32_t), 1.5);
+			alloc_enough_and_copy(&d->sector_pos, fb.sector_pos, fb.sectors, &d->sector_list_as,       sizeof(int32_t), 1.5);
+			alloc_enough_and_copy(&d->entry_list, fb.entry_list, fb.entry_list_end, &d->entry_list_as, sizeof(int32_t), 1.5);
+		}
+		else
+		{
+			d->data = d0->data;
+			d->drawq_data = d0->drawq_data;
+			d->sector_pos = d0->sector_pos;
+			d->entry_list = d0->entry_list;
+		}
+
 		d->sector_size = fb.sector_size;
 		d->sector_w = fb.sector_w;
+		d->timing = &fb.timing[fb.timing_index];
 
 		d->srgb = fb.r.srgb;
 		d->r_dim = fb.r.dim;
@@ -216,9 +239,11 @@ void drawq_soft_run()
 		d->r_pitch = r_pitch;
 
 		d->current_locks++;
-		rl_mutex_unlock(&d->proc_mtx);	// this makes the thread start processing this frame
 		rl_mutex_lock(&d->cont_mtx);	// will make the thread stop after processing is done
+		rl_mutex_unlock(&d->proc_mtx);	// this makes the thread start processing this frame
 	}
+
+	fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
 }
 
 void drawq_soft_finish()

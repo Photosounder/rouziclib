@@ -51,7 +51,7 @@ void matrix_inverse(double *num, double *inverse, int ndim)
 	if (det==0.)
 	{
 		memset(inverse, 0, ndim*ndim*sizeof(double));	// can't invert matrix
-		printf("Determinant of the matrix is 0\n");
+		fprintf_rl(stderr, "Determinant of the matrix is 0\n");
 		return ;
 	}
 
@@ -178,7 +178,7 @@ void matrix_inverse_mpfr(real *num, real *inverse, int ndim)
 	{
 		for (i=0; i<ndim*ndim; i++)
 			r_setd(inverse[i], 0.);
-		printf("Determinant of the matrix is 0\n");
+		fprintf_rl(stderr, "Determinant of the matrix is 0\n");
 		return ;
 	}
 

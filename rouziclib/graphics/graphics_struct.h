@@ -84,6 +84,7 @@ typedef struct
 typedef struct
 {
 	double start, start_sleep, func_end, flip_end, interop_sync_end, dq_comp_end, cl_enqueue_end, cl_copy_end, end;
+	double thread_start, thread_end;
 } frame_timing_t;
 
 typedef struct

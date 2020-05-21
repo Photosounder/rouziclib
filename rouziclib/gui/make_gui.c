@@ -743,6 +743,25 @@ void draw_text_block_fromlayout(gui_layout_t *layout, const int id, char *text_b
 	draw_text_block_fromlayout_in_rect(layout, id, text_block, mode, thresh, gui_layout_elem_comp_area_os(layout, id, XY0));
 }
 
+void draw_text_at_scale_fromlayout_in_rect(gui_layout_t *layout, const int id, char *text_block, const int mode, double thresh, rect_t box_os)
+{
+	int ret;
+	layout_elem_t *cur_elem=NULL;
+
+	if (ctrl_fromlayout_resizing(layout, id, 1))
+		return ;
+	cur_elem = &layout->elem[id];
+
+	draw_text_at_scale(text_block, box_os, cur_elem->colour, mode, thresh);
+
+	ctrl_fromlayout_resizing(layout, id, 2);
+}
+
+void draw_text_at_scale_fromlayout(gui_layout_t *layout, const int id, char *text_block, const int mode, double thresh)
+{
+	draw_text_at_scale_fromlayout_in_rect(layout, id, text_block, mode, thresh, gui_layout_elem_comp_area_os(layout, id, XY0));
+}
+
 void draw_rect_fromlayout_blending(const int type, const blend_func_t bf, gui_layout_t *layout, const int id)
 {
 	int ret;
