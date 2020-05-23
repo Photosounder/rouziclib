@@ -589,6 +589,12 @@
 		xy_t res = pref_get_2val(&pref_def, "Interface:Window dimensions", SCRN_W, "x", SCRN_H, NULL);
 		pref_set_2val(&pref_def, "Analysis:Frequency range", sound->anal.min, " - ", sound->anal.max, " Hz");
 
+	// Save sound (for debugging purposes) using an OS dialog
+		save_sound_fl32_file(save_file_dialog("WAVE file\1*.wav\1"), snd, sample_count, channels, samplerate, NULL);
+
+	// Print message to SDL message box (for debugging purposes)
+		sdl_box_printf("value = %d", value);
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments

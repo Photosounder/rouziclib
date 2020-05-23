@@ -150,6 +150,12 @@ char *extract_file_extension(const char *path, char *ext)
 {
 	int len, i, j;
 
+	if (ext==NULL)
+		return NULL;
+	ext[0] = '\0';
+	if (path==NULL)
+		return NULL;
+
 	len = strlen(path);
 	i = len - 1;				// start from the end of the string
 

@@ -33,3 +33,10 @@ double sign_tefunc(double v)
 
 	return 0.;
 }
+
+int etoi(const char *expr)
+{
+	double d = etof(expr);
+	int i = (int) nearbyint(d);
+	return i;
+}

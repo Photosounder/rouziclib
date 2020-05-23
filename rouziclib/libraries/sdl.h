@@ -51,6 +51,7 @@ extern void sdl_quit_actions();
 extern void sdl_init_audio_not_wasapi();
 extern char *sdl_get_clipboard_dos_conv();
 extern void sdl_print_sdl_version();
+extern void sdl_box_printf(const char *format, ...);
 extern void dropfile_event_proc(SDL_Event event);
 extern int dropfile_get_count();
 extern char *dropfile_pop_first();

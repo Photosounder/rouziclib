@@ -763,6 +763,19 @@ void sdl_print_sdl_version()
 	fprintf_rl(stdout, "Linked SDL version %d.%d.%d %s\n", linked.major, linked.minor, linked.patch, SDL_GetRevision());
 }
 
+void sdl_box_printf(const char *format, ...)
+{
+	buffer_t s={0};
+	va_list args;
+
+	va_start(args, format);
+	vbufprintf(&s, format, args);
+	va_end(args);
+
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Debug info", s.buf, NULL);
+	free_buf(&s);
+}
+
 // Drag and drop
 dropfile_t dropfile={0};
 
