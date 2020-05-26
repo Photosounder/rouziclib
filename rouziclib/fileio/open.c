@@ -1,25 +1,23 @@
-#ifdef _WIN32
-FILE *fopen_utf8(const char *filename, const char *mode)
+FILE *fopen_utf8(const char *path, const char *mode)
 {
-	wchar_t wfilename[PATH_MAX*4], wmode[8];
+	#ifdef _WIN32
+	wchar_t *wpath, wmode[8];
 	FILE *file;
 
-	if (utf8_to_wchar(filename, wfilename)==0)
+	if (utf8_to_wchar(mode, wmode)==NULL)
 		return NULL;
 
-	if (utf8_to_wchar(mode, wmode)==0)
+	wpath = utf8_to_wchar(path, NULL);
+	if (wpath==NULL)
 		return NULL;
 
-	file = _wfopen(wfilename, wmode);
-	
+	file = _wfopen(wpath, wmode);
+	free(wpath);
 	return file;
+	#else
+	return fopen(path, mode);
+	#endif
 }
-#else
-FILE *fopen_utf8(const char *filename, const char *mode)
-{
-	return fopen(filename, mode);
-}
-#endif
 
 FILE *fopen_mkdirs(const char *path, const char *mode)
 {

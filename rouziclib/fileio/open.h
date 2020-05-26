@@ -8,7 +8,7 @@
 #endif
 #endif
 
-extern FILE *fopen_utf8(const char *filename, const char *mode);
+extern FILE *fopen_utf8(const char *path, const char *mode);
 extern FILE *fopen_mkdirs(const char *path, const char *mode);
 extern size_t get_file_size(const char *path);
 extern uint8_t *load_raw_file(const char *path, size_t *size);

@@ -20,6 +20,7 @@ stb_image:
 stb_image_write:
 	https://github.com/nothings/stb/blob/master/stb_image_write.h
 	v1.14, Feb 2, 2020
+	Delete the function stbiw__fopen()
 
 stb_vorbis:
 	https://github.com/nothings/stb/blob/master/stb_vorbis.c

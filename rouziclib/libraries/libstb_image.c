@@ -5,9 +5,8 @@
 #define pi RL_PI
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#define fopen	fopen_utf8
+#define stbiw__fopen	fopen_utf8
 #include "orig/stb_image_write.h"
-#undef fopen
 
 raster_t load_image_mem_libstb_image(uint8_t *raw_data, size_t size, const int mode)
 {
