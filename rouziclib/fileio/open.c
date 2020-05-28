@@ -1,3 +1,4 @@
+#define C_FOPEN_UTF8
 FILE *fopen_utf8(const char *path, const char *mode)
 {
 	#ifdef _WIN32

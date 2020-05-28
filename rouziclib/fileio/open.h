@@ -8,6 +8,7 @@
 #endif
 #endif
 
+#define H_FOPEN_UTF8
 extern FILE *fopen_utf8(const char *path, const char *mode);
 extern FILE *fopen_mkdirs(const char *path, const char *mode);
 extern size_t get_file_size(const char *path);

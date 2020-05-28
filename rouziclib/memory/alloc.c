@@ -70,6 +70,20 @@ void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t
 	return array;
 }
 
+void **calloc_2d_contig(const size_t ptr_count, const size_t size_buffers, const size_t size_elem)	// 2D calloc using one large contiguous buffer and an array pointer. Must be freed with free_2d(array, 1);
+{
+	size_t i;
+	uint8_t **array;
+
+	array = calloc(ptr_count, sizeof(void *));
+	array[0] = calloc(ptr_count*size_buffers, size_elem);
+
+	for (i=1; i < ptr_count; i++)
+		array[i] = &array[0][i*size_buffers];
+
+	return array;
+}
+
 void **memcpy_2d(void **dst, void **src, const size_t ptr_count, const size_t size_buffers)
 {
 	size_t i;
