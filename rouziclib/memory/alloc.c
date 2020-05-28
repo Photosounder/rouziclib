@@ -79,7 +79,7 @@ void **calloc_2d_contig(const size_t ptr_count, const size_t size_buffers, const
 	array[0] = calloc(ptr_count*size_buffers, size_elem);
 
 	for (i=1; i < ptr_count; i++)
-		array[i] = &array[0][i*size_buffers];
+		array[i] = &array[0][i*size_buffers*size_elem];
 
 	return array;
 }
