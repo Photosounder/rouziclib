@@ -284,7 +284,7 @@ void font_parse_bounds_line(char *line, letter_t *l)
 	const char *p;
 
 	p = skip_string(line, " bounds %n");
-	
+
 	p = string_parse_fractional_12(p, &l->bl);
 	p = string_parse_fractional_12(p, &l->br);
 }
@@ -294,7 +294,7 @@ void font_parse_vbounds_line(char *line, letter_t *l)
 	const char *p;
 
 	p = skip_string(line, " vbounds %n");
-	
+
 	p = string_parse_fractional_12(p, &l->bb);
 	p = string_parse_fractional_12(p, &l->bt);
 }
@@ -685,7 +685,7 @@ void make_font_aliases(char *path, vector_font_t *font)
 {
 	int i, linecount;
 	char **line;
-	
+
 	line = arrayise_text(load_raw_file_dos_conv(path, NULL), &linecount);
 	if (line == NULL)
 		return ;
@@ -786,7 +786,7 @@ vector_font_t *make_font(char *index_path)
 			cjkdec_load_data(path, font);
 		}
 	}
-	
+
 	free_2d(line, 1);
 
 	return font;
@@ -841,7 +841,7 @@ vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename
 			cjkdec_load_data_from_struct(s, path, font);
 		}*/
 	}
-	
+
 	free_2d(line, 1);
 
 	return font;
@@ -955,7 +955,7 @@ void save_font(vector_font_t *font, char *index_path)
 	remove_name_from_path(dirpath, index_path);
 	dirpath[strlen(dirpath)+1] = '\0';
 	dirpath[strlen(dirpath)] = DIR_CHAR;
-	
+
 	line = arrayise_text(load_raw_file_dos_conv(index_path, NULL), &linecount);
 	if (line == NULL)
 	{

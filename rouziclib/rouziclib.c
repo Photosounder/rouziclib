@@ -18,6 +18,7 @@
 #include "general/hashing.c"
 #include "general/threading.c"
 #include "general/intrinsics.c"
+#include "general/crash_dump.c"
 
 #include "memory/alloc.c"
 #include "memory/fill.c"

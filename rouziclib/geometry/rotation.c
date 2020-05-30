@@ -66,7 +66,7 @@ xyz_t rotate_zxy_pre(xyz_t p, xyz_t costh, xyz_t sinth)
 	p = rotate_z_pre(p, costh.z, sinth.z);		// Rot Z
 	p = rotate_x_pre(p, costh.x, sinth.x);		// Rot X
 	p = rotate_y_pre(p, costh.y, sinth.y);		// Rot Y
-	
+
 	return p;
 }
 
@@ -77,7 +77,7 @@ xyz_t rotate_pt_matrix(xyz_t p, matrix_t m)
 	r.x = p.x*m.x.x + p.y*m.x.y + p.z*m.x.z;
 	r.y = p.x*m.y.x + p.y*m.y.y + p.z*m.y.z;
 	r.z = p.x*m.z.x + p.y*m.z.y + p.z*m.z.z;
-	
+
 	return r;
 }
 

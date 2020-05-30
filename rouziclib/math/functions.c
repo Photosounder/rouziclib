@@ -208,7 +208,7 @@ int64_t next_power_of_2(int64_t n)
 int modulo_euclidian(int a, int b)	// gives a modulo that is never negative, as needed for circular buffers
 {
 	int m;
-	
+
 	m = a % b;
 
 	if (m < 0)

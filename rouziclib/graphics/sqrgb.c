@@ -13,7 +13,7 @@ lut_t get_lut_ssqrgb()		// table is 8-bit sRGB to 12-bit sqrt of linear
 	{
 		init = 0;
 		ssqrgb_l.lutint = calloc (ssqrgb_l.lut_size = 256, sizeof(int32_t));
-	
+
 		for (i=0; i<ssqrgb_l.lut_size; i++)
 			ssqrgb_l.lutint[i] = sqrt(slrgb(((double) i / 255.))) * 4092. + 0.5;	// 4092 is the max for 12-bit so that >>2 makes it 10-bit (1023)
 	}

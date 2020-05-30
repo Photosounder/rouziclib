@@ -44,7 +44,7 @@ void gaussian_blur(float *a, float *b, xyi_t dim, const int channels, double rad
 	for (i=0; i<gks; i++)
 		gk[i] *= sum;
 
-	
+
 	for (iy=0; iy<h; iy++)		// horizontal blurring
 	{
 		for (ix=0; ix<w; ix++)

@@ -128,7 +128,7 @@ ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, mouse_t 
 	int cur_point_within_circle, orig_point_within_circle;
 
 	memset(state, 0, sizeof(state));
-	
+
 	// the check_bypass is necessary to get button states while dragging and releasing (uponce)
 	if (check_ctrl_id_circle(pos, radius, mouse)==0 && check_bypass==0)
 		return state;
@@ -199,7 +199,7 @@ int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mous
 	ctrl_id_check = check_ctrl_id_rect(box, mouse);
 
 	state->uponce = 0;
-	
+
 	if (mouse.b.lmb < 0)				// if LMB is released
 	{
 		if (state->down)

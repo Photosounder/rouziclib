@@ -109,7 +109,7 @@ rawphoto_t load_raw_photo_bayered(char *path, int load_thumb)
 	// colour invert matrix
 	for (i=0; i < 9; i++)
 		rp.inv_matrix[i] = rd->color.rgb_cam[i%3][i/3];
-	
+
 	rp.maximum_value = rd->color.maximum;
 
 	fprintf_rl(stdout, "wb: %g %g %g\n", rp.wb.x, rp.wb.y, rp.wb.z);
@@ -136,7 +136,7 @@ raster_t raw_photo_to_raster(rawphoto_t rp)
 
 	if (rp.data==NULL)
 		return make_raster_empty();
-	
+
 	r = make_raster(NULL, add_xyi(im_dim, set_xyi(1)), XYI0, IMAGE_USE_FRGB);
 
 	for (bayer_ind=0; bayer_ind < 4; bayer_ind++)

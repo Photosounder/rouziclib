@@ -260,7 +260,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 	col_t colm;
 	xy_t expected_pos=XY0;
 	static double closest_deltapos[3];
-		
+
 	if (recur==0)		// if it's the top recursion of the function for this string
 		for (i=0; i<3; i++)
 			closest_deltapos[i] = FLT_MAX;
@@ -422,7 +422,7 @@ void print_to_screen(xy_t pos, double scale, col_t colour, double intensity, con
 {
 	va_list args;
 	char string[4096];
-	
+
 	va_start (args, format);
 	//vsnprintf (string, LOGLINEMAX, format, args);		// print new text to a
 	vsprintf (string, format, args);		// print new text to a

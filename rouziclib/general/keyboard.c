@@ -11,7 +11,7 @@ int get_key_state_by_name(const char *name)
 {
 	#ifdef RL_SDL
 	int scancode;
-	
+
 	scancode = get_scancode_by_key_name(name);
 
 	if (scancode > SDL_SCANCODE_UNKNOWN && scancode < SDL_NUM_SCANCODES)

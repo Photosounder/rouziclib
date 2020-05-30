@@ -611,6 +611,11 @@
 		n=0;
 		sscanf(p, "%[^\n]\n%n", line, &n);
 
+	// How to write a date/time stamp
+		char datestamp[32];
+		time_t now = time(NULL);
+		strftime(datestamp, sizeof(datestamp), "%Y-%m-%d %H.%M.%S", localtime(&now));
+
 	// Adding some stack checking
 		#pragma strict_gs_check(on)
 		#pragma check_stack(on)

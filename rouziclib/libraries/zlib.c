@@ -36,7 +36,7 @@ int gz_decompress(const uint8_t *src, const size_t src_len, uint8_t **dst, size_
 		}
 	}
 	while (ret==Z_OK);
-	
+
 	if (ret == Z_STREAM_END)
 	{
 		ret = strm.total_out;

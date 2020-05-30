@@ -22,7 +22,7 @@ size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, siz
 
 		alloc_count = newsize;
 	}
-	
+
 	return alloc_count;
 }
 

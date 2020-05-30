@@ -36,7 +36,7 @@ size_t get_file_size(const char *path)
 {
 	FILE *in_file;
 	size_t fsize;
-	
+
 	in_file = fopen_utf8(path, "rb");
 
 	if (in_file==NULL)
@@ -57,7 +57,7 @@ uint8_t *load_raw_file(const char *path, size_t *size)
 	FILE *in_file;
 	uint8_t *data;
 	size_t fsize;
-	
+
 	in_file = fopen_utf8(path, "rb");
 
 	if (in_file==NULL)
@@ -86,7 +86,7 @@ uint8_t *load_raw_file_dos_conv(const char *path, size_t *size)	// loads raw fil
 	FILE *in_file;
 	size_t i, offset=0, fsize;
 	uint8_t *data, byte0, byte1=0;
-	
+
 	in_file = fopen_utf8(path, "rb");
 
 	if (in_file==NULL)

@@ -108,7 +108,7 @@ void blit_layout(raster_t r)
 double blit_scale_func_linear(double x, double unit_inv, interp_param_t p)
 {
 	uint64_t *xp = (uint64_t *) &x;
-	
+
 	*xp &= 0x7FFFFFFFFFFFFFFF;	// fabs() equivalent
 	x *= unit_inv;
 
@@ -119,7 +119,7 @@ double blit_scale_func_linear(double x, double unit_inv, interp_param_t p)
 double blit_scale_func_modlin(double x, double unit_inv, interp_param_t p)
 {
 	uint64_t *xp = (uint64_t *) &x;
-	
+
 	*xp &= 0x7FFFFFFFFFFFFFFF;	// fabs() equivalent
 
 	if (x < p.knee)

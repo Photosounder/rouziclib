@@ -58,7 +58,7 @@ double get_polynomial_error_from_points(double *x, double *y, int p_count, doubl
 {
 	int i;
 	double err, yc;
-	
+
 	for (err=0., i=0; i < p_count; i++)
 	{
 		yc = eval_polynomial(x[i], c, degree);		
@@ -911,7 +911,7 @@ void polynomial_fit_on_function_by_dct_minmax(double (*f)(double), double start,
 		fprintf_rl(stdout, "	k = %g\n", k);
 		// dampen k
 		k = k * 0.1;
-		
+
 		// a' = a + k*b
 		for (i=0; i < p_count; i++)
 			a[i] += k * b[i];
@@ -956,7 +956,7 @@ void chebyshev_multiplier_by_dct_mpfr(real_t v, real_t *y, int p_count, int id)	
 		r_rmul(v, x, freq);
 		r_cos(v, v);
 		r_fma(sum, y[i], v, sum);
-		
+
 		r_addd(x, 1.);
 	}
 

@@ -129,7 +129,7 @@ char *sprint_dir_depth_fullarg(fs_dir_t *dir, int current_depth, char **string, 
 
 	if (string==NULL)
 		string = &p;
-	
+
 	if (alloc_count==NULL)
 		alloc_count = &ac;
 
@@ -283,7 +283,7 @@ void get_volumes_path()
 	int i, type, drivecount;
 	uint32_t bits;
 	char drive[]="A:\\", name[256], *list;
-	
+
 /*	bits = GetLogicalDrives();
 
 	for (i=0; i < 32; i++)

@@ -50,7 +50,7 @@ int save_image_srgb_libstb(const char *path, raster_t r, int jpg_quality)
 
 	if (strcmp(ext, "png")==0)
 		return stbi_write_png(path, r.dim.x, r.dim.y, 4, r.srgb, r.dim.x * sizeof(srgb_t));
-	
+
 	if (strcmp(ext, "bmp")==0)
 		return stbi_write_bmp(path, r.dim.x, r.dim.y, 4, r.srgb);
 

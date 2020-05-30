@@ -26,7 +26,7 @@ double gaussian_rand()
 		s = v1*v1 + v2*v2;
 	}
 	while (s >= 1.);	// clips points inside the unit square but outside the unit circle
-	
+
 	return sqrt(-2. * log(s) / s) * v1;
 	//y = sqrt(-2. * log(s) / s) * v2;
 }
@@ -42,7 +42,7 @@ xy_t gaussian_rand_xy()
 		s = v1*v1 + v2*v2;
 	}
 	while (s >= 1.);	// clips points inside the unit square but outside the unit circle
-	
+
 	return xy( sqrt(-2. * log(s) / s) * v1 , sqrt(-2. * log(s) / s) * v2 );
 }
 

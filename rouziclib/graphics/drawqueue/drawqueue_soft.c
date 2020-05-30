@@ -205,7 +205,6 @@ void drawq_soft_run()
 	#endif
 	r_pitch /= sizeof(srgb_t);
 
-	
 	fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
 
 	for (i=0; i < DQS_THREADS; i++)

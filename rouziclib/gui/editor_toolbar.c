@@ -355,9 +355,9 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 			gui_layout_t new_layout={0}, layout_copy;
 			char **new_src;
 			int new_src_linecount=0;
-	
+
 			new_src = arrayise_text(make_string_copy(te->string), &new_src_linecount);
-	
+
 			// free elems and arrays from the old layout without blanking it
 			layout_copy = *lp;
 			free_gui_layout(&layout_copy);
@@ -365,7 +365,7 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 			// make the new layout
 			make_gui_layout(&new_layout, new_src, new_src_linecount, NULL);
 			free_2d(new_src, 1);
-	
+
 			// reference new arrays and their sizes
 			lp->elem = new_layout.elem;
 			lp->elem_as = new_layout.elem_as;

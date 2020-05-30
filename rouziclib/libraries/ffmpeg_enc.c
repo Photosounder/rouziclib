@@ -68,7 +68,7 @@ ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int 
 		case 12:
 			d.codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P12LE;
 			break;
-			
+
 		default:
 			d.codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
 	}
@@ -79,7 +79,7 @@ ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int 
 	ret = av_opt_set(d.codec_ctx->priv_data, "crf", str, 0);
 	ret = av_opt_set(d.codec_ctx->priv_data, "profile", bit_depth==10 ? "main10" : "main", 0);
 	ret = av_opt_set(d.codec_ctx->priv_data, "preset", codec_id==AV_CODEC_ID_H265 ? "ultrafast" : "medium", 0);
-	
+
 	if (codec_id == AV_CODEC_ID_VP9)
 	{
 		d.codec_ctx->bit_rate = 0;
@@ -111,7 +111,7 @@ ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int 
 	}
 
 	ret = avformat_write_header(d.fmt_ctx, &fmt_opts);
-	
+
 	// Create reusable frame
 	d.frame = av_frame_alloc();
 	av_frame_make_writable(d.frame);
@@ -136,7 +136,7 @@ void ff_convert_to_frame(void *buf, int buf_fmt, int bpp, AVFrame *frame)	// AV_
 	}
 
 	int in_linesize[3] = { bpp * frame->width, bpp * frame->width >> 1, bpp * frame->width >> 1 };
-	
+
 	sws_ctx = sws_getCachedContext( sws_ctx,
 				 frame->width,
 				 frame->height,
@@ -160,7 +160,7 @@ int ff_frgb_to_frame(ff_videnc_t *d, raster_t *r)
 
 	if (r->f==NULL || (r->dim.x & 1) || (r->dim.y & 1) || d->frame->data==NULL)
 		return 0;
-	
+
 	bpc = ff_pix_fmt_byte_count(d->codec_ctx->pix_fmt);
 	bit_depth = ff_pix_fmt_bit_depth(d->codec_ctx->pix_fmt);
 	int_ratio = 1 << (bit_depth-8);
@@ -188,7 +188,7 @@ int ff_frgb_to_frame(ff_videnc_t *d, raster_t *r)
 				line_u[ip.x>>1] = u * int_ratio + 0.5f;
 				line_v[ip.x>>1] = v * int_ratio + 0.5f;
 
-				
+
 			}
 		}
 	}
@@ -229,7 +229,7 @@ int ff_yuv_to_frame(ff_videnc_t *d, raster_t *r)
 
 	if (r->buf==NULL || (r->dim.x & 1) || (r->dim.y & 1) || d->frame->data==NULL)
 		return 0;
-	
+
 	bpc = ff_pix_fmt_byte_count(d->codec_ctx->pix_fmt);
 	bit_depth = ff_pix_fmt_bit_depth(d->codec_ctx->pix_fmt);
 

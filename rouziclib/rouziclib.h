@@ -80,8 +80,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "vector/vector_struct.h"		// needs xyz
 #include "vector_type/vector_type_struct.h"	// needs vector
 #include "fileio/fileball_struct.h"
-#include "libraries/mpfr.h"		// used if RL_MPFR is defined
-
+#include "libraries/mpfr.h"			// used if RL_MPFR is defined
 
 #include "general/macros.h"
 #include "general/xyz.h"
@@ -90,6 +89,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "general/mouse.h"
 #include "general/keyboard.h"
 #include "general/hashing.h"
+#include "general/crash_dump.h"			// used if RL_CRASHDUMP is defined
 
 #include "memory/alloc.h"
 #include "memory/fill.h"

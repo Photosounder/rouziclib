@@ -24,7 +24,7 @@ textedit_t string_to_textedit(char *string)
 	te.string = string;
 	te.alloc_size = strlen(string)+1;
 	te.max_scale = 1e30;
-	
+
 	te.curpos = strlen(string);
 
 	return te;
@@ -146,7 +146,7 @@ void textedit_set_new_text(textedit_t *te, char *str)	// sets a whole new text f
 	len = strlen(str);
 	alloc_enough(&te->string, len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
 	strcpy(te->string, str);							// copying of str
-	
+
 	te->curpos = len;
 	te->sel0 = te->sel1 = 0;
 }
@@ -394,7 +394,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 	rect_t boxb;
-	
+
 	if (te->string==NULL)		// if te->string is NULL it's not initialised
 		textedit_init(te, 1);
 
@@ -494,7 +494,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	}
 
 	prev_textedit = te;		// set prev_textedit to te in case there is only one textedit left to avoid referencing one that's gone
-	
+
 	ret = te->return_flag;
 	te->return_flag = 0;
 	return ret;			// returns 1 if Enter used, 2 if clicked out, 3 if Tab used, 4 if probably modified

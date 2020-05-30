@@ -203,7 +203,7 @@ void free_raster(raster_t *r)
 		#ifdef RL_OPENCL
 		cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table
 		#endif
-	
+
 		free_null(ptr);
 
 		ptr = get_raster_buffer_ptr(r);
@@ -270,7 +270,7 @@ double intensity_scaling(double scale, double scale_limit)	// gives an intensity
 
 	if (scale < scale_limit)
 		ratio = scale / scale_limit;
-	
+
 	// linear adjust knee smoothing
 	x = scale / scale_limit;
 	ratio = sqrt(sq(x-1.)+knee_width) - x - 1. - y_offset;

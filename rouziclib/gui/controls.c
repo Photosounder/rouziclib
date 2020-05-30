@@ -535,7 +535,7 @@ int ctrl_draggable_circle(xy_t *pos, double radius, int *sel_id, int cur_id, int
 /*int ctrl_draggable_circle_splineeq(xy_t *pos, double radius, int *sel_id, int cur_id, int *dragged, int handle_type, double mouseout_time)
 {
 
-	
+
 	 
 	   	hanc0 = make_colour_srgb(255, 224, 0, 255);	// yellow
 

@@ -59,7 +59,7 @@ float *load_sound_aiff_mem(const uint8_t *data, size_t data_len, size_t *sample_
 		if (strncmp(p, "FL32", 4)==0)	compression = 2;	// BE float snd
 		if (strncmp(p, "fl64", 4)==0)	compression = 3;	// BE double snd
 	}
-	
+
 	// Prepare decoding parameters
 	full_count = *sample_count * (size_t) *channels;
 	byte_depth = ceil_rshift(bit_depth, 3);		// bytes per sample
@@ -154,7 +154,7 @@ void save_sound_aiff_fl32_file(const char *path, float *snd, size_t sample_count
 	fwrite(be80, 1, 10, file);		// sample rate
 	fprintf(file, "fl32");			// compression
 	fprintf(file, "\021IEEE 32-bit float");	// Pascal string (first byte is 17, the length)
-	
+
 	fprintf(file, "SSND");
 	fwrite_BE32(file, 8+full_count*sizeof(float));	// chunk size
 	fwrite_BE32(file, 0);			// not needed

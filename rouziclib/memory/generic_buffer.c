@@ -2,7 +2,7 @@ char *vbufprintf(buffer_t *s, const char *format, va_list args)		// like vfprint
 {
 	if (s==NULL)
 		return NULL;
-	
+
 	vsprintf_realloc(&s->buf, &s->as, 1, format, args);
 
 	s->len = strlen(s->buf);

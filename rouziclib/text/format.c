@@ -240,7 +240,7 @@ char *sprint_duration(char *string, double sec)
 	else if (sec < 86400.)
 		sprintf(string, "%.1f hours", sec / 3600.);
 	else if (sec < 2.*86400.)
-		sprintf(string, "1 day and %.1f hours", floor(sec / 86400.), fmod(sec, 86400.) / 3600.);
+		sprintf(string, "1 day and %.1f hours", fmod(sec, 86400.) / 3600.);
 	else if (sec < 90.*86400.)
 		sprintf(string, "%0.f days and %.1f hours", floor(sec / 86400.), fmod(sec, 86400.) / 3600.);
 	else
@@ -266,7 +266,7 @@ char *sprint_timestamp(char *string, double t, int prec)
 	ts = ti / pm;			// time in integer seconds
 
 	if (prec==0)
-		sprintf(string, "%02d:%02d:%02d", ts/3600, (ts/60)%60, ts%60, prec);
+		sprintf(string, "%02d:%02d:%02d", ts/3600, (ts/60)%60, ts%60);
 	else
 		sprintf(string, "%02d:%02d:%02d.%0*d", ts/3600, (ts/60)%60, ts%60, prec, ti%pm);
 
@@ -295,7 +295,7 @@ char *sprint_timestamp_short(char *string, double t, int prec)
 		sprintf(string, "%d:%02d", ts/60, ts%60);
 	else
 		sprintf(string, "%d", ts);
-	
+
 	if (prec > 0)
 		sprintf(&string[strlen(string)], ".%0*d", prec, ti%pm);
 
@@ -389,7 +389,7 @@ void convert_file_to_header_const_string(const char *in_path)
 		if (ret)
 		{
 			fprint_escaped_byte(fout, c0, c1);
-			
+
 			if ((i % 2000) == 0 && i)		// this cuts up the string to please compilers
 				fprintf(fout, "\"\n\"");
 			i++;

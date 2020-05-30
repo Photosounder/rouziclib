@@ -9,3 +9,5 @@ extern int remove_empty_dir(const char *path);
 extern int remove_every_file(const char *path);
 extern int remove_dir(const char *path);
 extern void system_open(const char *path);
+extern void show_file_in_explorerW(const wchar_t *wpath);
+extern void show_file_in_explorer(const char *path);

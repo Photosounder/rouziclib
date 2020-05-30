@@ -274,7 +274,7 @@ __m128 mipmap_make_fast_pixel_lvl4(mipmap_t *m, const xyi_t iro, xyi_t ipo)
 		// Calculate the next values
 		ip[il] = lshift_xyi(ip[il+1], 1);	// next pixel start position (tile-relative)
 		ir[il] = lshift_xyi(ir[il+1], 1);	// next tile position
-	
+
 		// Adjust values if the next 4 pixels are on another tile
 		ge = cmp_ge_xyi(ip[il], m->lvl[il].tiledim);	// 1 if we must move to the next tile
 		ir[il] = add_xyi(ir[il], ge);
@@ -428,7 +428,7 @@ __m128 mipmap_make_fast_pixel_recursively(mipmap_t *m, const int il0, const xyi_
 	xyi_t ip1, ir1, ge;
 	mipmap_level_t *ml;
 	raster_t *rp;
-	
+
 	// Calculate the next values
 	il1 = il0-1;			// next mipmap level
 	ip1 = lshift_xyi(ip0, 1);	// next pixel start position (tile-relative)
@@ -494,7 +494,7 @@ __m128 mipmap_make_edge_pixel_recursively(mipmap_t *m, const int il0, const xyi_
 	xyi_t ip1, ir1, ge;
 	mipmap_level_t *ml;
 	raster_t *rp;
-	
+
 	// Calculate the next values
 	il1 = il0-1;			// next mipmap level
 	ip1 = lshift_xyi(ip0, 1);	// next pixel start position (tile-relative)
@@ -689,7 +689,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 mipmap_t raster_to_tiled_mipmaps_fast_defaults(raster_t r, const int mode)
 {
 	#ifdef RL_INTEL_INTR
-	if (check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
+	if (check_ssse3() && check_sse41())
 		return raster_to_tiled_mipmaps_fast_backwards(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
 	#endif
 

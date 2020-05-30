@@ -1878,7 +1878,7 @@ void rffti(int32_t n, double *wsave, int32_t *ifac)
 	rffti1(n, &wsave[n + 1], &ifac[1]);
 	return;
 } //* rffti_ */
-	
+
 void fftp(double *in, double *out, int n, int method, fft_plan_t *plan)	// FFT with a fixed plan
 {
 	/* method :

@@ -12,7 +12,7 @@
 			#include <GL/glew.h>
 		#endif
 	#endif
-	
+
 	#ifdef _MSC_VER
 		#pragma comment (lib, "opengl32.lib")
 

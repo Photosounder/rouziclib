@@ -65,7 +65,7 @@ xyi_t sdl_get_display_dim(int display_id)
 
 	if (SDL_GetCurrentDisplayMode(display_id, &mode)==0)
 		return xyi(mode.w, mode.h);
-	
+
 	return xyi(-1, -1);
 }
 
@@ -172,7 +172,7 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 		mouse->showcursor = -1;
 		mouse->warp = 1;
 	}
-	
+
 	if (mouse->warp==0)
 		mouse->a = xyi_to_xy(sub_xyi(mpos, wr.p0));
 
@@ -294,7 +294,7 @@ int get_sdl_renderer_index(const char *name)
 	for (i=0; i<n; i++)
 	{
 		SDL_GetRenderDriverInfo(i, &info);
-		
+
 		if (strcmp(name, info.name)==0)
 			return i;
 	}
@@ -392,7 +392,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	}
 
 	if (fb.use_drawq==2)
-		if (check_cpuinfo(CPU_HAS_SSSE3)==0 || check_cpuinfo(CPU_HAS_SSE4_1)==0)
+		if (check_ssse3()==0 || check_sse41()==0)
 		{
 			fprintf_rl(stderr, "In sdl_graphics_init_full(): Cannot render using the software draw queue on a CPU that lacks SSSE3 or SSE4.1. Go buy a new computer, this ancient wreck is unworthy of running my code.\n");
 			fb.use_drawq = 0;
@@ -403,7 +403,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	{
 		#ifdef RL_VULKAN
 		vk_init();
-	
+
 		if (SDL_Vulkan_CreateSurface(fb.window, fb.vk.instance, &fb.vk.surface) == 0)
 			fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
 		#else
@@ -420,7 +420,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		fb.renderer = SDL_CreateRenderer(fb.window, -1, SDL_RENDERER_PRESENTVSYNC);
 		if (fb.renderer==NULL)
 			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-	
+
 		fb.texture = SDL_CreateTexture(fb.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
 		if (fb.texture==NULL)
 			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
@@ -484,7 +484,7 @@ int sdl_handle_window_resize(zoom_t *zc)
 	int w, h;
 
 	SDL_GetWindowSize(fb.window, &w, &h);
-	
+
 	if (fb.w == w && fb.h == h)
 		return 0;
 

@@ -181,8 +181,36 @@ void system_open(const char *path)
 	system(command);
 
 	/*NSURL *fileURL = [NSURL fileURLWithPath: [NSString stringWithUTF8String:path]];
-	
+
 	NSWorkspace *ws = [NSWorkspace sharedWorkspace];
 	[ws openURL: fileURL];*/
 	#endif
+}
+
+void show_file_in_explorerW(const wchar_t *wpath)
+{
+	#ifdef _WIN32
+	CoInitialize(NULL);
+
+	// Parse the path into a pidl
+	PIDLIST_ABSOLUTE pidl;
+	SFGAOF flags;
+	SHParseDisplayName(wpath, NULL, &pidl, 0, &flags);
+
+	// Open Explorer and select the file
+	SHOpenFolderAndSelectItems(pidl, 0, NULL, 0);
+
+	// Use the task allocator to free to returned pidl
+	CoTaskMemFree(pidl);
+	CoUninitialize();
+	#endif
+}
+
+void show_file_in_explorer(const char *path)
+{
+	wchar_t *wpath = utf8_to_wchar(path, NULL);
+
+	show_file_in_explorerW(wpath);
+
+	free(wpath);
 }

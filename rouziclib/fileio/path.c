@@ -22,7 +22,7 @@ char *remove_name_from_path(char *dirpath, const char *fullpath)	// removes the 
 {
 	const char *p;
 	int len;
-	
+
 	if (dirpath)
 		dirpath[0] = '\0';
 
@@ -51,7 +51,7 @@ char *remove_extension_from_path(char *dirpath, const char *fullpath)
 {
 	char *p;
 	int len;
-	
+
 	if (dirpath)
 		dirpath[0] = '\0';
 
@@ -127,7 +127,7 @@ char *append_name_to_path(char *dest, const char *path, const char *name)	// app
 
 	if (dest==NULL)
 		dest = calloc(path_len + name_len + 2, sizeof(char));
-	
+
 	if (dest==path)		// in-place appending
 	{
 		if (path_has_dirchar)

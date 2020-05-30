@@ -365,7 +365,7 @@ void drawq_test1()		// BRDF test
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
-	
+
 	// store the drawing parameters in the main drawing queue
 	drawq_add_to_main_queue(DQT_TEST1);
 
@@ -457,7 +457,7 @@ void drawq_bracket_open()
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
-	
+
 	// store the drawing parameters in the main drawing queue
 	drawq_add_to_main_queue(DQT_BRACKET_OPEN);
 
@@ -483,7 +483,7 @@ void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are list
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
-	
+
 	// store the drawing parameters in the main drawing queue
 	di = drawq_add_to_main_queue(DQT_BRACKET_CLOSE);
 	di[0] = blending_mode;

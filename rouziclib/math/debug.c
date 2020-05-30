@@ -142,6 +142,6 @@ double math_graph_get_interpolated_value(int index, double x)
 	lock_math_graph();
 	y = math_graph_get_interpolated_value_core(index, x);
 	unlock_math_graph();
-	
+
 	return y;
 }

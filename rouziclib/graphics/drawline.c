@@ -137,13 +137,13 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 		by0 = bstarty;
 		bx1 = bendx;
 		by1 = bendy;
-	
+
 		dx = fastabs(bx1-bx0);
 		dy = fastabs(by1-by0);
 		sx = -1; if (bx0 < bx1) sx = 1;
 		sy = -1; if (by0 < by1) sy = 1;
 		err = dx-dy; ix = bx0; iy = by0;
-		
+
 		while (1)
 		{
 			if (ix>=0 && ix<fb.w && iy>=0 && iy<fb.h)
@@ -160,7 +160,7 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 
 				bf(&fb.r.l[fbi], colour, p);
 			}
-	
+
 			if (ix==bx1 && iy==by1) break;
 			e2 = err*2;
 			if (e2 > -dy) { err -= dy; ix += sx; }
@@ -304,13 +304,13 @@ void draw_line_thin_frgb(xy_t p1, xy_t p2, double radius, frgb_t colour, const b
 		by0 = bstarty;
 		bx1 = bendx;
 		by1 = bendy;
-	
+
 		dx = fastabs(bx1-bx0);
 		dy = fastabs(by1-by0);
 		sx = -1; if (bx0 < bx1) sx = 1;
 		sy = -1; if (by0 < by1) sy = 1;
 		err = dx-dy; ixf = ix = bx0; iyf = iy = by0;
-		
+
 		while (1)
 		{
 			if (ix>=0 && ix<fb.w && iy>=0 && iy<fb.h)
@@ -327,7 +327,7 @@ void draw_line_thin_frgb(xy_t p1, xy_t p2, double radius, frgb_t colour, const b
 
 				bf(&fb.r.f[fbi], colour, p);
 			}
-	
+
 			if (ix==bx1 && iy==by1) break;
 			e2 = err*2;
 			if (e2 > -dy) { err -= dy; ix += sx; ixf = ix; }
@@ -351,7 +351,7 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	rect_t box;
 	xy_t l1, l2, b1, b2;
 	xyi_t bb_dim;
-	
+
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 	if (fb.use_drawq==2)
 		grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002

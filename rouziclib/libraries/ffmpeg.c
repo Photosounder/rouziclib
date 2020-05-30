@@ -152,7 +152,6 @@ int64_t ff_make_timestamp(ffstream_t *s, double t)
 	int64_t start_time = s->fmt_ctx->streams[s->stream_id]->start_time;
 
 	return nearbyint(t / av_q2d(time_base) + start_time);
-	
 }
 
 raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
@@ -165,7 +164,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 	const int rgb_fmt = AV_PIX_FMT_0BGR32;
 uint32_t td=0;
 get_time_diff(&td);
-	
+
 	sws_ctx = sws_getCachedContext( sws_ctx,
 				 s->frame->width,
 				 s->frame->height,
@@ -335,7 +334,7 @@ void ff_seek_byte(ffstream_t *s, int64_t pos, int flush)
 int ff_find_table_frame_id(ffstream_t *s, double t, const int keyframe)
 {
 	int i, ret, frame_id;
-	
+
 	if (s->frame_info==NULL)
 		return -1;
 
@@ -504,7 +503,7 @@ double ff_get_video_duration(ffstream_t *s, const char *path)
 	int i, ret;
 	uint32_t td=0;
 	double duration;
-	
+
 	if (s==NULL)		// allows finding the duration even if s is NULL
 	{
 		ffstream_t stream={0};

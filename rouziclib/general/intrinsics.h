@@ -20,6 +20,15 @@ enum cpu_feat_n
 
 extern int check_cpuinfo(const enum cpu_feat_n fid);
 
+static int check_sse2()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_SSE2);	return v; }
+static int check_sse3()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_SSE3);	return v; }
+static int check_ssse3() { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_SSSE3);	return v; }
+static int check_sse41() { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_SSE4_1);	return v; }
+static int check_sse42() { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_SSE4_2);	return v; }
+static int check_fma()   { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_FMA);	return v; }
+static int check_avx()   { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_AVX);	return v; }
+static int check_avx2()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_AVX2);	return v; }
+
 #if (defined(_M_AMD64) || defined(_M_X64) || defined(__amd64) ) && !defined(__x86_64__)
 	#define __x86_64__
 #endif

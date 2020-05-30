@@ -59,7 +59,7 @@ int ctrl_polyline(polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
 
 					pl->line_count--;
 				}
-			
+
 			for (j=0; j < pl->line_count; j++)	// decrement any reference beyond i
 			{
 				if (pl->line[j].x > i)
@@ -116,7 +116,7 @@ char *sprint_polyline(polyline_edit_t *pl)
 void round_polyline_pv(polyline_edit_t *pl, xy_t offset, double sm)
 {
 	int i;
-	
+
 	for (i=0; i < pl->pv_count; i++)
 	{
 		pl->pv[i].x = nearbyint(pl->pv[i].x * 12.) / 12.;

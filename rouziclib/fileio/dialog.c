@@ -4,7 +4,7 @@ char *open_file_dialog(char *filter)		// the filter must use \1 instead of \0 as
 	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;
 	OPENFILENAMEW ofn={0};
 	int i, ret=0;
-	
+
 	// Details on the fields at https://docs.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-openfilenamew
 	ofn.lStructSize = sizeof(OPENFILENAMEW);
 	ofn.hwndOwner = GetDesktopWindow();		// NULL might work too
@@ -40,7 +40,7 @@ char *save_file_dialog(char *filter)		// the filter must use \1 instead of \0 as
 	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;
 	OPENFILENAMEW ofn={0};
 	int i, ret=0;
-	
+
 	// Details on the fields at https://docs.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-openfilenamew
 	ofn.lStructSize = sizeof(OPENFILENAMEW);
 	ofn.hwndOwner = GetDesktopWindow();		// NULL might work too

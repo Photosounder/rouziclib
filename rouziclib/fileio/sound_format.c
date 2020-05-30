@@ -191,10 +191,10 @@ void save_sound_fl32_file(const char *path, float *snd, size_t sample_count, int
 	char ext[32];
 
 	extract_file_extension(path, ext);
-	
+
 	if (strcmp(ext, "aif")==0 || strcmp(ext, "aiff")==0 || strcmp(ext, "aifc")==0)
 		save_sound_aiff_fl32_file(path, snd, sample_count, channels, samplerate);
-		
+
 	if (strcmp(ext, "wav")==0 || strcmp(ext, "wave")==0)
 		save_sound_wav_fl32_file(path, snd, sample_count, channels, samplerate);
 }

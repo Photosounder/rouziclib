@@ -39,9 +39,9 @@ lut_t get_lut_lsrgb()
 		init = 0;
 
 		lsrgb_l.lut_size = 65536;
-	
+
 		lsrgb_l.lutint = calloc (lsrgb_l.lut_size, sizeof(int32_t));
-	
+
 		for (i=0; i<lsrgb_l.lut_size; i++)
 			lsrgb_l.lutint[i] = MINN(1., lsrgb((double) i / ONEF)) * 8160. + 0.5;	// 8160 = 255 * 32 (8.5 fixed point format)
 	}
@@ -60,10 +60,10 @@ lut_t get_lut_slrgb()
 		init = 0;
 
 		slrgb_l.lut_size = 256;
-	
+
 		slrgb_l.lutint = calloc (slrgb_l.lut_size, sizeof(int32_t));
 		slrgb_l.flut = calloc (slrgb_l.lut_size, sizeof(float));
-	
+
 		for (i=0; i<slrgb_l.lut_size; i++)
 		{
 			slrgb_l.flut[i] = slrgb(((double) i / 255.));
@@ -85,9 +85,9 @@ lut_t get_lut_s16lrgb()
 		init = 0;
 
 		slrgb_l.lut_size = 65536;
-	
+
 		slrgb_l.flut = calloc (slrgb_l.lut_size, sizeof(float));
-	
+
 		for (i=0; i<slrgb_l.lut_size; i++)
 		{
 			slrgb_l.flut[i] = slrgb(((double) i * (1. / 65535.)));
@@ -125,9 +125,9 @@ lut_t get_lut_lsrgb_fl()
 		init = 0;
 
 		lsrgb_fl_l.lut_size = 1 << 3+top_mantissa_bits;			// this covers the full range of possible input values after masking-shifting
-	
+
 		lsrgb_fl_l.lutint = calloc (lsrgb_fl_l.lut_size, sizeof(int32_t));
-	
+
 		for (i=0; i<lut_size; i++)
 		{
 			xint = offset_cast + (i << (23-top_mantissa_bits));
@@ -234,9 +234,9 @@ void convert_lrgb_to_srgb(int mode)
 			ps.b = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
 
 			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
-	
+
 			id = (id+1) & 0x3FFF;
-	
+
 			if (id==stop)
 			{
 				id = rand() & 0x3FFF;
@@ -303,9 +303,9 @@ void convert_frgb_to_srgb(int mode)
 			ps.b = bytecheck_l.lutb[lsrgb_fl(p.b, lsrgb_fl_l.lutint) + dither >> 5];
 
 			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_ABGR);
-	
+
 			id = (id+1) & 0x3FFF;
-	
+
 			if (id==stop)
 			{
 				id = rand() & 0x3FFF;
@@ -352,7 +352,7 @@ void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 
 	// SIMD blending
 	#ifdef RL_INTEL_INTR
-	if (LBD==15 && check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
+	if (LBD==15 && check_ssse3() && check_sse41())
 	{
 		uint64_t *s0_ptr = (uint64_t *) srgb0, *s1_ptr = (uint64_t *) srgb1;
 		__m128i *l_ptr = (__m128i *) fb.r.l;
@@ -512,16 +512,9 @@ void srgb_change_order(srgb_t *in, srgb_t *out, const size_t count, const int or
 		else
 			memcpy(out, in, count * sizeof(srgb_t));
 
-	
-		static int bench_count=0;
-		static double ts_accu=0.;
-		double ts=0.;
-		get_time_diff_hr(&ts);
-
-
 	// SIMD reordering (about 10.5x faster than fallback)
 	#ifdef RL_INTEL_INTR
-	if (check_cpuinfo(CPU_HAS_SSSE3))
+	if (check_ssse3())
 	{
 		__m128i *in128=(__m128i *) in, *out128=(__m128i *) out;
 		__m128i x0, x1, shuf_mask;

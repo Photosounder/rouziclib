@@ -951,7 +951,7 @@ void draw_selmenu_entry_fromlayout(const int i, const char *label, gui_layout_t 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;
 	cur_elem = &layout->elem[id];
-	
+
 	selmenu_data = cur_elem->data;
 	draw_selectmenu_entry(selmenu_data, gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour, i, label);
 }

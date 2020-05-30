@@ -431,16 +431,16 @@ void frgb_to_hsl(frgb_t col, double *H, double *S, double *L, int huemode)
 void colour_blowout_double_cw(double Wr, double Wg, double Wb, double *pred, double *pgrn, double *pblu)
 {
 	double max, red, grn, blu, t, L;
-	
+
 	max = MAXN(*pred, *pgrn);
 	max = MAXN(max, *pblu);    // max is the maximum value of the 3 colours
-	
+
 	if (max > 1.)       // if the colour is out of gamut
 	{
 		red = *pred;	grn = *pgrn;	blu = *pblu; 
 
 		L = Wr*red + Wg*grn + Wb*blu;   // Luminosity of the colour's grey point
-		
+
 		if (L < 1.) // if the grey point is no brighter than white
 		{
 			// t represents the ratio on the line between the input colour
@@ -448,7 +448,7 @@ void colour_blowout_double_cw(double Wr, double Wg, double Wb, double *pred, dou
 			// a lower t meaning closer to the grey point and a
 			// higher t meaning closer to the input colour
 			t = (1.-L) / (max-L);
-		
+
 			// a simple linear interpolation between the
 			// input colour and its grey point
 			*pred = red*t + L*(1.-t);
@@ -475,7 +475,7 @@ void colour_blowout_int_cw(uint32_t Wr, uint32_t Wg, uint32_t Wb, uint32_t *pred
 
 	max = MAXN(*pred, *pgrn);
 	max = MAXN(max, *pblu);    // max is the maximum value of the 3 colours
-	
+
 	if (max > ONE)       // if the colour is out of gamut
 	{
 		red = *pred;	grn = *pgrn;	blu = *pblu;
@@ -717,7 +717,7 @@ frgb_t clamp_frgba(frgb_t a)
 frgb_t frgb_diff(frgb_t a, frgb_t b)
 {
 	frgb_t d;
-	
+
 	d.r = fabs(a.r - b.r);
 	d.g = fabs(a.g - b.g);
 	d.b = fabs(a.b - b.b);

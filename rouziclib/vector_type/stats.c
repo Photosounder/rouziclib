@@ -42,7 +42,7 @@ double letter_width(vector_font_t *font, double pos, uint32_t c, double scale, c
 		return 0.;
 
 	ucd = get_unicode_data(c);
-	
+
 	if (ucd.bidicat==bidicat_NSM)			// non-spacing (combining) mark
 		return 0.;
 

@@ -8,7 +8,7 @@ void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, double intensit
 
 	if (intensity==0.)
 		return ;
-	
+
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 
 	if (drawq_get_bounding_box(box, set_xy(grad), &bbi)==0)
@@ -81,7 +81,7 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 		return ;
 
 	iradf = roundaway(1./radius * fpratio);
-	
+
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 
 	box = sort_rect(box);

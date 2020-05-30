@@ -79,7 +79,7 @@ void tiff_lzw_decode(uint8_t *coded, buffer_t *dec, int bytesperstrip)
 
 			if (code == 257)					// if (Code == EoiCode)
 				break;
-			
+
 			append_buf(dec, &dict[code]);				// WriteString(StringFromCode(Code));
 
 			clear_buf(&word);

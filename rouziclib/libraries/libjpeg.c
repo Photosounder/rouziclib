@@ -12,11 +12,11 @@ jpeg_comp_dct_t *libjpeg_get_dct_data(const char *filepath)
 	jpeg_comp_dct_t *out=NULL;
 	JBLOCKARRAY dct;
 	jpeg_component_info *compinf;
-	
+
 	filedata = load_raw_file(filepath, &filedata_size);
 	if (filedata==NULL)
 		return NULL;
-	
+
 	// allocate and initialize JPEG decompression object
 	cinfo.err = jpeg_std_error(&jerr);
 	jpeg_create_decompress(&cinfo);
@@ -143,7 +143,7 @@ raster_t load_image_mem_libjpeg(uint8_t *raw_data, size_t size, const int mode)
 	xyi_t ip;
 	raster_t im={0};
 	uint8_t *scanline, *p0, *p1;
-	
+
 	// allocate and initialize JPEG decompression object
 	cinfo.err = jpeg_std_error(&jerr);
 	jpeg_create_decompress(&cinfo);

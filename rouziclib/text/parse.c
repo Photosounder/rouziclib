@@ -355,7 +355,7 @@ const char *find_pattern_in_string(const char *str, const char *pat)	// looks fo
 		if (match)
 			return &str[i];
 	}
-	
+
 	return NULL;
 }
 

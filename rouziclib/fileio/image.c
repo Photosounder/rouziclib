@@ -100,7 +100,7 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 		im->srgb = calloc(pix_count, sizeof(srgb_t));
 
 		#ifdef RL_INTEL_INTR
-		if (check_cpuinfo(CPU_HAS_SSSE3) && check_cpuinfo(CPU_HAS_SSE4_1))
+		if (check_ssse3() && check_sse41())
 			for (i=0; i < pix_count; i++)
 				_mm_set_raster_pixel_ps_to_srgb(im, i, _mm_load_ps((const float *) &f[i]));
 		else
@@ -146,7 +146,7 @@ void convert_image_to_srgb(raster_t im, srgb_t *data)
 {
 	int i;
 	size_t pix_count = mul_x_by_y_xyi(im.dim);
-	
+
 	for (i=0; i < pix_count; i++)
 		data[i] = get_raster_pixel_in_srgb(im, i);
 }
@@ -155,7 +155,7 @@ void convert_image_to_frgb(raster_t im, frgb_t *data)
 {
 	int i;
 	size_t pix_count = mul_x_by_y_xyi(im.dim);
-	
+
 	for (i=0; i < pix_count; i++)
 		data[i] = get_raster_pixel_in_frgb(im, i);
 }

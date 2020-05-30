@@ -85,7 +85,7 @@ char *vsprintf_realloc(char **string, size_t *alloc_count, const int append, con
 
 	if (string==NULL)				// if there's no string then we create one
 		string = &p;				// so that ultimately it's p that will be returned
-	
+
 	if (alloc_count==NULL)				// if alloc_count isn't provided
 		alloc_count = &zero;			// use 0 which will realloc string to an adequate size
 

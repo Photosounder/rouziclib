@@ -118,7 +118,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 
 	if (mouse->b.mmb == -2 && mouse->zoom_allowed)
 		zoom_key_released(zc, &mouse->zoom_flag, 1);
-	
+
 	if (mouse->b.mmb == 2 && mouse->zoom_allowed)
 		zc->zoom_key_time = get_time_ms();
 
@@ -191,7 +191,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 		free(path);
 	}
 	#endif
-	
+
 	reset_insert_rect_array();			// nothing to do with the mouse but this is about the right place to put it
 }
 

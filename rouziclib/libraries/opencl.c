@@ -376,7 +376,7 @@ void cl_make_srgb_tex()
 cl_int init_fb_cl()
 {
 	cl_int ret;
-	
+
 	if (fb.clctx.command_queue)
 	{
 		clReleaseMemObject(fb.data_cl);

@@ -49,7 +49,7 @@ void draw_circle_lrgb(const int circlemode, xy_t pos, double circrad, double rad
 			dx = xf - (ix << fp);
 			dx *= dx;
 			d = dx + dy;
-			
+
 			if (d>lowbound2 && d<highbound2)
 			{
 				d = (circradf - isqrt_d1i(d)) * iradf >> fp;
@@ -78,7 +78,7 @@ void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radiu
 
 	if (intensity==0.)
 		return ;
-	
+
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 
 	// calculate the bounding box
@@ -524,7 +524,7 @@ void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 	int32_t ix, iy;
 	float *df;
 	recti_t bb;
-	
+
 	grad = GAUSSRAD_HQ * radius;		// gaussian will go to x = ±4, radially
 
 	if (pos.x + grad < 0.)			return ;

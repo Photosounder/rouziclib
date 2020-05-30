@@ -153,7 +153,7 @@ void clfft_2d(clctx_t *clctx, clfft_plan_t *plan, float *cpu_buf, xyi_t dim, int
 
 	ret = clfftEnqueueTransform(plan->planid, direction==0 ? CLFFT_FORWARD : CLFFT_BACKWARD, 1, &clctx->command_queue, 0, NULL, NULL, &plan->gpu_buf, NULL, plan->tmp_buf);	// enqueue FFT
 	CL_ERR_NORET("clfftEnqueueTransform (in clfft_2d)", ret);
-	
+
 	ret = clEnqueueReadBuffer(clctx->command_queue, plan->gpu_buf, CL_FALSE, 0, mul_x_by_y_xyi(dim)*2*sizeof(float), cpu_buf, 0, NULL, NULL);
 	CL_ERR_NORET("clEnqueueReadBuffer (in clfft_2d)", ret);
 
