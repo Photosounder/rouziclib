@@ -18,6 +18,12 @@ extern double fastcos_tr_d5(double x);
 #define fastsin_d4(x) fastcos_d4((x)-0.5*pi)
 #define fastsin_d5(x) fastcos_d5((x)-0.5*pi)
 
+#define fastsinf_tr_d2(x) fastcosf_tr_d2((x)-0.25f)
+#define fastsin_tr_d2(x) fastcos_tr_d2((x)-0.25)
+#define fastsin_tr_d3(x) fastcos_tr_d3((x)-0.25)
+#define fastsin_tr_d4(x) fastcos_tr_d4((x)-0.25)
+#define fastsin_tr_d5(x) fastcos_tr_d5((x)-0.25)
+
 #else
 
 #define fastcos_d3	cos

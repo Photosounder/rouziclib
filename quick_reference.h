@@ -595,6 +595,12 @@
 	// Print message to SDL message box (for debugging purposes)
 		sdl_box_printf("value = %d", value);
 
+	// Show file in Explorer (Windows only for now)
+		show_file_in_explorer(path);
+
+	// Open file using the system
+		system_open(path);
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments

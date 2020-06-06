@@ -316,7 +316,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (mouse.window_focus_flag > 0)
 	{
 		knob_state = proc_mouse_knob_ctrl(box, mouse);
-		t_off = knob_state.vert_delta * 3./1728.;
+		t_off = knob_state.vert_delta * 2./1728.;
 
 		if (knob_state.downonce)
 		{

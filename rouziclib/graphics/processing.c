@@ -12,7 +12,7 @@ void gaussian_blur(float *a, float *b, xyi_t dim, const int channels, double rad
 
 	if (a==NULL || b==NULL)
 	{
-		fprintf_rl(stderr, "gaussian_blur(0x%08x, 0x%08x, ... ) can't use NULL buffers.\n", a, b);
+		fprintf_rl(stderr, "gaussian_blur(0x%p, 0x%p, ... ) can't use NULL buffers.\n", a, b);
 		return ;
 	}
 

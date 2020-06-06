@@ -7,6 +7,16 @@ xy_t xy(const double x, const double y)
 	return out;
 }
 
+xyz_t xyz(const double x, const double y, const double z)
+{
+	xyz_t out;
+
+	out.x = x;
+	out.y = y;
+	out.z = z;
+	return out;
+}
+
 xyi_t xyi(const int x, const int y)
 {
 	xyi_t out;
@@ -16,14 +26,23 @@ xyi_t xyi(const int x, const int y)
 	return out;
 }
 
-xyz_t xyz(const double x, const double y, const double z)
+void xy_to_v(xy_t a, double *v1, double *v2)
 {
-	xyz_t out;
+	*v1 = a.x;
+	*v2 = a.y;
+}
 
-	out.x = x;
-	out.y = y;
-	out.z = z;
-	return out;
+void xyz_to_v(xyz_t a, double *v1, double *v2, double *v3)
+{
+	*v1 = a.x;
+	*v2 = a.y;
+	*v3 = a.z;
+}
+
+void xyi_to_v(xyi_t a, int *v1, int *v2)
+{
+	*v1 = a.x;
+	*v2 = a.y;
 }
 
 xy_t xyz_to_xy(const xyz_t in)

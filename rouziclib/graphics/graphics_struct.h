@@ -35,11 +35,11 @@ typedef struct
 	sqrgb_t *sq;
 	uint8_t *buf;		// generic pointer for other image formats like planar YUV
 	size_t buf_size;
-	int buf_fmt;		// format of the buffer, 10 for YUV 8-bit, 11 for YUV 10-bit, 12 for YUV 12-bit
+	int buf_fmt;		// format of the buffer, 10 for YUV 8-bit, 11 for YUV 10-bit, 12 for YUV 12-bit, 20+ for compressed texture formats
 	int use_frgb;
 	int as;			// alloc size in pixels
 
-	int table_index;		// index in the cl_data allocation table
+	int table_index;	// index in the cl_data allocation table
 } raster_t;
 
 typedef struct

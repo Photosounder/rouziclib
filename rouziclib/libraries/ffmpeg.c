@@ -283,6 +283,11 @@ raster_t ff_frame_to_buffer(ffstream_t *s)
 	im.dim = xyi(s->codec_ctx->width, s->codec_ctx->height);
 	im.buf_size = av_image_get_buffer_size(s->codec_ctx->pix_fmt, s->codec_ctx->width, s->codec_ctx->height, 1);
 	im.buf = malloc(im.buf_size);
+	if (im.buf==NULL)
+	{
+		fprintf_rl(stderr, "malloc(%zu) failed in ff_frame_to_buffer()\n", im.buf_size);
+		return im;
+	}
 	plane[0] = im.buf;
 	plane[1] = &plane[0][bpc * mul_x_by_y_xyi(im.dim)];
 	plane[2] = &plane[1][bpc * mul_x_by_y_xyi(im.dim)/4];

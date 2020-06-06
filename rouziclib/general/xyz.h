@@ -9,8 +9,11 @@
 #define zyx(z, y, x)	xyz(x, y, z)
 
 extern xy_t xy(const double x, const double y);
-extern xyi_t xyi(const int x, const int y);
 extern xyz_t xyz(const double x, const double y, const double z);
+extern xyi_t xyi(const int x, const int y);
+extern void xy_to_v(xy_t a, double *v1, double *v2);
+extern void xyz_to_v(xyz_t a, double *v1, double *v2, double *v3);
+extern void xyi_to_v(xyi_t a, int *v1, int *v2);
 extern xy_t xyz_to_xy(const xyz_t in);
 extern xyz_t xy_to_xyz(const xy_t in);
 extern xy_t xyi_to_xy(const xyi_t in);

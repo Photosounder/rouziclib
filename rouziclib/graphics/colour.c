@@ -100,12 +100,21 @@ double Lab_L_to_linear(double t)
 {
 	const double stn=6./29.;
 
-	t = (t+0.16) / 1.16;
+	t = (t+0.16) * (1./1.16);
 
 	if (t > stn)
 		return t*t*t;
 	else
 		return 3.*stn*stn*(t - 4./29.);
+}
+
+frgb_t Lab_L_to_linear_f(frgb_t c)
+{
+	c.r = Lab_L_to_linear(c.r);
+	c.g = Lab_L_to_linear(c.g);
+	c.b = Lab_L_to_linear(c.b);
+
+	return c;
 }
 
 double linear_to_Lab_L(double t)
@@ -114,11 +123,19 @@ double linear_to_Lab_L(double t)
 
 	if (t > thr3)
 		t = cbrt(t);
-		//t = fastpow(t, 1./3.);
 	else
-		t = t * 841./108. + 4./29.;
+		t = t * (841./108.) + 4./29.;
 
 	return 1.16 * t - 0.16;
+}
+
+frgb_t linear_to_Lab_L_f(frgb_t c)
+{
+	c.r = linear_to_Lab_L(c.r);
+	c.g = linear_to_Lab_L(c.g);
+	c.b = linear_to_Lab_L(c.b);
+
+	return c;
 }
 
 double Lab_L_invert(double x)

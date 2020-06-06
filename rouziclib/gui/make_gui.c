@@ -563,7 +563,7 @@ int check_elem_id_validity(gui_layout_t *layout, const int id, const int impleme
 	if (id < 0 || id >= layout->elem_as)
 	{
 		if (implemented)
-			fprintf_rl(stderr, "Error in check_elem_id_validity(): ID %d isn't valid (highest ID is %d)\n", id, layout->elem_as-1);
+			fprintf_rl(stderr, "Error in check_elem_id_validity(): ID %d isn't valid (highest ID is %zu)\n", id, layout->elem_as-1);
 		return 0;
 	}
 

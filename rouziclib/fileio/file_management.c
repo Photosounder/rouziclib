@@ -171,7 +171,7 @@ void system_open(const char *path)
 	wchar_t path_w[PATH_MAX*2];
 
 	utf8_to_wchar(path, path_w);
-	ShellExecuteW(NULL, L"open", path_w, NULL, NULL, SW_SHOWNORMAL);
+	ShellExecuteW(NULL, NULL, path_w, NULL, NULL, SW_SHOWNORMAL);	// not using L"open" in the 2nd argument opens with the correct associated program
 	#endif
 
 	#ifdef __APPLE__

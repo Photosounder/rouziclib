@@ -198,7 +198,7 @@ void free_raster(raster_t *r)
 
 	ptr = get_raster_buffer_ptr(r);
 
-	while (ptr)
+	while (ptr)	// free every possible buffer
 	{
 		#ifdef RL_OPENCL
 		cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table

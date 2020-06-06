@@ -126,7 +126,7 @@ uint8_t read_byte8(const void *ptr, size_t *index)	// used when function pointer
 {
 	const uint8_t *buf = ptr;
 	if (index)
-		*index += sizeof(uint16_t);
+		*index += sizeof(uint8_t);
 
 	return buf[0];
 }
@@ -254,6 +254,22 @@ uint64_t read_LE64(const void *ptr, size_t *index)
 #endif
 }
 
+uint64_t read_LEupto64(const void *ptr, size_t *index, size_t size)
+{
+	uint64_t v=0;
+	const uint8_t *buf = ptr;
+	if (index)
+		*index += size;
+
+#ifdef ASS_LE
+	memcpy(&v, ptr, size);
+#else
+	for (i=0; i < size; i++)
+		v |= buf[i] << (i<<3);
+#endif
+	return v;
+}
+
 uint64_t read_BE64(const void *ptr, size_t *index)
 {
 	const uint8_t *buf = ptr;
@@ -302,12 +318,40 @@ void print_BE24(uint8_t *buf, uint32_t data)
 
 void print_BE32(uint8_t *buf, uint32_t data)
 {
-	for (int i=0; i < 4; i++)
+	for (int i=0; i < sizeof(data); i++)
 		buf[3-i] = data >> (i<<3);
 }
 
 void print_BE64(uint8_t *buf, uint64_t data)
 {
-	for (int i=0; i < 8; i++)
+	for (int i=0; i < sizeof(data); i++)
 		buf[7-i] = data >> (i<<3);
+}
+
+// Write to generic buffer
+void bufwrite_byte8(buffer_t *s, uint8_t data)
+{
+	if (s==NULL)
+		return;
+
+	alloc_enough(&s->buf, sizeof(data) + s->len+1, &s->as, 1, 1.5);
+	memcpy(&s->buf[s->len], &data, sizeof(data));
+	s->len += sizeof(data);
+}
+
+void bufwrite_LEupto64(buffer_t *s, uint64_t data, size_t size)
+{
+	if (s==NULL)
+		return;
+
+	alloc_enough(&s->buf, size + s->len+1, &s->as, 1, 1.5);
+
+	#ifdef ASS_LE
+	memcpy(&s->buf[s->len], &data, size);
+	#else
+	for (int i=0; i < size; i++)
+		buf[i] = data >> (i<<3);
+	#endif
+
+	s->len += size;
 }
