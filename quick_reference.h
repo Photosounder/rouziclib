@@ -181,10 +181,10 @@
 		set_knob_circularity_fromlayout(1, &layout, id);
 
 	// Text editor
+		// returns 1 if Enter used, 2 if clicked out, 3 if Tab used, 4 if probably modified
 		ctrl_textedit_fromlayout(&layout, id);
 		// set text
 		// the third argument is clear_undo
-		// returns 1 if Enter used, 2 if clicked out, 3 if Tab used, 4 if probably modified
 		print_to_layout_textedit(&layout, id, 1, "");
 		// get textedit string
 		string = get_textedit_string_fromlayout(&layout, id);

@@ -70,3 +70,40 @@ float4 colour_matrix(global float *le, float4 pv)
 
 	return v;
 }
+
+float hue_to_channel(float oh)
+{
+	float t;
+
+	// equivalent to rangewrap(oh, -1.f, 2.f)
+	oh -= 3.f*floor((oh+1.f) * (1.f/3.f));
+
+	t = fabs(clamp(oh, -1.f, 1.f));
+
+	if (t <= 0.5f)
+		return 1.f;
+	else
+		return Lab_L_to_linear(2.f * (1.f - t));
+}
+
+float3 hsl_to_rgb_cw(float3 w, float3 hsl)
+{
+	float3 rgb, rgbw;
+	float Y;
+
+	// Hue
+	rgb.x = hue_to_channel(hsl.x);
+	rgb.y = hue_to_channel(hsl.x-1.f);
+	rgb.z = hue_to_channel(hsl.x-2.f);
+
+	// Luminosity
+	rgbw = rgb * w;
+	Y = rgbw.x + rgbw.y + rgbw.z;
+	Y = hsl.z / Y;
+	rgb *= Y;
+
+	// Saturation
+	rgb = mix(hsl.z, rgb, hsl.y);
+
+	return rgb;
+}

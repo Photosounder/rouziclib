@@ -66,6 +66,7 @@
 #include "graphics/processing.c"
 #include "graphics/mipmap.c"
 #include "graphics/cl_memory.c"
+#include "graphics/texture_compression.c"
 #include "vector/vector.c"
 #include "vector/polyline.c"
 

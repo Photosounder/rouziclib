@@ -5,10 +5,12 @@ int get_bit_32(const uint32_t word, const int pos)
 
 uint64_t get_bits_in_stream(uint8_t *stream, int64_t start_bit, int bit_count)
 {
-	uint64_t r = 0, b;
-	int64_t start_byte, actual_start_bit;
+	uint64_t r=0, b, start_byte, actual_start_bit;
 	int bits_to_read, b_sh;
 	uint8_t mask;
+
+	if (bit_count==0)
+		return 0;
 
 	start_byte = start_bit >> 3;
 	start_bit &= 7;
@@ -45,6 +47,9 @@ void set_bits_in_stream(uint8_t *stream, int64_t start_bit, int bit_count, uint6
 	int64_t start_byte, actual_start_bit;
 	int bits_to_write, b_sh;
 	uint8_t mask;
+
+	if (bit_count==0)
+		return;
 
 	start_byte = start_bit >> 3;
 	start_bit &= 7;

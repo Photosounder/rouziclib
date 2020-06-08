@@ -137,6 +137,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "graphics/processing.h"
 #include "graphics/mipmap.h"
 #include "graphics/cl_memory.h"
+#include "graphics/texture_compression.h"
 #include "vector/vector.h"
 #include "vector/polyline.h"
 

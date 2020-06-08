@@ -125,7 +125,7 @@ float4 read_yuv420p8_pixel(global uchar *im, int2 im_dim, int2 i)
 	u_plane = &im[size_full];
 	v_plane = &im[size_full + size_half];
 	y_index = i.y * im_dim.x + i.x;
-	uv_index = i.y/2 * im_dimh.x + i.x/2;
+	uv_index = i.y/2 * im_dimh.x + i.x/2;	// TODO fix for MPEG-2 layout
 
 	pv = raw_yuv_to_lrgb( (float3) (im[y_index], u_plane[uv_index], v_plane[uv_index]), 1.f );
 
@@ -150,6 +150,110 @@ float4 read_yuv420pN_pixel(global ushort *im, int2 im_dim, int2 i, float depth_m
 	return pv;
 }
 
+// Compressed texture
+uint bits_to_mask(uint bits)	// 7 becomes 0x7F
+{
+	return (1UL << bits) - 1;
+}
+
+float bits_to_mul(uint bits)	// 7 becomes 127.
+{
+	//return (float) ((1ULL << bits) - 1);
+	return convert_float((int) ((1ULL << bits) - 1));
+}
+
+float3 decompr_hsl(int bits_ch, int bits_cs, int bits_cl, int ih, int is, int il)
+{
+	float3 hsl;
+
+	hsl.x = (float) ih / (bits_to_mul(bits_ch)-1.f);
+	hsl.y = (float) (is+1) / (bits_to_mul(bits_cs)+1.f);
+	hsl.z = (float) il / bits_to_mul(bits_cl);
+
+	if (ih == bits_to_mask(bits_ch))		// if the hue is the reserved value of no saturation
+	{
+		hsl.x = 0.f;
+		hsl.y = 0.f;
+	}
+
+	return hsl;
+}
+
+float4 compr_hsl_to_rgb(float3 hsl)
+{
+	float4 rgb;
+	float3 w = (float3) (0.124f, 0.686f, 0.19f);
+
+	hsl.x *= 3.f;					// H in HUE03
+	hsl.z = Lab_L_to_linear(hsl.z);			// linear L
+	rgb = (float4) (hsl_to_rgb_cw(w, hsl), 1.f);
+
+	rgb.x = linear_to_Lab_L(rgb.x);
+	rgb.y = linear_to_Lab_L(rgb.y);
+	rgb.z = linear_to_Lab_L(rgb.z);
+	return rgb;
+}
+
+float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i)
+{
+	global ushort *d16 = (global ushort *) d8;
+	float4 pv;
+	ulong di, blocks_start = 80;
+	int block_size, bits_per_block, quincunx, bits_ch, bits_cs, bits_cl, bits_per_pixel;
+	int linew0, linew1, line_count0, line_count1;
+	int h0, s0, l0, h1, s1, l1, pix, qoff;
+	int2 block_start, ib;
+	float4 col0, col1;
+
+	// Load decoding parameters
+	block_size = d16[0];
+	bits_per_block = d16[1];
+	quincunx = d8[5];
+	bits_ch = d8[6];
+	bits_cs = d8[7];
+	bits_cl = d8[8];
+	bits_per_pixel = d8[9];
+
+	block_start.y = (i.y / block_size);
+	qoff = (block_start.y&1) * quincunx * (block_size>>1);
+	block_start.x = (i.x + qoff) / block_size;
+
+	// Calculate block start in bits
+	linew0 = idiv_ceil(im_dim.x, block_size);
+	linew1 = idiv_ceil(im_dim.x + quincunx*(block_size>>1), block_size);
+	line_count0 = block_start.y+1 >> 1;
+	line_count1 = block_start.y >> 1;
+	di = line_count0*linew0 + line_count1*linew1;		// y block line start id
+	di += block_start.x;					// x block start id
+	di = di*bits_per_block + blocks_start;			// block id to bit position
+
+	// Position in pixels of the first pixel of the block
+	block_start *= block_size;
+	block_start.x -= qoff;
+	ib = i - block_start;		// position of the pixel in the block
+
+	// Read block data
+	h0 = get_bits_in_stream_inc(d8, &di, bits_ch);
+	s0 = get_bits_in_stream_inc(d8, &di, bits_cs);
+	l0 = get_bits_in_stream_inc(d8, &di, bits_cl);
+	h1 = get_bits_in_stream_inc(d8, &di, bits_ch);
+	s1 = get_bits_in_stream_inc(d8, &di, bits_cs);
+	l1 = get_bits_in_stream_inc(d8, &di, bits_cl);
+
+	di += (ib.y*block_size + ib.x) * bits_per_pixel;
+	pix = get_bits_in_stream(d8, di, bits_per_pixel);
+
+	// Decode colours
+	col0 = compr_hsl_to_rgb(decompr_hsl(bits_ch, bits_cs, bits_cl, h0, s0, l0));
+	col1 = compr_hsl_to_rgb(decompr_hsl(bits_ch, bits_cs, bits_cl, h1, s1, l1));
+
+	pv = mix(col0, col1, convert_float(pix) / bits_to_mul(bits_per_pixel));
+	pv.x = Lab_L_to_linear(pv.x);
+	pv.y = Lab_L_to_linear(pv.y);
+	pv.z = Lab_L_to_linear(pv.z);
+	return pv;
+}
+
 float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i)
 {
 	switch (fmt)
@@ -171,6 +275,9 @@ float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i)
 
 		case 12:	// YCbCr 420 planar 12-bit LE (AV_PIX_FMT_YUV420P12LE)
 			return read_yuv420pN_pixel(im, im_dim, i, 0.0625f);
+
+		case 20:	// Compressed texture format
+			return read_compressed_texture1_pixel(im, im_dim, i);
 	}
 
 	return 0.f;

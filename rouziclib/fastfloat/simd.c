@@ -58,7 +58,6 @@ __m128 _mm_erfr_d1_ps(__m128 x)
 {
 	#include "fasterfr_d1.h"	// contains the LUT, offset and limit
 	__m128i index;
-	__m128 c0, c1;
 
 	x = _mm_max_ps(x, _mm_set_ps1(-limit));				// x < -4 becomes -4
 	x = _mm_min_ps(x, _mm_set_ps1(limit));				// x > 4 becomes 4

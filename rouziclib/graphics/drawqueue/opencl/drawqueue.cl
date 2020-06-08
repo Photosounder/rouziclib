@@ -7,8 +7,9 @@
 #include "drawrect.cl"
 #include "drawcircle.cl"
 #include "srgb.cl"
-#include "blit.cl"
 #include "colour.cl"
+#include "bits.cl"
+#include "blit.cl"
 
 float4 drawgradienttest(float4 pv)
 {

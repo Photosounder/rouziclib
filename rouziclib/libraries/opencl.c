@@ -269,30 +269,10 @@ cl_int build_cl_program(clctx_t *c, cl_program *program, const char *src)
 	*program = clCreateProgramWithSource(c->context, 1, (const char **)&src, (const size_t *)&src_len, &ret);
 	CL_ERR_RET("clCreateProgramWithSource (in build_cl_program)", ret);
 
-	ret = clBuildProgram(*program, 1, &c->device_id, "", NULL, NULL);
+	ret = clBuildProgram(*program, 1, &c->device_id, "-cl-single-precision-constant -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-finite-math-only -cl-fast-relaxed-math", NULL, NULL);
 	if (ret != CL_SUCCESS)
 		check_compilation_log(c, *program);
 	CL_ERR_RET("clBuildProgram (in build_cl_program)", ret);
-
-	return ret;
-}
-
-cl_int build_cl_program_from_file(clctx_t *c, cl_program *program, char *cl_src_path)
-{
-	const int max_src_size = 32000;
-	cl_int ret;
-	size_t kernel_code_size;
-	FILE *fp;
-	char *kernel_src_str;
-
-	fp = fopen_utf8(cl_src_path, "rb");
-	kernel_src_str = malloc(max_src_size);
-	kernel_code_size = fread(kernel_src_str, 1, max_src_size, fp);
-	fclose(fp);
-
-	ret = build_cl_program(c, program, kernel_src_str);
-
-	free(kernel_src_str);
 
 	return ret;
 }
