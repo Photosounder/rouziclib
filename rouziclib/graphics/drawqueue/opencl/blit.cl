@@ -194,67 +194,122 @@ float4 compr_hsl_to_rgb(float3 hsl)
 	return rgb;
 }
 
-float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i)
+typedef struct
+{
+	int init;
+	int block_size, bits_per_block, quincunx, bits_ch, bits_cs, bits_cl, bits_per_pixel;
+	int linew0, linew1, pix;
+	int2 block_pos, block_start;
+	ulong di;
+	float4 col0, col1, colm, pv;
+	float pix_mul;
+} comp_decode_t;
+
+float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, comp_decode_t *d)
 {
 	global ushort *d16 = (global ushort *) d8;
-	float4 pv;
-	ulong di, blocks_start = 80;
-	int block_size, bits_per_block, quincunx, bits_ch, bits_cs, bits_cl, bits_per_pixel;
-	int linew0, linew1, line_count0, line_count1;
-	int h0, s0, l0, h1, s1, l1, pix, qoff;
-	int2 block_start, ib;
-	float4 col0, col1;
+	ulong di, block_start_bit = 80;
+	int line_count0, line_count1;
+	int h0, s0, l0, h1, s1, l1, hm, sm, pix, qoff;
+	int2 block_pos, ib;
+	float3 hslm;
+	float t;
 
-	// Load decoding parameters
-	block_size = d16[0];
-	bits_per_block = d16[1];
-	quincunx = d8[5];
-	bits_ch = d8[6];
-	bits_cs = d8[7];
-	bits_cl = d8[8];
-	bits_per_pixel = d8[9];
+	if (d->init==0)
+	{
+		#if 0
+		// Load decoding parameters
+		d->block_size = d16[0];
+		d->bits_per_block = d16[1];
+		d->quincunx = d8[5];
+		d->bits_ch = d8[6];
+		d->bits_cs = d8[7];
+		d->bits_cl = d8[8];
+		d->bits_per_pixel = d8[9];
+		#else
 
-	block_start.y = (i.y / block_size);
-	qoff = (block_start.y&1) * quincunx * (block_size>>1);
-	block_start.x = (i.x + qoff) / block_size;
+		// Using hardcoded values goes faster
+		d->block_size = 8;
+		d->bits_per_block = 241;
+		d->quincunx = 1;
+		d->bits_ch = 7;
+		d->bits_cs = 4;
+		d->bits_cl = 8;
+		d->bits_per_pixel = 3;
+		#endif
 
-	// Calculate block start in bits
-	linew0 = idiv_ceil(im_dim.x, block_size);
-	linew1 = idiv_ceil(im_dim.x + quincunx*(block_size>>1), block_size);
-	line_count0 = block_start.y+1 >> 1;
-	line_count1 = block_start.y >> 1;
-	di = line_count0*linew0 + line_count1*linew1;		// y block line start id
-	di += block_start.x;					// x block start id
-	di = di*bits_per_block + blocks_start;			// block id to bit position
+		d->linew0 = idiv_ceil(im_dim.x, d->block_size);
+		d->linew1 = idiv_ceil(im_dim.x + d->quincunx*(d->block_size>>1), d->block_size);
+		d->pix_mul = 2.f / bits_to_mul(d->bits_per_pixel);
 
-	// Position in pixels of the first pixel of the block
-	block_start *= block_size;
-	block_start.x -= qoff;
-	ib = i - block_start;		// position of the pixel in the block
+		d->init = 1;
+		d->block_pos = (int2) (-1, -1);
+		d->pix = -1;
+	}
 
-	// Read block data
-	h0 = get_bits_in_stream_inc(d8, &di, bits_ch);
-	s0 = get_bits_in_stream_inc(d8, &di, bits_cs);
-	l0 = get_bits_in_stream_inc(d8, &di, bits_cl);
-	h1 = get_bits_in_stream_inc(d8, &di, bits_ch);
-	s1 = get_bits_in_stream_inc(d8, &di, bits_cs);
-	l1 = get_bits_in_stream_inc(d8, &di, bits_cl);
+	// Calculate block pos
+	block_pos.y = (i.y / d->block_size);
+	qoff = (block_pos.y&1) * d->quincunx * (d->block_size>>1);
+	block_pos.x = (i.x + qoff) / d->block_size;
 
-	di += (ib.y*block_size + ib.x) * bits_per_pixel;
-	pix = get_bits_in_stream(d8, di, bits_per_pixel);
+	// If it's a different block
+	if (block_pos.x != d->block_pos.x || block_pos.y != d->block_pos.y)
+	{
+		// Calculate block start in bits
+		line_count0 = block_pos.y+1 >> 1;
+		line_count1 = block_pos.y >> 1;
+		di = line_count0*d->linew0 + line_count1*d->linew1;	// y block line start id
+		di += block_pos.x;					// x block start id
+		di = di*d->bits_per_block + block_start_bit;		// block id to bit position
 
-	// Decode colours
-	col0 = compr_hsl_to_rgb(decompr_hsl(bits_ch, bits_cs, bits_cl, h0, s0, l0));
-	col1 = compr_hsl_to_rgb(decompr_hsl(bits_ch, bits_cs, bits_cl, h1, s1, l1));
+		// Position in pixels of the first pixel of the block
+		d->block_start = block_pos * d->block_size;
+		d->block_start.x -= qoff;
 
-	pv = mix(col0, col1, convert_float(pix) / bits_to_mul(bits_per_pixel));
-	pv.x = Lab_L_to_linear(pv.x);
-	pv.y = Lab_L_to_linear(pv.y);
-	pv.z = Lab_L_to_linear(pv.z);
-	return pv;
+		// Read block data
+		h0 = get_bits_in_stream_inc(d8, &di, d->bits_ch);
+		s0 = get_bits_in_stream_inc(d8, &di, d->bits_cs);
+		l0 = get_bits_in_stream_inc(d8, &di, d->bits_cl);
+		h1 = get_bits_in_stream_inc(d8, &di, d->bits_ch);
+		s1 = get_bits_in_stream_inc(d8, &di, d->bits_cs);
+		l1 = get_bits_in_stream_inc(d8, &di, d->bits_cl);
+		hm = get_bits_in_stream_inc(d8, &di, d->bits_ch);
+		sm = get_bits_in_stream_inc(d8, &di, d->bits_cs);
+		d->di = di;
+
+		// Decode colours
+		d->col0 = compr_hsl_to_rgb(decompr_hsl(d->bits_ch, d->bits_cs, d->bits_cl, h0, s0, l0));
+		d->col1 = compr_hsl_to_rgb(decompr_hsl(d->bits_ch, d->bits_cs, d->bits_cl, h1, s1, l1));
+		hslm = decompr_hsl(d->bits_ch, d->bits_cs, d->bits_cl, hm, sm, l0+l1);
+		hslm.z *= 0.5f;
+		d->colm = compr_hsl_to_rgb(hslm);
+
+		d->block_pos = block_pos;
+		d->pix = -1;
+	}
+
+	// Read bitmap pixel value
+	ib = i - d->block_start;		// position of the pixel in the block
+	di = d->di + (ib.y*d->block_size + ib.x) * d->bits_per_pixel;
+	pix = get_bits_in_stream(d8, di, d->bits_per_pixel);
+
+	if (pix != d->pix)
+	{
+		// Translate bitmap value to linear RGB value
+		t = convert_float(pix) * d->pix_mul;
+		if (t < 1.f)
+			d->pv = mix(d->col0, d->colm, t);
+		else
+			d->pv = mix(d->colm, d->col1, t-1.f);
+		d->pv.x = Lab_L_to_linear(d->pv.x);
+		d->pv.y = Lab_L_to_linear(d->pv.y);
+		d->pv.z = Lab_L_to_linear(d->pv.z);
+		d->pix = pix;
+	}
+	return d->pv;
 }
 
-float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i)
+float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i, comp_decode_t *cd1)
 {
 	switch (fmt)
 	{
@@ -277,7 +332,7 @@ float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i)
 			return read_yuv420pN_pixel(im, im_dim, i, 0.0625f);
 
 		case 20:	// Compressed texture format
-			return read_compressed_texture1_pixel(im, im_dim, i);
+			return read_compressed_texture1_pixel(im, im_dim, i, cd1);
 	}
 
 	return 0.f;
@@ -298,6 +353,7 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 {
 	float4 pv = 0.f;
 	float2 knee, i, start, end;
+	comp_decode_t cd1={0};
 
 	knee = 0.5f - fabs(fmod(pscale, 1.f) - 0.5f);
 
@@ -306,7 +362,7 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 
 	for (i.y = start.y; i.y <= end.y; i.y+=1.f)
 		for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-			pv += read_fmt_pixel(fmt, im, im_dim, convert_int2(i)) * calc_flattop_weight(pif, i, knee, slope, pscale);
+			pv += read_fmt_pixel(fmt, im, im_dim, convert_int2(i), &cd1) * calc_flattop_weight(pif, i, knee, slope, pscale);
 
 	return pv;
 }

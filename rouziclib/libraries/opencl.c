@@ -244,16 +244,19 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 		CL_ERR_RET("clCreateContext (in init_cl_context)", ret);
 	}
 
-	c->command_queue = clCreateCommandQueue(c->context, device_id[0], 0*CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | 0*CL_QUEUE_PROFILING_ENABLE, &ret);
+	c->command_queue = clCreateCommandQueue(c->context, device_id[0], 0*CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | 1*CL_QUEUE_PROFILING_ENABLE, &ret);
 	CL_ERR_RET("clCreateCommandQueue (in init_cl_context)", ret);
 
 	return ret;
 }
 
-void deinit_clctx(clctx_t *c)
+void deinit_clctx(clctx_t *c, int deinit_kernel)
 {
-	//clReleaseKernel(c->kernel);
-	//clReleaseProgram(c->program);
+	if (deinit_kernel)
+	{
+		clReleaseKernel(c->kernel);
+		clReleaseProgram(c->program);
+	}
 	clReleaseCommandQueue(c->command_queue);
 	clReleaseContext(c->context);
 }
@@ -360,7 +363,7 @@ cl_int init_fb_cl()
 	if (fb.clctx.command_queue)
 	{
 		clReleaseMemObject(fb.data_cl);
-		deinit_clctx(&fb.clctx);
+		deinit_clctx(&fb.clctx, 0);
 	}
 
 	#ifdef RL_OPENCL_GL
@@ -395,7 +398,7 @@ int check_opencl()
 	// Try creating a context then destroy it
 	ret = init_cl_context(&clctx, 0);
 	CL_ERR_RET("check_opencl", ret);
-	deinit_clctx(&clctx);
+	deinit_clctx(&clctx, 0);
 
 	init_failed = 0;
 	init = 1;

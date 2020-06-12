@@ -32,6 +32,10 @@ typedef struct
 	cl_device_id	 device_id;
 	cl_context	 context;
 	cl_command_queue command_queue;
+	cl_program	 program;
+	cl_kernel	 kernel;
+	cl_event	 ev;		// clEnqueueNDRangeKernel event
+	cl_ulong queue_time, start_time, end_time;
 } clctx_t;
 
 #endif

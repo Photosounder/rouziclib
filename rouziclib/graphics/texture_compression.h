@@ -9,3 +9,4 @@ typedef struct
 
 extern raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in);
 extern raster_t compressed_texture_to_frgb(raster_t r0);
+extern mipmap_t raster_to_mipmap_compr_then_free(raster_t *r, const int mode, xyi_t thresh_dim);

@@ -348,7 +348,6 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 {
 	static int init=1;
 	SDL_DisplayMode dm;
-	SDL_GLContext gl_ctx;
 
 	if (init)
 	{
@@ -408,7 +407,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 			fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
 		#else
 		#ifdef RL_OPENCL_GL
-		gl_ctx = init_sdl_gl(fb.window);
+		fb.gl_ctx = init_sdl_gl(fb.window);
 		fb.renderer = SDL_CreateRenderer(fb.window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
 		if (fb.renderer==NULL)
 			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
@@ -697,9 +696,17 @@ int sdl_toggle_borderless_fullscreen()
 
 void sdl_quit_actions()
 {
+	#ifdef RL_OPENCL
+	if (fb.use_drawq==1)
+		deinit_clctx(&fb.clctx, 1);
+	#endif
+
 	if (fb.use_drawq==2)
 		drawq_soft_quit();
 
+	#ifdef RL_OPENCL_GL
+	SDL_GL_DeleteContext(fb.gl_ctx);
+	#endif
 	SDL_DestroyRenderer(fb.renderer);
 	SDL_DestroyWindow(fb.window);
 	SDL_Quit();

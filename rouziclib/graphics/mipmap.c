@@ -712,6 +712,7 @@ void free_mipmap_level(mipmap_level_t *ml)
 
 	for (i=0; i < mul_x_by_y_xyi(ml->tilecount); i++)
 		free_raster(&ml->r[i]);
+	free(ml->r);
 
 	memset(ml, 0, sizeof(mipmap_level_t));
 }
@@ -725,6 +726,7 @@ void free_mipmap(mipmap_t *m)
 
 	for (i=0; i < m->lvl_count; i++)
 		free_mipmap_level(&m->lvl[i]);
+	free(m->lvl);
 
 	memset(m, 0, sizeof(mipmap_t));
 }

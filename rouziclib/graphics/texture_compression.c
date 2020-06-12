@@ -101,7 +101,7 @@ xyz_t compr_hsl_to_xyz(compression_param1_t cp, int ih, int is, int il)
 
 void calc_compression_param1(compression_param1_t *cp)
 {
-	cp->bits_per_block = (cp->bits_ch+cp->bits_cs+cp->bits_cl)*2 + cp->bits_erf_th + cp->bits_erf_off + cp->bits_erf_width + cp->bits_per_pixel*cp->block_size*cp->block_size;
+	cp->bits_per_block = (cp->bits_ch+cp->bits_cs)*3+cp->bits_cl*2 + cp->bits_erf_th + cp->bits_erf_off + cp->bits_erf_width + cp->bits_per_pixel*cp->block_size*cp->block_size;
 	cp->block_step = cp->block_size - cp->window_base_count;
 	cp->odd_offset = cp->quincunx ? -cp->block_size/2 : 0;
 	cp->block_centre = set_xy(((double) cp->block_size-1.) / 2.);
@@ -246,9 +246,9 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 	xyi_t ip, ib;
 	int i, yb;
 	compression_param1_t cp={0};
-	frgb_t *b0, *bs, col0, col1, mean_col;
+	frgb_t *b0, *bs, col0, col1, colmid, mean_col;
 	float *block_coef;
-	xyz_t hsl0, hsl1;
+	xyz_t hsl0, hsl1, hslm;
 	buffer_t buf={0};
 	size_t di=0;
 
@@ -270,7 +270,7 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 		cp.quincunx = 1;
 		cp.bits_ch = 7;
 		cp.bits_cs = 4;
-		cp.bits_cl = 7;
+		cp.bits_cl = 8;
 
 		if (0)
 		{
@@ -316,7 +316,7 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 		{
 			sum = 0.;
 			sumw = 0.;
-			mean_col = make_grey_f(0.);
+			memset(&mean_col, 0, sizeof(frgb_t));
 
 			// Make input block
 			for (ib.y=0; ib.y < cp.block_size; ib.y++)
@@ -441,27 +441,65 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 			// Find col0 and col1 in a different way
 			if (cp.bits_per_pixel)
 			{
+				int nan_count;
 				// Watch out for NANs at the beginning of bs
-				for (i=0; i < cp.block_size*cp.block_size; i++)
-					if (isnan(bs[i].a)==0)
+				for (nan_count=0; nan_count < cp.block_size*cp.block_size; nan_count++)
+					if (isnan(bs[nan_count].a)==0)
 						break;
-				col0 = bs[i+1];
-				col1 = bs[cp.block_size*cp.block_size-2];
+
+				memset(&col0, 0, sizeof(frgb_t));
+				memset(&col1, 0, sizeof(frgb_t));
+				memset(&colmid, 0, sizeof(frgb_t));
+				sumw = 0.;
+
+				int sec_count = cp.block_size*cp.block_size >> (cp.bits_per_pixel+1);
+				for (i=0; i < sec_count; i++)
+				{
+					if (nan_count+i < cp.block_size*cp.block_size)
+						col0 = add_frgba(col0, bs[nan_count+i]);
+					if (cp.block_size*cp.block_size-1-i >= nan_count)
+						col1 = add_frgba(col1, bs[cp.block_size*cp.block_size-1-i]);
+				}
+				col0 = mul_scalar_frgba(col0, 1./(double) sec_count);
+				col1 = mul_scalar_frgba(col1, 1./(double) sec_count);
+
+				// Find middle colour (between the luminosities of col0 and col1)
+				double mid, width, weight;
+				mid = 0.5*(col0.a + col1.a);
+				if (col1.a > col0.a)
+					width = 8. / (col1.a-col0.a);
+				else
+					width = 0.;
+
+				for (i=nan_count; i < cp.block_size*cp.block_size; i++)
+				{
+					weight = (bs[i].a - mid) * width;
+					if (fabs(weight) <= 2.)
+					{
+						weight = fastgaussianf_d0(weight);
+						colmid = add_frgba(colmid, mul_scalar_frgba(bs[i], weight));
+						sumw += weight;
+					}
+				}
+				colmid = mul_scalar_frgba(colmid, 1./sumw);
 			}
 
 			hsl0 = compr_frgb_to_hsl(Lab_L_to_linear_f(col0));
 			hsl1 = compr_frgb_to_hsl(Lab_L_to_linear_f(col1));
+			hslm = compr_frgb_to_hsl(Lab_L_to_linear_f(colmid));
 
 			// Add compressed block to buffer
-			int h0, s0, l0, h1, s1, l1, i_erf_th, i_erf_off, i_erf_width, pix;
+			int h0, s0, l0, h1, s1, l1, hm, sm, lm, i_erf_th, i_erf_off, i_erf_width, pix;
 
 			make_compr_hsl(cp, hsl0, &h0, &s0, &l0);
 			make_compr_hsl(cp, hsl1, &h1, &s1, &l1);
+			make_compr_hsl(cp, hslm, &hm, &sm, &lm);
 			i_erf_th = erf_th * bits_to_mul(cp.bits_erf_th) + 0.5;
 			i_erf_off = nearbyint(erf_off * 8.);
 			i_erf_width = erf_width/1.25 * bits_to_mul(cp.bits_erf_width) + 0.5;
 
-			buf_alloc_enough(&buf, ceil_rshift(di + cp.bits_per_block, 3));
+			//buf_alloc_enough(&buf, ceil_rshift(di + cp.bits_per_block, 3));
+			alloc_enough(&buf.buf, ceil_rshift(di + cp.bits_per_block, 3), &buf.as, 1, 1.5);
 
 			set_bits_in_stream_inc(buf.buf, &di, cp.bits_ch, h0);
 			set_bits_in_stream_inc(buf.buf, &di, cp.bits_cs, s0);
@@ -469,6 +507,8 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 			set_bits_in_stream_inc(buf.buf, &di, cp.bits_ch, h1);
 			set_bits_in_stream_inc(buf.buf, &di, cp.bits_cs, s1);
 			set_bits_in_stream_inc(buf.buf, &di, cp.bits_cl, l1);
+			set_bits_in_stream_inc(buf.buf, &di, cp.bits_ch, hm);
+			set_bits_in_stream_inc(buf.buf, &di, cp.bits_cs, sm);
 
 			set_bits_in_stream_inc(buf.buf, &di, cp.bits_erf_th, i_erf_th);
 			set_bits_in_stream_inc(buf.buf, &di, cp.bits_erf_off, i_erf_off);
@@ -519,9 +559,9 @@ raster_t compressed_texture_to_frgb(raster_t r0)
 	xyi_t ip, ib;
 	int i, yb;
 	compression_param1_t cp={0};
-	frgb_t pv, col0, col1;
+	frgb_t pv, col0, col1, colm;
 	float *block_coef;
-	xyz_t hsl0, hsl1;
+	xyz_t hsl0, hsl1, hslm;
 	uint8_t *bd;
 	size_t di=0;
 
@@ -553,13 +593,15 @@ raster_t compressed_texture_to_frgb(raster_t r0)
 	free(cp.window_base);
 	int *hs_histo = calloc(1<<cp.bits_ch+cp.bits_cs, sizeof(int));
 
+	float pix_mul = 2.f / bits_to_mul(cp.bits_per_pixel);
+
 	// Go through blocks in quincunx formation
 	for (yb=0, ip.y = -cp.window_base_count; ip.y < r1.dim.y; ip.y+=cp.block_step, yb++)
 	{
 		for (ip.x = -cp.window_base_count + cp.odd_offset*(yb & 1); ip.x < r1.dim.x; ip.x+=cp.block_step)
 		{
 			// Read block data
-			int h0, s0, l0, h1, s1, l1, i_erf_th, i_erf_off, i_erf_width, pix;
+			int h0, s0, l0, h1, s1, l1, hm, sm, i_erf_th, i_erf_off, i_erf_width, pix;
 
 			h0 = get_bits_in_stream_inc(bd, &di, cp.bits_ch);
 			s0 = get_bits_in_stream_inc(bd, &di, cp.bits_cs);
@@ -567,6 +609,8 @@ raster_t compressed_texture_to_frgb(raster_t r0)
 			h1 = get_bits_in_stream_inc(bd, &di, cp.bits_ch);
 			s1 = get_bits_in_stream_inc(bd, &di, cp.bits_cs);
 			l1 = get_bits_in_stream_inc(bd, &di, cp.bits_cl);
+			hm = get_bits_in_stream_inc(bd, &di, cp.bits_ch);
+			sm = get_bits_in_stream_inc(bd, &di, cp.bits_cs);
 
 			i_erf_th = get_bits_in_stream_inc(bd, &di, cp.bits_erf_th);
 			i_erf_off = get_bits_in_stream_inc(bd, &di, cp.bits_erf_off);
@@ -574,13 +618,14 @@ raster_t compressed_texture_to_frgb(raster_t r0)
 
 			hsl0 = compr_hsl_to_xyz(cp, h0, s0, l0);
 			hsl1 = compr_hsl_to_xyz(cp, h1, s1, l1);
+			hslm = compr_hsl_to_xyz(cp, hm, sm, l0+l1);
+			hslm.z *= 0.5;
 			col0 = compr_hsl_to_frgb(hsl0);
 			col1 = compr_hsl_to_frgb(hsl1);
+			colm = compr_hsl_to_frgb(hslm);
 
 			if (cp.bits_per_pixel)		// if we're using bitmaps
 			{
-				float pix_mul = 1.f / bits_to_mul(cp.bits_per_pixel);
-
 				for (ib.y=0; ib.y < cp.block_size; ib.y++)
 					for (ib.x=0; ib.x < cp.block_size; ib.x++)
 					{
@@ -589,7 +634,14 @@ raster_t compressed_texture_to_frgb(raster_t r0)
 						if (ip.y+ib.y >=0 && ip.y+ib.y < r1.dim.y && ip.x+ib.x >=0 && ip.x+ib.x < r1.dim.x)
 						{
 							i = ib.y*cp.block_size + ib.x;
-							pv = add_frgb(col0, mul_scalar_frgb(sub_frgb(col1, col0), (float) pix * pix_mul));
+
+							// Interpolate between colours
+							float t = (float) pix * pix_mul;
+							if (t < 1.f)
+								pv = add_frgb(col0, mul_scalar_frgb(sub_frgb(colm, col0), t));
+							else
+								pv = add_frgb(colm, mul_scalar_frgb(sub_frgb(col1, colm), t-1.f));
+
 							pv = mul_scalar_frgb(Lab_L_to_linear_f(pv), block_coef[i]);
 
 							// Write to frgb buffer
@@ -667,4 +719,57 @@ raster_t compressed_texture_to_frgb(raster_t r0)
 	free(block_coef);
 
 	return r1;
+}
+
+mipmap_t raster_to_mipmap_compr_then_free(raster_t *r, const int mode, xyi_t thresh_dim)
+{
+	int il;
+	mipmap_t m0, m1={0};
+	mipmap_level_t *ml0, *ml1;
+	xyi_t it;
+
+	// Mipmap the uncompressed raster
+	m0 = raster_to_tiled_mipmaps_fast_defaults(*r, mode);
+	free_raster(r);
+
+	// Allocate compressed mipmap
+	m1 = m0;
+	m1.lvl = calloc(m1.lvl_count, sizeof(mipmap_level_t));
+	m1.total_bytes = m1.lvl_count * sizeof(mipmap_level_t);
+
+	if (equal_xyi(thresh_dim, XYI0))
+		thresh_dim = set_xyi(0x7FFFFFFFL);
+
+	// Convert each level up to the threshold dimension
+	for (il=m1.lvl_count-1; il >= 0; il--)
+	{
+		ml0 = &m0.lvl[il];
+		ml1 = &m1.lvl[il];
+
+		if (ml0->fulldim.x > thresh_dim.x || ml0->fulldim.y > thresh_dim.y)
+		{
+			free_mipmap_level(ml0);
+		}
+		else
+		{
+			*ml1 = *ml0;
+			ml1->r = calloc(mul_x_by_y_xyi(ml1->tilecount), sizeof(raster_t));
+			ml1->total_bytes = mul_x_by_y_xyi(ml1->tilecount) * sizeof(raster_t);
+
+			// Convert each tile
+			for (it.y=0; it.y < ml1->tilecount.y; it.y++)
+				for (it.x=0; it.x < ml1->tilecount.x; it.x++)
+				{
+					ml1->r[it.y*ml1->tilecount.x + it.x] = frgb_to_compressed_texture(ml0->r[it.y*ml0->tilecount.x + it.x], NULL);
+					ml1->total_bytes += ml1->r[it.y*ml1->tilecount.x + it.x].buf_size;
+					free_raster(&ml0->r[it.y*ml0->tilecount.x + it.x]);
+				}
+
+			m1.total_bytes += ml1->total_bytes;
+		}
+		free_null(&ml0->r);
+	}
+	free_null(&m0.lvl);
+
+	return m1;
 }

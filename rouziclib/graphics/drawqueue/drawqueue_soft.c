@@ -205,8 +205,6 @@ void drawq_soft_run()
 	#endif
 	r_pitch /= sizeof(srgb_t);
 
-	fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
-
 	for (i=0; i < DQS_THREADS; i++)
 	{
 		drawq_soft_data_t *d = &dqs_data[i];
@@ -243,6 +241,8 @@ void drawq_soft_run()
 	}
 
 	fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
+
+	fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
 }
 
 void drawq_soft_finish()
