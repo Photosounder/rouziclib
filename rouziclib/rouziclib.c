@@ -62,6 +62,7 @@
 #include "graphics/drawqueue/drawqueue_soft.c"
 #include "graphics/drawqueue/drawrect.c"
 #include "graphics/drawqueue/drawline.c"
+#include "graphics/drawqueue/blit.c"
 #include "graphics/draw_effects.c"
 #include "graphics/processing.c"
 #include "graphics/mipmap.c"

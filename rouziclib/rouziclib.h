@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 
- * with MinGW's GCC make sure to use -lwinmm -lcomdlg32 -Wno-incompatible-pointer-types (the latter to turn off pointless warnings)
+ * with MinGW's GCC make sure to use -lwinmm -lcomdlg32 -lole32 -Wno-incompatible-pointer-types (the latter to turn off pointless warnings)
  * create a hard link like `mklink /J C:\<usual libs location>\include\rouziclib C:\msys\home\rouziclib` to include using <>
 
 ****************/
@@ -133,6 +133,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "graphics/drawqueue/drawqueue_soft.h"
 #include "graphics/drawqueue/drawrect.h"
 #include "graphics/drawqueue/drawline.h"
+#include "graphics/drawqueue/blit.h"
 #include "graphics/draw_effects.h"
 #include "graphics/processing.h"
 #include "graphics/mipmap.h"

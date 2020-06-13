@@ -144,10 +144,10 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 							break;	case DQT_CLAMP:			dqsb_clamp(pv, 0.f, 1.f);
 							break;	case DQT_CIRCLE_FULL:		dqsb_draw_circle_full_add(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
 							break;	case DQT_CIRCLE_HOLLOW:		dqsb_draw_circle_hollow_add(&df[qi+1], d->block[brlvl], pos, sec_pix, chan_stride);
-							break;	//case DQT_BLIT_BILINEAR:	dqsb_blit_sprite_bilinear(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
-							break;	case DQT_BLIT_FLATTOP:		dqsb_blit_sprite_flattop(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
-							break;	case DQT_BLIT_FLATTOP_ROT:	dqsb_blit_sprite_flattop_rot(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
-							break;	//case DQT_BLIT_PHOTO:		dqsb_blit_photo(&df[qi+1], data_cl, d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	//case DQT_BLIT_BILINEAR:	dqsb_blit_sprite_bilinear(&df[qi+1], d->data, d->block[brlvl], pos, sec_pix, chan_stride);*/
+							break;	case DQT_BLIT_FLATTOP:		dqsb_blit_sprite_flattop(&df[qi+1], d->data, d->block[brlvl], pos, sec_pix, chan_stride);
+							/*break;	case DQT_BLIT_FLATTOP_ROT:	dqsb_blit_sprite_flattop_rot(&df[qi+1], d->data, d->block[brlvl], pos, sec_pix, chan_stride);
+							break;	//case DQT_BLIT_PHOTO:		dqsb_blit_photo(&df[qi+1], d->data, d->block[brlvl], pos, sec_pix, chan_stride);
 							break;	case DQT_TEST1:			dqsb_drawgradienttest(d->block[brlvl], pos, sec_pix, chan_stride);
 							*/break;
 						}

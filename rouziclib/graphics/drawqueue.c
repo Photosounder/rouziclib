@@ -39,7 +39,7 @@ void drawq_alloc()
 
 	data_cl_alloc(1);
 
-	fb.max_sector_count = 16000;
+	fb.max_sector_count = 17000;
 	fb.sector_size = 4;				// can't be smaller than 4 (16x16 px)
 
 ss_calc:

@@ -80,6 +80,7 @@ float4 linear_to_srgb(float4 pl0, uint seed)
 	const float dith_scale = M_SQRT1_2_F / max_s;
 
 	pl0 = mix(colour_blowout(pl0), clamp(pl0, 0.f, 1.f), 0.666f);
+	//pl0 = clamp(pl0, 0.f, 1.f);
 
 	pl1.s0 = lsrgb(pl0.s0);		// blue
 	pl1.s1 = lsrgb(pl0.s1);		// green
