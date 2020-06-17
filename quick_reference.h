@@ -431,6 +431,30 @@
 	// Getting a file from HTTP (needs #define RL_INCL_NETWORK and perhaps #define RL_LIBCURL)
 		data_size = http_get("http://www.charbase.com/images/glyph/11910", -1, ONE_RETRY, &data, &data_alloc);
 
+//**** Audio system ****
+
+	// Audio callback prototype
+		void my_audio_callback(float *stream, audiosys_t *sys, int bus_index, my_data_t *data)
+
+	// Callback template
+		void my_audio_callback(float *stream, audiosys_t *sys, int bus_index, my_data_t *data)
+		{
+			int i;
+			double t;
+
+			for (t=sys->bus[bus_index].stime, i=0; i < sys->buffer_len; i++, t+=sys->sec_per_sample)
+			{
+				stream[i*2  ] += t;
+				stream[i*2+1] += t;
+			}
+		}
+
+	// Registering the callback (continuously, must be more often than the expiry duration)
+		int audio_bus_index = audiosys_bus_register(my_audio_callback, my_data, 1, 0.);
+
+	// Use the mutex in the main function (the callback is mutex-protected outside of itself)
+		rl_mutex_lock(&audiosys.bus[audio_bus_index].mutex);
+
 //**** Misc ****
 
 	// Reset zoom and offset
@@ -604,7 +628,12 @@
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments
-		 void some_function(int (*func_ptr_name)(void*,int))
+		void some_function(int (*func_ptr_name)(void*,int))
+
+	// Typedef function pointer
+		typedef double (*knob_func_t)(double, double, double, const int);
+		// a function pointer can then be declared like this:
+		knob_func_t func;
 
 	// Force a CALL instruction to a function using a volatile function pointer
 		static __m128 (*volatile bench_function)(__m128) = some_function;

@@ -19,6 +19,7 @@
 #include "general/threading.c"
 #include "general/intrinsics.c"
 #include "general/crash_dump.c"
+#include "general/audio.c"
 
 #include "memory/alloc.c"
 #include "memory/fill.c"

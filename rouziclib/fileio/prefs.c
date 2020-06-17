@@ -158,15 +158,15 @@ double pref_handle_double(pref_file_t *pf, char *loc, double value, const char *
 
 	// Make key string
 	depth = string_count_fields(loc, PREF_LOC_DELIM) - 1;			// find the indentation depth
-	memset(key, '\t', depth);					// indent the key
+	memset(key, '\t', depth);						// indent the key
 	if (string_get_field(loc, PREF_LOC_DELIM, depth, &key[depth]) == 0)	// get the key in the last field
 		return NAN;
 
 	// Try to read the value in the line
-	const char *p = strstr_after(pf->lines[line_pos], key);		// find what's after the key in the key's line
+	const char *p = strstr_after(pf->lines[line_pos], key);			// find what's after the key in the key's line
 	if (p)
-		if (sscanf(p, ": %lg", &read_value) == 1)		// if the value is found
-			if (read_value == value)			// return if it's the same as the one written
+		if (sscanf(p, ": %lg", &read_value) == 1)			// if the value is found
+			if (read_value == value)				// return if it's the same as the one written
 				return read_value;
 
 	// Remake the line if mode is get mode and the value is new or set mode and the value must be set anyway
@@ -194,7 +194,7 @@ void pref_set_double(pref_file_t *pf, char *loc, double new_value, const char *s
 	pref_handle_double(pf, loc, new_value, suffix, 1);
 }
 
-const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, char *string, int mode_set)
+const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, const char *string, int mode_set)
 {
 	int i, n=0, line_pos, depth;
 	char key[64], *new_line;
@@ -242,12 +242,12 @@ const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, 
 	return read_string;		// pointer to the written string in the updated line
 }
 
-const char *pref_get_string(pref_file_t *pf, char *loc, char *def_string)
+const char *pref_get_string(pref_file_t *pf, char *loc, const char *def_string)
 {
 	return pref_handle_string(pf, loc, ": ", def_string, 0);
 }
 
-void pref_set_string(pref_file_t *pf, char *loc, char *new_string)
+void pref_set_string(pref_file_t *pf, char *loc, const char *new_string)
 {
 	pref_handle_string(pf, loc, ": ", new_string, 1);
 }

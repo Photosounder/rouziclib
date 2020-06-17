@@ -62,9 +62,14 @@ extern void _mm_storeu_si32(void *mem_addr, __m128i a);  // SSE2
 extern __m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex);  // SSE2
 
 // SSE
-#define _mm_abs_ps(v)	_mm_andnot_ps(_mm_set_ps1(-0.f), v)
-#define _mm_neg_ps(v)	_mm_xor_ps(v, _mm_set_ps1(-0.f))
-#define _mm_clamp_ps(v)	_mm_min_ps(_mm_max_ps(v, _mm_setzero_ps()), _mm_set_ps1(1.f))
+#define _mm_abs_ps(v)		_mm_andnot_ps(_mm_set_ps1(-0.f), v)
+#define _mm_abs_pd(v)		_mm_andnot_pd(_mm_set_pd1(-0.f), v)
+#define _mm_neg_ps(v)		_mm_xor_ps(v, _mm_set_ps1(-0.f))
+#define _mm_clamp_ps(v)		_mm_min_ps(_mm_max_ps(v, _mm_setzero_ps()), _mm_set_ps1(1.f))
+#define _mm_hmul_sd(v)		_mm_mul_sd(v, _mm_shuffle_pd(v, v, 1))
+#define _mm_hlomul_ss(v)	_mm_mul_ss(v, _mm_shuffle_ps(v, v, 1))
+#define _mm_xy_to_ps(v)		_mm_cvtpd_ps(_mm_load_pd((double *) &v))
+#define _mm_xyi_to_ps(v)	_mm_set_ps(0.f, 0.f, v.y, v.x)
 
 // SSSE3
 #define _mm_cvtepu32_epi16(v)	_mm_shuffle_epi8(v, _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 13, 12, 9, 8, 5, 4, 1, 0))

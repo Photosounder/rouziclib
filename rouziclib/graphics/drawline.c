@@ -353,7 +353,7 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	xyi_t bb_dim;
 
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
-	if (fb.use_drawq==2)
+	//if (fb.use_drawq==2)
 		grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002
 
 	if (fastabs(p2.x-p1.x)+fastabs(p2.y-p1.y) > 1e6)	// cut out lines that are in the millions of pixels
@@ -375,7 +375,7 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	df = drawq_add_to_main_queue(DQT_LINE_THIN_ADD);
 	if (df==NULL)
 		return;
-	if (fb.use_drawq==1)
+	if (0)//fb.use_drawq==1)
 	{
 		df[0] = p1.x;
 		df[1] = p1.y;

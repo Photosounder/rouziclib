@@ -1,4 +1,4 @@
-/*float4 draw_line_thin_add(global float *le, float4 pv)
+float4 draw_line_thin_add(global float *le, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
@@ -34,9 +34,9 @@
 	}
 
 	return pv;
-}*/
+}
 
-float4 draw_line_thin_add(global float *le, float4 pv)
+/*float4 draw_line_thin_add(global float *le, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
@@ -81,7 +81,7 @@ float4 draw_line_thin_add(global float *le, float4 pv)
 	v *= gaussian(d3p);
 	pv += v * col;
 	return pv;
-}
+}*/
 
 float4 draw_point_add(global float *le, float4 pv)
 {
