@@ -234,29 +234,6 @@ size_t load_tiff_ifd(uint8_t *data, size_t ifd_index, tiff_info_t *info)
 	return read32(p, NULL);
 }
 
-void tiff_channel_conversion(float *in, int in_chan, float *out, int out_chan)
-{
-	int ic;
-
-	if (in_chan >= 3 && out_chan==1)	// RGB to gray
-	{
-		out[0] = (in[0] + in[1] + in[2]) * 0.33333333f;
-		return ;
-	}
-
-	if (out_chan >= 4)
-		out[3] = 1.f;			// set default alpha channel
-
-	memset(out, 0, MINN(3, out_chan) * sizeof(float));
-	memcpy(out, in, MINN(in_chan, out_chan) * sizeof(float));
-
-	// Copy first channel to other channels if needed
-	if (in_chan < 3 && out_chan >= 3)
-		for (ic=in_chan; ic < MINN(3, out_chan); ic++)
-			out[ic] = out[0];
-
-}
-
 float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 {
 	float *im, *in_pixel;
@@ -280,7 +257,7 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 			{
 				for (ic=0; ic < info.chan; ic++)
 					in_pixel[ic] = s8lut[((uint8_t *) im_data)[i*info.chan + ic]];
-				tiff_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
+				image_float_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
 			}
 
 		// 16-bit unsigned int
@@ -290,14 +267,14 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 				{
 					for (ic=0; ic < info.chan; ic++)
 						in_pixel[ic] = s16lrgb(read_BE16(&((uint16_t *) im_data)[i*info.chan + ic], NULL));
-					tiff_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
+					image_float_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
 				}
 			else
 				for (i=0; i < count; i++)
 				{
 					for (ic=0; ic < info.chan; ic++)
 						in_pixel[ic] = s16lrgb(((uint16_t *) im_data)[i*info.chan + ic]);
-					tiff_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
+					image_float_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
 				}
 
 		// 32-bit float
@@ -307,14 +284,14 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 				{
 					for (ic=0; ic < info.chan; ic++)
 						in_pixel[ic] = u32_as_float(read_BE32(&((uint32_t *) im_data)[i*info.chan + ic], NULL));
-					tiff_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
+					image_float_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
 				}
 			else
 				for (i=0; i < count; i++)
 				{
 					for (ic=0; ic < info.chan; ic++)
 						in_pixel[ic] = ((float *) im_data)[i*info.chan + ic];
-					tiff_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
+					image_float_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
 				}
 	}
 

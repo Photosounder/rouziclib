@@ -137,7 +137,8 @@ void ff_convert_to_frame(void *buf, int buf_fmt, int bpp, AVFrame *frame)	// AV_
 
 	int in_linesize[3] = { bpp * frame->width, bpp * frame->width >> 1, bpp * frame->width >> 1 };
 
-	sws_ctx = sws_getCachedContext( sws_ctx,
+	fprintf_rl(stderr, "TODO: implement conversion to YUV for ff_convert_to_frame()\n");
+	/*sws_ctx = sws_getCachedContext( sws_ctx,
 				 frame->width,
 				 frame->height,
 				 buf_fmt,
@@ -149,7 +150,7 @@ void ff_convert_to_frame(void *buf, int buf_fmt, int bpp, AVFrame *frame)	// AV_
 				 NULL,
 				 NULL );
 
-	sws_scale(sws_ctx, (uint8_t **) &buf, in_linesize, 0, frame->height, frame->data, frame->linesize);
+	sws_scale(sws_ctx, (uint8_t **) &buf, in_linesize, 0, frame->height, frame->data, frame->linesize);*/
 }
 
 int ff_frgb_to_frame(ff_videnc_t *d, raster_t *r)

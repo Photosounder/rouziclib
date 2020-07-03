@@ -3,7 +3,7 @@
 #ifdef _MSC_VER
 #pragma comment (lib, "avcodec.lib")
 #pragma comment (lib, "avformat.lib")
-#pragma comment (lib, "swscale.lib")
+//#pragma comment (lib, "swscale.lib")
 #pragma comment (lib, "avutil.lib")
 #endif
 
@@ -13,7 +13,7 @@
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
+//#include <libswscale/swscale.h>
 #include <libavutil/avutil.h>
 
 typedef struct
@@ -58,7 +58,9 @@ extern int ff_find_keyframe_for_time(ffstream_t *s, const double t);
 extern int ff_find_frame_at_time(ffstream_t *s, const double t);
 extern ffframe_info_t ff_make_frame_info(ffstream_t *s);
 extern void ff_make_frame_table(ffstream_t *s);
+extern double ff_get_stream_duration(ffstream_t *s, const char *path, int stream_type);
 extern double ff_get_video_duration(ffstream_t *s, const char *path);
+extern double ff_get_audio_duration(ffstream_t *s, const char *path);
 extern raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mode, const double t, const int raster_mode);
 
 extern int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, const double t, float **bufp, size_t *buf_as, size_t *buf_pos);

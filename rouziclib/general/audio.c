@@ -66,7 +66,7 @@ int audiosys_bus_register(audiosys_bus_callback_t bus_callback, void *bus_data, 
 	audiosys.bus[ib].use_mutex = use_mutex;
 	if (use_mutex)
 		rl_mutex_init(&audiosys.bus[ib].mutex);
-	audiosys.bus[ib].expiry_dur = expiry_dur==0. ? 5. : expiry_dur;
+	audiosys.bus[ib].expiry_dur = expiry_dur==0. ? 2. : expiry_dur;
 	audiosys.bus[ib].last_reg_time = get_time_hr();
 
 	rl_mutex_unlock(&audiosys.mutex);

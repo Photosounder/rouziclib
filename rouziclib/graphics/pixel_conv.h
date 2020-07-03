@@ -23,3 +23,5 @@ extern void _mm_set_raster_pixel_ps_to_lrgb(raster_t *r, const size_t index, __m
 extern void _mm_set_raster_pixel_ps_to_srgb(raster_t *r, const size_t index, __m128 f);  // SSSE3, calls SSE4.1
 extern void _mm_set_raster_pixel_ps_to_sqrgb(raster_t *r, const size_t index, __m128 f); // SSE2
 #endif
+
+extern void image_float_channel_conversion(float *in, int in_chan, float *out, int out_chan);

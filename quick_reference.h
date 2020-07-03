@@ -433,9 +433,6 @@
 
 //**** Audio system ****
 
-	// Audio callback prototype
-		void my_audio_callback(float *stream, audiosys_t *sys, int bus_index, my_data_t *data)
-
 	// Callback template
 		void my_audio_callback(float *stream, audiosys_t *sys, int bus_index, my_data_t *data)
 		{
@@ -444,8 +441,8 @@
 
 			for (t=sys->bus[bus_index].stime, i=0; i < sys->buffer_len; i++, t+=sys->sec_per_sample)
 			{
-				stream[i*2  ] += t;
-				stream[i*2+1] += t;
+				stream[i*2  ] += cos(t*1e3)*0.01;
+				stream[i*2+1] += sin(t*1e3)*0.01;
 			}
 		}
 

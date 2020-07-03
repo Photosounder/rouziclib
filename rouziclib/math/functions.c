@@ -234,3 +234,25 @@ int find_closest_entry_double(double *array, int n, double v)	// in a double arr
 
 	return index;
 }
+
+double mix(double v0, double v1, double t)	// linear interpolation
+{
+	return v0 + (v1-v0)*t;
+}
+
+double get_interpolated_xy_array_value(double x, xy_t *array, size_t array_size)
+{
+	int i;
+
+	if (array==NULL || array_size < 1)
+		return NAN;
+
+	if (x < array[0].x)
+		return array[0].y;
+
+	for (i=1; i < array_size; i++)
+		if (array[i].x > x)
+			return mix(array[i-1].y, array[i].y, (x-array[i-1].x)/(array[i].x-array[i-1].x));
+
+	return array[array_size-1].y;
+}

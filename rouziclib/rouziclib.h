@@ -183,6 +183,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/image_bmp.h"
 #include "fileio/image_tiff.h"
 #include "fileio/image_tiff_lzw.h"
+#include "fileio/image_fts.h"
 #include "fileio/image_screen.h"	// works if RL_GDI32 is defined on Windows
 #include "fileio/sound_format.h"
 #include "fileio/sound_aiff.h"
@@ -205,6 +206,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "libraries/clfft.h"		// used if RL_CLFFT is defined
 #include "libraries/ffmpeg.h"		// used if RL_FFMPEG is defined
 #include "libraries/ffmpeg_enc.h"	// used if RL_FFMPEG is defined
+#include "fileio/ffmpeg_sound_player.h"	// used if RL_FFMPEG is defined
 #include "libraries/opencv.h"		// used if RL_OPENCV is defined
 #include "libraries/devil.h"		// used if RL_DEVIL is defined
 #include "libraries/libsndfile.h"	// used if RL_LIBSNDFILE is defined

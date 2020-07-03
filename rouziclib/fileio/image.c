@@ -297,6 +297,11 @@ raster_t load_image_mem_builtin(uint8_t *raw_data, size_t size, const int mode)
 		im = load_tiff_mem_raster(raw_data);
 		convert_image_frgb(&im, (const float *) im.f, mode);
 	}
+	else if (is_file_fts_mem(raw_data))
+	{
+		im = load_fts_mem_raster(raw_data, size);
+		convert_image_frgb(&im, (const float *) im.f, mode);
+	}
 	else
 		im = load_image_mem_libstb_image(raw_data, size, mode);
 

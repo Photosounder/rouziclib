@@ -154,7 +154,7 @@ int64_t ff_make_timestamp(ffstream_t *s, double t)
 	return nearbyint(t / av_q2d(time_base) + start_time);
 }
 
-raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
+/*raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 {
 	AVFrame *frame_rgb = av_frame_alloc();
 	int alloc_size;
@@ -196,7 +196,7 @@ get_time_diff(&td);
 	sws_freeContext(sws_ctx);
 
 	return im;
-}
+}*/
 
 int ff_pix_fmt_byte_count(int pix_fmt)
 {
@@ -299,6 +299,70 @@ raster_t ff_frame_to_buffer(ffstream_t *s)
 	for (ip=1; ip < 3; ip++)
 		for (i=0; i < im.dim.y>>1; i++)
 			memcpy(&plane[ip][i*(im.dim.x>>1) * bpc], &s->frame->data[ip][i*s->frame->linesize[ip]], bpc * im.dim.x>>1);
+
+	return im;
+}
+
+raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
+{
+	int bpc, bit_depth, lsy, lsuv;
+	raster_t im={0};
+	xyi_t ip, iph;
+	xyz_t yuv, depth_mul;
+	uint8_t **d8=NULL;
+	uint16_t **d16=NULL;
+
+	im = make_raster(NULL, xyi(s->codec_ctx->width, s->codec_ctx->height), XYI0, mode);
+
+	// Prepare parameters and pointers
+	bpc = ff_pix_fmt_byte_count(s->codec_ctx->pix_fmt);
+	bit_depth = ff_pix_fmt_bit_depth(s->codec_ctx->pix_fmt);
+	lsy = s->frame->linesize[0] / bpc;
+	lsuv = s->frame->linesize[1] / bpc;
+
+	if (bpc==1)
+	{
+		d8 = s->frame->data;
+
+		if (mode == IMAGE_USE_FRGB)
+			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+				for (ip.x=0; ip.x < im.dim.x; ip.x++)
+				{
+					iph = rshift_xyi(ip, 1);
+					yuv = xyz(d8[0][ip.y*lsy + ip.x], d8[1][iph.y*lsuv + iph.x], d8[2][iph.y*lsuv + iph.x]);
+					im.f[ip.y*im.dim.x + ip.x] = yuv_to_frgb(yuv);
+				}
+		else if (mode == IMAGE_USE_SQRGB)
+			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+				for (ip.x=0; ip.x < im.dim.x; ip.x++)
+				{
+					iph = rshift_xyi(ip, 1);
+					yuv = xyz(d8[0][ip.y*lsy + ip.x], d8[1][iph.y*lsuv + iph.x], d8[2][iph.y*lsuv + iph.x]);
+					im.sq[ip.y*im.dim.x + ip.x] = frgb_to_sqrgb(yuv_to_frgb(yuv));
+				}
+	}
+	else
+	{
+		d16 = (uint16_t **) s->frame->data;
+		depth_mul = set_xyz(1. / (double) (1 << bit_depth-8));
+
+		if (mode == IMAGE_USE_FRGB)
+			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+				for (ip.x=0; ip.x < im.dim.x; ip.x++)
+				{
+					iph = rshift_xyi(ip, 1);
+					yuv = xyz(d16[0][ip.y*lsy + ip.x], d16[1][iph.y*lsuv + iph.x], d16[2][iph.y*lsuv + iph.x]);
+					im.f[ip.y*im.dim.x + ip.x] = yuv_to_frgb(mul_xyz(yuv, depth_mul));
+				}
+		else if (mode == IMAGE_USE_SQRGB)
+			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+				for (ip.x=0; ip.x < im.dim.x; ip.x++)
+				{
+					iph = rshift_xyi(ip, 1);
+					yuv = xyz(d16[0][ip.y*lsy + ip.x], d16[1][iph.y*lsuv + iph.x], d16[2][iph.y*lsuv + iph.x]);
+					im.sq[ip.y*im.dim.x + ip.x] = frgb_to_sqrgb(yuv_to_frgb(mul_xyz(yuv, depth_mul)));
+				}
+	}
 
 	return im;
 }
@@ -503,7 +567,7 @@ void ff_make_frame_table(ffstream_t *s)
 	}
 }
 
-double ff_get_video_duration(ffstream_t *s, const char *path)
+double ff_get_stream_duration(ffstream_t *s, const char *path, int stream_type)
 {
 	int i, ret;
 	uint32_t td=0;
@@ -519,7 +583,7 @@ double ff_get_video_duration(ffstream_t *s, const char *path)
 
 	if (s->fmt_ctx==NULL)
 	{
-		*s = ff_load_stream_init(path, AVMEDIA_TYPE_VIDEO);
+		*s = ff_load_stream_init(path, stream_type);
 		if (s->stream_id == -1)
 			return NAN;
 	}
@@ -528,6 +592,16 @@ double ff_get_video_duration(ffstream_t *s, const char *path)
 		return NAN;
 
 	return (double) s->fmt_ctx->duration / (double) AV_TIME_BASE;
+}
+
+double ff_get_video_duration(ffstream_t *s, const char *path)
+{
+	return ff_get_stream_duration(s, path, AVMEDIA_TYPE_VIDEO);
+}
+
+double ff_get_audio_duration(ffstream_t *s, const char *path)
+{
+	return ff_get_stream_duration(s, path, AVMEDIA_TYPE_AUDIO);
 }
 
 raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mode, const double t, const int raster_mode)

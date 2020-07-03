@@ -32,3 +32,5 @@ extern int next_prime(int n);
 extern int64_t next_power_of_2(int64_t n);
 extern int modulo_euclidian(int a, int b);
 extern int find_closest_entry_double(double *array, int n, double v);
+extern double mix(double v0, double v1, double t);
+extern double get_interpolated_xy_array_value(double x, xy_t *array, size_t array_size);

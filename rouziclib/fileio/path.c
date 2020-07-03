@@ -256,7 +256,7 @@ int check_path_against_extension_list(const char *path, const char *list_ext[], 
 
 int is_path_image_file(const char *path)
 {
-	const char *list_ext[] = {"jpg", "jpeg", "png", "tga", "targa", "bmp", "psd", "gif", "tif", "tiff"};
+	const char *list_ext[] = {"jpg", "jpeg", "png", "tga", "targa", "bmp", "psd", "gif", "tif", "tiff", "fts"};
 
 	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
 }

@@ -214,3 +214,25 @@ void _mm_set_raster_pixel_ps_to_sqrgb(raster_t *r, const size_t index, __m128 f)
 	r->sq[index] = s;
 }
 #endif
+
+void image_float_channel_conversion(float *in, int in_chan, float *out, int out_chan)
+{
+	int ic;
+
+	if (in_chan >= 3 && out_chan==1)	// RGB to gray
+	{
+		out[0] = (in[0] + in[1] + in[2]) * 0.33333333f;
+		return ;
+	}
+
+	if (out_chan >= 4)
+		out[3] = 1.f;			// set default alpha channel
+
+	memset(out, 0, MINN(3, out_chan) * sizeof(float));
+	memcpy(out, in, MINN(in_chan, out_chan) * sizeof(float));
+
+	// Copy first channel to other channels if needed
+	if (in_chan < 3 && out_chan >= 3)
+		for (ic=in_chan; ic < MINN(3, out_chan); ic++)
+			out[ic] = out[0];
+}
