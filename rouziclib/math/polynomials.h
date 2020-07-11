@@ -33,7 +33,7 @@ extern void polynomial_fit_on_function_by_dct_minmax(double (*f)(double), double
 extern void chebyshev_multiplier_by_dct_mpfr(real_t v, real_t *y, int p_count, int id);
 extern void polynomial_fit_on_points_by_dct_mpfr(real_t *y, int p_count, real_t start, real_t end, real_t *c, int degree);
 extern void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int degree);
-extern double reduce_digits(const int order, double (*f)(double), double segstart, double segend, double *c, int errmode, double added_error_thresh, double digits);
-extern double reduce_digits_mpfr(const int order, void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, int errmode, double added_error_thresh, double digits);
+extern double reduce_digits(double (*f)(double), double segstart, double segend, double *c, const int order, int errmode, double added_error_thresh, double digits);
+extern double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, const int order, int errmode, double added_error_thresh, double digits);
 
 enum { NEGMODE, DIVMODE };

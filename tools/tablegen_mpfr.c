@@ -1032,7 +1032,7 @@ void make_cos_table_human(const int cos_order, const double step)	// cos_order i
 		//err = get_polynomial_error_mpfr(f_cos, segstart, segend, c, NEGMODE);
 
 		// Reduce digits
-		err = reduce_digits_mpfr(cos_order, f_cos, segstart, segend, c, NEGMODE, 1.1, 30.);
+		err = reduce_digits_mpfr(f_cos, segstart, segend, c, cos_order, NEGMODE, 1.1, 30.);
 		if (err > maxerr)
 		{
 			maxerr = err;
@@ -1376,7 +1376,7 @@ void make_erf_radlim_table2(const int order, const double step, int order_index)
 		err = get_polynomial_error_mpfr(f_erf_radlim_coef, segstart, segend, c, NEGMODE);
 
 		// Reduce digits
-		err = reduce_digits_mpfr(order, f_erf_radlim_coef, segstart, segend, c, NEGMODE, 1.01, 10.);
+		err = reduce_digits_mpfr(f_erf_radlim_coef, segstart, segend, c, order, NEGMODE, 1.01, 10.);
 		if (err > maxerr)
 		{
 			maxerr = err;
@@ -1439,8 +1439,8 @@ void make_erf_radlim_table(const int order, const double step)	// order is <= 6
 		err = get_polynomial_error_mpfr(f_erf_radlim, z, segstep, c, NEGMODE);
 
 		// Reduce digits
-		//err = reduce_digits_mpfr(order, f_erf_radlim, segstart, segend, c, NEGMODE, 1.01, 10.);
-		reduce_digits_mpfr(order, f_erf_radlim, z, segstep, c, NEGMODE, 1.01, 10.);
+		//err = reduce_digits_mpfr(f_erf_radlim, segstart, segend, c, order, NEGMODE, 1.01, 10.);
+		reduce_digits_mpfr(f_erf_radlim, z, segstep, c, order, NEGMODE, 1.01, 10.);
 		if (err > maxerr)
 		{
 			maxerr = err;
@@ -1516,7 +1516,7 @@ void make_erf_radlim_end_table(const int order, const double step)	// order is <
 		//err = get_polynomial_error_mpfr(f_erf_radlim_end, segstart, segend, c, NEGMODE);
 
 		// Reduce digits
-		err = reduce_digits_mpfr(order, f_erf_radlim_end, segstart, segend, c, NEGMODE, 1.0001, 16.);
+		err = reduce_digits_mpfr(f_erf_radlim_end, segstart, segend, c, order, NEGMODE, 1.0001, 16.);
 		if (err > maxerr)
 		{
 			maxerr = err;
@@ -1604,7 +1604,7 @@ void make_asin_table_human(const int order, const double step)
 		err = get_polynomial_error_mpfr(f_asin, segstart, segend, c, NEGMODE);
 
 		// Reduce digits
-		err = reduce_digits_mpfr(order, f_asin, segstart, segend, c, NEGMODE, 1.03, 20.);
+		err = reduce_digits_mpfr(f_asin, segstart, segend, c, order, NEGMODE, 1.03, 20.);
 		if (err > maxerr)
 		{
 			maxerr = err;

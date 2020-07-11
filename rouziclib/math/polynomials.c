@@ -1090,10 +1090,10 @@ void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real_t,real_t), real_t sta
 }
 #endif
 
-double reduce_digits(const int order, double (*f)(double), double segstart, double segend, double *c, int errmode, double added_error_thresh, double digits)
+double reduce_digits(double (*f)(double), double segstart, double segend, double *c, const int order, int errmode, double added_error_thresh, double digits)
 {
 	int i;
-	double err0, err1, err1p, err_orig;
+	double err0, err1, err_orig;
 	double l, m, r=0., rp;
 
 	err_orig = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
@@ -1102,7 +1102,7 @@ double reduce_digits(const int order, double (*f)(double), double segstart, doub
 	{
 		err0 = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
 
-		if (c[i] != 0)	// if the coef is not 0
+		if (c[i] != 0.)			// if the coef is not 0
 		{
 			l = fabs(c[i]);			// -0.0007 -> 0.0007
 			l = log10(l);			// 0.0007 -> -3.15
@@ -1118,17 +1118,18 @@ double reduce_digits(const int order, double (*f)(double), double segstart, doub
 				r = c[i] / m;		// -0.0007 / 1e-24 -> -7e20
 				r = nearbyint(r);	// -7e20
 				r *= m;			// -7e20 * 1e-24 -> -0.0007
-				c[i] = r;		// set the rounded coef into the coef array for evaluation
+				swap_double(&c[i], &r);	// set the rounded coef into the coef array for evaluation
 
-				err1p = err1;
 				err1 = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
 
 				if (err1 > err0 * added_error_thresh || c[i]==0.)	// if the added error is over the threshold
 				{
-					fflush(stdout);
-					c[i] = rp;	// restore the previous rounding so the error is less than the threshold
+					if (err1 > err0 * added_error_thresh)
+						c[i] = rp;	// restore the previous rounding so the error is less than the threshold
 					break;
 				}
+				else
+					swap_double(&c[i], &r);		// restore the unrounded coef
 
 				m *= 10.;		// 1e-24 -> 1e-23
 			}
@@ -1139,10 +1140,10 @@ double reduce_digits(const int order, double (*f)(double), double segstart, doub
 }
 
 #ifdef RL_MPFR
-double reduce_digits_mpfr(const int order, void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, int errmode, double added_error_thresh, double digits)
+double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, const int order, int errmode, double added_error_thresh, double digits)
 {
 	int i;
-	double err0, err1, err1p, err_orig;
+	double err0, err1, err_orig;
 	real_t l, m, r, rp;
 
 	r_init(l);
@@ -1172,19 +1173,18 @@ double reduce_digits_mpfr(const int order, void (*f)(real_t,real_t), real_t segs
 				r_rdiv(r, c[i], m);	// -0.0007 / 1e-24 -> -7e20
 				mpfr_round(r, r);	// -7e20
 				r_mul(r, m);		// -7e20 * 1e-24 -> -0.0007
-				r_set(c[i], r);		// set the rounded coef into the coef array for evaluation
+				mpfr_swap(c[i], r);	// set the rounded coef into the coef array for evaluation
 
-				err1p = err1;
 				err1 = get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
-				//mpfr_printf("c%d = %.20Rg, m = %Rg, r = %Rg, Errors: %g -> %g -> %g\n", i, c[i], m, r, err_orig, err0, err1);
 
 				if (err1 > err0 * added_error_thresh || mpfr_zero_p(c[i]))		// if the added error is over the threshold
 				{
-					//mpfr_printf("%Rg to %Rg: c%d = %.20Rg, m = %Rg, r = %Rg, Errors: %g -> %g -> %g\n", segstart, segend, i, c[i], m, r, err_orig, err0, err1p);
-					fflush(stdout);
-					r_set(c[i], rp);	// restore the previous rounding so the error is the threshold
+					if (err1 > err0 * added_error_thresh)
+						r_set(c[i], rp);	// restore the previous rounding so the error is the threshold
 					break;
 				}
+				else
+					mpfr_swap(c[i], r);	// restore the unrounded coef
 
 				r_muld(m, 10.);		// 1e-24 -> 1e-23
 			}

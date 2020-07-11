@@ -1120,7 +1120,7 @@ void write_fastexp_limited_lut()
 
 		polynomial_fit_on_function_by_dct(f_exp, segstart, segend, c, order);
 		err = get_polynomial_error(f_exp, segstart, segend, c, order, NEGMODE);
-		err = reduce_digits(order, f_exp, segstart, segend, c, NEGMODE, 1.0001, 20.);
+		err = reduce_digits(f_exp, segstart, segend, c, order, NEGMODE, 1.0001, 20.);
 
 		printf("[%02d] e 1/%5.0f [%f , %f] span 1/%g\n", is, 1./err, segstart, segend, MAXN(0., 1./(segend-segstart)));
 
