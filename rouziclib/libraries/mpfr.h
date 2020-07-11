@@ -54,6 +54,7 @@ extern void r_zero_array(real_t *a, int count);
 extern void r_free_array(real_t **a, int count);
 extern void r_flipsign(real_t y, real_t x);
 extern void r_gaussian(real_t y, real_t x);
+extern void r_mix(real_t x, double t, real_t start, real_t end);
 
 #else
 

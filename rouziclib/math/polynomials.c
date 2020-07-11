@@ -32,7 +32,7 @@ double get_polynomial_error(double (*f)(double), double start, double end, doubl
 	double x, y, fx, err;
 
 	err = 0.;
-	for (i=0; i<=1000; i++)
+	for (i=0; i <= 1000; i++)
 	{
 		x = (double) i / 1000.;
 		x = x * (end-start) + start;
@@ -53,6 +53,63 @@ double get_polynomial_error(double (*f)(double), double start, double end, doubl
 
 	return err;
 }
+
+#ifdef RL_MPFR
+double get_polynomial_error_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int degree, int errmode)
+{
+	int i, ic;
+	real_t a, b, x, err;
+	double errd;
+
+	r_init(a);
+	r_init(b);
+	r_init(x);
+	r_init(err);
+
+	r_setd(err, 0.);
+	for (i=0; i <= 1000; i++)
+	{
+		r_mix(x, (double) i / 1000., start, end);
+
+		// polynomial
+		r_set(a, c[degree-1]);
+		for (ic=degree-2; ic >= 0; ic--)
+			r_fma(a, a, x, c[ic]);
+
+		f(b, x);
+
+		if (errmode==DIVMODE)
+		{
+			if (mpfr_cmp(a, b) < 0)		// if (a < b)
+			{
+				r_rdiv(a, b, a);	// a = b / a - 1.;
+				r_subd(a, 1.);
+			}
+			else
+			{
+				r_div(a, b);		// a = a / b - 1.;
+				r_subd(a, 1.);
+			}
+		}
+		else
+			r_rsub(a, b, a);		// a = b - a;
+
+		r_abs(a);
+
+		if (mpfr_cmp(err, a) < 0)
+			r_set(err, a);
+	}
+
+	errd = r_todouble(err);
+
+	r_free(a);
+	r_free(b);
+	r_free(x);
+	r_free(err);
+
+	return errd;
+}
+#endif
 
 double get_polynomial_error_from_points(double *x, double *y, int p_count, double *c, int degree, int errmode)
 {
@@ -1030,5 +1087,110 @@ void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real_t,real_t), real_t sta
 	polynomial_fit_on_points_by_dct_mpfr(y, p_count, start, end, c, degree);
 
 	r_free_array(&y, degree+1);
+}
+#endif
+
+double reduce_digits(const int order, double (*f)(double), double segstart, double segend, double *c, int errmode, double added_error_thresh, double digits)
+{
+	int i;
+	double err0, err1, err1p, err_orig;
+	double l, m, r=0., rp;
+
+	err_orig = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+
+	for (i=0; i <= order; i++)		// go through every coef to round it
+	{
+		err0 = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+
+		if (c[i] != 0)	// if the coef is not 0
+		{
+			l = fabs(c[i]);			// -0.0007 -> 0.0007
+			l = log10(l);			// 0.0007 -> -3.15
+			l = floor(l);			// -3.15 -> -4
+			l -= digits;			// -4 -> -24
+
+			m = pow(10., l);		// -24 -> 1e-24
+
+			while (1)
+			{
+				rp = r;			// copy the previous result
+
+				r = c[i] / m;		// -0.0007 / 1e-24 -> -7e20
+				r = nearbyint(r);	// -7e20
+				r *= m;			// -7e20 * 1e-24 -> -0.0007
+				c[i] = r;		// set the rounded coef into the coef array for evaluation
+
+				err1p = err1;
+				err1 = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+
+				if (err1 > err0 * added_error_thresh || c[i]==0.)	// if the added error is over the threshold
+				{
+					fflush(stdout);
+					c[i] = rp;	// restore the previous rounding so the error is less than the threshold
+					break;
+				}
+
+				m *= 10.;		// 1e-24 -> 1e-23
+			}
+		}
+	}
+
+	return get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+}
+
+#ifdef RL_MPFR
+double reduce_digits_mpfr(const int order, void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, int errmode, double added_error_thresh, double digits)
+{
+	int i;
+	double err0, err1, err1p, err_orig;
+	real_t l, m, r, rp;
+
+	r_init(l);
+	r_init(m);
+	r_init(r);
+	r_init(rp);
+
+	err_orig = get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
+
+	for (i=0; i <= order; i++)		// go through every coef to round it
+	{
+		err0 = get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
+
+		if (mpfr_zero_p(c[i]) == 0)	// if the coef is not 0
+		{
+			mpfr_abs(l, c[i], MPFR_RNDN);	// -0.0007 -> 0.0007
+			r_log10(l, l);			// 0.0007 -> -3.15
+			mpfr_floor(l, l);		// -3.15 -> -4
+			r_subd(l, digits);		// -4 -> -24
+
+			r_exp10(m, l);			// -24 -> 1e-24
+
+			while (1)
+			{
+				r_set(rp, r);		// copy the previous result
+
+				r_rdiv(r, c[i], m);	// -0.0007 / 1e-24 -> -7e20
+				mpfr_round(r, r);	// -7e20
+				r_mul(r, m);		// -7e20 * 1e-24 -> -0.0007
+				r_set(c[i], r);		// set the rounded coef into the coef array for evaluation
+
+				err1p = err1;
+				err1 = get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
+				//mpfr_printf("c%d = %.20Rg, m = %Rg, r = %Rg, Errors: %g -> %g -> %g\n", i, c[i], m, r, err_orig, err0, err1);
+
+				if (err1 > err0 * added_error_thresh || mpfr_zero_p(c[i]))		// if the added error is over the threshold
+				{
+					//mpfr_printf("%Rg to %Rg: c%d = %.20Rg, m = %Rg, r = %Rg, Errors: %g -> %g -> %g\n", segstart, segend, i, c[i], m, r, err_orig, err0, err1p);
+					fflush(stdout);
+					r_set(c[i], rp);	// restore the previous rounding so the error is the threshold
+					break;
+				}
+
+				r_muld(m, 10.);		// 1e-24 -> 1e-23
+			}
+		}
+	}
+
+	return get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
 }
 #endif

@@ -1,11 +1,11 @@
-//	gcc tablegen_mpfr.c -o tablegen_mpfr.exe -std=c99 -lm -lmpfr -lgmp -lwinmm -w -O0 && ./tablegen_mpfr
+//	gcc tablegen_mpfr.c -o tablegen_mpfr.exe -std=c99 -lm -lmpfr -lgmp -lwinmm -lgdi32 -w -O0 && ./tablegen_mpfr
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
 #include <float.h>
-#include <windows.h>
+//#include <windows.h>
 
 #define RL_MPFR
 #include "../rouziclib/rouziclib.h"
@@ -13,15 +13,15 @@
 
 #define PREC	256
 
-#define COEF_COUNT 7
+#define COEF_COUNT 100
 
-void diff_f(real dft, real x, void (*f)(real,real), real *c)
+void diff_f(real_t dft, real_t x, void (*f)(real_t,real_t), real_t *c)
 {
 	//return f(x) - (((((c5*x + c4)*x + c3)*x + c2)*x + c1)*x + c0);
 
 	int ic;
 	static int init=1;
-	static real a;
+	static real_t a;
 
 	if (init)
 	{
@@ -32,28 +32,21 @@ void diff_f(real dft, real x, void (*f)(real,real), real *c)
 	// polynomial
 	r_set(a, c[COEF_COUNT-1]);
 	for (ic=COEF_COUNT-2; ic>=0; ic--)
-		r_fma(a, x, c[ic]);
+		r_fma(a, a, x, c[ic]);
 
 	f(dft, x);
 
 	r_sub(dft, a);
 }
 
-void find_t(real t, double p, real start, real end)	// t = (end-start)*p + start
-{
-	r_rsub(t, end, start);
-	r_muld(t, p);
-	r_add(t, start);
-}
-
 #define slope(ret, p1, p0, pow_p, mult)		slope_full(ret, p1, p0, pow_p, mult, f, start, end, c)
-void slope_full(real ret, double p1, double p0, int pow_p, double mult, void (*f)(real,real), real start, real end, real *c)
+void slope_full(real_t ret, double p1, double p0, int pow_p, double mult, void (*f)(real_t,real_t), real_t start, real_t end, real_t *c)
 {
 	//	c2 += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
 	//	slope(a, 1.0, 0.5, 2);	r_add(c[n], a);
 
 	static int init=1;
-	static real a, dft1, dft0, t1, t0;
+	static real_t a, dft1, dft0, t1, t0;
 
 	if (init)
 	{
@@ -65,8 +58,8 @@ void slope_full(real ret, double p1, double p0, int pow_p, double mult, void (*f
 		r_init(t0);
 	}
 
-	find_t(t1, p1, start, end);
-	find_t(t0, p0, start, end);
+	r_mix(t1, p1, start, end);
+	r_mix(t0, p0, start, end);
 
 	diff_f(dft1, t1, f, c);
 	diff_f(dft0, t0, f, c);
@@ -82,7 +75,7 @@ void slope_full(real ret, double p1, double p0, int pow_p, double mult, void (*f
 }
 
 #define dft_sum(ret, p1, p0, method, mult)	dft_sum_full(ret, p1, p0, method, mult, f, start, end, c)
-void dft_sum_full(real ret, double p1, double p0, int method, double mult, void (*f)(real,real), real start, real end, real *c)
+void dft_sum_full(real_t ret, double p1, double p0, int method, double mult, void (*f)(real_t,real_t), real_t start, real_t end, real_t *c)
 {
 	// method 1:	c0 += 0.5 * (dft(1.0) + dft(0.0));
 	// method 2:	c0 += 0.5 * dft(0.5);
@@ -90,7 +83,7 @@ void dft_sum_full(real ret, double p1, double p0, int method, double mult, void 
 	// or:		dft_sum(a, 0.5, 0.0, 2);	r_muld(a, 0.5);	r_add(c[n], a);
 
 	static int init=1;
-	static real a, dft1, dft0, t1, t0;
+	static real_t a, dft1, dft0, t1, t0;
 
 	if (init)
 	{
@@ -102,12 +95,12 @@ void dft_sum_full(real ret, double p1, double p0, int method, double mult, void 
 		r_init(t0);
 	}
 
-	find_t(t1, p1, start, end);
+	r_mix(t1, p1, start, end);
 	diff_f(dft1, t1, f, c);
 
 	if (method==1)
 	{
-		find_t(t0, p0, start, end);
+		r_mix(t0, p0, start, end);
 		diff_f(dft0, t0, f, c);
 
 		r_radd(ret, dft1, dft0);
@@ -118,10 +111,10 @@ void dft_sum_full(real ret, double p1, double p0, int method, double mult, void 
 	r_muld(ret, mult);
 }
 
-void find_polynomial_fit_old2(void (*f)(real,real), real start, real end, real *c, int order)
+void find_polynomial_fit_old2(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int order)
 {
 	static int init=1;
-	static real a, b;
+	static real_t a, b;
 	int n;
 	double	cep1=0.5-0.5*sqrt(0.5),
 		cep2=0.5+0.5*sqrt(0.5);		// cubic error peaks
@@ -267,10 +260,10 @@ void find_polynomial_fit_old2(void (*f)(real,real), real start, real end, real *
 	}
 }
 
-void add_to_coef(real cn, int mult, real coef, real pos, int power)	// does c[n] += mult*coef*pos^power
+void add_to_coef(real_t cn, int mult, real_t coef, real_t pos, int power)	// does c[n] += mult*coef*pos^power
 {
 	static int init=1;
-	static real a;
+	static real_t a;
 
 	if (init)
 	{
@@ -285,10 +278,10 @@ void add_to_coef(real cn, int mult, real coef, real pos, int power)	// does c[n]
 }
 
 #define atc(a)	add_translated_coef(a, mid, n, c)
-void add_translated_coef(real coef, real pos_o, int n, real *c)	// adds coef*(x-pos_o)^n to c
+void add_translated_coef(real_t coef, real_t pos_o, int n, real_t *c)	// adds coef*(x-pos_o)^n to c
 {
 	static int init=1;
-	static real pos;
+	static real_t pos;
 
 	if (init)
 	{
@@ -351,10 +344,10 @@ void add_translated_coef(real coef, real pos_o, int n, real *c)	// adds coef*(x-
 	}
 }
 
-void find_polynomial_fit_old(void (*f)(real,real), real start, real end, real *c, int order, double k)
+void find_polynomial_fit_old(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int order, double k)
 {
 	static int init=1;
-	static real a, b, mid;
+	static real_t a, b, mid;
 	int n;
 	double	cep1=0.5-0.5*sqrt(0.5),
 		cep2=0.5+0.5*sqrt(0.5);		// cubic error peaks
@@ -489,10 +482,10 @@ void fit_polynomial_on_points(double *x, double *y, double *c, int order)
 	//		printf("%8g%s", ainv[i*n+j], j==n-1 ? "\n" : "\t");
 }
 
-void find_polynomial_fit(void (*f)(real,real), real start, real end, real *c, int order, double k)
+void find_polynomial_fit(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int order, double k)
 {
 	static int init=1;
-	static real a, b, t;
+	static real_t a, b, t;
 	int i, n;
 	double dstart=r_todouble(start), dend=r_todouble(end);;
 	static double *zcd[7], zc[7*(7+1)/2], *ppd[7], pp[7*(7+1)/2];
@@ -619,13 +612,13 @@ void find_polynomial_fit(void (*f)(real,real), real start, real end, real *c, in
 	}
 }
 
-enum { NEGMODE, DIVMODE };
-double get_polynomial_error(void (*f)(real,real), real start, real end, real *c, int errmode)
+// the rouziclib version lacks file logging
+/*double get_polynomial_error_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int errmode)
 {
 	int i, ic;
 	static int init=1;
-	static real a, b;
-	static real x, err;
+	static real_t a, b;
+	static real_t x, err;
 	static FILE *error_f, *func_f;
 	char filename[256];
 	int order=0;
@@ -651,12 +644,12 @@ double get_polynomial_error(void (*f)(real,real), real start, real end, real *c,
 	r_setd(err, 0.);
 	for (i=0; i<=1000; i++)
 	{
-		find_t(x, (double) i / 1000., start, end);
+		r_mix(x, (double) i / 1000., start, end);
 
 		// polynomial
 		r_set(a, c[COEF_COUNT-1]);
 		for (ic=COEF_COUNT-2; ic>=0; ic--)
-			r_fma(a, x, c[ic]);
+			r_fma(a, a, x, c[ic]);
 
 		f(b, x);
 
@@ -691,14 +684,14 @@ double get_polynomial_error(void (*f)(real,real), real start, real end, real *c,
 	mpfr_fprintf(error_f, "\n");
 
 	return r_todouble(err);
-}
+}*/
 
-void find_polynomial_local_min(void (*f)(real,real), real start, real end, real *c, int order, int errmode)
+void find_polynomial_local_min(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int order, int errmode)
 {
 	int32_t i, j, n;
 	double err0, err1, hw, maxerr;
 	static int init=1;
-	static real a, b, step;
+	static real_t a, b, step;
 
 	if (init)
 	{
@@ -708,7 +701,7 @@ void find_polynomial_local_min(void (*f)(real,real), real start, real end, real 
 		r_init(step);
 	}
 
-	err0 = get_polynomial_error(f, start, end, c, errmode);
+	err0 = get_polynomial_error_mpfr(f, start, end, c, errmode);
 	maxerr = err0;
 
 	hw = 0.5 * (r_todouble(end) - r_todouble(start));
@@ -725,7 +718,7 @@ void find_polynomial_local_min(void (*f)(real,real), real start, real end, real 
 			for (i=0; i<2; i++)
 			{
 				r_add(c[n], step);
-				err1 = get_polynomial_error(f, start, end, c, errmode);
+				err1 = get_polynomial_error_mpfr(f, start, end, c, errmode);
 
 				if (err1 < maxerr)
 				{
@@ -739,7 +732,7 @@ void find_polynomial_local_min(void (*f)(real,real), real start, real end, real 
 			for (i=0; i<2; i++)
 			{
 				r_sub(c[n], step);
-				err1 = get_polynomial_error(f, start, end, c, errmode);
+				err1 = get_polynomial_error_mpfr(f, start, end, c, errmode);
 
 				if (err1 < maxerr)
 				{
@@ -756,12 +749,12 @@ void find_polynomial_local_min(void (*f)(real,real), real start, real end, real 
 	printf("Error went from %g to %g, %.3f times better\n", err0, maxerr, err0/maxerr);
 }
 
-double get_double_impl_error(void (*f)(real,real), double (*g)(double), real start, real end, int errmode)
+double get_double_impl_error(void (*f)(real_t,real_t), double (*g)(double), real_t start, real_t end, int errmode)
 {
 	int32_t i;
 	static int init=1;
-	static real a, b;
-	static real x, err;
+	static real_t a, b;
+	static real_t x, err;
 
 	if (init)
 	{
@@ -775,7 +768,7 @@ double get_double_impl_error(void (*f)(real,real), double (*g)(double), real sta
 	r_setd(err, 0.);
 	for (i=0; i<=1000; i++)
 	{
-		find_t(x, (double) i / 1000., start, end);
+		r_mix(x, (double) i / 1000., start, end);
 
 		r_setd(a, g(r_todouble(x)));	// double implementation
 		f(b, x);
@@ -805,12 +798,12 @@ double get_double_impl_error(void (*f)(real,real), double (*g)(double), real sta
 	return r_todouble(err);
 }
 
-double get_float_impl_error(void (*f)(real,real), float (*g)(float), real start, real end, int errmode)
+double get_float_impl_error(void (*f)(real_t,real_t), float (*g)(float), real_t start, real_t end, int errmode)
 {
 	int32_t i;
 	static int init=1;
-	static real a, b;
-	static real x, err;
+	static real_t a, b;
+	static real_t x, err;
 
 	if (init)
 	{
@@ -824,7 +817,7 @@ double get_float_impl_error(void (*f)(real,real), float (*g)(float), real start,
 	r_setd(err, 0.);
 	for (i=0; i<=1000; i++)
 	{
-		find_t(x, (double) i / 1000., start, end);
+		r_mix(x, (double) i / 1000., start, end);
 
 		r_setd(a, g(r_todouble(x)));	// float implementation
 		f(b, x);
@@ -864,10 +857,10 @@ float f_cosf(float x)
 	return cosf(2.*pi*x);
 }
 
-void f_cos(real y, real x)
+void f_cos(real_t y, real_t x)
 {
 	static int init=1;
-	static real a;
+	static real_t a;
 
 	if (init)
 	{
@@ -882,7 +875,7 @@ void f_cos(real y, real x)
 	r_cos(y, a);
 }
 
-double find_max_intermediary_value(real *c_r, real segstart_r, real segend_r)
+double find_max_intermediary_value(real_t *c_r, real_t segstart_r, real_t segend_r)
 {
 	int32_t i, ic;
 	double c[COEF_COUNT], start=r_todouble(segstart_r), end=r_todouble(segend_r), x, v, maxv=0.;
@@ -910,16 +903,12 @@ double find_max_intermediary_value(real *c_r, real segstart_r, real segend_r)
 	return maxv;
 }
 
-//#include "../rouziclib/fixedpoint/ffo_lut.h"
-
-//#define K_TEST
-void make_cos_table(const int cos_order, const int lutsp)	// cos_order is <= 6, lutsp can only be <= 15
+void make_cos_table(const int cos_order, const int lutsp, const int quads)	// cos_order is <= 6, lutsp can only be <= 15
 {
 	int32_t i, is, segcount, prec;
-	const int luts = pow(2., (double) lutsp) + 0.5;
-	real c[COEF_COUNT];
-	real start, segstep, segstart, segend;
-	double end=0.25, step=end/(double) luts, err, errd, errf, maxerr=0., maxerrd=0., maxerrf=0., v, maxv=0.;
+	real_t c[COEF_COUNT];
+	real_t start, segstep, segstart, segend;
+	double end, step, err, errd, errf, maxerr=0., maxerrd=0., maxerrf=0., v, maxv=0.;
 double k, errmin=1., mink;
 	FILE *file;
 	char header_path[64];
@@ -928,7 +917,11 @@ double k, errmin=1., mink;
 	file = fopen(header_path, "wb");
 	fprintf(file, "{");
 
-	segcount = ceil(end / step) + 1;	// +1 for the only lookup for x==0.25
+	end = (double) quads * 0.25;
+	step = 0.25 / pow(2., (double) lutsp);
+	segcount = ceil(end / step);
+	if (quads < 4)
+		segcount++;	// +1 for the only lookup for x==0.25 or x==0.5
 
 	r_init(start);
 	r_init(segstep);
@@ -950,35 +943,17 @@ double k, errmin=1., mink;
 		for (i=0; i<COEF_COUNT; i++)
 			r_setd(c[i], 0.);
 
-		if (is!=segcount-1)	// let the final segment be 0
+		if (quads==2 && is==segcount-1)		// if the final segment is at x = 0.5
+			r_setd(c[0], -1);
+
+		if (quads==4 || is!=segcount-1)		// let the final segment be 0
 		{
-#ifdef K_TEST
-errmin=1.;
-//for (k=-337.789982223; k>=-337.789982224; k-=1e-11)
-//for (k=0.7213219; k<=0.72132221; k+=1e-9)
-//for (k=0.014; k<=0.0147; k+=1e-5)
-for (k=500.; k>=-550.; k-=1e-0)
-{
-for (i=0; i<COEF_COUNT; i++)
-r_setd(c[i], 0.);
-#endif
 			//find_polynomial_fit(f_cos, segstart, segend, c, cos_order, k);	// this doesn't really work, very imprecise
 			find_polynomial_fit_old(f_cos, segstart, segend, c, cos_order, k);
 			//find_polynomial_local_min(f_cos, segstart, segend, c, cos_order, NEGMODE);
-			err = get_polynomial_error(f_cos, segstart, segend, c, NEGMODE);
+			err = get_polynomial_error_mpfr(f_cos, segstart, segend, c, NEGMODE);
 			if (err > maxerr)
 				maxerr = err;
-
-#ifdef K_TEST
-if (err < errmin)
-{
-	errmin = err;
-	mink = k;
-	//printf("k=%.10f, err %g\n", k, err);
-}
-}
-printf("\n-----k=%.12f, err %g\n\n", mink, errmin);
-#endif
 		}
 
 		errd = get_double_impl_error(f_cos, f_cosd, segstart, segend, NEGMODE);
@@ -1007,7 +982,8 @@ printf("\n-----k=%.12f, err %g\n\n", mink, errmin);
 		mpfr_fprintf(file, "%.20Rg%s", c[cos_order], (is==segcount-1) ? "};\n" : ", \n");
 	}
 
-	fprintf(file, "const uint32_t lutsp = %d;", lutsp);
+	fprintf(file, "const uint32_t lutsp = %d;\n", lutsp);
+	fprintf(file, "const int quads = %d;", quads);
 
 	fclose (file);
 
@@ -1018,12 +994,71 @@ printf("\n-----k=%.12f, err %g\n\n", mink, errmin);
 	printf("\nMax error: %g\tMax double implementation error: %g, float implementation error: %g\nMax intermediary value: %g, prec: %d fractional bits\n", maxerr, maxerrd, maxerrf, maxv, prec);
 }
 
+void make_cos_table_human(const int cos_order, const double step)	// cos_order is <= 6
+{
+	int32_t i, is, segcount, prec;
+	real_t c[COEF_COUNT];
+	real_t segstep, segstart, segend, maxseg;
+	double end=1., err, maxerr=0.;
+	FILE *file;
+	char header_path[64];
+
+	segcount = nearbyint(ceil(end / step));
+
+	sprintf(header_path, "cos_d%d_step_%g_human new.dat", cos_order, step);
+	file = fopen(header_path, "wb");
+
+	r_init(segstep);
+	r_setd(segstep, step);
+	r_init(segstart);
+	r_init(segend);
+	r_init(maxseg);
+
+	for (i=0; i<COEF_COUNT; i++)
+		r_init(c[i]);
+
+	for (is=0; is<segcount; is++)
+	{
+		r_set(segstart, segend);
+		r_add(segend, segstep);
+
+		for (i=0; i<COEF_COUNT; i++)
+			r_setd(c[i], 0.);
+
+		// Fit
+		polynomial_fit_on_function_by_dct_mpfr(f_cos, segstart, segend, c, cos_order);
+		//polynomial_fit_on_function_mpfr(f_cos, segstart, segend, c, cos_order);
+		//find_polynomial_fit_old(f_cos, segstart, segend, c, cos_order, 0.);
+		//err = get_polynomial_error_mpfr(f_cos, segstart, segend, c, NEGMODE);
+
+		// Reduce digits
+		err = reduce_digits_mpfr(cos_order, f_cos, segstart, segend, c, NEGMODE, 1.1, 30.);
+		if (err > maxerr)
+		{
+			maxerr = err;
+			r_set(maxseg, segstart);
+		}
+
+		// Print to file
+		mpfr_fprintf(file, "%Rg	", segstart);
+		for (i=cos_order; i > 0; i--)
+			mpfr_fprintf(file, "% .20Rg   ", c[i]);
+		mpfr_fprintf(file, "% .20Rg\n", c[0]);
+		fflush(file);
+	}
+	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
+
+	fclose (file);
+
+	printf("\nMax error: %g\n", maxerr);
+}
+
 // Sinc windowed with squared gaussian window
 
-void r_squared_gaussian_window(real y, real x, real w)
+void r_squared_gaussian_window(real_t y, real_t x, real_t w)
 {
 	static int init=1;
-	static real a, b;
+	static real_t a, b;
 
 	if (init)
 	{
@@ -1059,13 +1094,13 @@ void r_squared_gaussian_window(real y, real x, real w)
 	r_rdiv(y, a, b);
 }
 
-real ws_range, ws_sigma_range;
+real_t ws_range, ws_sigma_range;
 int no_sine=0;
 
-void f_wsinc(real y, real x)
+void f_wsinc(real_t y, real_t x)
 {
 	static int init=1;
-	static real a;
+	static real_t a;
 
 	if (init)
 	{
@@ -1110,8 +1145,8 @@ void f_wsinc(real y, real x)
 void make_wsinc_table(const int order, const int lutsp, double wsinc_range, double sigma_range)	// order is <= 6, lutsp can only be <= 15
 {
 	int32_t i, is, segcount, prec;
-	real c[COEF_COUNT];
-	real segstep, segstart, segend;
+	real_t c[COEF_COUNT];
+	real_t segstep, segstart, segend;
 	double end=wsinc_range, step=1./pow(2., lutsp), err, maxerr=0.;
 	FILE *file;
 	char header_path[64];
@@ -1151,7 +1186,7 @@ void make_wsinc_table(const int order, const int lutsp, double wsinc_range, doub
 
 		// Fitting
 		find_polynomial_fit_old(f_wsinc, segstart, segend, c, order, 0.);
-		err = get_polynomial_error(f_wsinc, segstart, segend, c, no_sine==0 ? NEGMODE : DIVMODE);
+		err = get_polynomial_error_mpfr(f_wsinc, segstart, segend, c, no_sine==0 ? NEGMODE : DIVMODE);
 		if (err > maxerr)
 			maxerr = err;
 
@@ -1192,15 +1227,433 @@ void test_matrix()
 	printf("\n\nResult matrix:\n%4f\t%4f\n", c[0], c[1]);
 }
 
-int main()
+void cos_error_curve()
+{
+	double x;
+	real_t xr, vd, vr, d;
+
+	r_init(xr);
+	r_init(vd);
+	r_init(vr);
+	r_init(d);
+
+	FILE *file = fopen("error_curves/cosd_err.dat", "wb");
+
+	for (x=0.; x <= 2*pi; x += 1e-4)
+	{
+		r_setd(xr, x);
+		r_setd(vd, cos(x));
+		r_cos(vr, xr);
+		r_rsub(d, vd, vr);
+		mpfr_fprintf(file, "%g\t% Rg\n", x, d);
+		//mpfr_fprintf(file, "%g\t% g\n", x, r_todouble(vd) - r_todouble(vr));
+	}
+
+	fclose(file);
+}
+
+// erf_radlim
+
+double radlim, seg_offset=0.;
+
+double erf_radlim(double x, double in_radlim, double in_step)
+{
+	int i;
+	static double step=0.;
+	static double radlim=0.;
+	static double *v=NULL;
+	static size_t v_count=0, v_as=0;
+	double t, v_prev;
+
+	if (in_radlim <= 0. || in_step <= 0.)
+		return NAN;
+
+	if (radlim != in_radlim || step != in_step)
+	{
+		radlim = in_radlim;
+		step = in_step;
+
+		v_count = 0;
+		v_prev = 0.;
+		for (i=0, t=-radlim; t < radlim; t+=step, i++)
+		{
+			alloc_enough(&v, v_count = i+1, &v_as, sizeof(double), 2.);
+			if (i > 0)
+				v_prev = v[i-1];
+			v[i] = v_prev + erf(radlim*sqrt(1.-sq(t/radlim))) * gaussian(t) * step / sqrt(pi);
+		}
+	}
+
+	double p = (x + radlim) / step;
+	int i0, i1;
+	i0 = rangelimit_i32(p, 0, v_count-1);
+	i1 = rangelimit_i32(p+1., 0, v_count-1);
+	t = p - floor(p);
+	return v[i0] * (1.-t) + v[i1] * t;
+}
+
+double radlim_x_remap(double x)		// remaps x from [-1 , 1] to [-radlim , radlim] non-linearly
+{
+	double xa, xn;
+
+	x += seg_offset;		// remaps [0 , step] to within [-1 , 1]
+
+	// Delinearise
+	xa = fabs(x);
+	xn = x;
+	if (radlim <= 1.66)
+		//xn = (3. - x*x) * x * 0.5;
+		xn = (2.*xa - sq(xa)) * sign(x);	// inverse of this is (1. - sqrt(1. - fabs(x))) * sign(x)
+
+	xn *= radlim;			// remaps [-1 , 1] to [-radlim , radlim]
+
+	return xn;
+}
+
+void f_erf_radlim(real_t y, real_t x)
+{
+	r_setd(y, erf_radlim(radlim_x_remap(r_todouble(x)), radlim, 1e-7 * radlim));
+}
+
+/*int order_index_glo, order_glo;
+real_t zero_glo, segstep;
+
+void f_erf_radlim_coef(real_t y, real_t x)
+{
+	real_t c[COEF_COUNT];
+	for (i=0; i<COEF_COUNT; i++)
+		r_init(c[i]);
+
+	find_polynomial_fit_old(f_erf_radlim, zero_glo, segstep_glo, c, order_glo, 0.);
+
+	r_set(y, c[order_index_glo]);
+
+	for (i=0; i<COEF_COUNT; i++)
+		r_free(c[i]);
+}
+
+void make_erf_radlim_table2(const int order, const double step, int order_index)
+{
+	int32_t i, is, segcount, prec;
+	real_t c[COEF_COUNT];
+	real_t segstart, segend, maxseg;
+	double start=0., end=1.66, err, maxerr=0.;
+	FILE *file;
+	char header_path[64];
+
+	segcount = nearbyint(ceil((end-start) / step));
+
+	sprintf(header_path, "erf_radlim2_%g_d%d_step_%g_human.dat", radlim, order, step);
+	file = fopen(header_path, "wb");
+
+	r_init(segstep);
+	r_setd(segstep, step);
+	r_init(segstart);
+	r_init(segend);
+	r_init(maxseg);
+	r_init(zero_glo);
+
+	order_index_glo = order_index;
+	order_glo = 3;
+
+	r_setd(segend, start);
+
+	for (i=0; i<COEF_COUNT; i++)
+		r_init(c[i]);
+
+	for (is=0; is<segcount; is++)
+	{
+		r_set(segstart, segend);
+		r_add(segend, segstep);
+
+		for (i=0; i<COEF_COUNT; i++)
+			r_setd(c[i], 0.);
+
+		seg_offset = r_todouble(segstart);
+
+		// Fit
+		find_polynomial_fit_old(f_erf_radlim_coef, segstart, segend, c, order, 0.);
+		err = get_polynomial_error_mpfr(f_erf_radlim_coef, segstart, segend, c, NEGMODE);
+
+		// Reduce digits
+		err = reduce_digits_mpfr(order, f_erf_radlim_coef, segstart, segend, c, NEGMODE, 1.01, 10.);
+		if (err > maxerr)
+		{
+			maxerr = err;
+			r_set(maxseg, segstart);
+		}
+
+		// Print to file
+		mpfr_fprintf(file, "%Rg	", segstart);
+		for (i=order; i > 0; i--)
+			mpfr_fprintf(file, "% .20Rg   ", c[i]);
+		mpfr_fprintf(file, "% .20Rg (err % .3g)\n", c[0], err);
+	}
+	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
+
+	fclose (file);
+
+	printf("\nMax error: %g\n", maxerr);
+}*/
+
+void make_erf_radlim_table(const int order, const double step)	// order is <= 6
+{
+	int32_t i, is, segcount, prec;
+	real_t c[COEF_COUNT];
+	real_t segstep, segstart, segend, maxseg, z;
+	double start=-1., end=1., err, maxerr=0.;
+	FILE *file;
+	char header_path[64];
+
+	segcount = nearbyint(ceil((end-start) / step));
+
+	sprintf(header_path, "erf_radlim_%g_d%d_step_%g_human.dat", radlim, order, step);
+	file = fopen(header_path, "wb");
+
+	r_init(segstep);
+	r_setd(segstep, step);
+	r_init(segstart);
+	r_init(segend);
+	r_init(maxseg);
+	r_init(z);
+
+	r_setd(segend, start);
+
+	for (i=0; i<COEF_COUNT; i++)
+		r_init(c[i]);
+
+	for (is=0; is<segcount; is++)
+	{
+		r_set(segstart, segend);
+		r_add(segend, segstep);
+
+		for (i=0; i<COEF_COUNT; i++)
+			r_setd(c[i], 0.);
+
+		seg_offset = r_todouble(segstart);
+
+		// Fit
+		//find_polynomial_fit_old(f_erf_radlim, segstart, segend, c, order, 0.);
+		//err = get_polynomial_error_mpfr(f_erf_radlim, segstart, segend, c, NEGMODE);
+		find_polynomial_fit_old(f_erf_radlim, z, segstep, c, order, 0.);
+		err = get_polynomial_error_mpfr(f_erf_radlim, z, segstep, c, NEGMODE);
+
+		// Reduce digits
+		//err = reduce_digits_mpfr(order, f_erf_radlim, segstart, segend, c, NEGMODE, 1.01, 10.);
+		reduce_digits_mpfr(order, f_erf_radlim, z, segstep, c, NEGMODE, 1.01, 10.);
+		if (err > maxerr)
+		{
+			maxerr = err;
+			r_set(maxseg, segstart);
+		}
+
+		// Print to file
+		mpfr_fprintf(file, "%Rg	", segstart);
+		for (i=order; i > 0; i--)
+			mpfr_fprintf(file, "% .20Rg   ", c[i]);
+		mpfr_fprintf(file, "% .20Rg (err % .3g)\n", c[0], err);
+	}
+	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
+
+	fclose (file);
+
+	printf("\nMax error: %g\n", maxerr);
+}
+
+void f_erf_radlim_end(real_t y, real_t x)
+{
+	if ((rand() & 0xFF) == 0)
+	{
+		fprintf_rl(stdout, "radlim = %g\n", r_todouble(x));
+		fflush(stdout);
+	}
+
+	if (r_todouble(x) < 1e-6)
+		r_setd(y, 0.);
+	else
+		r_setd(y, erf_radlim(r_todouble(x), r_todouble(x), 2e-6 * r_todouble(x)));
+}
+
+void make_erf_radlim_end_table(const int order, const double step)	// order is <= 6
+{
+	int32_t i, is, segcount, prec;
+	real_t c[COEF_COUNT];
+	real_t segstep, segstart, segend, maxseg;
+	double start=0., end=4., err, maxerr=0.;
+	FILE *file;
+	char header_path[64];
+
+	segcount = nearbyint(ceil((end-start) / step));
+
+	//sprintf(header_path, "erf_radlim_end_d%d_step_%g_human.dat", order, step);
+	sprintf(header_path, "../rouziclib/math/erf_radlim/end_value_lut.h");
+	file = fopen(header_path, "wb");
+	fprintf(file, "{");
+
+	r_init(segstep);
+	r_setd(segstep, step);
+	r_init(segstart);
+	r_init(segend);
+	r_init(maxseg);
+
+	r_setd(segend, start);
+
+	for (i=0; i<COEF_COUNT; i++)
+		r_init(c[i]);
+
+	for (is=0; is<segcount; is++)
+	{
+		r_set(segstart, segend);
+		r_add(segend, segstep);
+
+		for (i=0; i<COEF_COUNT; i++)
+			r_setd(c[i], 0.);
+
+		seg_offset = r_todouble(segstart);
+
+		// Fit
+		find_polynomial_fit_old(f_erf_radlim_end, segstart, segend, c, order, 0.);
+		//err = get_polynomial_error_mpfr(f_erf_radlim_end, segstart, segend, c, NEGMODE);
+
+		// Reduce digits
+		err = reduce_digits_mpfr(order, f_erf_radlim_end, segstart, segend, c, NEGMODE, 1.0001, 16.);
+		if (err > maxerr)
+		{
+			maxerr = err;
+			r_set(maxseg, segstart);
+		}
+
+		// Print to file
+		for (i=0; i<order; i++)
+			mpfr_fprintf(file, "%.20Rg, ", c[i]);
+		mpfr_fprintf(file, "%.20Rg%s", c[order], (is==segcount-1) ? "};\n" : ", \n");
+		fflush(file);
+	}
+	//mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
+	fprintf(file, "const int order = %d;\n", order);
+
+	fclose (file);
+
+	printf("\nMax error: %g\n", maxerr);
+}
+
+// asin
+
+void x_remap(real_t y, real_t x)	// 2.*x - sq(x)
+{				// inverse of this is (1. - sqrt(1. - fabs(x))) * sign(x)
+	static int init=1;
+	static real_t a, b;
+
+	if (init)
+	{
+		init = 0;
+		r_init(a);
+		r_init(b);
+	}
+
+	// 2x
+	r_rmuld(a, x, 2.);
+
+	// x^2
+	r_sq(b, x);
+
+	r_rsub(y, a, b);
+}
+
+void f_asin(real_t y, real_t x)
+{
+	x_remap(y, x);
+	mpfr_asin(y, y, MPFR_RNDN);
+}
+
+void make_asin_table_human(const int order, const double step)
+{
+	int32_t i, is, segcount, prec;
+	real_t c[COEF_COUNT];
+	real_t segstep, segstart, segend, maxseg;
+	double start=0., end=1., err, maxerr=0.;
+	FILE *file;
+	char header_path[64];
+
+	segcount = nearbyint(ceil(end / step));
+
+	sprintf(header_path, "asin_d%d_step_%g_human.dat", order, step);
+	file = fopen(header_path, "wb");
+
+	r_init(segstep);
+	r_setd(segstep, step);
+	r_init(segstart);
+	r_init(segend);
+	r_init(maxseg);
+
+	r_setd(segend, start);
+
+	for (i=0; i<COEF_COUNT; i++)
+		r_init(c[i]);
+
+	for (is=0; is<segcount; is++)
+	{
+		r_set(segstart, segend);
+		r_add(segend, segstep);
+
+		for (i=0; i<COEF_COUNT; i++)
+			r_setd(c[i], 0.);
+
+		// Fit
+		find_polynomial_fit_old(f_asin, segstart, segend, c, order, 0.);
+		err = get_polynomial_error_mpfr(f_asin, segstart, segend, c, NEGMODE);
+
+		// Reduce digits
+		err = reduce_digits_mpfr(order, f_asin, segstart, segend, c, NEGMODE, 1.03, 20.);
+		if (err > maxerr)
+		{
+			maxerr = err;
+			r_set(maxseg, segstart);
+		}
+
+		// Print to file
+		mpfr_fprintf(file, "%Rg	", segstart);
+		for (i=order; i > 0; i--)
+			mpfr_fprintf(file, "% .20Rg   ", c[i]);
+		mpfr_fprintf(file, "% .20Rg (err % .3g)\n", c[0], err);
+		fflush(file);
+	}
+	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
+
+	fclose (file);
+
+	printf("\nMax error: %g\n", maxerr);
+}
+
+int main(int argc, char **argv)
 {
 	mpfr_set_default_prec(PREC);
 
-	/*make_cos_table(5, 5);
-	make_cos_table(2, 6);
-*/	make_wsinc_table(2, 5, 6.625, 1.6083);
+	make_cos_table_human(atoi(argv[1]), 0.01);
+/*	make_cos_table(2, 5, 4);	// 1/2 kB, float err 4.2e-006, double err 6.159e-007
+	make_cos_table(3, 5, 4);	// 3 kB, err 1.88958e-009
+	make_cos_table(4, 5, 2);	// 2 kB, err 4.63742e-012
+	make_cos_table(5, 6, 1);	// 2.5 kB, err ~9e-016, pure err 1.48783e-016
+	make_wsinc_table(2, 5, 6.625, 1.6083);
+	make_cos_table_human(2, 0.01);
 
+	cos_error_curve();
 	//test_matrix();
+
+	if (argc >= 3)
+	{
+		radlim = atof(argv[1]);
+		fprintf_rl(stdout, "radlim %g, step 1/%g\n", radlim, atof(argv[2]));
+		make_erf_radlim_table(3, 1./atof(argv[2]));
+	}
+
+	make_erf_radlim_end_table(3, 1./4.);
+
+	if (argc >= 3)
+	{
+		fprintf_rl(stdout, "degree %d, step 1/%g\n", atoi(argv[1]), atof(argv[2]));
+		make_asin_table_human(atoi(argv[1]), 1./atof(argv[2]));
+	}*/
 
 	//printf("sizeof(long double) = %d (%d bits). LDBL_DIG  = %d, LDBL_MANT_DIG = %d\n", sizeof(long double), sizeof(long double)*8, LDBL_DIG, LDBL_MANT_DIG);
 }

@@ -47,4 +47,11 @@ void r_gaussian(real_t y, real_t x)
 	r_exp(y, y);
 }
 
+void r_mix(real_t x, double t, real_t start, real_t end)	// x = (end-start)*t + start
+{
+	r_rsub(x, end, start);
+	r_muld(x, t);
+	r_add(x, start);
+}
+
 #endif

@@ -1,4 +1,4 @@
-//	gcc tablegen.c -o tablegen.exe -std=c99 -lm -lgmp -lmpfr -lwinmm -w -O0 && ./tablegen.exe
+//	gcc tablegen.c -o tablegen.exe -std=c99 -lm -lgmp -lmpfr -lwinmm -lcomdlg32 -lole32 -Wno-incompatible-pointer-types -O0 && ./tablegen.exe
 
 #include "../rouziclib/rouziclib.h"
 #include "../rouziclib/rouziclib.c"
@@ -439,152 +439,6 @@ void write_fperfr_d0_lut()
 	fclose (file);
 }
 
-/*void find_affine_c1(double start, double end, double stepsize, double *aff0, double *aff1, double (*f)(double))
-{
-	int32_t i1, i2, c[1]cnt = 1000;
-	double x, min, max, diff, mindiff, c[0], c[1], c[2], c[1]m0, c[2]m0, c[1]m1, c[2]m1, r, c[1]start=-20., c[1]end=20., c[2]start, c[2]end;
-
-	for (i2=0; i2<2; i2++)
-	{
-		switch (i2)
-		{
-			case 0:
-				c[2] = -10.;
-				break;
-			case 1:
-				c[2] = 0.;
-				break;
-		}
-
-		mindiff = 1e30;
-
-		for (i1=0; i1 <= c[1]cnt; i1++)
-		{
-			c[1] = (c[1]end-c[1]start) * (double) i1 / (double) c[1]cnt + c[1]start;
-
-			min = 1e30;
-			max = -1e30;
-			for (x=start; x <= end+0.5*stepsize; x+=stepsize)
-			{
-				r = c[1]*x + c[2]*x*x - f(x);
-
-				if (r < min)
-					min = r;
-				if (r > max)
-					max = r;
-			}
-
-			diff = max-min;
-
-			if (diff < mindiff)
-			{
-				mindiff = diff;
-				switch (i2)
-				{
-					case 0:
-						c[1]m0 = c[1];
-						c[2]m0 = c[2];
-						break;
-					case 1:
-						c[1]m1 = c[1];
-						c[2]m1 = c[2];
-						break;
-				}
-			}
-		}
-	}
-
-	*aff0 = c[1]m1;
-	*aff1 = (c[1]m1-c[1]m0) / (c[2]m1-c[2]m0);
-}
-
-double find_quadratic_fit(double start, double end, double stepsize, double *c[0]p, double *c[1]p, double *c[2]p, double c[1]mid, double c[1]range, int32_t c[1]cnt, double c[2]mid, double c[2]range, int32_t c[2]cnt, double aff0, double aff1, double (*f)(double))
-{
-	int32_t i1, i2;
-	double x, min, max, diff, mindiff, c[0], c[1], c[2], r, c[1]start, c[1]end, c[2]start, c[2]end, c[1]pc;
-//FILE *file=fopen("test.raw", "wb");	uint16_t pix; double dpix;
-
-	c[1]start = c[1]mid - 0.5*c[1]range;
-	c[1]end = c[1]mid + 0.5*c[1]range;
-	c[2]start = c[2]mid - 0.5*c[2]range;
-	c[2]end = c[2]mid + 0.5*c[2]range;
-
-	mindiff = 1e30;
-	for (i2=0; i2 <= c[2]cnt; i2++)
-	{
-		c[2] = (c[2]end-c[2]start) * (double) i2 / (double) c[2]cnt + c[2]start;
-
-		for (i1=0; i1 <= c[1]cnt; i1++)
-		{
-			c[1] = (c[1]end-c[1]start) * (double) i1 / (double) c[1]cnt + c[1]start + aff1*c[2] + aff0;
-			//c[1] += aff1*c[2] + aff0;
-
-			min = 1e30;
-			max = -1e30;
-			for (x=start; x <= end+0.5*stepsize; x+=stepsize)
-			{
-				r = c[1]*x + c[2]*x*x - f(x);
-
-				if (r < min)
-					min = r;
-				if (r > max)
-					max = r;
-			}
-
-			diff = max-min;
-//dpix = diff * 1e3 * 65535. + 0.5; pix = dpix > 65535. ? 65535 : (uint16_t) dpix; fwrite(&pix, 1, sizeof(uint16_t), file);
-
-			if (diff < mindiff)
-			{
-				mindiff = diff;
-				*c[0]p = -0.5*(max+min);
-				*c[1]p = c[1];
-				*c[2]p = c[2];
-				c[1]pc = 100.*((*c[1]p-(aff1*c[2] + aff0))-c[1]start)/(c[1]end-c[1]start);
-			}
-		}
-		//if (i2==c[2]cnt>>2 || i2==c[2]cnt>>1)
-		//printf("%.4f*x^2 + %.4f*x + %.4f = %g err (pos %.0f%%,%.0f%%)\n", *c[2]p, *c[1]p, *c[0]p, 0.5*mindiff, 100.*(*c[2]p-c[2]start)/(c[2]end-c[2]start), 100.*(*c[1]p-c[1]start)/(c[1]end-c[1]start));
-		//mindiff = 1e30;
-	}
-	//printf("%.4f*x^2 + %.4f*x + %.4f = %g err (pos %.0f%%,%.0f%%)\n", *c[2]p, *c[1]p, *c[0]p, 0.5*mindiff, 100.*(*c[2]p-c[2]start)/(c[2]end-c[2]start), c[1]pc);
-//fclose(file);
-//exit(0);
-
-	return 0.5*mindiff;
-}*/
-
-enum { NEGMODE, DIVMODE };
-double get_polynomial_error(double (*f)(double), double start, double end, double *c, int errmode)
-{
-	int32_t i;
-	double x, y, fx, err;
-
-	err = 0.;
-	for (i=0; i<=1000; i++)
-	{
-		x = (double) i / 1000.;
-		x = x * (end-start) + start;
-		y = ((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0];
-		fx = f(x);
-
-		if (errmode==DIVMODE)
-		{
-			if (y < fx)
-				y = fx / y - 1.;
-			else
-				y = y / fx - 1.;
-		}
-		else
-			y = fx - y;
-		if (fabs(err) < fabs(y))
-			err = fabs(y);
-	}
-
-	//printf(" - (%.14gx^2 %+.14gx %+.14g), x=%g to %g\n", c[2], c[1], c[0], start, end);
-	return err;
-}
-
 #define t(x) ((end-start)*(x)+start)
 #define dft(x) df(t(x))
 #define df(x) diff_f(f, x, c)
@@ -793,7 +647,7 @@ void write_quad_fit_fpdiv()
 		segend = segstart+(cend-cstart)*segratio;
 
 		find_quadratic_fit(f_reciprocal, segstart, segend, c);
-		err = get_polynomial_error(f_reciprocal, segstart, segend, c, DIVMODE);
+		err = get_polynomial_error(f_reciprocal, segstart, segend, c, 2, DIVMODE);
 
 		//printf("%.16f*x^2 + %.16f*x + %.16f\n%g max error (segratio 1/%.0f) [%.7f , %.7f]\n", c[2], c[1], c[0], err, 1./segratio, segstart, segend);
 		//printf("%.7f*x^2 + %.7f*x + %.7f  e %g [%f , %f]\n", c[2], c[1], c[0], err, segstart, segend);
@@ -848,7 +702,7 @@ void write_quad_fit_fpatan2()
 		segend = segstart+(cend-cstart)*segratio;
 
 		find_quadratic_fit(f_atan, segstart, segend, c);
-		err = get_polynomial_error(f_atan, segstart, segend, c, NEGMODE);
+		err = get_polynomial_error(f_atan, segstart, segend, c, 2, NEGMODE);
 
 		//printf("%.16f*x^2 + %.16f*x + %.16f\n%g max error (segratio 1/%.0f) [%.7f , %.7f]\n", c[2], c[1], c[0], err, 1./segratio, segstart, segend);
 		//printf("%.14f*x^2 %+.14f*x %+.14f, x=%f to %f  e %.4g\n", c[2], c[1], c[0], segstart, segend, err);
@@ -919,7 +773,7 @@ void write_poly_fit_fpcos()
 		for (n=0.721314; n<=0.73; n+=0.00000000001)
 		{*/
 		find_polynomial_fit(f_cos, segstart, segend, c, 2);
-		err = get_polynomial_error(f_cos, segstart, segend, c, NEGMODE);
+		err = get_polynomial_error(f_cos, segstart, segend, c, 2, NEGMODE);
 
 		/*if (err < errmin)
 		{
@@ -983,7 +837,7 @@ void write_fastlog2_lut()
 		segend = segstart+(cend-cstart)*segratio;
 
 		find_quadratic_fit(f_log2, segstart, segend, c);
-		err = get_polynomial_error(f_log2, segstart, segend, c, DIVMODE);
+		err = get_polynomial_error(f_log2, segstart, segend, c, 2, DIVMODE);
 
 		//printf("%.16f*x^2 + %.16f*x + %.16f\n%g max error (segratio 1/%.0f) [%.7f , %.7f]\n", c[2], c[1], c[0], err, 1./segratio, segstart, segend);
 		//printf("%.7f*x^2 + %.7f*x + %.7f  e %g [%f , %f]\n", c[2], c[1], c[0], err, segstart, segend);
@@ -1051,7 +905,7 @@ void write_fastexp2_lut()
 		segend = segstart+(cend-cstart)*segratio;
 
 		find_quadratic_fit(f_exp2, segstart, segend, c);
-		err = get_polynomial_error(f_exp2, segstart, segend, c, DIVMODE);
+		err = get_polynomial_error(f_exp2, segstart, segend, c, 2, DIVMODE);
 
 		//printf("%.16f*x^2 + %.16f*x + %.16f\n%g max error (segratio 1/%.0f) [%.7f , %.7f]\n", c[2], c[1], c[0], err, 1./segratio, segstart, segend);
 		//printf("%.7f*x^2 + %.7f*x + %.7f  e %g [%f , %f]\n", c[2], c[1], c[0], err, segstart, segend);
@@ -1095,7 +949,7 @@ void write_fastsqrt_lut()
 		segend = segstart+(cend-cstart)*segratio;
 
 		find_quadratic_fit(f_sqrt, segstart, segend, c);
-		err = get_polynomial_error(f_sqrt, segstart, segend, c, DIVMODE);
+		err = get_polynomial_error(f_sqrt, segstart, segend, c, 2, DIVMODE);
 
 		//printf("%.16f*x^2 + %.16f*x + %.16f\n%g max error (segratio 1/%.0f) [%.7f , %.7f]\n", c[2], c[1], c[0], err, 1./segratio, segstart, segend);
 		//printf("%.7f*x^2 + %.7f*x + %.7f  e %g [%f , %f]\n", c[2], c[1], c[0], err, segstart, segend);
@@ -1152,7 +1006,7 @@ void write_poly_fit_generic_offset_noshift(const char *name, double (*f)(double)
 			segend = cend;
 
 		find_polynomial_fit(f, segstart, segend, c, order);
-		err = get_polynomial_error(f, segstart, segend, c, NEGMODE);
+		err = get_polynomial_error(f, segstart, segend, c, 2, NEGMODE);
 
 		//printf("%+.8f\n%g max error (segratio 1/%.0f) [%.7f , %.7f]\n", c[0], err, 1./segratio, segstart, segend);
 
@@ -1198,7 +1052,7 @@ void write_fastlsrgb_lut()
 	int32_t ish = 21;
 
 	int32_t i, is;
-	double c[6], err, cstart=0.0, cend=1.0;
+	double c[6], err;
 	double segstart, segend=0.;
 	float offset = 0.0031308;
 
@@ -1221,7 +1075,7 @@ void write_fastlsrgb_lut()
 			c[0] = c[2] = 0.;
 			c[1] = 12.92;
 		}
-		err = get_polynomial_error(f_lsrgb, segstart, segend, c, NEGMODE);
+		err = get_polynomial_error(f_lsrgb, segstart, segend, c, 2, NEGMODE);
 
 		if (segstart > segend)
 		{
@@ -1235,6 +1089,45 @@ void write_fastlsrgb_lut()
 	}
 
 	fprintf(file, "const int order = 2, ish = %d;\n", ish);
+
+	fclose (file);
+}
+
+double f_exp(double x)
+{
+	return exp(-x);
+}
+
+void write_fastexp_limited_lut()
+{
+	int ish = 49, order = 2;
+	double offset=2., end=12.;
+
+	int i;
+	int64_t is;
+	double c[6], err;
+	double segstart, segend=0.;
+
+	FILE *file;
+
+	file = fopen("../rouziclib/fastfloat/fastexp_limited.h", "w");
+	fprintf(file, "{");
+
+	for (is=0; segend < end; is++)
+	{
+		segstart = u64_as_double( double_as_u64(offset) + (is << ish) ) - offset;
+		segend = u64_as_double( double_as_u64(offset) + ((is+1) << ish) - 1 ) - offset;
+
+		polynomial_fit_on_function_by_dct(f_exp, segstart, segend, c, order);
+		err = get_polynomial_error(f_exp, segstart, segend, c, order, NEGMODE);
+		err = reduce_digits(order, f_exp, segstart, segend, c, NEGMODE, 1.0001, 20.);
+
+		printf("[%02d] e 1/%5.0f [%f , %f] span 1/%g\n", is, 1./err, segstart, segend, MAXN(0., 1./(segend-segstart)));
+
+		fprintf(file, "%.9g, %.9g, %.9g%s", c[0], c[1], c[2], (segend >= end) ? "};\n" : ",\n");
+	}
+
+	fprintf(file, "const int order = %d, ish = %d;\nconst double offset = %g, end = %g;\n", order, ish, offset, segend);
 
 	fclose (file);
 }
@@ -1264,9 +1157,10 @@ int main(int argc, char *argv[])
 	write_poly_fit_fastgauss(6, 4., 1);
 
 	write_poly_fit_fasterfr(7, 3., 0);
-	write_poly_fit_fasterfr(5, 4., 1);*/
+	write_poly_fit_fasterfr(5, 4., 1);
 
-	write_fastlsrgb_lut();
+	write_fastlsrgb_lut();*/
+	write_fastexp_limited_lut();
 
 	//comp_cos(16.*pi);
 

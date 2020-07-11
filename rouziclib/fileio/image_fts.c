@@ -34,6 +34,7 @@ float *load_fts_mem(uint8_t *data, const size_t data_size, xyi_t *dim, int *out_
 	float *im, black_level, max_level, gain, v;
 	const uint8_t *p8;
 	const uint16_t *p16;
+	const uint32_t *p32;
 	xyi_t ip;
 
 	// Read fields
@@ -59,6 +60,7 @@ float *load_fts_mem(uint8_t *data, const size_t data_size, xyi_t *dim, int *out_
 			break;
 		}
 	p16 = (uint16_t *) p8;
+	p32 = (uint32_t *) p8;
 
 	if (p8[0] == ' ')
 		return NULL;
@@ -74,6 +76,21 @@ float *load_fts_mem(uint8_t *data, const size_t data_size, xyi_t *dim, int *out_
 			{
 				if ((void *) &p16[ip.y*dim->x + ip.x] < (void *) &data[data_size])
 					v = (float) read_BE16(&p16[ip.y*dim->x + ip.x], NULL);
+				else
+					v = black_level;
+
+				v = (v - black_level) * gain;
+				image_float_channel_conversion(&v, 1, &im[(ip.y*dim->x + ip.x) * *out_chan], *out_chan);
+			}
+	}
+
+	if (bit_depth==32)
+	{
+		for (ip.y=0; ip.y < dim->y; ip.y++)
+			for (ip.x=0; ip.x < dim->x; ip.x++)
+			{
+				if ((void *) &p32[ip.y*dim->x + ip.x] < (void *) &data[data_size])
+					v = (float) read_BE32(&p32[ip.y*dim->x + ip.x], NULL);
 				else
 					v = black_level;
 
