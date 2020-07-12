@@ -15,7 +15,7 @@ double erf_radlim_end_x(double k)	// gives the end x value for a given k (radlim
 	return polynomial_from_lut(lut, lutind, order, k);
 }
 
-double erf_radlim_lim0_approx(double x)	// approx of 1 - ((x*sqrt(1 - x^2) + asin(x))/2*4/pi)^2, the modified limit for k -> 0 in 1-erf_radlim(x, k)^2
+/*double erf_radlim_lim0_approx(double x)	// approx of 1 - ((x*sqrt(1 - x^2) + asin(x))/2*4/pi)^2, the modified limit for k -> 0 in 1-erf_radlim(x, k)^2
 {
 	double x2;
 
@@ -34,7 +34,7 @@ double erf_radlim_lim0_approx(double x)	// approx of 1 - ((x*sqrt(1 - x^2) + asi
 		return ((3.30203*x - 6.919688)*x + 3.361511)*x + 0.24595;	// err: 1.83e-04 (1 in 5471)
 
 	return ((35.568676*x - 97.9614102)*x + 89.031507)*x - 26.638953;	// err: 1.80e-04 (1 in 5541)
-}
+}*/
 
 double erf_radlim_lim0_log_approx(double x)	// approx of log(1 - ((x*sqrt(1 - x^2) + asin(x))/2*4/pi)^2), the modified limit for k -> 0 in 1-erf_radlim(x, k)^2
 {
@@ -43,7 +43,7 @@ double erf_radlim_lim0_log_approx(double x)	// approx of log(1 - ((x*sqrt(1 - x^
 	ffabs(&x);
 	
 	if (x >= 1.)
-		return 0.;
+		return -1000.;
 
 	if (x <= 0.6)
 	{
@@ -63,7 +63,7 @@ double erf_radlim_lim0_log_approx(double x)	// approx of log(1 - ((x*sqrt(1 - x^
 	return -431.132*x + 421.829;	// post-exp err: 9.69e-5 (1 in 10322)
 }
 
-double erf_radlim_liminf_approx(double x)	// approx of 1 - erf(x)^2, the modified limit for k -> +inf in 1-erf_radlim(x, k)^2
+/*double erf_radlim_liminf_approx(double x)	// approx of 1 - erf(x)^2, the modified limit for k -> +inf in 1-erf_radlim(x, k)^2
 {
 	double x2;
 
@@ -85,7 +85,7 @@ double erf_radlim_liminf_approx(double x)	// approx of 1 - erf(x)^2, the modifie
 				return ((-0.02050837*x + 0.1692938)*x - 0.466051)*x + 0.428151;	// err: 1.76e-04 (1 in 5683)
 			else
 				return 0.;
-}
+}*/
 
 double erf_radlim_liminf_log_approx(double x)	// approx of log(1 - erf(x)^2), the modified limit for k -> +inf in 1-erf_radlim(x, k)^2
 {
@@ -122,4 +122,15 @@ double erf_radlim_liminf_weight(double k)
 			return (-0.244429*k + 1.56298)*k - 0.45466;
 		else
 			return (-0.262188*k + 1.58664)*k - 0.411596;
+}
+
+double erf_radlim_approx(double x, double k)
+{
+	double xd, y, mid_v;
+	xd = x/k;
+	mid_v = 0.5*erf_radlim_end_x(k);
+	y = fastexp_limited(0.5 * (erf_radlim_lim0_log_approx(xd)*erf_radlim_lim0_weight(k) + erf_radlim_liminf_log_approx(x)*erf_radlim_liminf_weight(k)));
+	y = sqrt(1. - y) * sign(x);
+	y = y*mid_v + mid_v;
+	return y;
 }

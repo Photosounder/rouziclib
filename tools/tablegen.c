@@ -1118,9 +1118,13 @@ void write_fastexp_limited_lut()
 		segstart = u64_as_double( double_as_u64(offset) + (is << ish) ) - offset;
 		segend = u64_as_double( double_as_u64(offset) + ((is+1) << ish) - 1 ) - offset;
 
+		if (segstart==0.)
+			segstart = -0.0177488586;
+			//segstart = segend - (segend-segstart) / (0.5+0.5*cos(pi * 0.5 / ((double) order+1.)));	// extend the range so that 0 is at a node
+
 		polynomial_fit_on_function_by_dct(f_exp, segstart, segend, c, order);
 		err = get_polynomial_error(f_exp, segstart, segend, c, order, NEGMODE);
-		err = reduce_digits(f_exp, segstart, segend, c, order, NEGMODE, 1.0001, 20.);
+		err = reduce_digits(f_exp, segstart, segend, c, order, NEGMODE, 1.00003, 20.);
 
 		printf("[%02d] e 1/%5.0f [%f , %f] span 1/%g\n", is, 1./err, segstart, segend, MAXN(0., 1./(segend-segstart)));
 

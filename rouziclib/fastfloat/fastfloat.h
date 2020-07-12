@@ -14,6 +14,7 @@ extern float fastgaussianf_d1(float x);
 extern float fasterfrf_d0(float x);
 extern float fasterfrf_d1(float x);
 extern double fastatan2(double y, double x);
+extern double fastexp_limited(double x);
 
 #else
 

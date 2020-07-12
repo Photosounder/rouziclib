@@ -324,4 +324,31 @@ double fastatan2(double y, double x)	// as it is the caller must provide numbers
 	return th;
 }
 
+double fastexp_limited(double x)	// max error of 1/11039 for x <= 0
+{
+	static const double lut[] = 
+	#include "fastexp_limited.h"		// 552 bytes, contains order, ish, offset, end
+	uint32_t lutind;
+
+	if (x > 0.)
+	{
+		static int init=1;
+		if (init)
+		{
+			init = 0;
+			fprintf_rl(stderr, "fastexp_limited() doesn't take positive values\n");
+		}
+		return NAN;
+	}
+
+	x = -x;		// the lut approximation is actually for exp(-x)
+
+	if (x > end)
+		return 0.;
+
+	lutind = double_as_u64(x + offset) - double_as_u64(offset) >> ish;
+
+	return polynomial_from_lut(lut, lutind, order, x);
+}
+
 #endif
