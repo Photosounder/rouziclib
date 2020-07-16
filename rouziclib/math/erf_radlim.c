@@ -1,24 +1,23 @@
-double erf_radlim_end_x(double k)	// gives the end x value for a given k (radlim) for erf_radlim
+double erf_radlim_mid_value(double k)
 {
-	static const double lut[] = 
-	#include "erf_radlim/end_value_lut.h"
-	const int64_t ish = 52-lutsp;
-	int lutind;
-
-	if (k < 0.)
-		return 0.;
-
-	if (k > 3.999)
-		return 1.;
-
-	lutind = double_get_mantissa(k + 4.) >> ish;
-	return polynomial_from_lut(lut, lutind, order, k);
+	// target error: 1/20600
+	if (k <= 1.25161)
+		if (k <= 0.8)
+		{
+			k *= k;
+			return ((0.0609*k - 0.241556)*k + 0.49895)*k;		// err: 4.11e-5 (1 in 24311)
+		}
+		else
+			return ((-0.10807052*k + 0.147360567)*k + 0.39700003)*k - 0.120273435;
+	else
+		if (k <= 2.16236)
+			return ((0.0798091417*k - 0.5408175)*k + 1.241718028)*k - 0.467828544;
+		else
+			return ((0.0127657*k - 0.108662)*k + 0.3090347)*k + 0.2061557;
 }
 
 /*double erf_radlim_lim0_approx(double x)	// approx of 1 - ((x*sqrt(1 - x^2) + asin(x))/2*4/pi)^2, the modified limit for k -> 0 in 1-erf_radlim(x, k)^2
 {
-	double x2;
-
 	ffabs(&x);
 	
 	if (x >= 1.)
@@ -26,20 +25,18 @@ double erf_radlim_end_x(double k)	// gives the end x value for a given k (radlim
 
 	if (x <= 0.675)
 	{
-		x2 = x*x;
-		return (0.57267*x2 - 1.627166)*x2 + 1.00016;			// err: 1.81e-04 (1 in 5515)
+		x *= x;
+		return (0.57267*x - 1.627166)*x + 1.00016;			// err: 1.81e-4 (1 in 5515)
 	}
 
 	if (x <= 0.93)
-		return ((3.30203*x - 6.919688)*x + 3.361511)*x + 0.24595;	// err: 1.83e-04 (1 in 5471)
+		return ((3.30203*x - 6.919688)*x + 3.361511)*x + 0.24595;	// err: 1.83e-4 (1 in 5471)
 
-	return ((35.568676*x - 97.9614102)*x + 89.031507)*x - 26.638953;	// err: 1.80e-04 (1 in 5541)
+	return ((35.568676*x - 97.9614102)*x + 89.031507)*x - 26.638953;	// err: 1.80e-4 (1 in 5541)
 }*/
 
 double erf_radlim_lim0_log_approx(double x)	// approx of log(1 - ((x*sqrt(1 - x^2) + asin(x))/2*4/pi)^2), the modified limit for k -> 0 in 1-erf_radlim(x, k)^2
 {
-	double x2;
-
 	ffabs(&x);
 	
 	if (x >= 1.)
@@ -47,8 +44,8 @@ double erf_radlim_lim0_log_approx(double x)	// approx of log(1 - ((x*sqrt(1 - x^
 
 	if (x <= 0.6)
 	{
-		x2 = x*x;
-		return ((-0.95263*x2 - 0.657815)*x2 - 1.630125)*x2;						// post-exp err: 1.96e-4 (1 in 5104)
+		x *= x;
+		return ((-0.95263*x - 0.657815)*x - 1.630125)*x;						// post-exp err: 1.96e-4 (1 in 5104)
 	}
 
 	if (x <= 0.85)
@@ -65,72 +62,80 @@ double erf_radlim_lim0_log_approx(double x)	// approx of log(1 - ((x*sqrt(1 - x^
 
 /*double erf_radlim_liminf_approx(double x)	// approx of 1 - erf(x)^2, the modified limit for k -> +inf in 1-erf_radlim(x, k)^2
 {
-	double x2;
-
 	ffabs(&x);
 
 	if (x <= 1.)
 		if (x <= 0.5)
 		{
-			x2 = x*x;
-			return (0.715*x2 - 1.26113)*x2 + 0.999835;				// err: 1.65e-04 (1 in 6054)
+			x *= x;
+			return (0.715*x - 1.26113)*x + 0.999835;				// err: 1.65e-4 (1 in 6054)
 		}
 		else
-			return ((0.574485*x - 1.049292)*x - 0.309837)*x + 1.0747264;		// err: 2.28e-04 (1 in 4388)
+			return ((0.574485*x - 1.049292)*x - 0.309837)*x + 1.0747264;		// err: 2.28e-4 (1 in 4388)
 	else
 		if (x <= 2.)
-			return ((-0.197166*x + 1.219302)*x - 2.558627)*x + 1.82658;		// err: 2.33e-04 (1 in 4290)
+			return ((-0.197166*x + 1.219302)*x - 2.558627)*x + 1.82658;		// err: 2.33e-4 (1 in 4290)
 		else
 			if (x < 3.)
-				return ((-0.02050837*x + 0.1692938)*x - 0.466051)*x + 0.428151;	// err: 1.76e-04 (1 in 5683)
+				return ((-0.02050837*x + 0.1692938)*x - 0.466051)*x + 0.428151;	// err: 1.76e-4 (1 in 5683)
 			else
 				return 0.;
 }*/
 
 double erf_radlim_liminf_log_approx(double x)	// approx of log(1 - erf(x)^2), the modified limit for k -> +inf in 1-erf_radlim(x, k)^2
 {
-	double x2 = x*x;
-
-	return ((-0.0028207*x2 + 0.03688)*x2 - 1.27238)*x2;
+	x *= x;
+	return ((-0.0028207*x + 0.03688)*x - 1.27238)*x;
 }
 
 double erf_radlim_lim0_weight(double k)
 {
-	// target error: 1/337.21
-	if (k <= 1.70934)
-		if (k <= 0.93951)
-			return (-0.11246*k + 0.037)*k + 1.9978;
+	// target error: 1/1474
+	if (k <= 2.056)
+		if (k <= 1.6)
+		{
+			k *= k;
+			return (-0.0273679*k - 0.0153797)*k + 0.9998825;		// err: 4.59e-4 (1 in 2179)
+		}
 		else
-			return (-0.58987*k + 0.94431)*k + 1.56086;
+			return (-0.26659807*k + 0.35105132)*k + 0.9029234;
 	else
-		if (k <= 2.22854)
-			return (-0.305691*k - 0.154436)*k + 2.6089;
+		if (k <= 2.43166)
+			return (0.1574509*k - 1.39605301)*k + 2.70381;
 		else
-			return (0.804468*k - 5.091863)*k + 8.10453;
+			return (0.41673568*k - 2.6250933)*k + 4.15970445;
 }
 
 double erf_radlim_liminf_weight(double k)
 {
-	// target error: 1/768.584
-	if (k <= 1.76863)
-		if (k <= 1.12855)
-			return (0.22099*k - 0.01024)*k + 0.886984;
+	// target error: 1/2291
+	if (k <= 1.88705)
+		if (k <= 1.38)
+		{
+			k *= k;
+			return (0.0024849*k + 0.103296)*k + 0.4428941;			// err: 1 in 2461
+		}
 		else
-			return (0.13291*k + 0.22598)*k + 0.732265;
+			return (0.01935059*k + 0.26057699)*k + 0.25137187;
 	else
-		if (k <= 2.35951)
-			return (-0.244429*k + 1.56298)*k - 0.45466;
+		if (k <= 2.44995)
+			return (-0.14819569*k + 0.8923482)*k - 0.34505976;
 		else
-			return (-0.262188*k + 1.58664)*k - 0.411596;
+			return (-0.12126571*k + 0.7387307)*k - 0.130267;
 }
 
 double erf_radlim_approx(double x, double k)
 {
 	double xd, y, mid_v;
+
+	if (k > 3.)
+		return fasterfrf_d1(x);
+
 	xd = x/k;
-	mid_v = 0.5*erf_radlim_end_x(k);
-	y = fastexp_limited(0.5 * (erf_radlim_lim0_log_approx(xd)*erf_radlim_lim0_weight(k) + erf_radlim_liminf_log_approx(x)*erf_radlim_liminf_weight(k)));
+	mid_v = erf_radlim_mid_value(k);
+	y = fastexp_limited((erf_radlim_lim0_log_approx(xd)*erf_radlim_lim0_weight(k) + erf_radlim_liminf_log_approx(x)*erf_radlim_liminf_weight(k)));
 	y = sqrt(1. - y) * sign(x);
 	y = y*mid_v + mid_v;
+
 	return y;
 }

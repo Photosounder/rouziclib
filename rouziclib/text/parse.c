@@ -396,3 +396,27 @@ int find_line_indentation_depth(const char *line)	// returns how many \t the lin
 
 	return depth;
 }
+
+void parse_xy_array_file(char *path, xy_t **xy_array, size_t *xy_array_size)
+{
+	int i, lineoff=0, linecount, xfield=0, yfield=1;
+	char delim[8]={'\t'}, field[64];
+	char **array = arrayise_text(load_raw_file_dos_conv(path, NULL), &linecount);
+
+	if (sscanf(array[0], "separator=\"%[^\"]\" x=%d y=%d", delim, &xfield, &yfield) > 0)
+		lineoff = 1;
+
+	free(*xy_array);
+	*xy_array = calloc(*xy_array_size=linecount-lineoff, sizeof(xy_t));
+
+	for (i=0; i < *xy_array_size; i++)
+	{
+		if (string_get_field(array[i+lineoff], delim, xfield, field))
+			(*xy_array)[i].x = atof(field);
+
+		if (string_get_field(array[i+lineoff], delim, yfield, field))
+			(*xy_array)[i].y = atof(field);
+	}
+
+	free_2d(array, 1);
+}

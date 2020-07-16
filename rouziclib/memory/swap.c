@@ -14,6 +14,14 @@ void swap_i32(int32_t *a, int32_t *b)
 	*b = c;
 }
 
+void swap_int(int *a, int *b)
+{
+	int c = *a;
+
+	*a = *b;
+	*b = c;
+}
+
 void swap_ptr(void **a, void **b)
 {
 	void *c = *a;

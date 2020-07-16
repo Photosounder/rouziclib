@@ -6,7 +6,6 @@
 
 #include <gmp.h>
 #include <mpfr.h>
-#include <mpf2mpfr.h>
 
 #define real_t	mpfr_t
 

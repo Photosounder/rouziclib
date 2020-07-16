@@ -28,7 +28,7 @@ void r_free_array(real_t **a, int count)
 	for (i=0; i < count; i++)
 		r_free((*a)[i]);
 
-	free_null(a);
+	free_null((void **) a);
 }
 
 void r_flipsign(real_t y, real_t x)

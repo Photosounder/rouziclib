@@ -26,3 +26,4 @@ extern const char *find_pattern_in_string(const char *str, const char *pat);
 extern const char *find_date_time_in_string(const char *str);
 extern double parse_timestamp(const char *ts);
 extern int find_line_indentation_depth(const char *line);
+extern void parse_xy_array_file(char *path, xy_t **xy_array, size_t *xy_array_size);

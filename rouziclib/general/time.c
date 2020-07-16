@@ -165,8 +165,8 @@ void sleep_hr(double t)
 
 	if (init)
 	{
-		NtDelayExecution = (NtDelayExecution_func) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
-		ZwSetTimerResolution = (ZwSetTimerResolution_func) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
+		NtDelayExecution = (NtDelayExecution_func) GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtDelayExecution");
+		ZwSetTimerResolution = (ZwSetTimerResolution_func) GetProcAddress(GetModuleHandleA("ntdll.dll"), "ZwSetTimerResolution");
 		ULONG actualResolution;
 		ZwSetTimerResolution(1, TRUE, &actualResolution);
 		init = 0;

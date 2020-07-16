@@ -362,11 +362,13 @@ real_t *polynomial_power_mpfr(real_t *a, int adeg, int n, int *maxdegp)
 	}
 
 	r_free_array(&c1, adeg*n+1);
-	for (i=maxdegp+1; i < adeg*n+1; i++)
-		r_free(c0[i]);		// c0 will only have reals up to maxdeg
 
 	if (maxdegp)
 		*maxdegp = maxdeg;
+
+	for (i=*maxdegp+1; i < adeg*n+1; i++)
+		r_free(c0[i]);		// c0 will only have reals up to maxdeg
+
 	return c0;
 }
 

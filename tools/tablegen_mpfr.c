@@ -1,4 +1,4 @@
-//	gcc tablegen_mpfr.c -o tablegen_mpfr.exe -std=c99 -lm -lmpfr -lgmp -lwinmm -lgdi32 -w -O0 && ./tablegen_mpfr
+//	gcc tablegen_mpfr.c -o tablegen_mpfr.exe -std=c99 -lm -lmpfr -lgmp -lwinmm -lcomdlg32 -lole32 -Wno-incompatible-pointer-types -O0 && ./tablegen_mpfr.exe
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -701,7 +701,7 @@ void find_polynomial_local_min(void (*f)(real_t,real_t), real_t start, real_t en
 		r_init(step);
 	}
 
-	err0 = get_polynomial_error_mpfr(f, start, end, c, errmode);
+	err0 = get_polynomial_error_mpfr(f, start, end, c, order, errmode);
 	maxerr = err0;
 
 	hw = 0.5 * (r_todouble(end) - r_todouble(start));
@@ -718,7 +718,7 @@ void find_polynomial_local_min(void (*f)(real_t,real_t), real_t start, real_t en
 			for (i=0; i<2; i++)
 			{
 				r_add(c[n], step);
-				err1 = get_polynomial_error_mpfr(f, start, end, c, errmode);
+				err1 = get_polynomial_error_mpfr(f, start, end, c, order, errmode);
 
 				if (err1 < maxerr)
 				{
@@ -732,7 +732,7 @@ void find_polynomial_local_min(void (*f)(real_t,real_t), real_t start, real_t en
 			for (i=0; i<2; i++)
 			{
 				r_sub(c[n], step);
-				err1 = get_polynomial_error_mpfr(f, start, end, c, errmode);
+				err1 = get_polynomial_error_mpfr(f, start, end, c, order, errmode);
 
 				if (err1 < maxerr)
 				{
@@ -909,7 +909,7 @@ void make_cos_table(const int cos_order, const int lutsp, const int quads)	// co
 	real_t c[COEF_COUNT];
 	real_t start, segstep, segstart, segend;
 	double end, step, err, errd, errf, maxerr=0., maxerrd=0., maxerrf=0., v, maxv=0.;
-double k, errmin=1., mink;
+double k=0., errmin=1., mink;
 	FILE *file;
 	char header_path[64];
 
@@ -951,7 +951,7 @@ double k, errmin=1., mink;
 			//find_polynomial_fit(f_cos, segstart, segend, c, cos_order, k);	// this doesn't really work, very imprecise
 			find_polynomial_fit_old(f_cos, segstart, segend, c, cos_order, k);
 			//find_polynomial_local_min(f_cos, segstart, segend, c, cos_order, NEGMODE);
-			err = get_polynomial_error_mpfr(f_cos, segstart, segend, c, NEGMODE);
+			err = get_polynomial_error_mpfr(f_cos, segstart, segend, c, cos_order, NEGMODE);
 			if (err > maxerr)
 				maxerr = err;
 		}
@@ -1029,7 +1029,7 @@ void make_cos_table_human(const int cos_order, const double step)	// cos_order i
 		polynomial_fit_on_function_by_dct_mpfr(f_cos, segstart, segend, c, cos_order);
 		//polynomial_fit_on_function_mpfr(f_cos, segstart, segend, c, cos_order);
 		//find_polynomial_fit_old(f_cos, segstart, segend, c, cos_order, 0.);
-		//err = get_polynomial_error_mpfr(f_cos, segstart, segend, c, NEGMODE);
+		//err = get_polynomial_error_mpfr(f_cos, segstart, segend, c, order, NEGMODE);
 
 		// Reduce digits
 		err = reduce_digits_mpfr(f_cos, segstart, segend, c, cos_order, NEGMODE, 1.1, 30.);
@@ -1186,7 +1186,7 @@ void make_wsinc_table(const int order, const int lutsp, double wsinc_range, doub
 
 		// Fitting
 		find_polynomial_fit_old(f_wsinc, segstart, segend, c, order, 0.);
-		err = get_polynomial_error_mpfr(f_wsinc, segstart, segend, c, no_sine==0 ? NEGMODE : DIVMODE);
+		err = get_polynomial_error_mpfr(f_wsinc, segstart, segend, c, order, no_sine==0 ? NEGMODE : DIVMODE);
 		if (err > maxerr)
 			maxerr = err;
 
@@ -1210,7 +1210,7 @@ void make_wsinc_table(const int order, const int lutsp, double wsinc_range, doub
 	fclose (file);
 
 	printf("\nMax error: %g\n", maxerr);
-	printf("LUT size (double): %d bytes\n", segcount * (order+1) * sizeof(double));
+	printf("LUT size (double): %zu bytes\n", segcount * (order+1) * sizeof(double));
 }
 
 void test_matrix()
@@ -1373,7 +1373,7 @@ void make_erf_radlim_table2(const int order, const double step, int order_index)
 
 		// Fit
 		find_polynomial_fit_old(f_erf_radlim_coef, segstart, segend, c, order, 0.);
-		err = get_polynomial_error_mpfr(f_erf_radlim_coef, segstart, segend, c, NEGMODE);
+		err = get_polynomial_error_mpfr(f_erf_radlim_coef, segstart, segend, c, order, NEGMODE);
 
 		// Reduce digits
 		err = reduce_digits_mpfr(f_erf_radlim_coef, segstart, segend, c, order, NEGMODE, 1.01, 10.);
@@ -1434,9 +1434,9 @@ void make_erf_radlim_table(const int order, const double step)	// order is <= 6
 
 		// Fit
 		//find_polynomial_fit_old(f_erf_radlim, segstart, segend, c, order, 0.);
-		//err = get_polynomial_error_mpfr(f_erf_radlim, segstart, segend, c, NEGMODE);
+		//err = get_polynomial_error_mpfr(f_erf_radlim, segstart, segend, c, order, NEGMODE);
 		find_polynomial_fit_old(f_erf_radlim, z, segstep, c, order, 0.);
-		err = get_polynomial_error_mpfr(f_erf_radlim, z, segstep, c, NEGMODE);
+		err = get_polynomial_error_mpfr(f_erf_radlim, z, segstep, c, order, NEGMODE);
 
 		// Reduce digits
 		//err = reduce_digits_mpfr(f_erf_radlim, segstart, segend, c, order, NEGMODE, 1.01, 10.);
@@ -1460,21 +1460,60 @@ void make_erf_radlim_table(const int order, const double step)	// order is <= 6
 	printf("\nMax error: %g\n", maxerr);
 }
 
-void f_erf_radlim_end(real_t y, real_t x)
+xy_t *xy_array=NULL;
+size_t xy_array_size=0;
+
+void f_erf_radlim_mid(real_t y, real_t k)
 {
-	if ((rand() & 0xFF) == 0)
+	/*if ((rand() & 0xFF) == 0)
 	{
-		fprintf_rl(stdout, "radlim = %g\n", r_todouble(x));
+		fprintf_rl(stdout, "radlim = %g\n", r_todouble(k));
 		fflush(stdout);
 	}
 
-	if (r_todouble(x) < 1e-6)
+	if (r_todouble(k) < 1e-6)
 		r_setd(y, 0.);
 	else
-		r_setd(y, erf_radlim(r_todouble(x), r_todouble(x), 2e-6 * r_todouble(x)));
+		r_setd(y, erf_radlim(r_todouble(k), r_todouble(k), 2e-6 * r_todouble(k)));*/
+	r_setd(y, get_interpolated_xy_array_value(r_todouble(k), xy_array, xy_array_size));
 }
 
-void make_erf_radlim_end_table(const int order, const double step)	// order is <= 6
+void load_erf_radlim_mid_raw_lut()
+{
+	FILE *file;
+	char path[] = "erf_radlim_mid_raw.dat";
+	int i;
+	double k;
+	double ts=0.;
+	get_time_diff_hr(&ts);
+
+	if (check_file_is_readable(path))
+		parse_xy_array_file(path, &xy_array, &xy_array_size);
+	else
+	{
+		file = fopen_utf8(path, "wb");
+		xy_array = calloc(xy_array_size=ceil(4./0.001)+1., sizeof(xy_t));
+
+		for (i=0; i < xy_array_size; i++)
+		{
+			k = 4. * (double) i / (double) (xy_array_size-1);
+			if (k==0.)
+				xy_array[i] = xy(k, 0.);
+			else
+				xy_array[i] = xy(k, 0.5*erf_radlim(k, k, 1e-8 * k));
+
+			if (file)
+				fprintf(file, "%.3f\t%.10f\n", xy_array[i].x, xy_array[i].y);
+		}
+
+		if (file)
+			fclose(file);
+
+		fprintf_rl(stdout, "Generating the erf_radlim_mid raw LUT took %g sec\n\n", get_time_diff_hr(&ts));
+	}
+}
+
+void make_erf_radlim_mid_table(const int order, const double step)	// order is <= 6
 {
 	int32_t i, is, segcount, prec;
 	real_t c[COEF_COUNT];
@@ -1483,10 +1522,12 @@ void make_erf_radlim_end_table(const int order, const double step)	// order is <
 	FILE *file;
 	char header_path[64];
 
+	load_erf_radlim_mid_raw_lut();
+
 	segcount = nearbyint(ceil((end-start) / step));
 
-	//sprintf(header_path, "erf_radlim_end_d%d_step_%g_human.dat", order, step);
-	sprintf(header_path, "../rouziclib/math/erf_radlim/end_value_lut.h");
+	//sprintf(header_path, "erf_radlim_mid_d%d_step_%g_human.dat", order, step);
+	sprintf(header_path, "../rouziclib/math/erf_radlim/mid_value_lut.h");
 	file = fopen(header_path, "wb");
 	fprintf(file, "{");
 
@@ -1512,11 +1553,12 @@ void make_erf_radlim_end_table(const int order, const double step)	// order is <
 		seg_offset = r_todouble(segstart);
 
 		// Fit
-		find_polynomial_fit_old(f_erf_radlim_end, segstart, segend, c, order, 0.);
-		//err = get_polynomial_error_mpfr(f_erf_radlim_end, segstart, segend, c, NEGMODE);
+		polynomial_fit_on_function_by_dct_mpfr(f_erf_radlim_mid, segstart, segend, c, order);
+		//find_polynomial_fit_old(f_erf_radlim_mid, segstart, segend, c, order, 0.);
+		//err = get_polynomial_error_mpfr(f_erf_radlim_mid, segstart, segend, c, order, NEGMODE);
 
 		// Reduce digits
-		err = reduce_digits_mpfr(f_erf_radlim_end, segstart, segend, c, order, NEGMODE, 1.0001, 16.);
+		err = reduce_digits_mpfr(f_erf_radlim_mid, segstart, segend, c, order, NEGMODE, 1.00003, 16.);
 		if (err > maxerr)
 		{
 			maxerr = err;
@@ -1529,8 +1571,8 @@ void make_erf_radlim_end_table(const int order, const double step)	// order is <
 		mpfr_fprintf(file, "%.20Rg%s", c[order], (is==segcount-1) ? "};\n" : ", \n");
 		fflush(file);
 	}
-	//mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
-	fprintf(file, "const int order = %d;\n", order);
+	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
+	fprintf(file, "const int order = %d, lutsp = %g;\n", order, nearbyint(1./step));
 
 	fclose (file);
 
@@ -1601,7 +1643,7 @@ void make_asin_table_human(const int order, const double step)
 
 		// Fit
 		find_polynomial_fit_old(f_asin, segstart, segend, c, order, 0.);
-		err = get_polynomial_error_mpfr(f_asin, segstart, segend, c, NEGMODE);
+		err = get_polynomial_error_mpfr(f_asin, segstart, segend, c, order, NEGMODE);
 
 		// Reduce digits
 		err = reduce_digits_mpfr(f_asin, segstart, segend, c, order, NEGMODE, 1.03, 20.);
@@ -1629,8 +1671,10 @@ int main(int argc, char **argv)
 {
 	mpfr_set_default_prec(PREC);
 
-	make_cos_table_human(atoi(argv[1]), 0.01);
-/*	make_cos_table(2, 5, 4);	// 1/2 kB, float err 4.2e-006, double err 6.159e-007
+	make_erf_radlim_mid_table(3, 1./4.);
+
+/*	make_cos_table_human(atoi(argv[1]), 0.01);
+	make_cos_table(2, 5, 4);	// 1/2 kB, float err 4.2e-006, double err 6.159e-007
 	make_cos_table(3, 5, 4);	// 3 kB, err 1.88958e-009
 	make_cos_table(4, 5, 2);	// 2 kB, err 4.63742e-012
 	make_cos_table(5, 6, 1);	// 2.5 kB, err ~9e-016, pure err 1.48783e-016
@@ -1646,8 +1690,6 @@ int main(int argc, char **argv)
 		fprintf_rl(stdout, "radlim %g, step 1/%g\n", radlim, atof(argv[2]));
 		make_erf_radlim_table(3, 1./atof(argv[2]));
 	}
-
-	make_erf_radlim_end_table(3, 1./4.);
 
 	if (argc >= 3)
 	{

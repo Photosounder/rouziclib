@@ -170,7 +170,7 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 
 void drawq_soft_run()
 {
-	int i, r_pitch;
+	int i, r_pitch=0;
 
 	// Init once
 	if (dqs_data==NULL)
