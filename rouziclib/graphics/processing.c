@@ -300,6 +300,25 @@ void image_downscale_fast_box(raster_t r0, raster_t *r1, const xyi_t ratio, cons
 	}
 }
 
+frgb_t get_raster_pixel_bilinear_frgb(raster_t r, xy_t p)
+{
+	xy_t t;
+	rect_t p_rect;
+	recti_t pri;
+	frgb_t pv={0};
+
+	p_rect = rect(floor_xy(p), ceil_xy(p));
+	pri = rect_to_recti(p_rect);
+	t = sub_xy(p, p_rect.p0);
+
+	pv =               mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, pri.p0), (1.-t.x) * (1.-t.y));
+	pv = add_frgba(pv, mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, recti_p01(pri)), (1.-t.x) * t.y));
+	pv = add_frgba(pv, mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, recti_p10(pri)), t.x * (1.-t.y)));
+	pv = add_frgba(pv, mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, pri.p1), t.x * t.y));
+
+	return pv;
+}
+
 // Functions that process a whole image using a pointer to a per-pixel processing function
 void image_pixel_process_arg0(raster_t r, const int mode, void (*func)(void))
 {

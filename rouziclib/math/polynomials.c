@@ -195,6 +195,24 @@ void polynomial_scalar_mul(double *a, int adeg, double m, double *c)
 		c[i] = a[i] * m;
 }
 
+void polynomial_scalar_mul_2d(double **a, xyi_t adeg, double m, double **c)
+{
+	xyi_t id;
+
+	for (id.y=0; id.y <= adeg.y; id.y++)
+		for (id.x=0; id.x <= adeg.x; id.x++)
+			c[id.y][id.x] = a[id.y][id.x] * m;
+}
+
+void polynomial_scalar_muladd_2d(double **a, xyi_t adeg, double m, double **c)
+{
+	xyi_t id;
+
+	for (id.y=0; id.y <= adeg.y; id.y++)
+		for (id.x=0; id.x <= adeg.x; id.x++)
+			c[id.y][id.x] += a[id.y][id.x] * m;
+}
+
 int polynomial_multiplication(double *a, int adeg, double *b, int bdeg, double *c, int cdeg)
 {
 	int ia, ib, deg, maxdeg=0;
@@ -206,10 +224,12 @@ int polynomial_multiplication(double *a, int adeg, double *b, int bdeg, double *
 			deg = ia + ib;
 
 			if (cdeg >= deg)
+			{
 				c[deg] += a[ia] * b[ib];
 
-			if (c[deg] != 0.)
-				maxdeg = MAXN(maxdeg, deg);
+				if (c[deg] != 0.)
+					maxdeg = MAXN(maxdeg, deg);
+			}
 		}
 	}
 
@@ -219,10 +239,38 @@ int polynomial_multiplication(double *a, int adeg, double *b, int bdeg, double *
 	return maxdeg;
 }
 
+xyi_t polynomial_multiplication_2d(double **a, xyi_t adeg, double **b, xyi_t bdeg, double **c, xyi_t cdeg)
+{
+	xyi_t ia, ib, ic, maxdeg=XYI0;
+
+	for (ia.y=0; ia.y <= adeg.y; ia.y++)
+		for (ia.x=0; ia.x <= adeg.x; ia.x++)
+		{
+			for (ib.y=0; ib.y <= bdeg.y; ib.y++)
+				for (ib.x=0; ib.x <= bdeg.x; ib.x++)
+				{
+					ic = add_xyi(ia, ib);
+
+					if (cdeg.y >= ic.y && cdeg.x >= ic.x)
+					{
+						c[ic.y][ic.x] += a[ia.y][ia.x] * b[ib.y][ib.x];
+
+						if (c[ic.y][ic.x] != 0.)
+							maxdeg = max_xyi(maxdeg, ic);
+					}
+				}
+		}
+
+	if (cdeg.y < maxdeg.y || cdeg.x < maxdeg.x)
+		fprintf_rl(stderr, "cdeg of %d , %d < maxdeg of %d , %d in polynomial_multiplication()\n", cdeg.x, cdeg.y, maxdeg.x, maxdeg.y);
+
+	return maxdeg;
+}
+
 double *polynomial_power(double *a, int adeg, int n, int *maxdegp)
 {
 	int i, maxdeg=0;
-	double *c0, *c1, *p;
+	double *c0, *c1;
 
 	if (n==0)
 	{
@@ -230,7 +278,7 @@ double *polynomial_power(double *a, int adeg, int n, int *maxdegp)
 		c0[0] = 1.;
 
 		if (maxdegp)
-			*maxdegp = 0;
+			*maxdegp = maxdeg;
 		return c0;
 	}
 
@@ -243,12 +291,45 @@ double *polynomial_power(double *a, int adeg, int n, int *maxdegp)
 		memset(c1, 0, (adeg*n+1)*sizeof(double));
 		maxdeg = polynomial_multiplication(a, adeg, c0, maxdeg, c1, adeg*n);
 
-		p = c0;
-		c0 = c1;
-		c1 = p;
+		swap_ptr(&c0, &c1);
 	}
 
 	free(c1);
+
+	if (maxdegp)
+		*maxdegp = maxdeg;
+	return c0;
+}
+
+double **polynomial_power_2d(double **a, xyi_t adeg, int n, xyi_t *maxdegp)
+{
+	int i;
+	xyi_t maxdeg=XYI0;
+	double **c0, **c1;
+
+	if (n==0)
+	{
+		c0 = (double **) calloc_2d_contig(1, 1, sizeof(double));
+		c0[0][0] = 1.;
+
+		if (maxdegp)
+			*maxdegp = maxdeg;
+		return c0;
+	}
+
+	c1 = (double **) calloc_2d_contig(adeg.y*n+1, adeg.x*n+1, sizeof(double));
+	c0 = (double **) calloc_2d_contig(adeg.y*n+1, adeg.x*n+1, sizeof(double));
+	c0[0][0] = 1.;
+
+	for (i=1; i <= n; i++)
+	{
+		memset_2d(c1, 0, (adeg.x*n+1)*sizeof(double), adeg.y*n+1);
+		maxdeg = polynomial_multiplication_2d(a, adeg, c0, maxdeg, c1, mul_xyi(adeg, set_xyi(n)));
+
+		swap_ptr((void **) &c0, (void **) &c1);
+	}
+
+	free_2d(c1, 1);
 
 	if (maxdegp)
 		*maxdegp = maxdeg;
@@ -267,6 +348,33 @@ void polynomial_x_substitution(double *a, int adeg, double *xs, int xsdeg, doubl
 			c[i] += a[id] * exs[i];				// multiply by the coefficient and add to c
 		free(exs);
 	}
+}
+
+void polynomial_x_substitution_2d(double **a, xyi_t adeg, double *xs, double *yso, xyi_t sdeg, double **c)
+{
+	xyi_t i, id, maxdegx, maxdegy, maxdeg;
+	double **exs, **eys, **ys, **es;
+
+	ys = (double **) array_1d_to_2d_contig(yso, sdeg.y+1, sizeof(double));
+
+	for (id.y=0; id.y <= adeg.y; id.y++)
+		for (id.x=0; id.x <= adeg.x; id.x++)
+		{
+			exs = polynomial_power_2d(&xs, xyi(sdeg.x, 0), id.x, &maxdegx);		// expand xs^id.x
+			eys = polynomial_power_2d(ys, xyi(0, sdeg.y), id.y, &maxdegy);		// expand ys^id.y
+			maxdeg = sub_xyi(mul_xyi(add_xyi(maxdegx, set_xyi(1)), add_xyi(maxdegy, set_xyi(1))), set_xyi(1));
+			es = (double **) calloc_2d_contig(maxdeg.y+1, maxdeg.x+1, sizeof(double));
+
+			maxdeg = polynomial_multiplication_2d(exs, maxdegx, eys, maxdegy, es, maxdeg);	// es = exs * eys
+
+			polynomial_scalar_muladd_2d(es, maxdeg, a[id.y][id.x], c);			// scalar multiply by the coefficient and add to c
+
+			free_2d(exs, 1);
+			free_2d(eys, 1);
+			free_2d(es, 1);
+		}
+
+	free(ys);
 }
 
 #ifdef RL_MPFR
@@ -317,10 +425,12 @@ int polynomial_multiplication_mpfr(real_t *a, int adeg, real_t *b, int bdeg, rea
 			deg = ia + ib;
 
 			if (cdeg >= deg)
+			{
 				r_fma(c[deg], a[ia], b[ib], c[deg]);
 
-			if (mpfr_zero_p(c[deg])==0)
-				maxdeg = MAXN(maxdeg, deg);
+				if (mpfr_zero_p(c[deg])==0)
+					maxdeg = MAXN(maxdeg, deg);
+			}
 		}
 	}
 
@@ -469,6 +579,25 @@ real_t *chebyshev_coefs_mpfr(int degree)
 	return t1;
 }
 #endif
+
+double **chebyshev_coefs_2d(xyi_t degree)
+{
+	xyi_t id;
+	double *tx, *ty, **t;
+
+	tx = chebyshev_coefs(degree.x);
+	ty = chebyshev_coefs(degree.y);
+
+	t = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
+
+	for (id.y=0; id.y <= degree.y; id.y++)
+		for (id.x=0; id.x <= degree.x; id.x++)
+			t[id.y][id.x] = ty[id.y] * tx[id.x];
+
+	free(tx);
+	free(ty);
+	return t;
+}
 
 double chebyshev_node(double degree, double node)		// node = 0,...,degree-1
 {
@@ -663,6 +792,28 @@ double chebyshev_multiplier_by_dct(double *y, int p_count, int id)	// look for t
 	return sum;
 }
 
+double chebyshev_multiplier_by_dct_2d(double **z, int p_count, xyi_t id)	// look for the Chebyshev multiplier of degree id
+{
+	xyi_t ip;
+	double x, y, sum=0.;
+	xy_t freq = mul_xy(xyi_to_xy(id), set_xy(pi / (double) p_count));
+
+	// DCT
+	for (y=0.5, ip.y=0; ip.y < p_count; ip.y++, y+=1.)
+		for (x=0.5, ip.x=0; ip.x < p_count; ip.x++, x+=1.)
+			sum += z[ip.y][ip.x] * cos(y * freq.y) * cos(x * freq.x);
+
+	// Sum division
+	sum *= 4. / sq((double) p_count);
+	if (id.y==0)
+		sum *= 0.5;	// frequency 0 gets its sum halved
+
+	if (id.x==0)
+		sum *= 0.5;	// frequency 0 gets its sum halved
+
+	return sum;
+}
+
 void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, double end, double *c, int degree)
 {
 	int id;
@@ -697,6 +848,47 @@ void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double
 	// Fit
 	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree);
 	free(y);
+}
+
+void polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start, xy_t end, double **c, xyi_t degree)
+{
+	xyi_t id;
+	double cm, **cc, xs[2], ys[2];
+
+	memset_2d(c, 0, (degree.x+1)*sizeof(double), degree.y+1);
+
+	// x and y substitution for the shifting
+	xs[0] = -2.*start.x/(end.x-start.x) - 1.;
+	ys[0] = -2.*start.y/(end.y-start.y) - 1.;
+	xs[1] = 2. / (end.x-start.x);
+	ys[1] = 2. / (end.y-start.y);
+
+	// Compute the coefficients
+	for (id.y=0; id.y <= degree.y; id.y++)
+		for (id.x=0; id.x <= degree.x; id.x++)
+		{
+			cm = chebyshev_multiplier_by_dct_2d(z, p_count, id);		// get the Chebyshev multiplier for degree id
+			cc = chebyshev_coefs_2d(id);					// get the default polynomial coeficients
+			polynomial_scalar_mul_2d(cc, id, cm, cc);			// apply the multiplier
+			polynomial_x_substitution_2d(cc, id, xs, ys, xyi(1, 1), c);	// shift the polynomial and add to c
+			free_2d(cc, 1);
+		}
+}
+
+void polynomial_fit_on_function_by_dct_2d(double (*f)(double, double), xy_t start, xy_t end, double **c, xyi_t degree)
+{
+	int p_count = 1000;
+	xyi_t ip;
+	double **z = (double **) calloc_2d_contig(p_count, p_count, sizeof(double));
+
+	// Compute the points
+	for (ip.y=0; ip.y < p_count; ip.y++)
+		for (ip.x=0; ip.x < p_count; ip.x++)
+			z[ip.y][ip.x] = f((end.x-start.x) * (0.5+0.5*chebyshev_node(p_count, ip.x)) + start.x, (end.y-start.y) * (0.5+0.5*chebyshev_node(p_count, ip.y)) + start.y);
+
+	// Fit
+	polynomial_fit_on_points_by_dct_2d(z, p_count, start, end, c, degree);
+	free_2d(z, 1);
 }
 
 /*

@@ -139,3 +139,147 @@ double erf_radlim_approx(double x, double k)
 
 	return y;
 }
+
+// GPU versions
+float erf_radlim_mid_value_gpu(float k)		// 7 FR
+{
+	//k *= k;
+	return 0.5f*(1.f - expf(-k));
+}
+
+float erf_radlim_lim0_weight_gpu(float k)	// 10 FR
+{
+	//k *= k;
+	return ((((-5.0363143e-05f*k + 0.00089379837f)*k - 0.0018122363f)*k - 0.03032174f)*k - 0.00882f)*k + 0.9986833f;
+	//return (((((6.934e-06f*k - 0.00023759f)*k + 0.00278945f)*k - 0.0106586f)*k - 0.01166f)*k - 0.023219f)*k + 1.000483f;
+}
+
+float erf_radlim_liminf_weight_gpu(float k)	// 10 FR
+{
+	//k *= k;
+	return ((((-7.92e-06f*k + 0.0003287f)*k - 0.004255f)*k + 0.013734f)*k + 0.0946345f)*k + 0.44397133f;
+}
+
+float erf_radlim_lim0_log_approx_gpu(float x)	// 11 FR
+{
+	//x *= x;
+	return logf(((0.0124677f*x + 0.06112589f)*x - 1.0734751f)*x + 1.f) * 1.509421f;
+}
+
+float erf_radlim_liminf_log_approx_gpu(float x)	// 5 FR
+{
+	//x *= x;
+	return ((-0.0028207f*x + 0.03688f)*x - 1.27238f)*x;
+}
+
+float erf_fast_gpu(float x)			// 17 FR or more (copysign?)
+{
+	float y, xa = fabsf(x);
+
+	// erf(x) ~= 1 - 1/( x*(x*(x*0.0038004543 + 0.020338153) + 0.03533611) + 1.0000062 )^32 for x >= 0, max error 0.35e-3
+	y = xa*(xa*(xa * 0.0038004543f + 0.020338153f) + 0.03533611f) + 1.0000062f;
+
+	// y = y^32
+	y = y*y;
+	y = y*y;
+	y = y*y;
+	y = y*y;
+	y = y*y;
+
+	y = 1.f - 1.f/y;
+	y = copysignf(y, x);
+
+	return y;
+}
+
+float erf_radlim_approx_gpuf(float x, float k)
+{
+	float y, mid_v, x2, k2, xd2;
+
+	// is this part needed? Probably not
+	if (k > 3.f)					// 16 FR?
+		return 0.5f+0.5f*erf_fast_gpu(x);	// 19 FR or more
+
+	// rest is >=64 FR
+	x2 = x*x;
+	k2 = k*k;
+	xd2 = x2/k2;
+	xd2 = rangelimitf(xd2, 0.f, 1.f);
+
+	mid_v = erf_radlim_mid_value_gpu(k2);	// 7 FR
+
+	y = expf((erf_radlim_lim0_log_approx_gpu(xd2)*erf_radlim_lim0_weight_gpu(k2) + erf_radlim_liminf_log_approx_gpu(x2)*erf_radlim_liminf_weight_gpu(k2)));	// 43 FR
+	y = copysignf(sqrtf(1. - y), x);	// 6 FR or more (copysign?)
+	y = y*mid_v + mid_v;			// 2 FR
+
+	return y;
+}
+
+double erf_radlim_approx_gpu(double x, double k)
+{
+	return erf_radlim_approx_gpuf(x, k);
+}
+
+// Calculating pixel weights for triangles
+
+double point_line_distance_signed_presub(xy_t l1, xy_t l2)	// distance to the nearest point on the line
+{
+	return (l2.x*l1.y - l1.x*l2.y) / hypot_xy(l1, l2);	// double of the area of the triangle / length of line
+}
+
+double calc_triangle_pixel_weight(triangle_t tr, xy_t p, double drawing_thickness)	// triangle points should be clockwise
+{
+	xyz_t ld, lda;
+	xy_t thick_mul = set_xy(1./drawing_thickness);
+	int influence_count=0;
+	double ld0, ld1, pd;
+
+	// Offset and scale points
+	tr.a = mul_xy(sub_xy(tr.a, p), thick_mul);
+	tr.b = mul_xy(sub_xy(tr.b, p), thick_mul);
+	tr.c = mul_xy(sub_xy(tr.c, p), thick_mul);
+
+	// Line distance
+	ld.x = point_line_distance_signed_presub(tr.a, tr.b);
+	ld.y = point_line_distance_signed_presub(tr.b, tr.c);
+	ld.z = point_line_distance_signed_presub(tr.c, tr.a);
+
+	if (ld.x < -3. || ld.y < -3. || ld.z < -3.)			// if we're outside of the triangle's influence
+		return 0.;
+
+	// Absolute line distance
+	lda = ld;
+	ffabs(&lda.x);
+	ffabs(&lda.y);
+	ffabs(&lda.z);
+
+	// Count influencing lines
+	influence_count  = (lda.x <= 3.);
+	influence_count += (lda.y <= 3.);
+	influence_count += (lda.z <= 3.);
+
+	switch (influence_count)
+	{
+		case 0:							// if we're inside the triangle far from every line
+			return 1.;
+			
+		case 1:							// if only one line is close to the point
+			if (lda.x <= 3.)	ld0 = ld.x;		// find the distance of that line
+			if (lda.y <= 3.)	ld0 = ld.y;
+			if (lda.z <= 3.)	ld0 = ld.z;
+			return fasterfrf_d1(ld0);			// return the raised error function of that signed distance
+
+		case 2:							// if two lines influence the point
+			if (lda.x <= 3. && lda.y <= 3.)	{ ld0 = ld.x;	ld1 = ld.y;	pd = hypot_d_xy(tr.b);	}	// find the distance to each line and their intersection
+			if (lda.y <= 3. && lda.z <= 3.)	{ ld0 = ld.y;	ld1 = ld.z;	pd = hypot_d_xy(tr.c);	}
+			if (lda.z <= 3. && lda.x <= 3.)	{ ld0 = ld.z;	ld1 = ld.x;	pd = hypot_d_xy(tr.a);	}
+
+			// Weighted area is full limited-radius area minus areas each line excludes
+			return erf_radlim_approx(pd, pd) - erf_radlim_approx(-ld0, pd) - erf_radlim_approx(-ld1, pd);
+
+		case 3:
+			return 0.;
+	}
+
+	return NAN;
+}

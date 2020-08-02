@@ -1,6 +1,7 @@
 extern xy_t line_line_intersection(xy_t p1, xy_t p2, xy_t p3, xy_t p4);
 extern double pos_on_line(xy_t p1, xy_t p2, xy_t p);
 extern int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int exclusive);
+extern xy_t point_on_line_closest_to_origin(xy_t p1, xy_t p2);
 extern double point_line_distance(xy_t l1, xy_t l2, xy_t p3);
 extern double point_line_distance2(xy_t l1, xy_t l2, xy_t p3);
 extern void border_clip(double w, double h, xy_t *l1, xy_t *l2, double radius);

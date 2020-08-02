@@ -45,6 +45,13 @@ int check_line_collision(xy_t p1, xy_t p2, xy_t p3, xy_t p4, double *u, int excl
 			return 0;
 }
 
+xy_t point_on_line_closest_to_origin(xy_t p1, xy_t p2)
+{
+	double u = (p1.x*p2.y - p1.y*p2.x) / hypot_xy2(p1, p2);
+
+	return xy((p2.y-p1.y)*u, (p1.x-p2.x)*u);
+}
+
 double point_line_distance(xy_t l1, xy_t l2, xy_t p3)		// distance to the nearest point on the line
 {
 	l1 = sub_xy(l1, p3);

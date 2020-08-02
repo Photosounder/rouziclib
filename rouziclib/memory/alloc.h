@@ -10,6 +10,7 @@ extern size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t all
 extern void free_null(void **ptr);
 extern void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t size_elem);
 extern void **calloc_2d_contig(const size_t ptr_count, const size_t size_buffers, const size_t size_elem);
+extern void **array_1d_to_2d_contig(void *array_1d, const size_t ptr_count, const size_t size_buffers);
 extern void **memcpy_2d(void **dst, void **src, const size_t ptr_count, const size_t size_buffers);
 extern void **copy_2d(void **ptr, const size_t ptr_count, const size_t size_buffers);
 extern void **memset_2d(void **ptr, const int word, const size_t size, const size_t count);

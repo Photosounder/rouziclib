@@ -29,9 +29,8 @@ float erf_fast(float x)
 	y = y*y;
 
 	y = 1.f - native_recip(y);
+	y = copysign(y, x);
 //y = waste_time(y);
 
-	if (x < 0.f)
-		return -y;
 	return y;
 }

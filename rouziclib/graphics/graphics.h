@@ -42,6 +42,7 @@ extern void *get_raster_buffer(raster_t *r);
 extern int get_raster_mode(raster_t r);
 extern srgb_t get_raster_pixel_in_srgb(raster_t r, const size_t index);
 extern frgb_t get_raster_pixel_in_frgb(raster_t r, const size_t index);
+extern frgb_t get_raster_pixel_in_frgb_xyi(raster_t r, xyi_t p);
 extern void free_raster(raster_t *r);
 extern void cl_unref_raster(raster_t *r);
 extern framebuffer_t init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode);

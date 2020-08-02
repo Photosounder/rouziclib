@@ -84,6 +84,20 @@ void **calloc_2d_contig(const size_t ptr_count, const size_t size_buffers, const
 	return array;
 }
 
+void **array_1d_to_2d_contig(void *array_1d, const size_t ptr_count, const size_t size_buffers)
+{
+	size_t i;
+	uint8_t **array;
+
+	array = calloc(ptr_count, sizeof(void *));
+	array[0] = array_1d;
+
+	for (i=1; i < ptr_count; i++)
+		array[i] = &array[0][i*size_buffers];
+
+	return array;
+}
+
 void **memcpy_2d(void **dst, void **src, const size_t ptr_count, const size_t size_buffers)
 {
 	size_t i;

@@ -192,6 +192,16 @@ frgb_t get_raster_pixel_in_frgb(raster_t r, const size_t index)
 	return make_colour_frgb(NAN, NAN, NAN, NAN);
 }
 
+frgb_t get_raster_pixel_in_frgb_xyi(raster_t r, xyi_t p)
+{
+	frgb_t pv={0};
+
+	if (p.y >= 0 && p.y < r.dim.y && p.x >= 0 && p.x < r.dim.x)
+		pv = get_raster_pixel_in_frgb(r, p.y * r.dim.x + p.x);
+
+	return pv;
+}
+
 void free_raster(raster_t *r)
 {
 	void **ptr;
