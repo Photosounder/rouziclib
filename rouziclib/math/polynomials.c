@@ -10,6 +10,27 @@ double eval_polynomial(double x, double *c, int degree)
 	return y;
 }
 
+double eval_polynomial_2d(xy_t p, double **c, xyi_t degree)
+{
+	double sum=0., sum_line=0.;
+	xyi_t id;
+
+	for (id.y=degree.y; id.y >= 0; id.y--)
+	{
+		sum_line = 0.;
+
+		for (id.x=degree.x; id.x > 0; id.x--)
+		{
+			sum_line = (sum_line + c[id.y][id.x]) * p.x;
+		}
+		sum_line += c[id.y][0];
+
+		sum = sum * p.y + sum_line;
+	}
+
+	return sum;
+}
+
 #ifdef RL_MPFR
 void eval_polynomial_mpfr(real_t y, real_t x, real_t *c, int degree)
 {
@@ -49,6 +70,42 @@ double get_polynomial_error(double (*f)(double), double start, double end, doubl
 		else
 			y = fabs(fx - y);
 		err = MAXN(err, y);
+	}
+
+	return err;
+}
+
+double get_polynomial_error_2d(double (*f)(double,double), xy_t start, xy_t end, double **c, xyi_t degree, int errmode)
+{
+	xyi_t ip;
+	xy_t p;
+	double z, fp, err;
+
+	err = 0.;
+	for (ip.y=0; ip.y <= 200; ip.y++)
+	{
+		p.y = (double) ip.y / 200.;
+		p.y = p.y * (end.y-start.y) + start.y;
+
+		for (ip.x=0; ip.x <= 200; ip.x++)
+		{
+			p.x = (double) ip.x / 200.;
+			p.x = p.x * (end.x-start.x) + start.x;
+
+			z = eval_polynomial_2d(p, c, degree);
+			fp = f(p.x, p.y);
+
+			if (errmode==DIVMODE)
+			{
+				if (z < fp)
+					z = fp / z - 1.;
+				else
+					z = z / fp - 1.;
+			}
+			else
+				z = fabs(fp - z);
+			err = MAXN(err, z);
+		}
 	}
 
 	return err;
@@ -850,10 +907,10 @@ void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double
 	free(y);
 }
 
-void polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start, xy_t end, double **c, xyi_t degree)
+void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_t end, double **c)
 {
 	xyi_t id;
-	double cm, **cc, xs[2], ys[2];
+	double **cc, xs[2], ys[2];
 
 	memset_2d(c, 0, (degree.x+1)*sizeof(double), degree.y+1);
 
@@ -863,21 +920,51 @@ void polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start, xy_
 	xs[1] = 2. / (end.x-start.x);
 	ys[1] = 2. / (end.y-start.y);
 
-	// Compute the coefficients
+	// Transform each Chebyshev coef into a polynomial
 	for (id.y=0; id.y <= degree.y; id.y++)
 		for (id.x=0; id.x <= degree.x; id.x++)
 		{
-			cm = chebyshev_multiplier_by_dct_2d(z, p_count, id);		// get the Chebyshev multiplier for degree id
 			cc = chebyshev_coefs_2d(id);					// get the default polynomial coeficients
-			polynomial_scalar_mul_2d(cc, id, cm, cc);			// apply the multiplier
+			polynomial_scalar_mul_2d(cc, id, cm[id.y][id.x], cc);		// apply the multiplier
 			polynomial_x_substitution_2d(cc, id, xs, ys, xyi(1, 1), c);	// shift the polynomial and add to c
 			free_2d(cc, 1);
 		}
 }
 
-void polynomial_fit_on_function_by_dct_2d(double (*f)(double, double), xy_t start, xy_t end, double **c, xyi_t degree)
+double **chebyshev_fit_on_points_by_dct_2d(double **z, int p_count, xyi_t degree)
 {
-	int p_count = 1000;
+	xyi_t id;
+	double **cm = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
+
+	// Compute the coefficients
+	for (id.y=0; id.y <= degree.y; id.y++)
+		for (id.x=0; id.x <= degree.x; id.x++)
+			cm[id.y][id.x] = chebyshev_multiplier_by_dct_2d(z, p_count, id);		// get the Chebyshev multiplier for degree id
+
+	return cm;
+}
+
+double **polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start, xy_t end, double **c, xyi_t degree)
+{
+	xyi_t id;
+	double **cm;
+
+	if (c==NULL)
+		c = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
+
+	// Compute the coefficients
+	cm = chebyshev_fit_on_points_by_dct_2d(z, p_count, degree);
+
+	// Convert Chebyshef coefficients to polynomial coefficients
+	chebyshev_coefs_to_polynomial_2d(cm, degree, start, end, c);
+
+	free_2d(cm, 1);
+
+	return c;
+}
+
+double **polynomial_function_to_point_2d(double (*f)(double, double), int p_count, xy_t start, xy_t end)
+{
 	xyi_t ip;
 	double **z = (double **) calloc_2d_contig(p_count, p_count, sizeof(double));
 
@@ -886,9 +973,26 @@ void polynomial_fit_on_function_by_dct_2d(double (*f)(double, double), xy_t star
 		for (ip.x=0; ip.x < p_count; ip.x++)
 			z[ip.y][ip.x] = f((end.x-start.x) * (0.5+0.5*chebyshev_node(p_count, ip.x)) + start.x, (end.y-start.y) * (0.5+0.5*chebyshev_node(p_count, ip.y)) + start.y);
 
+	return z;
+}
+
+double **polynomial_fit_on_function_by_dct_2d(double (*f)(double, double), xy_t start, xy_t end, double **c, xyi_t degree)
+{
+	int p_count = 1000;
+	xyi_t ip;
+	double **z;
+
+	if (c==NULL)
+		c = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
+
+	// Compute the points
+	z = polynomial_function_to_point_2d(f, p_count, start, end);
+
 	// Fit
 	polynomial_fit_on_points_by_dct_2d(z, p_count, start, end, c, degree);
 	free_2d(z, 1);
+
+	return c;
 }
 
 /*
@@ -1284,17 +1388,17 @@ void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real_t,real_t), real_t sta
 }
 #endif
 
-double reduce_digits(double (*f)(double), double segstart, double segend, double *c, const int order, int errmode, double added_error_thresh, double digits)
+double reduce_digits(double (*f)(double), double segstart, double segend, double *c, const int degree, int errmode, double added_error_thresh, double digits)
 {
 	int i;
 	double err0, err1, err_orig;
 	double l, m, r=0., rp;
 
-	err_orig = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+	err_orig = get_polynomial_error(f, segstart, segend, c, degree, NEGMODE);
 
-	for (i=0; i <= order; i++)		// go through every coef to round it
+	for (i=0; i <= degree; i++)		// go through every coef to round it
 	{
-		err0 = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+		err0 = get_polynomial_error(f, segstart, segend, c, degree, NEGMODE);
 
 		if (c[i] != 0.)			// if the coef is not 0
 		{
@@ -1314,7 +1418,7 @@ double reduce_digits(double (*f)(double), double segstart, double segend, double
 				r *= m;			// -7e20 * 1e-24 -> -0.0007
 				swap_double(&c[i], &r);	// set the rounded coef into the coef array for evaluation
 
-				err1 = get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+				err1 = get_polynomial_error(f, segstart, segend, c, degree, NEGMODE);
 
 				if (err1 > err0 * added_error_thresh || c[i]==0.)	// if the added error is over the threshold
 				{
@@ -1330,11 +1434,61 @@ double reduce_digits(double (*f)(double), double segstart, double segend, double
 		}
 	}
 
-	return get_polynomial_error(f, segstart, segend, c, order, NEGMODE);
+	return get_polynomial_error(f, segstart, segend, c, degree, NEGMODE);
+}
+
+double reduce_digits_2d(double (*f)(double,double), xy_t segstart, xy_t segend, double **c, const xyi_t degree, int errmode, double added_error_thresh, double digits)
+{
+	xyi_t ip;
+	double err0, err1, err_orig;
+	double l, m, r=0., rp;
+
+	err_orig = get_polynomial_error_2d(f, segstart, segend, c, degree, NEGMODE);
+
+	for (ip.y=0; ip.y <= degree.y; ip.y++)		// go through every coef to round it
+		for (ip.x=0; ip.x <= degree.x; ip.x++)
+		{
+			err0 = get_polynomial_error_2d(f, segstart, segend, c, degree, NEGMODE);
+
+			if (c[ip.y][ip.x] != 0.)			// if the coef is not 0
+			{
+				l = fabs(c[ip.y][ip.x]);			// -0.0007 -> 0.0007
+				l = log10(l);			// 0.0007 -> -3.15
+				l = floor(l);			// -3.15 -> -4
+				l -= digits;			// -4 -> -24
+
+				m = pow(10., l);		// -24 -> 1e-24
+
+				while (1)
+				{
+					rp = r;			// copy the previous result
+
+					r = c[ip.y][ip.x] / m;		// -0.0007 / 1e-24 -> -7e20
+					r = nearbyint(r);	// -7e20
+					r *= m;			// -7e20 * 1e-24 -> -0.0007
+					swap_double(&c[ip.y][ip.x], &r);	// set the rounded coef into the coef array for evaluation
+
+					err1 = get_polynomial_error_2d(f, segstart, segend, c, degree, NEGMODE);
+
+					if (err1 > err0 * added_error_thresh || c[ip.y][ip.x]==0.)	// if the added error is over the threshold
+					{
+						if (err1 > err0 * added_error_thresh)
+							c[ip.y][ip.x] = rp;	// restore the previous rounding so the error is less than the threshold
+						break;
+					}
+					else
+						swap_double(&c[ip.y][ip.x], &r);		// restore the unrounded coef
+
+					m *= 10.;		// 1e-24 -> 1e-23
+				}
+			}
+		}
+
+	return get_polynomial_error_2d(f, segstart, segend, c, degree, NEGMODE);
 }
 
 #ifdef RL_MPFR
-double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, const int order, int errmode, double added_error_thresh, double digits)
+double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, const int degree, int errmode, double added_error_thresh, double digits)
 {
 	int i;
 	double err0, err1, err_orig;
@@ -1345,11 +1499,11 @@ double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t sege
 	r_init(r);
 	r_init(rp);
 
-	err_orig = get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
+	err_orig = get_polynomial_error_mpfr(f, segstart, segend, c, degree, NEGMODE);
 
-	for (i=0; i <= order; i++)		// go through every coef to round it
+	for (i=0; i <= degree; i++)		// go through every coef to round it
 	{
-		err0 = get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
+		err0 = get_polynomial_error_mpfr(f, segstart, segend, c, degree, NEGMODE);
 
 		if (mpfr_zero_p(c[i]) == 0)	// if the coef is not 0
 		{
@@ -1369,7 +1523,7 @@ double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t sege
 				r_mul(r, m);		// -7e20 * 1e-24 -> -0.0007
 				mpfr_swap(c[i], r);	// set the rounded coef into the coef array for evaluation
 
-				err1 = get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
+				err1 = get_polynomial_error_mpfr(f, segstart, segend, c, degree, NEGMODE);
 
 				if (err1 > err0 * added_error_thresh || mpfr_zero_p(c[i]))		// if the added error is over the threshold
 				{
@@ -1385,6 +1539,6 @@ double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t sege
 		}
 	}
 
-	return get_polynomial_error_mpfr(f, segstart, segend, c, order, NEGMODE);
+	return get_polynomial_error_mpfr(f, segstart, segend, c, degree, NEGMODE);
 }
 #endif

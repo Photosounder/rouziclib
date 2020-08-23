@@ -12,6 +12,7 @@ extern double sq(double x);
 extern float sqf(float x);
 extern double gaussian(double x);
 extern double erfr(double x);
+extern double erfinv(double x);
 extern double gamma_dist(double x, double a, double b);
 
 extern double roundaway(double x);

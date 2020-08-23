@@ -13,7 +13,10 @@ void audiosys_callback(void *userdata, uint8_t *stream, int stream_bytes)
 		// Check expiry
 		if (sys->bus[ib].on)
 			if (now - sys->bus[ib].last_reg_time > sys->bus[ib].expiry_dur)
+			{
 				sys->bus[ib].on = 0;
+				sys->bus[ib].callback(NULL, sys, ib, sys->bus[ib].data);	// deinitialisation signal to the callback (non-blocking)
+			}
 
 		if (sys->bus[ib].on)
 		{
@@ -85,6 +88,14 @@ void audiosys_bus_unregister(void *bus_data)
 	{
 		if (audiosys.bus[ib].data == bus_data)
 		{
+			// Deinit mutex
+			if (audiosys.bus[ib].use_mutex)
+				rl_mutex_destroy(&audiosys.bus[ib].mutex);
+
+			// Deinit signal to the callback (blocking)
+			audiosys.bus[ib].callback(NULL, &audiosys, -1, audiosys.bus[ib].data);
+
+			// Remove bus from bus array
 			memset(&audiosys.bus[ib], 0, sizeof(audiosys_bus_t));
 			if (ib == audiosys.bus_count-1)
 				audiosys.bus_count--;

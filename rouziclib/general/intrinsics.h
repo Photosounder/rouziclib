@@ -55,7 +55,7 @@ extern uint64_t rl_xgetbv(uint32_t index);
 
 #ifdef RL_INTEL_INTR
 
-#ifndef _mm_storeu_si32
+#ifdef RL_STOREU_SI32
 extern void _mm_storeu_si32(void *mem_addr, __m128i a);  // SSE2
 #endif
 

@@ -1,6 +1,8 @@
 extern double eval_polynomial(double x, double *c, int degree);
+extern double eval_polynomial_2d(xy_t p, double **c, xyi_t degree);
 extern void eval_polynomial_mpfr(real_t y, real_t x, real_t *c, int degree);
 extern double get_polynomial_error(double (*f)(double), double start, double end, double *c, int degree, int errmode);
+extern double get_polynomial_error_2d(double (*f)(double,double), xy_t start, xy_t end, double **c, xyi_t degree, int errmode);
 extern double get_polynomial_error_from_points(double *x, double *y, int p_count, double *c, int degree, int errmode);
 extern char *print_polynomial(double *c, int degree, const char *x);
 
@@ -35,13 +37,17 @@ extern double chebyshev_multiplier_by_dct(double *y, int p_count, int id);
 extern double chebyshev_multiplier_by_dct_2d(double **z, int p_count, xyi_t id);
 extern void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, double end, double *c, int degree);
 extern void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree);
-extern void polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start, xy_t end, double **c, xyi_t degree);
-extern void polynomial_fit_on_function_by_dct_2d(double (*f)(double, double), xy_t start, xy_t end, double **c, xyi_t degree);
+extern void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_t end, double **c);
+extern double **chebyshev_fit_on_points_by_dct_2d(double **z, int p_count, xyi_t degree);
+extern double **polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start, xy_t end, double **c, xyi_t degree);
+extern double **polynomial_function_to_point_2d(double (*f)(double, double), int p_count, xy_t start, xy_t end);
+extern double **polynomial_fit_on_function_by_dct_2d(double (*f)(double, double), xy_t start, xy_t end, double **c, xyi_t degree);
 extern void polynomial_fit_on_function_by_dct_minmax(double (*f)(double), double start, double end, double *c, int degree);
 extern void chebyshev_multiplier_by_dct_mpfr(real_t v, real_t *y, int p_count, int id);
 extern void polynomial_fit_on_points_by_dct_mpfr(real_t *y, int p_count, real_t start, real_t end, real_t *c, int degree);
 extern void polynomial_fit_on_function_by_dct_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int degree);
-extern double reduce_digits(double (*f)(double), double segstart, double segend, double *c, const int order, int errmode, double added_error_thresh, double digits);
-extern double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, const int order, int errmode, double added_error_thresh, double digits);
+extern double reduce_digits(double (*f)(double), double segstart, double segend, double *c, const int degree, int errmode, double added_error_thresh, double digits);
+extern double reduce_digits_2d(double (*f)(double,double), xy_t segstart, xy_t segend, double **c, const xyi_t degree, int errmode, double added_error_thresh, double digits);
+extern double reduce_digits_mpfr(void (*f)(real_t,real_t), real_t segstart, real_t segend, real_t *c, const int degree, int errmode, double added_error_thresh, double digits);
 
 enum { NEGMODE, DIVMODE };

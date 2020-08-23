@@ -14,7 +14,7 @@ int audio_player_load_thread(audio_player_data_t *data)
 		rl_mutex_lock(&data->mutex);
 
 		// if we're jumping back or forward
-		if (data->speed < 0. || data->ts_req < ts_req || /*data->ts_req < ts0 ||*/ (data->ts_req - ts1 > 0.25 && isnan(ts1)==0))
+		if (data->speed < 0. || data->ts_req < ts_req || /*data->ts_req < ts0 ||*/ (data->ts_req - ts1 > 60. && isnan(ts1)==0))
 		{
 			ip = -1;
 			ts0 = NAN;
@@ -136,11 +136,8 @@ void audio_player_main(audio_player_data_t *data, char *path, double ts_req, dou
 	if (stop_thread)
 	{
 		data->thread_on = 0;
-		if (data->thread_handle)
-		{
-			rl_thread_join_and_null(&data->thread_handle);
-			audio_player_thread_exit(data);
-		}
+		audiosys_bus_unregister(data);
+		audio_player_thread_exit(data);
 		free_null(&data->path);
 	}
 
@@ -159,7 +156,7 @@ void audio_player_main(audio_player_data_t *data, char *path, double ts_req, dou
 	// Update values
 	rl_mutex_lock(&data->mutex);
 
-	if (fabs(data->ts_cb - ts_req) > 2. * audiosys.sec_per_buf)
+	if (fabs(data->ts_cb - ts_req) > 2. * audiosys.sec_per_buf + 0.05)	// FIXME calculate whether to jump or not better
 		jump = 1;
 
 	if (jump)
@@ -186,9 +183,26 @@ void audio_player_callback(float *stream, audiosys_t *sys, int bus_index, audio_
 	double t;
 int debug=1;
 
+	// Deinit
+	if (stream==NULL)
+	{
+		data->thread_on = 0;
+
+		if (bus_index == -1)	// this signals a blocking deinitialisation
+			rl_thread_join_and_null(&data->thread_handle);
+
+		return;
+	}
+
+	// Only play if speed == 1
+	if (abs(double_diff_ulp(data->speed, 1.)) >= 100)
+		return;
+
+	if (data->thread_on==0)
+		return;
+
 	rl_mutex_lock(&data->mutex);
 
-	//for (t=sys->bus[bus_index].stime - data->time_offset, i=0; i < sys->buffer_len; i++, t+=sys->sec_per_sample)
 	for (t=data->ts_cb, i=0; i < sys->buffer_len; i++, t+=sys->sec_per_sample)
 	{
 		// Search for frame when no frame is selected

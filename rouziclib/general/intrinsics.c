@@ -69,7 +69,7 @@ uint64_t rl_xgetbv(uint32_t index)
 }
 #endif
 
-#ifndef _mm_storeu_si32
+#ifdef RL_STOREU_SI32
 void _mm_storeu_si32(void* mem_addr, __m128i a)	// replacement for missing _mm_storeu_si32
 {
 	_mm_store_ss((float*) mem_addr, _mm_castsi128_ps(a));

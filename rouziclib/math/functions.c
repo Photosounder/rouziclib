@@ -23,6 +23,47 @@ double erfr(double x)
 	return 0.5 + 0.5*erf(x);
 }
 
+double erfinv(double x)		// inverse of erf(x), approximated to 1e-12
+{
+	double x2, xm, xm2;
+
+	x2 = x*x;
+	if (x2 >= 1.)
+		return NAN;
+
+	xm = sqrt(-log(1. - x2));	// map x
+
+	if (xm <= 1.11)
+	{
+		xm2 = xm*xm;
+		return copysign( ((((((-1.0392038e-07*xm2 + 7.9276632e-07)*xm2 + 4.2953432e-06)*xm2
+			- 6.2023632e-05)*xm2 - 0.0002964260765)*xm2 + 0.0104569355815)*xm2 + 0.88622692544)*xm , x );
+	}
+
+	if (xm <= 2.07)
+		return copysign( (((((((((2.6405316556026e-05*xm - 0.0004045232079541)*xm
+			+ 0.00265824846577055)*xm - 0.00984620428151234)*xm + 0.0231290538999971)*xm
+			- 0.0374103333261109)*xm + 0.0411653353348766)*xm - 0.0207904579814415)*xm
+			+ 0.0155551797500123)*xm + 0.881638566592708)*xm + 0.00060912524974 ,  x );
+
+	if (xm <= 3.18)
+		return copysign( ((((((((((2.0586163032475e-06*xm - 5.2879069722487e-05)*xm
+			+ 0.00058379877870049)*xm - 0.00353367458615604)*xm + 0.0120166935937177)*xm
+			- 0.0175964777701147)*xm - 0.0252093462336996)*xm + 0.169748375898182)*xm
+			- 0.351073864280184)*xm + 0.414567923904984)*xm + 0.629159176809044)*xm + 0.06808965114012 , x );
+
+	if (xm <= 4.14)
+		return copysign( ((((((((1.62966625074884e-06*xm - 5.56020704379194e-05)*xm
+			+ 0.000837871882335143)*xm - 0.0072897545138698)*xm + 0.0400562055529556)*xm
+			- 0.141997736314436)*xm + 0.313406195632118)*xm - 0.37307524815902)*xm
+			+ 1.12152434121452)*xm - 0.0533686959291653 , x );
+
+	return copysign( (((((((((6.0964709493827e-09*xm - 3.44268752867462e-07)*xm
+			+ 8.82902658930191e-06)*xm - 0.000135723342600147)*xm + 0.00138915485410945)*xm
+			- 0.00993254567772973)*xm + 0.0505280426062)*xm - 0.181959803844724)*xm
+			+ 0.447643850057175)*xm + 0.327224792874)*xm + 0.28870737275608 , x );
+}
+
 double gamma_dist(double x, double a, double b)
 {
 	return pow(b, a) * pow(x, a-1.) * exp(-b*x) / tgamma(a);
@@ -242,15 +283,37 @@ double mix(double v0, double v1, double t)	// linear interpolation
 
 double get_interpolated_xy_array_value(double x, xy_t *array, size_t array_size)
 {
-	int i;
+	size_t i, step, smin, smax, smid;
 
 	if (array==NULL || array_size < 1)
 		return NAN;
 
-	if (x < array[0].x)
+	if (x <= array[0].x)
 		return array[0].y;
 
-	for (i=1; i < array_size; i++)
+	if (x >= array[array_size-1].x)
+		return array[array_size-1].y;
+
+	// Do a binary search of x
+	step = next_power_of_2(array_size) >> 1;
+	smin = 0;
+	smax = array_size-1;
+
+	while (step > 0)
+	{
+		smid = smin + step;
+		smid = MINN(smid, smax);
+
+		if (x < array[smid].x)
+			smax = smid;
+		else
+			smin = smid;
+
+		step >>= 1;
+	}
+
+	// Interpolate value
+	for (i=MAXN(1, smin); i < array_size; i++)
 		if (array[i].x > x)
 			return mix(array[i-1].y, array[i].y, (x-array[i-1].x)/(array[i].x-array[i-1].x));
 

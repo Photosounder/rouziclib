@@ -50,5 +50,5 @@ float gaussian_rand_minstd(uint pos)
 float gaussian_rand_minstd_approx(uint pos)	// max error: 0.00865 at ±0.772135
 {
 	float r = ((float) rand_minstd(pos) - 1073741823.f) * 9.313225466e-10f;		// r = ]-1 , 1[
-	return copysign(0.8862269254f * native_sqrt(- native_log(1.f - r*r)), r);	// gives a e^-x^2 distribution
+	return copysign(0.8862269254f * native_sqrt(- native_log(1.f - r*r)), r);	// 0.8862269254*sqrt(-log(1 - x^2)) * sign(x) gives a e^-x^2 distribution
 }

@@ -160,9 +160,9 @@ char *remove_after_char_copy(const char *string, const char c)	// makes a cut co
 	return cut;
 }
 
-int get_string_linecount(const char *text, int len)
+size_t get_string_linecount(const char *text, size_t len)
 {
-	int i, linecount=0;
+	size_t i, linecount=0;
 
 	if (text==NULL)
 		return linecount;
@@ -212,7 +212,7 @@ int string_find_start_nth_line(const char *text, int len, int n)	// n is the ind
 
 char **arrayise_text(char *text, int *linecount)	// turns line breaks into null chars, makes an array of pointers to the beginning of each lines
 {
-	int i, ia, len;
+	size_t i, ia, len;
 	char **array;
 
 	*linecount = 0;

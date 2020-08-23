@@ -47,6 +47,7 @@
 #define r_log2(r,x)	mpfr_log2(r, x, MPFR_RNDN)
 #define r_log10(r,x)	mpfr_log10(r, x, MPFR_RNDN)
 #define r_exp10(r,x)	mpfr_exp10(r, x, MPFR_RNDN)
+#define r_erf(r,x)	mpfr_erf(r, x, MPFR_RNDN)
 
 extern real_t *r_init_array(int count);
 extern void r_zero_array(real_t *a, int count);

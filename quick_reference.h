@@ -439,6 +439,15 @@
 			int i;
 			double t;
 
+			// Deinit
+			if (stream==NULL)	// this signals the shutdown of the bus for deinitialisation purposes
+			{
+				data->thread_on = 0;
+				if (bus_index == -1)	// this signals a blocking deinitialisation
+					rl_thread_join_and_null(&data->thread_handle);
+				return;
+			}
+
 			for (t=sys->bus[bus_index].stime, i=0; i < sys->buffer_len; i++, t+=sys->sec_per_sample)
 			{
 				stream[i*2  ] += cos(t*1e3)*0.01;
@@ -451,6 +460,10 @@
 
 	// Use the mutex in the main function (the callback is mutex-protected outside of itself)
 		rl_mutex_lock(&audiosys.bus[audio_bus_index].mutex);
+
+	// Stop the callback (in a blocking way)
+		audiosys_bus_unregister(my_data);
+		// right after this it's safe to free the data struct contents as needed
 
 //**** Misc ****
 
@@ -621,6 +634,13 @@
 
 	// Open file using the system
 		system_open(path);
+
+	// Set up Windows crash dump (add #define RL_CRASHDUMP to your rl.h)
+		#ifdef RL_CRASHDUMP
+		#ifdef _WIN32
+		crashdump_init(make_appdata_path("Spacewar", NULL, 1));
+		#endif
+		#endif
 
 //**** C syntax I can't ever remember ****
 

@@ -12,7 +12,7 @@ extern xy_t doztof_xy(const char *str_x, const char *str_y);
 extern char *remove_after_char(char *string, const char c);
 extern int strlen_until_after_char(const char *string, const char c);
 extern char *remove_after_char_copy(const char *string, const char c);
-extern int get_string_linecount(const char *text, int len);
+extern size_t get_string_linecount(const char *text, size_t len);
 extern int string_find_start_nth_line(const char *text, int len, int n);
 extern char **arrayise_text(char *text, int *linecount);
 extern const char *strstr_i(const char *fullstr, const char *substr);
