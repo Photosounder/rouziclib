@@ -162,21 +162,16 @@ float bits_to_mul(uint bits)	// 7 becomes 127.
 	return convert_float((int) ((1ULL << bits) - 1));
 }
 
-float3 decompr_hsl(int bits_ch, int bits_cs, int bits_cl, int ih, int is, int il)
+float4 decompr_rgb(int bits_col, uchar3 c)
 {
-	float3 hsl;
+	float4 rgb;
+	float ratio = 1.f / bits_to_mul(bits_col);
 
-	hsl.x = (float) ih / (bits_to_mul(bits_ch)-1.f);
-	hsl.y = (float) (is+1) / (bits_to_mul(bits_cs)+1.f);
-	hsl.z = (float) il / bits_to_mul(bits_cl);
+	rgb.x = (float) c.x * ratio;
+	rgb.y = (float) c.y * ratio;
+	rgb.z = (float) c.z * ratio;
 
-	if (ih == bits_to_mask(bits_ch))		// if the hue is the reserved value of no saturation
-	{
-		hsl.x = 0.f;
-		hsl.y = 0.f;
-	}
-
-	return hsl;
+	return rgb;
 }
 
 float4 compr_hsl_to_rgb(float3 hsl)
@@ -197,7 +192,7 @@ float4 compr_hsl_to_rgb(float3 hsl)
 typedef struct
 {
 	int init;
-	int block_size, bits_per_block, quincunx, bits_ch, bits_cs, bits_cl, bits_per_pixel;
+	int block_size, bits_per_block, quincunx, bits_col, bits_per_pixel;
 	int linew0, linew1, pix;
 	int2 block_pos, block_start;
 	ulong di;
@@ -208,11 +203,11 @@ typedef struct
 float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, comp_decode_t *d)
 {
 	global ushort *d16 = (global ushort *) d8;
-	ulong di, block_start_bit = 80;
+	ulong di, block_start_bit = 64;
 	int line_count0, line_count1;
-	int h0, s0, l0, h1, s1, l1, hm, sm, pix, qoff;
+	int pix, qoff;
+	uchar3 c0, c1, cm;
 	int2 block_pos, ib;
-	float3 hslm;
 	float t;
 
 	if (d->init==0)
@@ -222,19 +217,15 @@ float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, com
 		d->block_size = d16[0];
 		d->bits_per_block = d16[1];
 		d->quincunx = d8[5];
-		d->bits_ch = d8[6];
-		d->bits_cs = d8[7];
-		d->bits_cl = d8[8];
-		d->bits_per_pixel = d8[9];
+		d->bits_col = d8[6];
+		d->bits_per_pixel = d8[7];
 		#else
 
 		// Using hardcoded values goes faster
 		d->block_size = 8;
-		d->bits_per_block = 241;
+		d->bits_per_block = 240;
 		d->quincunx = 1;
-		d->bits_ch = 7;
-		d->bits_cs = 4;
-		d->bits_cl = 8;
+		d->bits_col = 8;
 		d->bits_per_pixel = 3;
 		#endif
 
@@ -267,22 +258,21 @@ float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, com
 		d->block_start.x -= qoff;
 
 		// Read block data
-		h0 = get_bits_in_stream_inc(d8, &di, d->bits_ch);
-		s0 = get_bits_in_stream_inc(d8, &di, d->bits_cs);
-		l0 = get_bits_in_stream_inc(d8, &di, d->bits_cl);
-		h1 = get_bits_in_stream_inc(d8, &di, d->bits_ch);
-		s1 = get_bits_in_stream_inc(d8, &di, d->bits_cs);
-		l1 = get_bits_in_stream_inc(d8, &di, d->bits_cl);
-		hm = get_bits_in_stream_inc(d8, &di, d->bits_ch);
-		sm = get_bits_in_stream_inc(d8, &di, d->bits_cs);
+		c0.x = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		c0.y = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		c0.z = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		c1.x = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		c1.y = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		c1.z = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		/*cm.x = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		cm.y = get_bits_in_stream_inc(d8, &di, d->bits_col);
+		cm.z = get_bits_in_stream_inc(d8, &di, d->bits_col);*/
 		d->di = di;
 
 		// Decode colours
-		d->col0 = compr_hsl_to_rgb(decompr_hsl(d->bits_ch, d->bits_cs, d->bits_cl, h0, s0, l0));
-		d->col1 = compr_hsl_to_rgb(decompr_hsl(d->bits_ch, d->bits_cs, d->bits_cl, h1, s1, l1));
-		hslm = decompr_hsl(d->bits_ch, d->bits_cs, d->bits_cl, hm, sm, l0+l1);
-		hslm.z *= 0.5f;
-		d->colm = compr_hsl_to_rgb(hslm);
+		d->col0 = decompr_rgb(d->bits_col, c0);
+		d->col1 = decompr_rgb(d->bits_col, c1);
+		//d->colm = decompr_rgb(d->bits_col, cm);
 
 		d->block_pos = block_pos;
 		d->pix = -1;
@@ -297,10 +287,11 @@ float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, com
 	{
 		// Translate bitmap value to linear RGB value
 		t = convert_float(pix) * d->pix_mul;
-		if (t < 1.f)
+		d->pv = mix(d->col0, d->col1, t*0.5f);
+		/*if (t < 1.f)
 			d->pv = mix(d->col0, d->colm, t);
 		else
-			d->pv = mix(d->colm, d->col1, t-1.f);
+			d->pv = mix(d->colm, d->col1, t-1.f);*/
 		d->pv.x = Lab_L_to_linear(d->pv.x);
 		d->pv.y = Lab_L_to_linear(d->pv.y);
 		d->pv.z = Lab_L_to_linear(d->pv.z);

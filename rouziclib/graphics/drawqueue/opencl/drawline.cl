@@ -2,7 +2,7 @@ float4 draw_line_thin_add(global float *le, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
-	const float gl = 4.f;	// gaussian drawing limit
+	//const float gl = 4.f;	// gaussian drawing limit
 	float v, r1x, r1y, r2x, costh, sinth;
 	float2 rp;
 	float4 col;
@@ -17,21 +17,13 @@ float4 draw_line_thin_add(global float *le, float4 pv)
 	col.s2 = le[7];
 	col.s3 = le[8];
 
-	rp.y = pf.x * sinth + pf.y * costh;
+	// 40 FR without branching
+	rp.y = pf.x * sinth + pf.y * costh;	// 2 FR
+	rp.x = pf.x * costh - pf.y * sinth;	// 3 FR
 
-	if (rp.y > r1y - gl)
-	if (rp.y < r1y + gl)
-	{
-		rp.x = pf.x * costh - pf.y * sinth;
-
-		if (rp.x > r1x - gl)
-		if (rp.x < r2x + gl)
-		{
-			v = (erf_fast(rp.x-r1x) - erf_fast(rp.x-r2x)) * 0.5f;
-			v *= gaussian(rp.y-r1y);
-			pv += v * col;
-		}
-	}
+	v = (erf_fast(rp.x-r1x) - erf_fast(rp.x-r2x)) * 0.5f;	// 26 FR
+	v *= gaussian(rp.y-r1y);				// 8 FR
+	pv += v * col;						// 1 FR
 
 	return pv;
 }
@@ -102,8 +94,7 @@ float4 draw_point_add(global float *le, float4 pv)
 
 	d = fast_distance(dp, pf) * rad;	// distance of the pixel from the centre of the dot, scaled
 
-	if (d < gl)
-		pv += gaussian(d) * col;
+	pv += gaussian(d) * col;
 
 	return pv;
 }

@@ -30,12 +30,12 @@ uint rand_minstd32(uint pos)
 
 float rand_minstd_01(uint pos)	// returns a random float in the range [0 , 1]
 {
-	return (float) rand_minstd32(pos) * 2.3283064370807973754314699618685e-10f;
+	return (float) rand_minstd32(pos) * 2.3283064e-10f;
 }
 
 float rand_minstd_exc01(uint pos)	// returns a random float in the range (0 , 1]
 {
-	return (float) (rand_minstd32(pos) + 1) * 0.00000000023283064365386962890625f;	// FIXME with single-precision rounding it might return a 0.f anyway
+	return (float) (rand_minstd32(pos) + 1) * 0.00000000023283064365386962890625f;	// FIXME fails to ever return 1 due to multiplier being equivalent to 2^-32 due to rounding
 }
 
 float gaussian_rand_minstd(uint pos)
@@ -47,8 +47,9 @@ float gaussian_rand_minstd(uint pos)
 	return r * native_sin(2.f*M_PI_F * rand_minstd_01(pos+1)) * M_SQRT1_2_F;	// gives a e^-x^2 distribution
 }
 
-float gaussian_rand_minstd_approx(uint pos)	// max error: 0.00865 at ±0.772135
+float gaussian_rand_minstd_approx(uint pos)	// max error of the resulting Gaussian distribution: 9.8e-3
 {
-	float r = ((float) rand_minstd(pos) - 1073741823.f) * 9.313225466e-10f;		// r = ]-1 , 1[
-	return copysign(0.8862269254f * native_sqrt(- native_log(1.f - r*r)), r);	// 0.8862269254*sqrt(-log(1 - x^2)) * sign(x) gives a e^-x^2 distribution
+	float r = ((float) rand_minstd(pos) - 1073741823.f) * 9.3132254e-10f;		// r = ]-1 , 1[
+
+	return copysign(0.88622693f * native_sqrt(- native_log(1.f - r*r)), r);	// 0.88622693*sqrt(-log(1 - x^2)) * sign(x) gives a e^-x^2 distribution
 }

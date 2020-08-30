@@ -27,20 +27,27 @@ float4 colour_blowout(float4 c)
 	return c;
 }
 
-float lsrgb(float linear)	// converts a [0.0, 1.0] linear value into a [0.0, 1.0] sRGB value
+float lsrgb(float l)	// converts a [0.0, 1.0] linear value into a [0.0, 1.0] sRGB value
 {
-	if (linear <= 0.0031308f)
-		return linear * 12.92f;
-	else
-		return 1.055f * pow(linear, 1.f/2.4f) - 0.055f;
+	float line, curve;
+
+	// FR ~12
+	line = l * 12.92f;
+	l = native_sqrt(l);
+	curve = ((((0.455f*l - 1.48f)*l + 1.92137f)*l - 1.373254f)*l + 1.51733216f)*l - 0.0404733783f;		// error 0.145 sRGB units
+
+	return l <= 0.0031308f ? line : curve;
 }
 
 float slrgb(float s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] linear value
 {
-	if (s <= 0.04045f)
-		return s * (1.f/12.92f);
-	else
-		return pow((s + 0.055f) * (1.f/1.055f), 2.4f);
+	float line, curve;
+
+	// FR ~8
+	line = s * (1.f/12.92f);
+	curve = ((((0.05757f*s - 0.2357f)*s + 0.60668f)*s + 0.540468f)*s + 0.0299805f)*s + 0.001010107f;	// error 0.051 sRGB units
+
+	return s <= 0.04045f ? line : curve;
 }
 
 float s8lrgb(float s8)
@@ -79,8 +86,8 @@ float4 linear_to_srgb(float4 pl0, uint seed)
 	float dith;
 	const float dith_scale = M_SQRT1_2_F / max_s;
 
-	pl0 = mix(colour_blowout(pl0), clamp(pl0, 0.f, 1.f), 0.666f);
-	//pl0 = clamp(pl0, 0.f, 1.f);
+	//pl0 = mix(colour_blowout(pl0), clamp(pl0, 0.f, 1.f), 0.666f);
+	pl0 = clamp(pl0, 0.f, 1.f);
 
 	pl1.s0 = lsrgb(pl0.s0);		// blue
 	pl1.s1 = lsrgb(pl0.s1);		// green
