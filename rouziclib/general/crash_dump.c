@@ -49,10 +49,14 @@ LONG WINAPI crashdump_callback(EXCEPTION_POINTERS *exception_ptr)
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
+#endif
+#endif
 
 // crashdump_init(make_appdata_path("Program name", NULL, 1));
 void crashdump_init(const char *path)
 {
+#ifdef RL_CRASHDUMP
+#ifdef _WIN32
 	static int init=1;
 
 	if (init==0)
@@ -64,6 +68,6 @@ void crashdump_init(const char *path)
 	SetUnhandledExceptionFilter(crashdump_callback);
 	ULONG ulong = 16384;
 	SetThreadStackGuarantee(&ulong);
+#endif
+#endif
 }
-#endif
-#endif

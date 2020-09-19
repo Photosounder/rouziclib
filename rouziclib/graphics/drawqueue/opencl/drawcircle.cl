@@ -13,7 +13,7 @@ float4 draw_circle_full_add(global float *le, float4 pv)
 	col.s0 = le[4];
 	col.s1 = le[5];
 	col.s2 = le[6];
-	col.s3 = 1.;
+	col.s3 = 1.f;
 
 	dc = fast_distance(pf, pc);	// Distance to center
 	dn = (circrad - dc) * rad;	// Near edge distance
@@ -39,7 +39,7 @@ float4 draw_circle_hollow_add(global float *le, float4 pv)
 	col.s0 = le[4];
 	col.s1 = le[5];
 	col.s2 = le[6];
-	col.s3 = 1.;
+	col.s3 = 1.f;
 
 	dc = fast_distance(pf, pc);	// Distance to center
 	dn = (circrad - dc) * rad;	// Near edge distance

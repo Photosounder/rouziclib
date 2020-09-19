@@ -90,7 +90,7 @@ float4 draw_point_add(global float *le, float4 pv)
 	col.s0 = le[3];
 	col.s1 = le[4];
 	col.s2 = le[5];
-	col.s3 = 1.;
+	col.s3 = 1.f;
 
 	d = fast_distance(dp, pf) * rad;	// distance of the pixel from the centre of the dot, scaled
 

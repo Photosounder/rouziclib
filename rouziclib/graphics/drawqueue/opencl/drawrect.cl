@@ -5,7 +5,7 @@ float4 draw_plain_fill_add(global float *le, float4 pv)
 	col.s0 = le[0];
 	col.s1 = le[1];
 	col.s2 = le[2];
-	col.s3 = 1.;
+	col.s3 = 1.f;
 
 	pv += col;
 
@@ -28,7 +28,7 @@ float4 draw_rect_full_add(global float *le, float4 pv)
 	col.s0 = le[5];
 	col.s1 = le[6];
 	col.s2 = le[7];
-	col.s3 = 1.;
+	col.s3 = 1.f;
 
 	d0 = (pf - p0) * rad;
 	d1 = (pf - p1) * rad;

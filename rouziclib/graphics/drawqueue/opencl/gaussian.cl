@@ -22,26 +22,21 @@ float erf_fast(float x)
 	return y;
 }
 
-float angle_from_norm_coord_xpositive(float x, float y)
+float erf_tri_corner_approx(float x, float y)
 {
-	float pa, paa, pas, ta;
+	float x2, y2, z;
 
-	pa = (x - 2.f) * y;	// pseudo-angle in [-2 , 2] range
-	paa = fabs(pa);
-	pas = sign(pa);
+	// 12 mad, 7 mul = 19 FR, max error 1/1802
+	x2 = x*x;
+	y2 = y*y;
+	z = 	((( 5.4082e-6f*y2 - 4.5063e-5f )*x2 + 
+		( (7.7728e-6f*y2 - 0.0001990703f)*y2 + 0.00119672f ))*x2 + 
+		( (-0.000136548f*y2 + 0.00256433f)*y2 - 0.0146921f ))*x2 + 
+		(((1.209847e-5f*y2 - 0.000377797f)*y2 + 0.00542338f)*y2 - 0.04804065f)*y2 + 0.793529f;
+	z *= z;		// z^2
+	z *= z;		// z^4
+	z *= z;		// z^8
+	z *= x * y;
 
-	// True angle approximation, [0 , 0.5] range for [0 deg , 180 deg], error 1/17828 (0.02 deg)
-	ta = (((((0.0059196463f*paa - 0.034352064f)*paa + 0.079805054f)*paa - 0.080373173f)*paa + 0.0047036615f)*paa + 0.15882123f)*paa;
-	ta = ta*pas + 0.25f;
-
-	return ta;
-}
-
-float angle_from_norm_coord(float x, float y)	// (x,y) is anywhere on the unit circle, output is in turns in the [-0.5 , 0.5] range
-{
-	float ta;
-	ta = angle_from_norm_coord_xpositive(fabs(x), y);
-	ta = copysign(ta, x);
-
-	return ta;
+	return z;
 }

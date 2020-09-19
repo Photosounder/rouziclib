@@ -283,7 +283,7 @@ const char *strstr_after(const char *fullstr, const char *substr)		// points to 
 	return NULL;
 }
 
-#ifdef _WIN32
+#if defined( _WIN32 ) || defined( __EMSCRIPTEN__ )
 void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// like strstr but binary
 {
 	int i;

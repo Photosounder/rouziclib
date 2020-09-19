@@ -72,3 +72,19 @@ char *save_file_dialog(char *filter)		// the filter must use \1 instead of \0 as
 	return NULL;
 }
 #endif
+
+#ifndef _WIN32
+#ifndef __APPLE__
+char *open_file_dialog(char *filter)
+{
+	fprintf_rl(stderr, "open_file_dialog() not implemented on this platform\n");
+	return NULL;
+}
+
+char *save_file_dialog(char *filter)
+{
+	fprintf_rl(stderr, "save_file_dialog() not implemented on this platform\n");
+	return NULL;
+}
+#endif
+#endif

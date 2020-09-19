@@ -21,6 +21,7 @@ extern int export_subfiles_to_path(const char *path, fs_dir_t *dir);
 extern void export_whole_dir_flat_to_file(FILE *file, fs_dir_t *dir, const int show_dirs, const int path_start);
 extern int export_whole_dir_flat_to_path(const char *path, fs_dir_t *dir, const int show_dirs, const int remove_path);
 extern int dirent_test(const char *path);
+extern void get_volumes_path();
 extern int64_t get_volume_free_space(const char *path);
 extern double get_volume_free_space_gb(const char *path);
 

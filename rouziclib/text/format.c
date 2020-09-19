@@ -171,7 +171,7 @@ char *sprint_compile_date_fullarg(char *string, const char *location, const char
 		sprintf(&string[strlen(string)], " in %s", location);
 
 	#ifdef __STDC_VERSION__
-		sprintf(&string[strlen(string)], "\n\nC standard %d\n", __STDC_VERSION__);
+		sprintf(&string[strlen(string)], "\n\nC standard %ld\n", __STDC_VERSION__);
 	#else
 		sprintf(&string[strlen(string)], "\n\n");
 	#endif

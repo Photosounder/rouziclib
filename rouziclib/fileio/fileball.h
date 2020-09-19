@@ -8,6 +8,7 @@ extern buffer_t fileball_make_uncompressed(char **paths, int path_count, const i
 extern void fileball_make_uncompressed_file(char *out_path, char **paths, int path_count, const int depth);
 extern buffer_t fileball_make_z(char **paths, int path_count, const int depth);
 extern void fileball_make_z_file(char *out_path, char **paths, int path_count, const int depth);
+extern void fileball_make_header_file(char *out_path, char **paths, int path_count, const int depth);
 extern void fileball_extract_mem_to_path(buffer_t *ball, const char *extract_path);
 extern void fileball_extract_z_mem_to_path(buffer_t *zball, const char *extract_path);
 extern void fileball_extract_z_file_to_path(const char *in_path, const char *extract_path);

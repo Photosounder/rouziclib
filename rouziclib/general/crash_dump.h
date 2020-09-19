@@ -9,7 +9,8 @@
 extern wchar_t *crashdump_make_dump_path();
 extern void crashdump_write_minidump(EXCEPTION_POINTERS *exception_ptr);
 extern LONG WINAPI crashdump_callback(EXCEPTION_POINTERS *exception_ptr);
-extern void crashdump_init(const char *path);
 
 #endif
 #endif
+
+extern void crashdump_init(const char *path);

@@ -29,21 +29,21 @@ float4 colour_blowout(float4 c)
 
 float lsrgb(float l)	// converts a [0.0, 1.0] linear value into a [0.0, 1.0] sRGB value
 {
-	float line, curve;
+	float x, line, curve;
 
-	// FR ~12
-	line = l * 12.92f;
-	l = native_sqrt(l);
-	curve = ((((0.455f*l - 1.48f)*l + 1.92137f)*l - 1.373254f)*l + 1.51733216f)*l - 0.0404733783f;		// error 0.145 sRGB units
+	// 13 FR every time + 2 FR once
+	line = l * 12.92f;	// 1 FR
+	x = native_sqrt(l);	// 4 FR
+	curve = ((((0.455f*x - 1.48f)*x + 1.92137f)*x - 1.373254f)*x + 1.51733216f)*x - 0.0404733783f;		// 5 FR + 2 FR once, error 0.145 sRGB units
 
-	return l <= 0.0031308f ? line : curve;
+	return l <= 0.0031308f ? line : curve;	// 3 FR
 }
 
 float slrgb(float s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] linear value
 {
 	float line, curve;
 
-	// FR ~8
+	// ~8 FR
 	line = s * (1.f/12.92f);
 	curve = ((((0.05757f*s - 0.2357f)*s + 0.60668f)*s + 0.540468f)*s + 0.0299805f)*s + 0.001010107f;	// error 0.051 sRGB units
 
@@ -65,17 +65,21 @@ float apply_dithering(float pv, float dv)
 
 	// Reduce the scale of the dithering if pv is close to 0
 	if (pv < threshold)	// 1.2 is the threshold so that the crushing happens at 1.2*sqrt(2) = 1.7 sigma
+	{
 		if (pv <= 0.f)
 			return 0.f;
 		else
 			dv *= pv * it;
+	}
 
 	// Same if pv is close to 1
 	if (pv > 1.f - threshold)
+	{
 		if (pv >= 1.f)
 			return 1.f;
 		else
 			dv *= (1.f-pv) * it;
+	}
 
 	return pv += dv + rounding_offset;
 }

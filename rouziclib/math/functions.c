@@ -243,7 +243,7 @@ int next_prime(int n)
 
 int64_t next_power_of_2(int64_t n)
 {
-	return sign(n) * (1ULL << log2_ffo64(abs(n)));
+	return sign(n) * (1ULL << log2_ffo64(llabs(n)));
 }
 
 int modulo_euclidian(int a, int b)	// gives a modulo that is never negative, as needed for circular buffers

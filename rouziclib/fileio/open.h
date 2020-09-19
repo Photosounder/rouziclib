@@ -3,8 +3,13 @@
 	#define ftell(stream)			_ftelli64(stream)
 #else
 #ifndef __APPLE__
-	#define fseek(stream, offset, origin)	fseeko64(stream, offset, origin)
-	#define ftell(stream)			ftello64(stream)
+	#ifndef __EMSCRIPTEN__
+		#define fseek(stream, offset, origin)	fseeko64(stream, offset, origin)
+		#define ftell(stream)			ftello64(stream)
+	#else
+		#define fseek(stream, offset, origin)	fseeko(stream, offset, origin)
+		#define ftell(stream)			ftello(stream)
+	#endif
 #endif
 #endif
 

@@ -86,7 +86,7 @@ float4 read_srgb_pixel(global uint *im, int index)
 	pv.z = s8lrgb((v >> 16) & 255);
 	pv.y = s8lrgb((v >> 8) & 255);
 	pv.x = s8lrgb(v & 255);
-	pv.w = 1.;
+	pv.w = 1.f;
 
 	return pv;
 }
@@ -109,7 +109,7 @@ float4 raw_yuv_to_lrgb(float3 raw, float depth_mul)
 	pv.x = s8lrgb(r);
 	pv.y = s8lrgb(g);
 	pv.z = s8lrgb(b);
-	pv.w = 1.;
+	pv.w = 1.f;
 
 	return pv;
 }
@@ -247,7 +247,7 @@ float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, com
 	if (block_pos.x != d->block_pos.x || block_pos.y != d->block_pos.y)
 	{
 		// Calculate block start in bits
-		line_count0 = block_pos.y+1 >> 1;
+		line_count0 = (block_pos.y+1) >> 1;
 		line_count1 = block_pos.y >> 1;
 		di = line_count0*d->linew0 + line_count1*d->linew1;	// y block line start id
 		di += block_pos.x;					// x block start id
@@ -305,22 +305,22 @@ float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i, comp
 	switch (fmt)
 	{
 		case 0:		// frgb_t
-			return read_frgb_pixel(im, i.y * im_dim.x + i.x);
+			return read_frgb_pixel((global float4 *) im, i.y * im_dim.x + i.x);
 
 		case 1:		// sqrgb_t
-			return read_sqrgb_pixel(im, i.y * im_dim.x + i.x);
+			return read_sqrgb_pixel((global uint *) im, i.y * im_dim.x + i.x);
 
 		case 2:		// srgb_t
-			return read_srgb_pixel(im, i.y * im_dim.x + i.x);
+			return read_srgb_pixel((global uint *) im, i.y * im_dim.x + i.x);
 
 		case 10:	// YCbCr 420 planar 8-bit (AV_PIX_FMT_YUV420P)
 			return read_yuv420p8_pixel(im, im_dim, i);
 
 		case 11:	// YCbCr 420 planar 10-bit LE (AV_PIX_FMT_YUV420P10LE)
-			return read_yuv420pN_pixel(im, im_dim, i, 0.25f);
+			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.25f);
 
 		case 12:	// YCbCr 420 planar 12-bit LE (AV_PIX_FMT_YUV420P12LE)
-			return read_yuv420pN_pixel(im, im_dim, i, 0.0625f);
+			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.0625f);
 
 		case 20:	// Compressed texture format
 			return read_compressed_texture1_pixel(im, im_dim, i, cd1);
@@ -353,7 +353,7 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 
 	for (i.y = start.y; i.y <= end.y; i.y+=1.f)
 		for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-			pv += read_fmt_pixel(fmt, im, im_dim, convert_int2(i), &cd1) * calc_flattop_weight(pif, i, knee, slope, pscale);
+			pv += read_fmt_pixel(fmt, (global uchar *) im, im_dim, convert_int2(i), &cd1) * calc_flattop_weight(pif, i, knee, slope, pscale);
 
 	return pv;
 }
@@ -362,7 +362,7 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
-	global float *lef = lei;
+	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
 	float2 pscale, pos, pif;
@@ -386,7 +386,7 @@ float4 blit_sprite_flattop(global uint *lei, global uchar *data_cl, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
-	global float *lef = lei;
+	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
 	int fmt;
@@ -414,7 +414,7 @@ float4 blit_sprite_flattop_rot(global uint *lei, global uchar *data_cl, float4 p
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
-	global float *lef = lei;
+	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
 	int fmt;
@@ -463,7 +463,7 @@ float4 blit_photo(global uint *lei, global uchar *data_cl, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
-	global float *lef = lei;
+	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
 	float2 pscale, pos, pif, pc;

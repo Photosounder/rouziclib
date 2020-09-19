@@ -1,3 +1,8 @@
+#ifdef __EMSCRIPTEN__
+#define RL_THREADING_PLATFORM_FAKING
+#define __APPLE__
+#endif
+
 #define THREAD_IMPLEMENTATION
 #include "../libraries/orig/thread.h"
 
@@ -101,3 +106,7 @@ int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value)
 	#error Unknown platform.
 	#endif
 }
+
+#ifdef RL_THREADING_PLATFORM_FAKING
+#undef __APPLE__
+#endif

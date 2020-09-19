@@ -9,7 +9,6 @@
 #ifndef RL_DONT_ASSUME_LITTLE_ENDIAN
 #define MINIZ_LITTLE_ENDIAN 1
 #endif
-#define MINIZ_HAS_64BIT_REGISTERS 1
 #define MINIZ_UNALIGNED_USE_MEMCPY
 #include "orig/miniz.h"
 
