@@ -420,3 +420,40 @@ void parse_xy_array_file(char *path, xy_t **xy_array, size_t *xy_array_size)
 
 	free_2d(array, 1);
 }
+
+char *xml_copy_field_string(const char *parent_start, const char *parent_end, const char *tag_start, const char *tag_end)
+{
+	const char *p, *p_end;
+	char *field=NULL;
+
+	// Find tag start
+	p = strstr_after(parent_start, tag_start);
+
+	if (p && p < parent_end)		// if it's found inside the parent
+	{
+		// Find the tag end
+		p_end = strstr(p, tag_end);
+
+		if (p_end==NULL || p_end > parent_end)
+			return NULL;
+
+		// Copy string
+		field = make_string_copy_between_ptrs(p, p_end);
+	}
+
+	return field;
+}
+
+double xml_copy_field_number(const char *parent_start, const char *parent_end, const char *tag_start)
+{
+	const char *p;
+	double v = 0.;
+
+	// Find tag start
+	p = strstr_after(parent_start, tag_start);
+
+	if (p && p < parent_end)		// if it's found inside the parent
+		v = atof(p);
+
+	return v;
+}

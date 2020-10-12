@@ -1,4 +1,5 @@
 pref_file_t pref_def={0};
+rl_mutex_t pref_save_mutex={0};
 
 void pref_file_load(pref_file_t *pf)
 {
@@ -20,9 +21,13 @@ int pref_file_save_thread(pref_file_t *pf)
 {
 	int ret;
 
+	rl_mutex_lock(&pref_save_mutex);
+
 	ret = pref_file_save(pf);
 	free_pref_file(pf);
 	free(pf);
+
+	rl_mutex_unlock(&pref_save_mutex);
 
 	return ret;
 }
@@ -30,6 +35,7 @@ int pref_file_save_thread(pref_file_t *pf)
 void pref_file_save_thread_launch(pref_file_t *pf)
 {
 	static rl_thread_t thread_handle=NULL;
+	static int init=1;
 	pref_file_t *pf_copy;
 
 	pf_copy = calloc(1, sizeof(pref_file_t));
@@ -39,11 +45,21 @@ void pref_file_save_thread_launch(pref_file_t *pf)
 	pf_copy->lines = make_string_array_copy(pf->lines, pf->linecount);
 	pf_copy->path = make_string_copy(pf->path);
 
+	// Init the mutex
+	if (init)
+	{
+		init = 0;
+		rl_mutex_init(&pref_save_mutex);
+	}
+
 	// Wait for the thread to end if already running to avoid conflicts
+	#ifndef __EMSCRIPTEN__
 	rl_thread_join_and_null(&thread_handle);
+	#endif
 
 	// Launch the thread
 	rl_thread_create(&thread_handle, pref_file_save_thread, pf_copy);
+	//rl_thread_create_detached(pref_file_save_thread, pf_copy);
 }
 
 void free_pref_file(pref_file_t *pf)

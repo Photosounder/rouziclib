@@ -26,6 +26,11 @@ char *make_string_copy_len(const char *orig, size_t len)
 	return copy;
 }
 
+char *make_string_copy_between_ptrs(const char *start, const char *end)		// copies a string between two points. The char that end points to is excluded
+{
+	return make_string_copy_len(start, end-start);
+}
+
 char **make_string_array_copy(const char **orig, const size_t count)
 {
 	size_t i;

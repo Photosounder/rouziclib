@@ -149,6 +149,23 @@ int sdl_get_window_cur_display()	// determined by the max pixel area in a displa
 	return display_index;
 }
 
+int sdl_is_window_maximised(SDL_Window *window)
+{
+	return SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED;
+}
+
+#ifdef _WIN32
+HWND sdl_get_window_hwnd(SDL_Window *window)
+{
+	SDL_SysWMinfo wmInfo;
+
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(window, &wmInfo);
+
+	return wmInfo.info.win.window;
+}
+#endif
+
 // Mouse/keyboard input
 void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse position wrt the window coordinates, even outside the window
 {
@@ -344,6 +361,14 @@ SDL_GLContext init_sdl_gl(SDL_Window *window)
 	return ctx;
 }
 
+// Things required by SetProcessDpiAwareness
+#ifdef _WIN32
+#include <shellscalingapi.h>
+#ifdef _MSC_VER
+#pragma comment (lib, "Shcore.lib")
+#endif
+#endif
+
 void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags)
 {
 	static int init=1;
@@ -363,6 +388,12 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	fb.h = dim.y;
 
 	fb.maxdim = sdl_screen_max_window_size();
+
+	// DPI awareness
+	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+	#ifdef _WIN32
+	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+	#endif
 
 	fb.window = SDL_CreateWindow (	window_name,			// window title
 					-fb.maxdim.x-100,		// initial x position

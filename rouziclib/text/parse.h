@@ -1,4 +1,4 @@
-#ifdef WIN32
+#ifdef _WIN32
 #define snprintf _snprintf	// Microsoft is stupid, like seriously
 #endif
 
@@ -27,3 +27,5 @@ extern const char *find_date_time_in_string(const char *str);
 extern double parse_timestamp(const char *ts);
 extern int find_line_indentation_depth(const char *line);
 extern void parse_xy_array_file(char *path, xy_t **xy_array, size_t *xy_array_size);
+extern char *xml_copy_field_string(const char *parent_start, const char *parent_end, const char *tag_start, const char *tag_end);
+extern double xml_copy_field_number(const char *parent_start, const char *parent_end, const char *tag_start);

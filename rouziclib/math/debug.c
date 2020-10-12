@@ -115,21 +115,7 @@ double math_graph_get_interpolated_value_core(int index, double x)
 	if (x < mg->p[0].x || x > mg->p[mg->p_count-1].x)
 		return NAN;
 
-	// TODO do a more efficient search
-	// Find the two points between which x is found and interpolate
-	for (i=1; i < mg->p_count; i++)
-	{
-		if (x <= mg->p[i].x)
-		{
-			p0 = mg->p[i-1];
-			p1 = mg->p[i];
-
-			t = (x-p0.x) / (p1.x-p0.x);
-			return (p1.y-p0.y) * t + p0.y;
-		}
-	}
-
-	return NAN;
+	return get_interpolated_xy_array_value(x, mg->p, mg->p_count);
 }
 
 double math_graph_get_interpolated_value(int index, double x)

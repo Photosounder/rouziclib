@@ -6,6 +6,7 @@
 #endif
 
 #include <SDL.h>
+#include <SDL_syswm.h>
 #include <SDL_audio.h>
 #include <SDL_opengl.h>
 
@@ -31,6 +32,10 @@ extern xyi_t sdl_screen_max_window_size();
 extern recti_t sdl_get_window_border(SDL_Window *window);
 extern int sdl_find_point_within_display(xyi_t p);
 extern int sdl_get_window_cur_display();
+extern int sdl_is_window_maximised(SDL_Window *window);
+#ifdef _WIN32
+extern HWND sdl_get_window_hwnd(SDL_Window *window);
+#endif
 
 extern void sdl_update_mouse(SDL_Window *window, mouse_t *mouse);
 extern void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc);

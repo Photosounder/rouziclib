@@ -15,6 +15,13 @@ double find_line_for_thresh(vector_font_t *font, const uint8_t *string, word_sta
 		}
 	}
 
+	// If the first word was over the threshold
+	if (ret==0.)
+	{
+		*iw_end = iw_start;
+		ret = line_length;
+	}
+
 	return ret;
 }
 

@@ -87,9 +87,22 @@ int copy_file(const char *path, const char *newpath, const int overwrite)	// ret
 
 	#else
 
-	// TODO
-	fprintf_rl(stderr, "TODO: implement copy_file() for non-Windows\n");
-	return 1;
+	size_t data_size;
+	uint8_t *data;
+	int ret;
+
+	// FIXME bad approach if the file is large
+	data = load_raw_file(path, &data_size);
+	if (data==NULL)
+		return 1;
+
+	if (check_file_is_readable(newpath) && overwrite==0)		// if we can't overwrite the destination file
+		return 1;
+
+	ret = save_raw_file(newpath, "wb", data, data_size)==0;
+	free(data);
+
+	return ret;
 	#endif
 }
 
@@ -165,6 +178,7 @@ int remove_dir(const char *path)
 	return ret;
 }
 
+#ifndef __APPLE__
 void system_open(const char *path)
 {
 	#ifdef _WIN32
@@ -173,19 +187,17 @@ void system_open(const char *path)
 	utf8_to_wchar(path, path_w);
 	ShellExecuteW(NULL, NULL, path_w, NULL, NULL, SW_SHOWNORMAL);	// not using L"open" in the 2nd argument opens with the correct associated program
 	#endif
+}
+#endif
 
-	#ifdef __APPLE__
-	char command[PATH_MAX+8];
-
-	sprintf(command, "open \"%s\"", path);
-	system(command);
-
-	/*NSURL *fileURL = [NSURL fileURLWithPath: [NSString stringWithUTF8String:path]];
-
-	NSWorkspace *ws = [NSWorkspace sharedWorkspace];
-	[ws openURL: fileURL];*/
+#ifndef __APPLE__
+void system_open_url(const char *url)
+{
+	#ifdef _WIN32
+	system_open(url);
 	#endif
 }
+#endif
 
 void show_file_in_explorerW(const wchar_t *wpath)
 {
