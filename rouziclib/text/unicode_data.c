@@ -187,11 +187,12 @@ void init_unicode_data()
 	{
 		codepoint_lut[unicode_data[ic].codepoint] = ic;	// put the table ID into the LUT taking codepoints as index
 
-		if (strstr(unicode_data[ic].name, "Last"))		// if the name contains Last it means it's the end of a range
-		{
-			for (i=unicode_data[ic-1].codepoint+1; i < unicode_data[ic].codepoint; i++)	// refer all codepoints in the LUT to the first entry
-				codepoint_lut[i] = ic-1;
-		}
+		if (unicode_data[ic].name)
+			if (strstr(unicode_data[ic].name, "Last"))		// if the name contains Last it means it's the end of a range
+			{
+				for (i=unicode_data[ic-1].codepoint+1; i < unicode_data[ic].codepoint; i++)	// refer all codepoints in the LUT to the first entry
+					codepoint_lut[i] = ic-1;
+			}
 	}
 }
 

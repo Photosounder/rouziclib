@@ -302,7 +302,11 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (knob->circular)
 		v = rangewrap(v, knob->min, knob->max);
 	else
-		v = rangelimit(v, knob->min, knob->max);
+		if (knob->func == knobf_dboff)
+			v = MINN(v, knob->max);
+		else
+			v = rangelimit(v, knob->min, knob->max);
+
 	if (v_orig)
 		*v_orig = v;
 
@@ -390,7 +394,10 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			if (knob->circular)
 				v = rangewrap(v, knob->min, knob->max);
 			else
-				v = rangelimit(v, knob->min, knob->max);
+				if (knob->func == knobf_dboff)
+					v = MINN(v, knob->max);
+				else
+					v = rangelimit(v, knob->min, knob->max);
 
 			val_set_by_edit = 1;
 			knob->edit_open = 0;

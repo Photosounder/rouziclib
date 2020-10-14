@@ -22,11 +22,22 @@ double knobf_recip(double v, double min, double max, const int mode)
 		return knobf_linear(1./v, 1./min, 1./max, mode);
 }
 
+double knobf_dboff(double v, double min, double max, const int mode)
+{
+	double maxoff = vol_to_db(db_to_vol(max) + db_to_vol(min));
+
+	if (mode==0)
+		return vol_to_db(db_to_vol(knobf_linear(v, min, maxoff, mode)) - db_to_vol(min));	// [0 , 1] -> [min dB , maxoff dB] -> [-inf dB , max dB]
+	else
+		return knobf_linear(vol_to_db(db_to_vol(v) + db_to_vol(min)), min, maxoff, mode);	// [-inf dB , max dB] -> [min dB , maxoff dB] -> [0 , 1]
+}
+
 const char *knob_func_name[] =
 {
 	"linear",
 	"log",
 	"recip",
+	"dboff",
 };
 
 const knob_func_t knob_func_array[] =
@@ -34,6 +45,7 @@ const knob_func_t knob_func_array[] =
 	knobf_linear,
 	knobf_log,
 	knobf_recip,
+	knobf_dboff,
 };
 
 knob_func_t knob_func_name_to_ptr(const char *name)

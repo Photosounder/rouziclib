@@ -143,7 +143,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "vector/vector.h"
 #include "vector/polyline.h"
 
-#include "text/unicode_data.h"			// needs RL_INCL_UNICODE_DATA to be defined
+#include "text/unicode_data.h"			// needs RL_INCL_UNICODE_DATA(_MINI) to be defined
 #include "text/unicode.h"
 #include "text/unicode_bidi.h"
 #include "text/unicode_arabic.h"
