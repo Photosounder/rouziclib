@@ -50,6 +50,7 @@ extern void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos
 extern void sdl_graphics_init_autosize(const char *window_name, int flags, int window_index);
 extern int sdl_handle_window_resize(zoom_t *zc);
 extern void sdl_flip_fb();
+extern void sdl_flip_fb_srgb(srgb_t *sfb);
 extern int sdl_toggle_borderless_fullscreen();
 extern void sdl_quit_actions();
 
