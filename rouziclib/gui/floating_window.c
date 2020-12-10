@@ -2,8 +2,9 @@ void flwindow_init_defaults(flwindow_t *w)
 {
 	if (w->init == 0)
 	{
-		w->bg_col = make_colour_hsl(240., 1., 0.0006, HUEDEG, 0);
-		w->bar_col = make_colour_hsl(240., 0.5, 0.006, HUEDEG, 0);
+		w->bg_col = make_grey(0.);
+		w->bar_col = make_grey(0.004);
+		w->border_col = make_grey(0.004);
 		w->bar_height = 0.5;
 		w->close_hover_col = make_grey(0.06);
 		w->close_down_col = make_grey(0.12);
@@ -141,6 +142,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	draw_black_rect(sc_rect(area_os), drawing_thickness);					// black out the background
 	draw_rect_full(sc_rect(diag_area), drawing_thickness, w->bg_col, blend_add, 1.);	// diag rectangle
 	draw_rect_full(sc_rect(bar_area_os), drawing_thickness, w->bar_col, blend_add, 1.);	// title bar rectangle
+	draw_rect(sc_rect(area_os), drawing_thickness, w->border_col, blend_add, 1.);		// thin window border
 
 	if (close_butt_state.over)
 		draw_rect_full(sc_rect(close_area), drawing_thickness, close_butt_state.down ? w->close_down_col : w->close_hover_col, blend_add, 1.);	// close button hover rect

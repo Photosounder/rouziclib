@@ -145,12 +145,28 @@ double squared_gaussian_window(double x, double range, double w)	// x = ]-range 
 	if (x >= 1.)
 		return 0.;
 
-	w *= 0.7071067811865475244;	// scale w so that the given value matches the sigma of a regular gaussian function
+	w *= 0.7071067811865475244;		// scale w so that the given value matches the sigma of a regular gaussian function
 
 	if (w < 1e-4)
-		return sq(1. - sq(x));
+		return sq(1. - sq(x));		// squared parabola window
 
 	return sq(gaussian(x*w) - gaussian(w)) / sq(gaussian(0.) - gaussian(w));
+}
+
+double cumulative_squared_parabola(double x)	// integral of the squared parabola window, like a shorter erf()
+{
+	double x2;
+	x = rangelimit(x, -1., 1.);
+	x2 = x*x;
+	return ((0.375*x2 - 1.25)*x2 + 1.875)*x;
+}
+
+double cumulative_cubed_parabola(double x)	// integral of the cubed parabola window (1-x^2)^3
+{
+	double x2;
+	x = rangelimit(x, -1., 1.);
+	x2 = x*x;
+	return (((-0.3125*x2 + 1.3125)*x2 - 2.1875)*x2 + 2.1875)*x;
 }
 
 double ramp_kernel(double x)

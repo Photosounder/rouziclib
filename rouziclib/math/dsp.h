@@ -14,5 +14,7 @@ extern double vol_to_db(double vol);
 extern double sinc(double x, double fc);
 extern double blackman(double x, double range);
 extern double squared_gaussian_window(double x, double range, double w);
+extern double cumulative_squared_parabola(double x);
+extern double cumulative_cubed_parabola(double x);
 extern double ramp_kernel(double x);
 extern double ramp_kernel_discrete(int x);

@@ -319,3 +319,14 @@ double get_interpolated_xy_array_value(double x, xy_t *array, size_t array_size)
 
 	return array[array_size-1].y;
 }
+
+size_t get_latest_xy_array_index(double x, xy_t *array, size_t array_size)
+{
+	xy_t value = xy(x, 0.);
+	return array_find_index_by_cmp(&value, array, array_size, sizeof(xy_t), cmp_xy_by_x);
+}
+
+double get_latest_xy_array_value(double x, xy_t *array, size_t array_size)
+{
+	return array[get_latest_xy_array_index(x, array, array_size)].y;
+}

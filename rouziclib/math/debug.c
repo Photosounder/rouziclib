@@ -15,7 +15,7 @@ math_graph_t *math_graph_alloc_one()
 
 void math_graph_sort(math_graph_t *mg)
 {
-	qsort(mg->p, mg->p_count, sizeof(xy_t), cmp_xy_x_sort);
+	qsort(mg->p, mg->p_count, sizeof(xy_t), cmp_xy_by_x);
 }
 
 void math_graph_add(double *x, double *y, int p_count, char *name)

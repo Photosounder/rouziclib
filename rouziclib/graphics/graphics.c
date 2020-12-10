@@ -253,6 +253,7 @@ framebuffer_t init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode)
 
 void init_tls_fb(xyi_t dim)	// initalisation of thread-local fb and zc in fRGB mode, used for video generation. Just free_raster(&fb.r); at the end
 {
+	memset(&fb, 0, sizeof(framebuffer_t));
 	fb.w = dim.x;
 	fb.h = dim.y;
 	fb.r = make_raster(NULL, dim, XYI0, IMAGE_USE_FRGB);

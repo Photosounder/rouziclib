@@ -26,6 +26,7 @@
 #include "memory/swap.c"
 #include "memory/circular_buffer.c"
 #include "memory/generic_buffer.c"
+#include "memory/comparison.c"
 
 #include "geometry/rect.c"
 #include "geometry/intersection.c"

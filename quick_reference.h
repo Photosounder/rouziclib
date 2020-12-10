@@ -532,8 +532,8 @@
 		load_dir_depth(dir_path, &dir, 0);
 		free_dir(&dir);
 		// Go through each file of a subfolder and create the full path
-		for (i=0; i < dir->subfile_count; i++)
-			full_path[i] = append_name_to_path(NULL, dir->path, dir->subfile[i].name);
+		for (i=0; i < dir.subfile_count; i++)
+			full_path[i] = append_name_to_path(NULL, dir.path, dir.subfile[i].name);
 
 	// Drag and drop of files
 		if (dropfile_get_count())
@@ -662,6 +662,9 @@
 	// How to get one line from a string
 		n=0;
 		sscanf(p, "%[^\n]\n%n", line, &n);
+
+	// How to get one line from a file
+		while (fgets(line, sizeof(line), file))
 
 	// How to write a date/time stamp
 		char datestamp[32];

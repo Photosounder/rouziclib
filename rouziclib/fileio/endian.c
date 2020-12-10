@@ -53,10 +53,36 @@ uint32_t fread_BE32(FILE *file)
 {
 	uint16_t b0, b1;
 
-	b1 = fread_LE16(file);
-	b0 = fread_LE16(file);
+	b1 = fread_BE16(file);
+	b0 = fread_BE16(file);
 
 	return (uint32_t) (b1<<16) | b0;
+}
+
+uint64_t fread_LE64(FILE *file)
+{
+#ifdef ASS_LE
+	uint64_t v;
+	fread(&v, sizeof(v), 1, file);
+	return v;
+#else
+	uint32_t b0, b1;
+
+	b0 = fread_LE32(file);
+	b1 = fread_LE32(file);
+
+	return (uint64_t) (b1<<32) | b0;
+#endif
+}
+
+uint64_t fread_BE64(FILE *file)
+{
+	uint32_t b0, b1;
+
+	b1 = fread_BE32(file);
+	b0 = fread_BE32(file);
+
+	return ((uint64_t) b1<<32) | b0;
 }
 
 // File write

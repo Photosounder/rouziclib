@@ -7,6 +7,8 @@ extern uint16_t fread_LE16(FILE *file);
 extern uint16_t fread_BE16(FILE *file);
 extern uint32_t fread_LE32(FILE *file);
 extern uint32_t fread_BE32(FILE *file);
+extern uint64_t fread_LE64(FILE *file);
+extern uint64_t fread_BE64(FILE *file);
 extern void fwrite_byte8(FILE *file, uint8_t s);
 extern void fwrite_LE16(FILE *file, uint16_t s);
 extern void fwrite_BE16(FILE *file, uint16_t s);

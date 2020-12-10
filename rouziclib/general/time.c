@@ -121,19 +121,109 @@ double get_time_day_fraction(time_t t, int gmt)
 	return (ts->tm_hour + (ts->tm_min + ts->tm_sec/60.)/60.) / 24.;
 }
 
-time_t parse_date_time_string(const char *string)	// expected format is "YYYY-MM-DD hh.mm.ss"
+void get_new_york_summer_time_bounds(int tm_year, time_t *start_t, time_t *end_t)
+{
+	struct tm start_s={0}, end_s={0};
+
+	// Find summer time start and end in Unix time
+	start_s.tm_year = tm_year;	// same year
+	start_s.tm_mon = 3-1;		// March
+	start_s.tm_mday = 8;		// 8th
+	start_s.tm_hour = 2;		// 2 am (winter time)
+
+	end_s.tm_year = tm_year;	// same year
+	end_s.tm_mon = 11-1;		// November
+	end_s.tm_mday = 1;		// 1st
+	end_s.tm_hour = 1;		// 1 am (winter time)
+
+	// Get the day of the week
+	*start_t = timegm(&start_s);
+	*end_t = timegm(&end_s);
+	gmtime_r(start_t, &start_s);
+	gmtime_r(end_t, &end_s);
+
+	// Find the next Sundays
+	start_s.tm_mday += (7 - start_s.tm_wday) % 7;
+	end_s.tm_mday += (7 - end_s.tm_wday) % 7;
+
+	*start_t = timegm(&start_s);
+	*end_t = timegm(&end_s);
+}
+
+time_t new_york_time(time_t utc, struct tm *s)		// only valid starting in 2007. s can be NULL
+{
+	time_t et = utc - 5*3600, start_t, end_t;
+	struct tm ss;
+
+	if (s==NULL)
+		s = &ss;
+
+	// Convert winter time to structure
+	gmtime_r(&et, s);
+
+	// Get start and end of summer time
+	get_new_york_summer_time_bounds(s->tm_year, &start_t, &end_t);
+
+	// Compare times to check for summer time
+	if (et >= start_t && et < end_t)
+	{
+		et += 3600;
+		gmtime_r(&et, s);
+		s->tm_isdst = 1;
+	}
+
+	return et;
+}
+
+time_t time_new_york(struct tm s)		// Convert New York time to UTC time_t
+{
+	time_t et, utc, start_t, end_t;
+	
+	et = timegm(&s);
+	utc = et + 5*3600;			// add 5 hours to convert to UTC
+
+	// Get start and end of summer time
+	get_new_york_summer_time_bounds(s.tm_year, &start_t, &end_t);
+
+	// Subtract extra summer hour
+	if (et >= start_t && et < end_t)
+		utc -= 3600;
+
+	return utc;
+}
+
+time_t parse_date_time_string(const char *string)	// expected format is "YYYY-MM-DD hh*mm*ss"
 {
 	struct tm ts={0};
 
 	if (string==NULL)
 		return 0;
 
-	sscanf(string, "%d-%d-%d %d.%d.%d", &ts.tm_year, &ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &ts.tm_sec);
+	sscanf(string, "%d-%d-%d %d%*c%d%*c%d", &ts.tm_year, &ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &ts.tm_sec);
 
 	ts.tm_year -= 1900;
 	ts.tm_mon -= 1;
 
 	return timegm(&ts);
+}
+
+double parse_date_time_string_hr(const char *string)	// expected format is "YYYY-MM-DD hh*mm*ss(.sss)"
+{
+	struct tm ts={0};
+	time_t tt;
+	double sec=0.;
+
+	if (string==NULL)
+		return 0;
+
+	sscanf(string, "%d-%d-%d %d%*c%d%*c%lg", &ts.tm_year, &ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &sec);
+
+	ts.tm_year -= 1900;
+	ts.tm_mon -= 1;
+
+	tt = timegm(&ts);
+
+	return (double) tt + sec;
 }
 
 void sleep_ms(int ms)

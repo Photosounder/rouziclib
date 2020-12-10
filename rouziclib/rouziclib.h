@@ -97,6 +97,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "memory/swap.h"
 #include "memory/circular_buffer.h"
 #include "memory/generic_buffer.h"
+#include "memory/comparison.h"
 
 #include "geometry/rect.h"
 #include "geometry/intersection.h"
