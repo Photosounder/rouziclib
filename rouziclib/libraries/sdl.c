@@ -389,6 +389,8 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 
 	fb.maxdim = sdl_screen_max_window_size();
 
+	// FIXME SDL_WINDOW_MAXIMIZED flag should probably be dealt with because it doesn't work well with the maxdim initialisation
+
 	// DPI awareness
 	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 	#ifdef _WIN32

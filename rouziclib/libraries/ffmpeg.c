@@ -138,7 +138,7 @@ double ff_get_timestamp(ffstream_t *s, int64_t timestamp)
 	AVRational time_base = s->fmt_ctx->streams[s->stream_id]->time_base;
 	int64_t start_time = s->fmt_ctx->streams[s->stream_id]->start_time;
 
-	return (timestamp - start_time) * av_q2d(time_base);
+	return (timestamp - 0*start_time) * av_q2d(time_base);
 }
 
 double ff_get_frame_timestamp(ffstream_t *s)
@@ -151,7 +151,7 @@ int64_t ff_make_timestamp(ffstream_t *s, double t)
 	AVRational time_base = s->fmt_ctx->streams[s->stream_id]->time_base;
 	int64_t start_time = s->fmt_ctx->streams[s->stream_id]->start_time;
 
-	return nearbyint(t / av_q2d(time_base) + start_time);
+	return nearbyint(t / av_q2d(time_base) + 0*start_time);
 }
 
 /*raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
@@ -617,6 +617,9 @@ raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mo
 			return im;
 	}
 
+	if (s->stream_id == -1)
+		return im;
+
 	// Load AVFrame
 	switch (seek_mode)
 	{
@@ -657,6 +660,9 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 		if (s->stream_id == -1)
 			return -1;
 	}
+
+	if (s->stream_id == -1)
+		return -1;
 
 	// Load AVFrame
 	switch (seek_mode)

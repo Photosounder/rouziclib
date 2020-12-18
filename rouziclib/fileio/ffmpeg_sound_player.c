@@ -2,7 +2,7 @@
 
 int audio_player_load_thread(audio_player_data_t *data)
 {
-	int i, ip=-1, must_seek=0, ip0, ip1;
+	int i, ip=-1, must_seek=0, ip0=-1, ip1;
 	double ts_req=0., ts0=NAN, ts0_end=0., ts1=NAN;
 	ffframe_info_t info;
 	int ret=0, sample_count;
@@ -11,10 +11,11 @@ int audio_player_load_thread(audio_player_data_t *data)
 
 	while (data->thread_on)
 	{
+loop_start:
 		rl_mutex_lock(&data->mutex);
 
 		// if we're jumping back or forward
-		if (data->speed < 0. || data->ts_req < ts_req || /*data->ts_req < ts0 ||*/ (data->ts_req - ts1 > 60. && isnan(ts1)==0))
+		if (data->speed < 0. || data->ts_req < ts_req || (data->ts_req - ts1 > 60. && isnan(ts1)==0))
 		{
 			ip = -1;
 			ts0 = NAN;
@@ -30,8 +31,11 @@ int audio_player_load_thread(audio_player_data_t *data)
 		rl_mutex_unlock(&data->mutex);
 
 		// Pause the loading if the frame to be replaced next is still needed
-		while (data->ts_req >= ts0 && data->ts_req < ts0_end && must_seek==0 && data->thread_on && circ_index(ip+1, data->frame_as)==ip0)
+		if (ts_req >= ts0 && ts_req < ts0_end && must_seek==0 && data->thread_on && circ_index(ip+1, data->frame_as)==ip0)
+		{
 			sleep_ms(1);
+			goto loop_start;
+		}
 
 		if (abs(double_diff_ulp(data->speed, 1.)) < 100)
 		{
@@ -53,8 +57,8 @@ int audio_player_load_thread(audio_player_data_t *data)
 			// Add the frame to the tables
 			ip = circ_index(ip + 1, data->frame_as);
 
-			// if frame at ts0 is being replaced
-			if (data->frame[ip].info.ts == ts0 && isnan(ts0)==0)
+			// if new frame replaces old frame[ip0]
+			if (ip==ip0)
 			{
 				ip0 = circ_index(ip + 1, data->frame_as);
 				ts0 = data->frame[ip0].info.ts;
@@ -64,13 +68,11 @@ int audio_player_load_thread(audio_player_data_t *data)
 			if (isnan(ts0))			// init ts0
 			{
 				ip0 = ip;
-				ts0 = info.ts;
+				ts0 = MINN(ts_req, info.ts);	// in case info.ts is higher than ts_req
 				ts0_end = info.ts_end;
 			}
 			ts1 = info.ts_end;
 			ip1 = ip;
-			//data->ip0 = ip0;
-			//data->ip1 = ip1;
 
 			data->frame[ip].used = 1;
 			data->frame[ip].sample_count = sample_count;
