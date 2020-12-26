@@ -155,8 +155,9 @@ double short_gaussian_window(double x, double range, double w)	// x = ]-range , 
 
 double short_erf(double x, double w)
 {
-	x *= sqrt(0.5);
 	x = rangelimit(x, -w, w);
+	x *= sqrt(0.5);
+	w *= sqrt(0.5);
 
 	// Normalised integral of (exp(-x^2) - exp(-w^2))^2
 	return ( sqrt(pi) * exp(w*w) * (sqrt(2.) * exp(w*w) * erf(sqrt(2.) * x) - 4.*erf(x)) + 4. * x )
