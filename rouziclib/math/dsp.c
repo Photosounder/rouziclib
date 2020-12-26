@@ -137,7 +137,7 @@ double blackman(double x, double range)		// spans ]-range , +range[
 	return 0.42 + 0.5*cos(x) + 0.08*cos(2.*x);
 }
 
-double squared_gaussian_window(double x, double range, double w)	// x = ]-range , +range[, w is the sigma span of the gaussian, high w means more gaussian and thin
+double short_gaussian_window(double x, double range, double w)	// x = ]-range , +range[, w is the sigma span of the gaussian, high w means more gaussian and thin
 {
 	x /= range;
 	ffabs(&x);
@@ -150,7 +150,17 @@ double squared_gaussian_window(double x, double range, double w)	// x = ]-range 
 	if (w < 1e-4)
 		return sq(1. - sq(x));		// squared parabola window
 
-	return sq(gaussian(x*w) - gaussian(w)) / sq(gaussian(0.) - gaussian(w));
+	return sq(gaussian(x*w) - gaussian(w)) / sq(1. - gaussian(w));
+}
+
+double short_erf(double x, double w)
+{
+	x *= sqrt(0.5);
+	x = rangelimit(x, -w, w);
+
+	// Normalised integral of (exp(-x^2) - exp(-w^2))^2
+	return ( sqrt(pi) * exp(w*w) * (sqrt(2.) * exp(w*w) * erf(sqrt(2.) * x) - 4.*erf(x)) + 4. * x )
+	     / ( sqrt(pi) * exp(w*w) * (sqrt(2.) * exp(w*w) * erf(sqrt(2.) * w) - 4.*erf(w)) + 4. * w );
 }
 
 double cumulative_squared_parabola(double x)	// integral of the squared parabola window, like a shorter erf()

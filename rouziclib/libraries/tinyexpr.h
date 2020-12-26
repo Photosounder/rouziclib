@@ -9,6 +9,7 @@
 	{"gamma_dist", gamma_dist, TE_FUNCTION3 | TE_FLAG_PURE}, \
 	{"sinc", sinc, TE_FUNCTION2 | TE_FLAG_PURE},		\
 	{"blackman", blackman, TE_FUNCTION2 | TE_FLAG_PURE},	\
+	{"short_erf", short_erf, TE_FUNCTION2 | TE_FLAG_PURE},	\
 	{"lab_to_linear", Lab_L_to_linear, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"linear_to_lab", linear_to_Lab_L, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"lab_invert", Lab_L_invert, TE_FUNCTION1 | TE_FLAG_PURE},	\
