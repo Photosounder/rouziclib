@@ -2,6 +2,20 @@ cfftpack:
 	https://github.com/zywina/cfftpack
 	May 5, 2018
 	only download fftpack.[ch]
+	in fftpack.c get rid of ftnlen logical complex TRUE_ FALSE_
+	turn the four instances of .5f into .5
+	put c__1 and c__2 inside the functions that use them (without static)
+	in the C files replace complex with fft_complex_t and delete the complex-related macros
+	turn fftpack.[ch] into fftpack_float.[ch] and fftpack_double.[ch]
+	in the C files change #include "fftpack.h"
+	delete the "#ifndef fft_real_t" section
+	in each pair replace fft_real_t with float or double
+	append f or d to all functions using the regex :%s/_(/_f(/g (or :%s/_(/_d(/g)
+	replace fft_complex_t with fft_complexf_t / fft_complexd_t
+	in fftpack_float.c replace the functions sqrt cos sin log atan with their float equivalent also using :s//&f/g
+	then turn real constants to float using :%s/\.[0-9]\+/&f/g then do :%s/FFTPACK 5.1f/FFTPACK 5.1/g
+	replaces instances of pi with 3.1415927f or 3.14159265358979323846
+	change the include guards in each header
 
 glew:
 	download source zip from http://glew.sourceforge.net/

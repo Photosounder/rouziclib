@@ -1,0 +1,96 @@
+= rouziclib
+
+This is my library of code that is common to all my different projects such as https://photosounder.com[Photosounder], https://photosounder.com/spiral/[Spiral] and https://photosounder.com/splineeq/[SplineEQ], but also lesser projects such as my minimalistic https://github.com/Photosounder/rouziclib-picture-viewer[picture viewer] or my modernised version of NASA's https://github.com/Photosounder/Voyager-Image-Decoder[Voyager Image Decoder] as well as projects you don't know about such as my private project Spacewar which is where all my new code is born.
+
+It includes some of the following:
+
+* Fast lookup table-based fixed-point arithmetic approximations for sqrt, hypot, log2, exp2, pow, cos, atan2 (both noting angles in http://en.wikipedia.org/wiki/Turn_(geometry)[turns], not radians), the Gaussian function (http://www.wolframalpha.com/input/?i=e%5E-x%C2%B2[e^-x²^]) and the raised error function (https://www.wolframalpha.com/input/?i=0.5%2B0.5erf(x)[0.5+0.5erf(x)]). Some are implemented using linear interpolation, segmented quadratic polynomial approximation or simple lookup, which offers different levels of speed/precision/memory usage tradeoffs.
+* Fast polynomial lookup table-based floating-point approximations for cos, log2, exp2, pow and others.
+* Original math functions such as a short Gaussian function and its integral, the short error function which I now use for filter design. I also created an approximation of the inverse of the error function accurate to about 10^-12^.
+* Functions to draw lines, points, circles, roundrects and gradients, all antialiased with Gaussian filtering
+* Functions to convert from sRGB to linear RGB for loading images and to convert from linear RGB to sRGB with optional Gaussian dithering for displaying
+* Geometric functions used for computing intersections between lines, shortest the distance of a point to a line or to limit a line to a bounding box
+* Blending modes like additive, subtractive, multiplicative blending and alpha blending
+* Blitting of a buffer onto another, like for displaying a sprite
+* An original Hue-Saturation-Luminance colour space with a Luminance that is about perceptually correct (unlike the 1931 CIE XYZ colour space which gets the weights of each colour blatantly wrong) which is used for HSL to RGB conversion and for bringing out of gamut colours (such as colours that have components brighter than 1.0) to the most appropriate representable colour
+* Vector font generation, vector text rendering and a built-in minimalistic vector font that is always available. A more complete typeface is available in the https://github.com/Photosounder/rouziclib/tree/master/vector_type[vector_type] directory
+* Vector procedural zoomable interface elements that for instance allow you to have a fully functional button just by calling a function with all the necessary information provided as parameters (without anything stored in memory) and simply getting the return value, with no need for storage for each instance of a control, no unique IDs or anything
+* Functions to conveniently do operations on point vectors (2D or 3D) or rectangles and triangles, such as generating rectangle coordinates based on position, size and offset vectors, or calculating the scaling and positioning needed to make a rectangle fit in a certain way inside another rectangle. This forms the basis of the aforementioned interface system.
+* A drawing queue-based graphical system that lets the main thread queue drawing commands and then is rendered on the GPU using OpenCL or the CPU in a threaded way
+* A file concatenation feature called fileball similar to tarball that I use to pack and compress many files together as one header that can be included in an executable in a portable compiler-independent way, like my vector typeface.
+* Convenient directory-listing and file management features
+* Built-in dependency-free loading of various image formats (https://github.com/nothings/stb/blob/master/stb_image.h[JPG, PNG, BMP, PSD], TIFF, https://heasarc.gsfc.nasa.gov/docs/heasarc/fits.html[NASA]'s FITS), saving of images (32-bit TIFF, https://github.com/nothings/stb/blob/master/stb_image_write.h[PNG, JPG, BMP]), loading of sounds (AIFF, WAVE, https://github.com/mackron/dr_libs/blob/master/dr_flac.h[FLAC], https://github.com/nothings/stb/blob/master/stb_vorbis.c[OGG]) and saving of sounds (AIFF, WAVE).
+* Modified libraries such as a version of https://github.com/zywina/cfftpack[cfftpack] modified so that both single and double precision floating point FFTs can be done in the same program (not possible with the original) or a version of https://github.com/tronkko/dirent[dirent] modified to fix some path length and Unicode conversion bugs, or a cut-down version of https://github.com/nigels-com/glew[GLEW] that contains only what rouziclib needs.
+* Fast tiled mipmap generation, image rescaling based on https://photosounder.com/michel_rouzic/#flattop[flat-top bilinear filtering], Gaussian blurring, an original texture compression and YUV coding/decoding in C and OpenCL.
+* A system for loading and saving an application's preferences to one file but in a non-centralised way with just a simple value query being enough to add a new value in its proper place
+* A sound system so that multiple functions can play sounds at the same time by providing a callback
+* Functions to easily resize buffers as needed and a generic buffer system based on this with many functions that replicate how outputing to a file stream works
+* Binary searching of arrays
+* Functions to convert between UTF-8, UTF-16 and Unicode codepoints. A subset of these functions forms the basis for https://github.com/Photosounder/fopen_utf8[fopen_utf8] which I recommend you use if you need to fopen UTF-8 paths on Windows.
+* Various functions to parse or format strings
+* Various utility functions and macros
+* Code for working with https://www.libsdl.org/[SDL], OpenGL, https://www.khronos.org/opencl/[OpenCL], https://github.com/clMathLibraries/clFFT[clFFT], http://openil.sourceforge.net/[DevIL], http://opencv.org/[OpenCV], https://www.ffmpeg.org/[FFMPEG], https://www.libraw.org/[LibRAW] and http://www.mpfr.org/[MPFR].
+
+All graphical functions operate on pixels in a linear colour space. Please do not use these functions directly in a gamma-compressed colour space, instead use an intermediary linear framebuffer which you can then convert to an sRGB framebuffer using the function `convert_lrgb_to_srgb`.
+
+How to use it
+-------------
+
+Unusually for a library, rouziclib's code relies on macros that are defined inside your project's code. This means that rouziclib isn't entirely independently compiled. So the way to make this work is to create two files in your project, a header file which directly includes the main header, but not before you add the macros you can optionally define, and a code file which includes the aforementioned header file you just created and then includes the library's rouziclib.c. Here's how it looks:
+
+rl.h
+
+[source,C]
+----
+#ifndef H_PRL
+#define H_PRL
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// these are examples of optional macros that rouziclib will then use for your project
+#define COL_FRGB    // this macro makes the internal format for colour be floating-point instead of fixed-point
+#define RL_SDL      // this includes SDL-using code as well as the necessary SDL files
+#define RL_OPENCL   // same for OpenCL
+
+// this defines a wrapper for fprintf_rl, so you project can use a custom fprintf-type function that can for instance output to a file
+#define fprintf_rl fprintf_wrapper
+#include <stdio.h>
+#include <stdarg.h>
+extern void fprintf_wrapper (FILE *stream, const char* format, ...);
+
+#include <rouziclib/rouziclib.h>
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+----
+
+rl.c
+
+[source,C]
+----
+#include "rl.h"
+
+// this creates that custom printing function that all calls to fprintf_rl in rouziclib will use
+
+void fprintf_wrapper (FILE *stream, const char* format, ...)
+{
+    va_list args;
+
+    va_start (args, format);
+
+    vfprintf (stream, format, args);    // printf to original stream
+    fflush (stream);
+
+    va_end (args);
+}
+
+#include <rouziclib/rouziclib.c>
+----
+
+I realise that this is a bit unusual, but it's pretty simple and very handy. You can for instance include rouziclib in a simple command-line C program without having to worry about dependencies as none will be included, and in another project add dependencies as you need by adding the necessary macros, so without having the recompile anything separately (as you would have to were you to use two versions of a same library compiled with different dependencies) you can have in separate projects a rouziclib with no dependencies or a rouziclib that uses SDL, DevIL, OpenCV, OpenCL, clFFT, FFMPEG and LibRAW.
+
+=== Example project
+Have a look at a minimal https://github.com/Photosounder/rouziclib-picture-viewer[picture viewer] built around rouziclib, with explanations of its features, how it works and how to expand on it or create a similar program.

@@ -45,8 +45,8 @@ Converted to C and cleaned up a little: Roy Zywina
 This code is in the public domain.
 */
 
-#ifndef _FFTPACK_H_
-#define _FFTPACK_H_
+#ifndef _FFTPACKD_H_
+#define _FFTPACKD_H_
 
 #include <math.h>
 #include <stdlib.h>
@@ -55,117 +55,109 @@ This code is in the public domain.
 extern "C"{
 #endif
 
-// either change this line of code or use compiler flags to redefine to float
-#ifndef fft_real_t
-  /**
-  @brief underlying floating point type used in calcs
-  */
-  #define fft_real_t double
-#endif
-
 
 /*
 This type is binary compatable with C's "double _Complex" or
 C++'s "std::complex<double>" or an array of length 2*N of
-double. (or float if you redefine fft_real_t)
+double. (or float if you redefine double)
 */
 typedef struct{
-  fft_real_t r;
-  fft_real_t i;
-}fft_complex_t;
+  double r;
+  double i;
+}fft_complexd_t;
 
 /* Fortran API */
 
 /// FFT
-int cfft1b_(int *n, int *inc, fft_complex_t *c__, int *
-   	lenc, fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk,
+int cfft1b_d(int *n, int *inc, fft_complexd_t *c__, int *
+   	lenc, double *wsave, int *lensav, double *work, int *lenwrk,
    	int *ier);
 
 /// IFFT
-int cfft1f_(int *n, int *inc, fft_complex_t *c__, int *
-    lenc, fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk,
+int cfft1f_d(int *n, int *inc, fft_complexd_t *c__, int *
+    lenc, double *wsave, int *lensav, double *work, int *lenwrk,
     int *ier);
 
-/// initialize constants array for #cfft1b_ and #cfft1f_
-int cfft1i_(int *n, fft_real_t *wsave, int *lensav,int *ier);
+/// initialize constants array for #cfft1b_ and #cfft1f_d
+int cfft1i_d(int *n, double *wsave, int *lensav,int *ier);
 
 /// 2D FFT
-int cfft2b_(int *ldim, int *l, int *m, fft_complex_t *
-	c__, fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk,
+int cfft2b_d(int *ldim, int *l, int *m, fft_complexd_t *
+	c__, double *wsave, int *lensav, double *work, int *lenwrk,
 	int *ier);
 
 /// 2D IFFT
-int cfft2f_(int *ldim, int *l, int *m, fft_complex_t *
-	c__, fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk,
+int cfft2f_d(int *ldim, int *l, int *m, fft_complexd_t *
+	c__, double *wsave, int *lensav, double *work, int *lenwrk,
 	int *ier);
 
-/// initialize constants array for #cfft2b_ and #cfft2f_
-int cfft2i_(int *l, int *m, fft_real_t *wsave, int *
+/// initialize constants array for #cfft2b_d and #cfft2f_d
+int cfft2i_d(int *l, int *m, double *wsave, int *
   lensav, int *ier);
 
 /// initialize DCT-I constants
-int cost1i_(int *n, fft_real_t *wsave, int *lensav,
+int cost1i_d(int *n, double *wsave, int *lensav,
   	int *ier);
 
 /// DCT-I
-int cost1b_(int *n, int *inc, fft_real_t *x, int *lenx,
-  fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
+int cost1b_d(int *n, int *inc, double *x, int *lenx,
+  double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
 
 /// DCT-I with scaling applied to properly invert
-int cost1f_(int *n, int *inc, fft_real_t *x, int *lenx,
-    fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
+int cost1f_d(int *n, int *inc, double *x, int *lenx,
+    double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
 
 
 /// initialize constants for DCT
-int cosq1i_(int *n, fft_real_t *wsave, int *lensav,
+int cosq1i_d(int *n, double *wsave, int *lensav,
   	int *ier);
 /// DCT (DCT-III)
-int cosq1f_(int *n, int *inc, fft_real_t *x, int *lenx,
-    fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
+int cosq1f_d(int *n, int *inc, double *x, int *lenx,
+    double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
 /// IDCT (DCT-II)
-int cosq1b_(int *n, int *inc, fft_real_t *x, int *lenx,
-    fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
+int cosq1b_d(int *n, int *inc, double *x, int *lenx,
+    double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
 
 // DST 2 and 3 (aka DST and IDST)
 
 /// DST (DST-III)
-int sinq1b_(int *n, int *inc, fft_real_t *x, int *lenx,
-    fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
+int sinq1b_d(int *n, int *inc, double *x, int *lenx,
+    double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
 /// IDST (DST-II)
-int sinq1f_(int *n, int *inc, fft_real_t *x, int *lenx,
-    fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
-/// initialize constants for #sinq1b_ and #sinq1f
-int sinq1i_(int *n, fft_real_t *wsave, int *lensav, int *ier);
+int sinq1f_d(int *n, int *inc, double *x, int *lenx,
+    double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
+/// initialize constants for #sinq1b_d and #sinq1f
+int sinq1i_d(int *n, double *wsave, int *lensav, int *ier);
 
 /// DST (DST-I)
-int sint1b_(int *n, int *inc, fft_real_t *x, int *lenx,
-    fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
+int sint1b_d(int *n, int *inc, double *x, int *lenx,
+    double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
 /// IDST (DST-I)
-int sint1f_(int *n, int *inc, fft_real_t *x, int *lenx,
-    fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk, int *ier);
-/// initialize constants for #sint1b_ and #sint1f
-int sint1i_(int *n, fft_real_t *wsave, int *lensav, int *ier);
+int sint1f_d(int *n, int *inc, double *x, int *lenx,
+    double *wsave, int *lensav, double *work, int *lenwrk, int *ier);
+/// initialize constants for #sint1b_d and #sint1f
+int sint1i_d(int *n, double *wsave, int *lensav, int *ier);
 
 /// RFFT init
-int rfft1i_(int *n, fft_real_t *wsave, int *lensav, int *ier);
+int rfft1i_d(int *n, double *wsave, int *lensav, int *ier);
 /// RFFT
-int rfft1f_(int *n, int *inc, fft_real_t *r__, int *
-	lenr, fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk,
+int rfft1f_d(int *n, int *inc, double *r__, int *
+	lenr, double *wsave, int *lensav, double *work, int *lenwrk,
 	int *ier);
 /// IRFFT
-int rfft1b_(int *n, int *inc, fft_real_t *r__, int *
-	lenr, fft_real_t *wsave, int *lensav, fft_real_t *work, int *lenwrk,
+int rfft1b_d(int *n, int *inc, double *r__, int *
+	lenr, double *wsave, int *lensav, double *work, int *lenwrk,
 	int *ier);
 
 /// multi DCT init
-int cosqmi_(int *n, fft_real_t *wsave, int *lensav,int *ier);
+int cosqmi_d(int *n, double *wsave, int *lensav,int *ier);
 /// multi DCT-III
-int cosqmf_(int *lot, int *jump, int *n, int
-	*inc, fft_real_t *x, int *lenx, fft_real_t *wsave, int *lensav, fft_real_t *
+int cosqmf_d(int *lot, int *jump, int *n, int
+	*inc, double *x, int *lenx, double *wsave, int *lensav, double *
 	work, int *lenwrk, int *ier);
 /// multi DCT-II
-int cosqmb_(int *lot, int *jump, int *n, int
-	*inc, fft_real_t *x, int *lenx, fft_real_t *wsave, int *lensav, fft_real_t *
+int cosqmb_d(int *lot, int *jump, int *n, int
+	*inc, double *x, int *lenx, double *wsave, int *lensav, double *
 	work, int *lenwrk, int *ier);
 
 #ifdef __cplusplus

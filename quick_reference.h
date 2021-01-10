@@ -137,6 +137,20 @@
 		// Example of window-defining elem
 		"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
 
+	// Floating pinned window full template
+		static gui_layout_t layout={0};
+		const char *layout_src[] = {
+			"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
+		};
+
+		gui_layout_init_pos_scale(&layout, neg_x(zc.limit_u), 1., XY0, 0);
+		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
+
+		static flwindow_t window={0};
+		flwindow_init_defaults(&window);
+		flwindow_init_pinned(&window);
+		draw_dialog_window_fromlayout(&window, NULL, NULL, &layout, 0);
+
 	// Fit a sublayout into a layout's rectangle
 		// offset decides towards which edges the fitting will go if the aspect ratios don't match
 		fit_sublayout_into_layout_rect(&window_layout, id_to_fit_into, &sublayout, id_of_frame, offset);
@@ -577,10 +591,10 @@
 		out_size = next_fast_fft_size(out_size);
 
 		// 1D real to complex. For size n the output layout is c0, c1, c2, ..., cn/2-2, cn/2-1, cn/2, c-(n/2-1), c-(n/2-2), ..., c-2, c-1
-		// therefore the positive frequency at c[i] is found at c[n-i]
+		// therefore the positive frequency at c[i] is found in negative at c[n-i]
 		static cfft_plan_t plan={0};
 		size_t out_as=0;
-		cfft_1D_r2c_padded_fft(&plan, in, sizeof(in[0]), &out, &out_as, in_size, out_size);
+		cfft_1D_r2c_padded_fft(&plan, in, sizeof(*in), &out, sizeof(*out), &out_as, in_size, out_size);
 
 		// Access positive frequency complex pairs this way, the negative frequencies are beyond out[out_size]
 		for (i=0; i <= out_size; i+=2)

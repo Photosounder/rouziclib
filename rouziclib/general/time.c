@@ -97,7 +97,7 @@ double convert_time_to_jd(time_t t)
 
 	#ifdef _WIN32
 	if (t >= 32535200000)
-		t %= 32535200000;	// Windows difftime() has a year 3001 bug
+		t %= 32535200000;			// Windows doesn't like post year 3000 times
 	#endif
 
 	double dts = difftime(t, ref_ut);		// time in seconds since reference

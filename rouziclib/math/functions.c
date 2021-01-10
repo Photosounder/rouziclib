@@ -31,6 +31,9 @@ double erfinv(double x)		// inverse of erf(x), approximated to 1e-12
 	if (x2 >= 1.)
 		return NAN;
 
+	if (x2 <= 0.0004)
+		return ((0.127616788*x2 + 0.2320136544097)*x2 + 0.886226925453366)*x;
+
 	xm = sqrt(-log(1. - x2));	// map x
 
 	if (xm <= 1.11)
