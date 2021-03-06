@@ -6,10 +6,8 @@ uint32_t fastcos_get_param(double *xp, double *endsign, const int quads)
 	uint64_t *xint = (uint64_t *) &x;
 	uint32_t lutind;
 
-	*xint &= 0x7FFFFFFFFFFFFFFF;		// x = |x|
-
-	// x = [0 , +inf[ --> x = [0 , 1[
-	x = get_fractional_part(x);
+	// x = ]-inf , +inf[ --> x = [0 , 1[
+	x = get_fractional_part_positive(x);
 
 	// Quadrant symmetry
 	if (quads <= 2)
@@ -39,10 +37,8 @@ uint32_t fastcosf_get_param(float *xp)
 	uint32_t *xint = (uint32_t *) &x;
 	uint32_t lutind;
 
-	*xint &= 0x7FFFFFFF;		// x = |x|
-
-	// x = [0 , +inf[ --> x = [0 , 1[
-	x = get_fractional_partf(x);
+	// x = ]-inf , +inf[ --> x = [0 , 1[
+	x = get_fractional_part_positivef(x);
 
 	*xp = x;
 	xoff = x + 2.f;	// the mantissa for xoff is [1.0 , 1.5]
@@ -61,8 +57,8 @@ float fastcosf_tr_d2(float x)	// max error: 2.82e-006 (compare with 1.52017e-007
 
 	lutind = fastcosf_get_param(&x) >> ish;
 	c = &lut[lutind*3];
-	return fmaf(fmaf(c[2], x, c[1]), x, c[0]);
-	//return (c[2]*x + c[1])*x + c[0];
+	//return fmaf(fmaf(c[2], x, c[1]), x, c[0]);		// too slow
+	return (c[2]*x + c[1])*x + c[0];			// less precise
 }
 
 double fastcos_tr_d2(double x)	// max error: 6.159e-007
@@ -75,8 +71,8 @@ double fastcos_tr_d2(double x)	// max error: 6.159e-007
 
 	lutind = fastcos_get_param(&x, NULL, quads) >> ish;
 	c = &lut[lutind*3];
-	return fma(fma(c[2], x, c[1]), x, c[0]);
-	//return (c[2]*x + c[1])*x + c[0];
+	//return fma(fma(c[2], x, c[1]), x, c[0]);
+	return (c[2]*x + c[1])*x + c[0];
 }
 
 double fastcos_tr_d3(double x)	// max error: 1.88958e-009
@@ -89,8 +85,8 @@ double fastcos_tr_d3(double x)	// max error: 1.88958e-009
 
 	lutind = fastcos_get_param(&x, NULL, quads) >> ish;
 	c = &lut[lutind<<2];
-	return fma(fma(fma(c[3], x, c[2]), x, c[1]), x, c[0]);
-	//return ((c[3]*x + c[2])*x + c[1])*x + c[0];
+	//return fma(fma(fma(c[3], x, c[2]), x, c[1]), x, c[0]);
+	return ((c[3]*x + c[2])*x + c[1])*x + c[0];
 }
 
 double fastcos_tr_d4(double x)	// max error: 4.63742e-012
@@ -103,8 +99,8 @@ double fastcos_tr_d4(double x)	// max error: 4.63742e-012
 
 	lutind = fastcos_get_param(&x, NULL, quads) >> ish;
 	c = &lut[lutind*5];
-	return fma(fma(fma(fma(c[4], x, c[3]), x, c[2]), x, c[1]), x, c[0]);
-	//return (((c[4]*x + c[3])*x + c[2])*x + c[1])*x + c[0];
+	//return fma(fma(fma(fma(c[4], x, c[3]), x, c[2]), x, c[1]), x, c[0]);
+	return (((c[4]*x + c[3])*x + c[2])*x + c[1])*x + c[0];
 }
 
 double fastcos_tr_d5(double x)	// max error: ~9e-016 (compare with 3.41596e-016 for cos())

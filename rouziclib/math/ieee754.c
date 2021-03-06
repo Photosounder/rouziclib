@@ -50,14 +50,61 @@ uint64_t double_get_mantissa(const double f)
 	return double_as_u64(f) & 0x000FFFFFFFFFFFFF;
 }
 
-float get_fractional_partf(float f)	// gets the fractional part of the number in the [0 , 1[ range, conserves the sign
+float get_fractional_part_signedf(float f)	// gets the fractional part of the number in the [0 , 1[ range, conserves the sign
 {
-	return f - truncf(f);
+	//return f - truncf(f);
+	int64_t i = f * 4294967296.f;		// f can't be >= 2^31
+	i &= 0xFFFFFFFF;
+	f = i * 2.3283064e-10f;
+	return f;
 }
 
-double get_fractional_part(double f)
+#ifdef __GNUC__
+__attribute__((__target__("sse4.1")))
+#endif
+double get_fractional_part_signed(double f)
 {
+	#ifdef RL_INTEL_INTR
+	if (check_sse41())
+	{
+		__m128d md, mt;
+		md = _mm_set_sd(f);
+		mt = _mm_round_sd(md, md, _MM_FROUND_TO_ZERO |_MM_FROUND_NO_EXC);	// SSE4.1 trunc(f)
+		md = _mm_sub_sd(md, mt);
+		return _mm_cvtsd_f64(md);
+	}
+	#endif
+
 	return f - trunc(f);
+}
+
+float get_fractional_part_positivef(float f)
+{
+	return f - floorf(f);
+}
+
+#ifdef __GNUC__
+__attribute__((__target__("sse4.1")))
+#endif
+double get_fractional_part_positive(double f)
+{
+	//return f - floor(f);			// too slow
+
+	#ifdef RL_INTEL_INTR
+
+	// Not checking for SSE4.1 because it impacts performance by a lot
+	__m128d md, mt;
+	md = _mm_set_sd(f);
+	mt = _mm_round_sd(md, md, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC);	// SSE4.1 floor(f)
+	md = _mm_sub_sd(md, mt);
+	return _mm_cvtsd_f64(md);
+
+	#endif
+
+	int64_t i = f * 4294967296.;		// f can't be >= 2^31
+	i &= 0xFFFFFFFF;
+	f = i * 2.3283064365386963e-10;
+	return f;
 }
 
 double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a double

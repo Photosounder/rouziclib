@@ -659,6 +659,10 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 		*s = ff_load_stream_init(path, AVMEDIA_TYPE_AUDIO);
 		if (s->stream_id == -1)
 			return -1;
+
+		AVDictionaryEntry *t = NULL;
+		while (t = av_dict_get(s->fmt_ctx->metadata, "", t, AV_DICT_IGNORE_SUFFIX))
+			fprintf_rl(stdout, "%s: %s\n", t->key, t->value);
 	}
 
 	if (s->stream_id == -1)

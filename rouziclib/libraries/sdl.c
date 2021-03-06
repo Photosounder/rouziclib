@@ -193,9 +193,12 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	if (mouse->warp==0)
 		mouse->a = xyi_to_xy(sub_xyi(mpos, wr.p0));
 
-	mouse_button_update(&mouse->b.lmb, &mouse->b.lmf, get_bit(but_state, 0), 0, mouse);
-	mouse_button_update(&mouse->b.mmb, &mouse->b.mmf, get_bit(but_state, 1), 1, mouse);
-	mouse_button_update(&mouse->b.rmb, &mouse->b.rmf, get_bit(but_state, 2), 2, mouse);
+	if (mouse->mouse_focus_flag <= 0)	// only process global buttons if the mouse is outside the window
+	{
+		mouse_button_update(&mouse->b.lmb, &mouse->b.lmf, get_bit(but_state, 0), 0, mouse);
+		mouse_button_update(&mouse->b.mmb, &mouse->b.mmf, get_bit(but_state, 1), 1, mouse);
+		mouse_button_update(&mouse->b.rmb, &mouse->b.rmf, get_bit(but_state, 2), 2, mouse);
+	}
 }
 
 void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)

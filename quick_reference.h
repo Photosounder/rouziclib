@@ -53,6 +53,10 @@
 		if (ctrl_radio(sel_id==i, "Option 1", offset_scale_rect(box, offset, sm), colour))
 			sel_id = i;
 
+		// making it select nothing by clicking again
+		if (ctrl_radio(sel_id==i, "Option 1", offset_scale_rect(box, offset, sm), colour))
+			sel_id = (sel_id==i) ? -1 : i;
+
 	// List of radio controls
 		// init radio_sel with the default choice, not necessarily 0
 		// the box is for the first control, it's reproduced by an offset for the other controls
@@ -205,6 +209,7 @@
 
 		// Example: using a text editor as a read-only log
 		get_textedit_fromlayout(&layout, id)->read_only = 1;
+		get_textedit_fromlayout(&layout, id)->draw_string_mode = ALIG_LEFT | MONOSPACE;
 		print_to_layout_textedit_append(&layout, id, 1, "");
 		ctrl_textedit_fromlayout(&layout, id);
 
@@ -448,7 +453,8 @@
 //**** Audio system ****
 
 	// Callback template
-		void my_audio_callback(float *stream, audiosys_t *sys, int bus_index, my_data_t *data)
+		// The Deinit section is only needed if there's a separate processing thread, otherwise just return when stream==NULL
+		void my_audio_callback(float *stream, audiosys_t *sys, int bus_index, my_data_t *d)
 		{
 			int i;
 			double t;
@@ -456,9 +462,9 @@
 			// Deinit
 			if (stream==NULL)	// this signals the shutdown of the bus for deinitialisation purposes
 			{
-				data->thread_on = 0;
+				d->thread_on = 0;
 				if (bus_index == -1)	// this signals a blocking deinitialisation
-					rl_thread_join_and_null(&data->thread_handle);
+					rl_thread_join_and_null(&d->thread_handle);
 				return;
 			}
 
@@ -478,6 +484,11 @@
 	// Stop the callback (in a blocking way)
 		audiosys_bus_unregister(my_data);
 		// right after this it's safe to free the data struct contents as needed
+
+	// Audio events can set their time (in the main thread) like this:
+		w->shipA->fire_sound_time = get_time_hr();
+		// then in the callback relative time is obtained like this:
+		dt = t - w->shipA->fire_sound_time;
 
 //**** Misc ****
 

@@ -33,8 +33,7 @@ It includes some of the following:
 
 All graphical functions operate on pixels in a linear colour space. Please do not use these functions directly in a gamma-compressed colour space, instead use an intermediary linear framebuffer which you can then convert to an sRGB framebuffer using the function `convert_lrgb_to_srgb`.
 
-How to use it
--------------
+=== How to use it
 
 Unusually for a library, rouziclib's code relies on macros that are defined inside your project's code. This means that rouziclib isn't entirely independently compiled. So the way to make this work is to create two files in your project, a header file which directly includes the main header, but not before you add the macros you can optionally define, and a code file which includes the aforementioned header file you just created and then includes the library's rouziclib.c. Here's how it looks:
 

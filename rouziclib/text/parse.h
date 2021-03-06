@@ -1,9 +1,11 @@
 #ifdef _WIN32
 #define snprintf _snprintf	// Microsoft is stupid, like seriously
+#define strcasecmp stricmp
 #endif
 
 extern const char *skip_string(const char *string, const char *skipstring);
 extern const char *skip_whitespace(const char *string);
+extern const char *skip_line(const char *string);
 extern int string_count_fields(const char *string, const char *delim);
 extern int string_get_field(const char *string, const char *delim, int n, char *field);
 extern const char *string_parse_fractional_12(const char *string, double *v);
@@ -29,3 +31,4 @@ extern int find_line_indentation_depth(const char *line);
 extern void parse_xy_array_file(char *path, xy_t **xy_array, size_t *xy_array_size);
 extern char *xml_copy_field_string(const char *parent_start, const char *parent_end, const char *tag_start, const char *tag_end);
 extern double xml_copy_field_number(const char *parent_start, const char *parent_end, const char *tag_start);
+extern double parse_music_note(const char *string);

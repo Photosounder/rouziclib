@@ -25,8 +25,12 @@ void audiosys_callback(void *userdata, uint8_t *stream, int stream_bytes)
 				rl_mutex_lock(&sys->bus[ib].mutex);
 
 			// Resync stime (sample time) if needed
-			if (sys->bus[ib].stime==0. || sys->bus[ib].stime + sys->sec_per_buf < sys->bus[ib].last_reg_time)
+			if (sys->bus[ib].stime==0. || sys->bus[ib].stime + sys->sec_per_buf*2. < sys->bus[ib].last_reg_time)
+			{
+				if (sys->bus[ib].stime > 0)
+					fprintf_rl(stdout, "audiosys_callback() resync: was off by %.5f sec\n", sys->bus[ib].stime - (sys->bus[ib].last_reg_time - sys->sec_per_buf));
 				sys->bus[ib].stime = sys->bus[ib].last_reg_time - sys->sec_per_buf;
+			}
 
 			// Call the function
 			sys->bus[ib].callback((float *) stream, sys, ib, sys->bus[ib].data);

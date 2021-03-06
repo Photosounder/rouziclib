@@ -10,8 +10,10 @@ extern int float_get_exponent(const float f);
 extern int double_get_exponent(const double f);
 extern uint32_t float_get_mantissa(const float f);
 extern uint64_t double_get_mantissa(const double f);
-extern float get_fractional_partf(float f);
-extern double get_fractional_part(double f);
+extern float get_fractional_part_signedf(float f);
+extern double get_fractional_part_signed(double f);
+extern float get_fractional_part_positivef(float f);
+extern double get_fractional_part_positive(double f);
 
 extern double double_add_ulp(double x, int ulp);
 extern int64_t double_diff_ulp(double a, double b);

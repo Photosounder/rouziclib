@@ -118,6 +118,9 @@ double fastlog2(double x)
 
 // exp2 approximation, returns bogus results if x is outside [-1022.0 , 1024.0[
 // max error of 6.65255e-09 for lutsp of 6, lut takes 1.5 kB
+#ifdef __GNUC__
+__attribute__((__target__("sse4.1")))
+#endif
 double fastexp2(double x)
 {
 	static const double lut[] = 
@@ -127,9 +130,13 @@ double fastexp2(double x)
 	const int64_t ish = 52-lutsp;		// index shift
 	uint64_t yint, m;
 	const double *c;
-	double c0, c1, c2;
 
+	#ifdef RL_INTEL_INTR				// for MSVC only needed if compiling without /arch:AVX
+	__m128d mx = _mm_set_sd(x);
+	xr = _mm_cvtsd_f64(_mm_floor_sd(mx, mx));	// SSE4.1, not checking for speed
+	#else
 	xr = floor(x);		// integer part of x
+	#endif
 	xf = x - xr;		// fractional part of x. xf = [0.0 , 1.0[
 	xf1 = xf + 1.;
 
@@ -142,8 +149,8 @@ double fastexp2(double x)
 	m = *((uint64_t *) &xf1) & 0x000FFFFFFFFFFFFF;	// 52-bit mantissa of the fractional part
 	lutind = m >> ish;
 
-	c = &lut[lutind*3];    c0 = c[0];    c1 = c[1];    c2 = c[2];
-	xfe = (c2*xf + c1)*xf + c0;			// 2^xf
+	c = &lut[lutind*3];
+	xfe = (c[2]*xf + c[1])*xf + c[0];		// 2^xf
 
 	return y * xfe;					// y = 2^xr * 2^xf
 }

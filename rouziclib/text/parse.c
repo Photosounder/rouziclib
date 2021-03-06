@@ -10,6 +10,11 @@ const char *skip_whitespace(const char *string)
 	return skip_string(string, " %n");
 }
 
+const char *skip_line(const char *string)
+{
+	return skip_string(string, "%*[^\n]\n%n");
+}
+
 int string_count_fields(const char *string, const char *delim)
 {
 	int count = 0;
@@ -456,4 +461,26 @@ double xml_copy_field_number(const char *parent_start, const char *parent_end, c
 		v = atof(p);
 
 	return v;
+}
+
+double parse_music_note(const char *string)	// parse a note string into a number of semitones from C0
+{
+	int i, ret, octave=0;
+	double cents=0.;
+	char note[32], letter[4];
+	const char *note_name[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+
+	// string looks like "C#4+05.231" or "F-1-42" or "C1"
+	if (sscanf(string, "%31s", note) == 0)
+		return NAN;
+
+	ret = sscanf(note, "%2[A-G#]%d%lg", letter, &octave, &cents);
+	if (ret < 2)
+		return NAN;
+
+	for (i=0; i < 12; i++)
+		if (strcmp(letter, note_name[i])==0)
+			return (double) (octave*12 + i) + cents*0.01;
+
+	return NAN;
 }
