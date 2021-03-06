@@ -52,7 +52,7 @@ extern "C" {
 #define RL_SDL      // this includes SDL-using code as well as the necessary SDL files
 #define RL_OPENCL   // same for OpenCL
 
-// this defines a wrapper for fprintf_rl, so you project can use a custom fprintf-type function that can for instance output to a file
+// this defines a wrapper for fprintf_rl, so your project can use a custom fprintf-type function that can for instance output to a file
 #define fprintf_rl fprintf_wrapper
 #include <stdio.h>
 #include <stdarg.h>
