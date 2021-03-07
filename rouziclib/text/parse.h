@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define snprintf _snprintf	// Microsoft is stupid, like seriously
 #define strcasecmp stricmp
 #endif
@@ -19,7 +19,7 @@ extern int string_find_start_nth_line(const char *text, int len, int n);
 extern char **arrayise_text(char *text, int *linecount);
 extern const char *strstr_i(const char *fullstr, const char *substr);
 extern const char *strstr_after(const char *fullstr, const char *substr);
-#if defined( _WIN32 ) || defined( __EMSCRIPTEN__ )
+#if defined( _MSC_VER ) || defined( __EMSCRIPTEN__ )
 extern void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len);
 #endif
 extern int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix);

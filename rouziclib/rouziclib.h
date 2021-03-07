@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 
- * with MinGW's GCC make sure to use -lwinmm -lcomdlg32 -lole32 -Wno-incompatible-pointer-types (the latter to turn off pointless warnings)
+ * with MinGW's GCC make sure to use -lwinmm -lcomdlg32 -lole32 -Wno-incompatible-pointer-types (the latter to turn off pointless warnings), and perhaps -DRL_STOREU_SI32 too
  * create a hard link like `mklink /J C:\<usual libs location>\include\rouziclib C:\msys\home\rouziclib` to include using <>
 
 ****************/

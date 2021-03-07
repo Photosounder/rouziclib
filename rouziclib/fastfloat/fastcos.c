@@ -6,7 +6,7 @@ uint32_t fastcos_get_param(double *xp, double *endsign, const int quads)
 	uint64_t *xint = (uint64_t *) &x;
 	uint32_t lutind;
 
-	// x = ]-inf , +inf[ --> x = [0 , 1[
+	// x = ]-inf , +inf[ --> x = [0 , 1]
 	x = get_fractional_part_positive(x);
 
 	// Quadrant symmetry
@@ -37,7 +37,7 @@ uint32_t fastcosf_get_param(float *xp)
 	uint32_t *xint = (uint32_t *) &x;
 	uint32_t lutind;
 
-	// x = ]-inf , +inf[ --> x = [0 , 1[
+	// x = ]-inf , +inf[ --> x = [0 , 1]
 	x = get_fractional_part_positivef(x);
 
 	*xp = x;
