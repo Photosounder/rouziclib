@@ -77,3 +77,82 @@ glyph 21E9
 	copy 21E7
 	rotate	6	0 3
 
+glyph 2190
+	copy 2193
+	rotate	3	0 3
+
+glyph 2191
+	copy 2193
+	rotate	6	0 3
+
+glyph 2192
+	copy 2193
+	rotate	9	0 3
+
+glyph 2193
+	copy 2304
+	p1	0	0
+	p2	0	6
+	lines p1 p2
+
+glyph 2194
+	copy 2195
+	rotate	3	0 3
+
+glyph 2195
+	copy 2191
+	copy 2304
+
+glyph 2196
+	copy 2193
+	rotate	4;6	0 3
+
+glyph 2197
+	copy 2196
+	rotate	3	0 3
+
+glyph 2198
+	copy 2196
+	rotate	6	0 3
+
+glyph 2199
+	copy 2196
+	rotate	9	0 3
+
+glyph 219E
+	copy 21A1
+	rotate	3	0 3
+
+glyph 219F
+	copy 21A1
+	rotate	6	0 3
+
+glyph 21A0
+	copy 21A1
+	rotate	9	0 3
+
+glyph 21A1
+	copy 2304
+	move	0 1;6
+	copy 2193
+
+glyph 21E7
+	p1	0	6
+	p2	3	3
+	p3	1	3
+	p4	1	0
+	mirror	v 0	p2 p4	p5
+	lines p1 to p4 p7 to p5 p1
+
+glyph 21E6
+	copy 21E7
+	rotate	-3	0 3
+
+glyph 21E8
+	copy 21E7
+	rotate	3	0 3
+
+glyph 21E9
+	copy 21E7
+	rotate	6	0 3
+

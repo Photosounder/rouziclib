@@ -132,6 +132,7 @@
 	// Make a floating window
 		// 2nd argument is a int * that can be NULL if a close button isn't needed
 		// 5th argument must be a layout ID which by its rect defines the size of the window in local coordinates
+		// the optional 3rd argument is a rect_t * representing the area where to put the window back if "closed" (actually undetached). If not NULL window must not be initialised to pinned
 		static flwindow_t window={0};
 
 		flwindow_init_defaults(&window);
@@ -332,6 +333,17 @@
 
 	// Subdividing an area into a smaller one by ratio and offset
 		sub_area = get_subdiv_area(area, xy(1., 1./8.), xy(0.5, 1.));
+
+//**** Window manager ****
+
+	// Add window_manager() where the windows are ran in a variable order in the main loop before mousecursor_logic_and_draw();
+		window_manager();
+
+	// Window functions must follow this template
+		void my_window_function(rect_t parent_area, int *diag_on, <my_ptr_type *ptr1, my_ptr_type *ptr2 ...>)
+
+	// Window functions are registered like this
+		window_register(1, my_window_function, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &some_number, &some_struct);
 
 //**** Parsing ****
 

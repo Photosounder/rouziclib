@@ -170,14 +170,18 @@ glyph 00B9
 	move 	0 4
 
 glyph 00B2
+	subglyph S
+	clear_bounds
+	scale all 	0;5
+	move all 	0 4;6
+	subend
+
 	copy '2'
-	scale 	0;4
-	move 	0 4
+	copy 00B2 S
 
 glyph 00B3
 	copy '3'
-	scale 	0;4
-	move 	0 4
+	copy 00B2 S
 
 glyph 00B6
 	p6	-1	6

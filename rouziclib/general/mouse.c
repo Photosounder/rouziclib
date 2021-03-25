@@ -32,6 +32,7 @@ void mouse_pre_event_proc(mouse_t *mouse)
 	memset(&mouse->ctrl_id->hover_new, 0, sizeof(ctrl_id_t));
 	memset(&mouse->ctrl_id->current, 0, sizeof(ctrl_id_t));
 	mouse->ctrl_id->hover_box_matched = 0;
+	mouse->ctrl_id->hover_ided = 0;
 
 	flag_update_mouse_button(&mouse->b.lmb, &mouse->b.lmf);
 	flag_update_mouse_button(&mouse->b.mmb, &mouse->b.mmf);

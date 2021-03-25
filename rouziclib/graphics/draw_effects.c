@@ -24,7 +24,7 @@ void draw_colour_matrix(double *matrix)
 		return;
 
 	for (int i=0; i < 9; i++)
-		df[i] = matrix[i];
+		df[i] = isnan(matrix[i]) ? 0.f : matrix[i];
 
 	drawq_add_sectors_for_already_set_sectors();
 }

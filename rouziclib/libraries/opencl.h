@@ -21,4 +21,4 @@ extern cl_int init_fb_cl();
 #endif
 
 extern int check_opencl();
-extern void dialog_cl_gl_interop_options(rect_t area, int parent_on, int *detached);
+extern void dialog_cl_gl_interop_options(rect_t area, int *detached, int *parent_on);

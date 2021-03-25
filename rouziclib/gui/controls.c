@@ -640,7 +640,9 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 	state->dragged = 0;
 	for (i=0; i < 9; i++)
 	{
-		ctrl_drag_set_dim(&state->drag[i], i==0 ? mul_xy(dim, set_xy(0.5)) : set_xy(cdim));
+		ctrl_drag_set_dim(&state->drag[i], i==0 ? dim : set_xy(cdim));
+		if (i > 0)		// make larger button that does nothing to absord misplaced edge clicks
+			ctrl_button_invis(make_rect_centred(state->drag[i].pos, set_xy(cdim*1.2)), NULL);
 		ret = ctrl_draggable(&state->drag[i]);
 		if (ret)
 		{

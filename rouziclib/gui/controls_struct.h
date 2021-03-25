@@ -18,3 +18,19 @@ typedef struct
 	xy_t pinned_offset, parent_fit_offset;
 	double pinned_sm;
 } flwindow_t;
+
+typedef struct
+{
+	int *wind_on, dereg, order, already_ran;
+	void *window_func;
+	void **ptr_array;
+	int ptr_count;
+	rect_t parent_area;
+} window_manager_entry_t;
+
+typedef struct
+{
+	window_manager_entry_t *window, **wsor;
+	int window_count, window_as, wsor_as;
+	int min_order, max_order;
+} window_manager_t;

@@ -1,0 +1,174 @@
+glyph 2070
+	copy '0'
+	copy 00B2 S
+
+glyph 2074
+	copy '4'
+	copy 00B2 S
+
+glyph 2075
+	copy '5'
+	copy 00B2 S
+
+glyph 2076
+	copy '6'
+	copy 00B2 S
+
+glyph 2077
+	copy '7'
+	copy 00B2 S
+
+glyph 2078
+	copy '8'
+	copy 00B2 S
+
+glyph 2079
+	copy '9'
+	copy 00B2 S
+
+glyph 2071
+	copy 'I'
+	copy 00B2 S
+
+glyph 207A
+	copy '+'
+	copy 00B2 S
+
+glyph 207B
+	copy '-'
+	copy 00B2 S
+
+glyph 207C
+	copy '='
+	copy 00B2 S
+
+glyph 207D
+	copy '('
+	copy 00B2 S
+
+glyph 207E
+	copy ')'
+	copy 00B2 S
+
+glyph 207F
+	copy 'N'
+	copy 00B2 S
+
+glyph 2080
+	subglyph S
+	clear_bounds
+	scale all 	0;5
+	move all 	0 -1;3
+	subend
+
+	copy '0'
+	copy 2080 S
+
+glyph 2081
+	copy '1'
+	copy 2080 S
+
+glyph 2082
+	copy '2'
+	copy 2080 S
+
+glyph 2083
+	copy '3'
+	copy 2080 S
+
+glyph 2084
+	copy '4'
+	copy 2080 S
+
+glyph 2085
+	copy '5'
+	copy 2080 S
+
+glyph 2086
+	copy '6'
+	copy 2080 S
+
+glyph 2087
+	copy '7'
+	copy 2080 S
+
+glyph 2088
+	copy '8'
+	copy 2080 S
+
+glyph 2089
+	copy '9'
+	copy 2080 S
+
+glyph 208A
+	copy '+'
+	copy 2080 S
+
+glyph 208B
+	copy '-'
+	copy 2080 S
+
+glyph 208C
+	copy '='
+	copy 2080 S
+
+glyph 208D
+	copy '('
+	copy 2080 S
+
+glyph 208E
+	copy ')'
+	copy 2080 S
+
+glyph 2090
+	copy 'A'
+	copy 2080 S
+
+glyph 2091
+	copy 'E'
+	copy 2080 S
+
+glyph 2092
+	copy 'O'
+	copy 2080 S
+
+glyph 2093
+	copy 'X'
+	copy 2080 S
+
+glyph 2094
+	copy 018F
+	copy 2080 S
+
+glyph 2095
+	copy 'H'
+	copy 2080 S
+
+glyph 2096
+	copy 'K'
+	copy 2080 S
+
+glyph 2097
+	copy 'L'
+	copy 2080 S
+
+glyph 2098
+	copy 'M'
+	copy 2080 S
+
+glyph 2099
+	copy 'N'
+	copy 2080 S
+
+glyph 209A
+	copy 'P'
+	copy 2080 S
+
+glyph 209B
+	copy 'S'
+	copy 2080 S
+
+glyph 209C
+	copy 'T'
+	copy 2080 S
+

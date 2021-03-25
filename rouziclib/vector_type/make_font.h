@@ -29,6 +29,8 @@ p<n>		<x>	<y>
 lines		<list of points>
 copy		<codepoint>  (<ID char of subglyph>)
 bounds		<left>	<right>
+vbounds		<bottom> <top>
+clear_bounds
 curveseg	p<n>	<angle>(a)  <length>(x)
 rect		p<first_n>  <p0 x y>  <p1 x y>
 circle		p<first_n>  p<last_n>  <num seg>  <radius>  <centre x y>  <start angle>

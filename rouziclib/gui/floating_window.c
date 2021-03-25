@@ -3,8 +3,8 @@ void flwindow_init_defaults(flwindow_t *w)
 	if (w->init == 0)
 	{
 		w->bg_col = make_grey(0.);
-		w->bar_col = make_grey(0.004);
-		w->border_col = make_grey(0.004);
+		w->bar_col = make_grey(0.005);
+		w->border_col = make_grey(0.005);
 		w->bar_height = 0.5;
 		w->close_hover_col = make_grey(0.06);
 		w->close_down_col = make_grey(0.12);
@@ -172,4 +172,146 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	}
 
 	ctrl_fromlayout_resizing(layout, id, 2);
+}
+
+// Window manager
+
+void window_run(window_manager_entry_t *w)
+{
+	rect_t a = w->parent_area;
+	int *on = w->wind_on;
+	void *f = w->window_func;
+	void **p = w->ptr_array;
+
+	if (w->already_ran)
+		return ;
+
+	switch (w->ptr_count)
+	{
+			case 0:	((void (*)(rect_t,int*))f)(a, on);
+		break;	case 1:	((void (*)(rect_t,int*,void*))f)(a, on, p[0]);
+		break;	case 2:	((void (*)(rect_t,int*,void*,void*))f)(a, on, p[0], p[1]);
+		break;	case 3:	((void (*)(rect_t,int*,void*,void*,void*))f)(a, on, p[0], p[1], p[2]);
+		break;	case 4:	((void (*)(rect_t,int*,void*,void*,void*,void*))f)(a, on, p[0], p[1], p[2], p[3]);
+		break;	case 5:	((void (*)(rect_t,int*,void*,void*,void*,void*,void*))f)(a, on, p[0], p[1], p[2], p[3], p[4]);
+		break;	case 6:	((void (*)(rect_t,int*,void*,void*,void*,void*,void*,void*))f)(a, on, p[0], p[1], p[2], p[3], p[4], p[5]);
+		break;	default: fprintf_rl(stderr, "In window_run(): Unsupported number of pointers (%d)\n", w->ptr_count);
+	}
+
+	w->already_ran = 1;
+}
+
+int window_register(int priority, void *window_func, rect_t parent_area, int *wind_on, int num_args, ...)
+{
+	int i, ia;
+	va_list ap;
+
+	// Check if the window function is already registered
+	for (i=0; i < wind_man.window_count; i++)
+		if (wind_man.window[i].window_func == window_func)
+			goto skip_add2;
+
+	// Look for a free slot in the registry
+	for (i=0; i < wind_man.window_count; i++)
+		if (wind_man.window[i].window_func == NULL)
+			goto skip_add1;
+
+	// Add new window
+	i = wind_man.window_count;
+	alloc_enough(&wind_man.window, wind_man.window_count+=1, &wind_man.window_as, sizeof(window_manager_entry_t), 2.);
+
+skip_add1:
+	wind_man.window[i].window_func = window_func;
+	wind_man.window[i].ptr_count = num_args;
+	wind_man.window[i].ptr_array = calloc(wind_man.window[i].ptr_count, sizeof(void *));
+
+	// Set window orders
+	if (priority==1)
+		wind_man.max_order = wind_man.window[i].order = wind_man.max_order + 1;
+	else
+		wind_man.min_order = wind_man.window[i].order = wind_man.min_order - 1;
+
+skip_add2:
+	// Copy pointers to array
+	va_start(ap, num_args);
+	for (ia=0; ia < num_args; ia++)
+		wind_man.window[i].ptr_array[ia] = va_arg(ap, void *);
+	va_end(ap);
+
+	wind_man.window[i].parent_area = parent_area;
+	wind_man.window[i].wind_on = wind_on;
+	wind_man.window[i].dereg = 0;
+
+	// Run here if window has a close button and is "closed"
+	if (wind_on)
+		if (*wind_on == 0)
+			window_run(&wind_man.window[i]);
+
+	return i;
+}
+
+int cmp_window_man_order(const window_manager_entry_t **a, const window_manager_entry_t **b)
+{
+	return (*a)->order - (*b)->order;
+}
+
+void window_man_sort(int reg_count)
+{
+	int i, j;
+
+	// Sort
+	alloc_enough((void **) &wind_man.wsor, reg_count, &wind_man.wsor_as, sizeof(window_manager_entry_t *), 2.);
+	for (j=0, i=0; i < wind_man.window_count; i++)
+		if (wind_man.window[i].window_func)
+		{
+			wind_man.wsor[j] = &wind_man.window[i];
+			j++;
+		}
+
+	qsort(wind_man.wsor, reg_count, sizeof(window_manager_entry_t *), cmp_window_man_order);
+
+	// Set new order
+	for (i=0; i < reg_count; i++)
+		wind_man.wsor[i]->order = i;
+	wind_man.min_order = 0;
+	wind_man.max_order = reg_count-1;
+}
+
+void window_manager()
+{
+	int i, j, prev_hover_ided = mouse.ctrl_id->hover_ided, reg_count=0;
+
+	// Clear deregistered windows
+	for (i=0; i < wind_man.window_count; i++)
+		if (wind_man.window[i].dereg)
+		{
+			free(wind_man.window[i].ptr_array);
+			memset(&wind_man.window[i], 0, sizeof(window_manager_entry_t));
+		}
+		else if (wind_man.window[i].window_func)
+			reg_count++;
+
+	// Sort registered windows
+	window_man_sort(reg_count);
+
+	// Run all windows in sorted order
+	for (i=0; i < reg_count; i++)
+		if (wind_man.wsor[i]->window_func)
+		{
+			window_run(wind_man.wsor[i]);
+
+			// Put this window on top if one of its controls has been clicked
+			if (prev_hover_ided != mouse.ctrl_id->hover_ided && (mouse.b.lmb==2 || mouse.b.rmb==2))
+			{
+				wind_man.max_order = wind_man.wsor[i]->order = wind_man.max_order + 1;
+			}
+			prev_hover_ided = mouse.ctrl_id->hover_ided;
+		}
+
+	// Mark all windows for deregistration
+	for (i=0; i < wind_man.window_count; i++)
+	{
+		wind_man.window[i].dereg = 1;
+		wind_man.window[i].already_ran = 0;
+	}
 }

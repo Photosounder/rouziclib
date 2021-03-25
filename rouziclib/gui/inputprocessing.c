@@ -70,7 +70,10 @@ int check_ctrl_id(rect_t box, xy_t pos, double radius, mouse_t mouse, int type)	
 
 	// Compare current and hover
 	if (equal_ctrl_id(mouse.ctrl_id->current, mouse.ctrl_id->hover))
+	{
+		mouse.ctrl_id->hover_ided = 1;	// this lets anyone who cares know that the one control being hovered has definitively been identified
 		return 1;
+	}
 	return 0;
 }
 

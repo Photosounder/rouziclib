@@ -408,7 +408,7 @@ int check_opencl()
 #endif
 }
 
-void dialog_cl_gl_interop_options(rect_t area, int parent_on, int *detached)
+void dialog_cl_gl_interop_options(rect_t area, int *detached, int *parent_on)
 {
 	#ifdef RL_OPENCL
 	// GUI layout
@@ -425,13 +425,13 @@ void dialog_cl_gl_interop_options(rect_t area, int parent_on, int *detached)
 
 	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "CL/GL options");
 
-	if (parent_on==0 && *detached==0)	// keep the detached dialog open if the parent dialog is closed
+	if (*parent_on==0 && *detached==0)	// keep the detached dialog open if the parent dialog is closed
 		return ;
 
 	// Window
 	static flwindow_t window={0};
 	flwindow_init_defaults(&window);
-	window.parent_on = parent_on;
+	window.parent_on = *parent_on;
 	draw_dialog_window_fromlayout(&window, detached, &area, &layout, 0);
 
 	// Controls

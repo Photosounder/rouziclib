@@ -457,6 +457,13 @@ void process_glyphdata_core(vector_font_t *font, letter_t *l, char *p, glyphdata
 				gd->set_vbounds = 1;
 			}
 
+			if (strcmp(a, "clear_bounds")==0)
+			{
+				gd->set_bounds = 0;
+				l->bl = 0.;
+				l->br = 0.;
+			}
+
 			if (strcmp(a, "copy")==0)
 			{
 				last_start = l->max_pid;
