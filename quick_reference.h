@@ -18,7 +18,7 @@
 		// pixel coordinates
 		draw_rect(sc_rect(box), drawing_thickness, colour, blend_add, intensity);
 		draw_rect_full(sc_rect(box), drawing_thickness, colour, blend_add, intensity);
-		draw_black_rect(sc_rect(box), drawing_thickness);
+		draw_black_rect(sc_rect(box), drawing_thickness, intensity);
 
 	// Circle (HOLLOWCIRCLE or FULLCIRCLE)
 		// pixel coordinates
@@ -138,6 +138,10 @@
 		flwindow_init_defaults(&window);
 		flwindow_init_pinned(&window);
 		draw_dialog_window_fromlayout(&window, &diag_on, NULL, &layout, 0);
+
+		// Background opacity and shadow intensity can be modified
+		window.bg_opacity = 0.7;
+		window.shadow_strength = 0.85*window.bg_opacity;
 
 		// Example of window-defining elem
 		"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
@@ -343,7 +347,7 @@
 		void my_window_function(rect_t parent_area, int *diag_on, <my_ptr_type *ptr1, my_ptr_type *ptr2 ...>)
 
 	// Window functions are registered like this
-		window_register(1, my_window_function, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &some_number, &some_struct);
+		window_register(1, my_window_function, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
 
 //**** Parsing ****
 

@@ -114,7 +114,7 @@ void dqsb_draw_black_rect(float *le, float *block, xy_t start_pos, const int bs,
 	int ic, ib=0;
 
 	// Specific variables
-	__m128 p0x, p0y, p1x, p1y, rad;
+	__m128 p0x, p0y, p1x, p1y, rad, intensity;
 	__m128 d0x, d0y, d1x, d1y, weight, wy;
 	const float gl = DQS_GAUSS_LIMIT;
 
@@ -124,6 +124,7 @@ void dqsb_draw_black_rect(float *le, float *block, xy_t start_pos, const int bs,
 	p1x = _mm_set_ps1(le[2]);
 	p1y = _mm_set_ps1(le[3]);
 	rad = _mm_set_ps1(le[4]);
+	intensity = _mm_set_ps1(le[5]);
 
 	for (y=start_pos.y, ip.y=0; ip.y < bs; ip.y++, y+=1.f)
 	{
@@ -177,6 +178,8 @@ void dqsb_draw_black_rect(float *le, float *block, xy_t start_pos, const int bs,
 
 					weight = _mm_mul_ps(weight, wy);
 				}
+
+				weight = _mm_mul_ps(weight, intensity);
 
 				// Add weighted colour
 				for (ic=0; ic < 4; ic++)

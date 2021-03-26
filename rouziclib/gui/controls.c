@@ -192,7 +192,7 @@ int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 	if (state->open)
 	{
 		open_box = selectmenu_rect(box, -state->count);
-		draw_black_rect(sc_rect(open_box), drawing_thickness);
+		draw_black_rect(sc_rect(open_box), drawing_thickness, 1.);
 		draw_rect(sc_rect(open_box), drawing_thickness, colour, cur_blend, intensity);
 
 		for (i=0; i < state->count; i++)

@@ -3,14 +3,16 @@ void flwindow_init_defaults(flwindow_t *w)
 	if (w->init == 0)
 	{
 		w->bg_col = make_grey(0.);
-		w->bar_col = make_grey(0.005);
-		w->border_col = make_grey(0.005);
+		w->bar_col = make_grey(0.0054);
+		w->border_col = make_grey(0.006);
 		w->bar_height = 0.5;
 		w->close_hover_col = make_grey(0.06);
 		w->close_down_col = make_grey(0.12);
 		w->title_col = make_grey(0.5);
 		w->close_x_col = make_grey(0.5);
 		w->parent_fit_offset = xy(0., 1.);
+		w->bg_opacity = 1.;
+		w->shadow_strength = 0.85;
 	}
 }
 
@@ -138,8 +140,9 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 
 	// Drawing
 	if (w->shadow_strength)
-		draw_rect_full(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), make_grey(0.), blend_alphablend, w->shadow_strength);	// shadow FIXME doesn't work in CL mode
-	draw_black_rect(sc_rect(area_os), drawing_thickness);					// black out the background
+		//draw_rect_full(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), make_grey(0.), blend_alphablend, w->shadow_strength);	// doesn't work in CL mode
+		draw_black_rect(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), w->shadow_strength);	// shadow
+	draw_black_rect(sc_rect(area_os), drawing_thickness, w->bg_opacity);		// black out the background
 	draw_rect_full(sc_rect(diag_area), drawing_thickness, w->bg_col, blend_add, 1.);	// diag rectangle
 	draw_rect_full(sc_rect(bar_area_os), drawing_thickness, w->bar_col, blend_add, 1.);	// title bar rectangle
 	draw_rect(sc_rect(area_os), drawing_thickness, w->border_col, blend_add, 1.);		// thin window border

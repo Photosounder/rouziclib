@@ -45,7 +45,7 @@ float4 draw_black_rect(global float *le, float4 pv)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
 	const float2 pf = convert_float2(p);
-	float rad, d;
+	float rad, d, intensity;
 	float2 p0, p1, d0, d1, gv;
 
 	p0.x = le[0];
@@ -53,6 +53,7 @@ float4 draw_black_rect(global float *le, float4 pv)
 	p1.x = le[2];
 	p1.y = le[3];
 	rad = le[4];
+	intensity = le[5];
 
 	d0 = (pf - p0) * rad;
 	d1 = (pf - p1) * rad;
@@ -60,7 +61,7 @@ float4 draw_black_rect(global float *le, float4 pv)
 	gv.x = (erf_fast(d0.x) - erf_fast(d1.x)) * 0.5f;
 	gv.y = (erf_fast(d0.y) - erf_fast(d1.y)) * 0.5f;
 
-	pv *= 1.f - gv.x*gv.y;
+	pv *= 1.f - gv.x*gv.y*intensity;
 
 	return pv;
 }

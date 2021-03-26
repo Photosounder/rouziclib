@@ -235,7 +235,7 @@ void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t 
 		draw_rect_full_lrgb(box, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_black_rect_dq(rect_t box, double radius)
+void draw_black_rect_dq(rect_t box, double radius, double intensity)
 {
 	float *df;
 	double grad;
@@ -249,15 +249,16 @@ void draw_black_rect_dq(rect_t box, double radius)
 
 	box = sort_rect(box);
 
-	// store the drawing parameters in the main drawing queue
+	// Store the drawing parameters in the main drawing queue
 	df = drawq_add_to_main_queue(DQT_RECT_BLACK);
 	df[0] = box.p0.x;
 	df[1] = box.p0.y;
 	df[2] = box.p1.x;
 	df[3] = box.p1.y;
 	df[4] = 1./radius;
+	df[5] = intensity;
 
-	// find the affected sectors
+	// Find the affected sectors
 	for (ip.y=bbi.p0.y; ip.y<=bbi.p1.y; ip.y++)
 		for (ip.x=bbi.p0.x; ip.x<=bbi.p1.x; ip.x++)
 		{
@@ -269,12 +270,12 @@ void draw_black_rect_dq(rect_t box, double radius)
 	// TODO clear lists in obscured sectors, don't add to empty sectors
 }
 
-void draw_black_rect(rect_t box, double radius)
+void draw_black_rect(rect_t box, double radius, double intensity)
 {
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_black_rect_dq(box, radius);
+		draw_black_rect_dq(box, radius, intensity);
 	else
-		draw_rect_full(box, radius, make_grey(0.), blend_alphablend, 1.);
+		draw_rect_full(box, radius, make_grey(0.), blend_alphablend, intensity);
 }

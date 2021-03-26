@@ -784,7 +784,7 @@ void draw_rect_fromlayout_blending(const int type, const blend_func_t bf, gui_la
 			break;
 
 		case 2:
-			draw_black_rect(box_sc, drawing_thickness);
+			draw_black_rect(box_sc, drawing_thickness, 1.);
 			break;
 	}
 
