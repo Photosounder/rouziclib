@@ -140,8 +140,8 @@
 		draw_dialog_window_fromlayout(&window, &diag_on, NULL, &layout, 0);
 
 		// Background opacity and shadow intensity can be modified
-		window.bg_opacity = 0.7;
-		window.shadow_strength = 0.85*window.bg_opacity;
+		window.bg_opacity = 0.75;
+		window.shadow_strength = 0.5*window.bg_opacity;
 
 		// Example of window-defining elem
 		"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",

@@ -603,6 +603,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 	}
 
 	// Collect the pixels
+	if (start_lvl > 0)
 	for (ir.y=0, ip.y=0, ipt.y=0; ip.y < fast_dim.y; ip.y++, ipt.y++)
 	{
 		if (ipt.y == m.lvl[start_lvl].tiledim.y)	// if we need to move to the next tile
@@ -637,6 +638,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 	}
 
 	// Collect the potential bottom edge pixels
+	if (start_lvl > 0)
 	if (fast_dim.x < m.lvl[start_lvl].fulldim.x)
 	for (; ip.y < m.lvl[start_lvl].fulldim.y; ip.y++, ipt.y++)
 	{
