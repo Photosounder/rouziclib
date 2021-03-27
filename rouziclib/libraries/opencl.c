@@ -272,7 +272,7 @@ cl_int build_cl_program(clctx_t *c, cl_program *program, const char *src)
 	*program = clCreateProgramWithSource(c->context, 1, (const char **)&src, (const size_t *)&src_len, &ret);
 	CL_ERR_RET("clCreateProgramWithSource (in build_cl_program)", ret);
 
-	ret = clBuildProgram(*program, 1, &c->device_id, "-cl-single-precision-constant -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-finite-math-only -cl-fast-relaxed-math -save-temps", NULL, NULL);
+	ret = clBuildProgram(*program, 1, &c->device_id, "-cl-single-precision-constant -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-finite-math-only -cl-fast-relaxed-math", NULL, NULL);	// removed options: -save-temps
 	if (ret != CL_SUCCESS)
 		check_compilation_log(c, *program);
 	CL_ERR_RET("clBuildProgram (in build_cl_program)", ret);

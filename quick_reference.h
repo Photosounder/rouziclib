@@ -140,7 +140,7 @@
 		draw_dialog_window_fromlayout(&window, &diag_on, NULL, &layout, 0);
 
 		// Background opacity and shadow intensity can be modified
-		window.bg_opacity = 0.75;
+		window.bg_opacity = 0.94;
 		window.shadow_strength = 0.5*window.bg_opacity;
 
 		// Example of window-defining elem
@@ -639,6 +639,8 @@
 
 			font = make_font_from_zball(data, sizeof(data));
 		}
+		// and in the program initialisation call using this
+		vector_font_load_from_header();
 
 		// from a folder
 		font = remake_font("vector_type/type_index.txt", font);
