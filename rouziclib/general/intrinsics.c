@@ -36,6 +36,9 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 			if (check_cpuinfo(CPU_HAS_AVX))
 				ret = info7[1] & (1 << 5);
 			break;
+
+		default:
+			ret = 0;
 	}
 
 	return ret!=0;

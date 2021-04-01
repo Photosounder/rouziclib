@@ -118,3 +118,13 @@ uint32_t substitute_rtl_punctuation(uint32_t c)
 			return c;
 	}
 }
+
+#ifdef RL_INCL_VECTOR_TYPE_FILEBALL
+void vector_font_load_from_header()
+{
+	char data[] = 
+	#include "vector_type_fileball.h"
+
+	font = make_font_from_zball(data, sizeof(data));
+}
+#endif

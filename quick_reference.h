@@ -631,18 +631,14 @@
 		}
 
 	// Loading the vector typeface
-		// from a header
-		void vector_font_load_from_header()
-		{
-			char data[] = 
-			#include "vector_type_fileball.h"
+		// add this to rl.h
+		#define RL_INCL_UNICODE_DATA_MINI
+		#define RL_INCL_VECTOR_TYPE_FILEBALL
 
-			font = make_font_from_zball(data, sizeof(data));
-		}
 		// and in the program initialisation call using this
 		vector_font_load_from_header();
 
-		// from a folder
+		// from a folder (RL_INCL_VECTOR_TYPE_FILEBALL not needed)
 		font = remake_font("vector_type/type_index.txt", font);
 
 	// Preferences

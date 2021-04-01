@@ -277,5 +277,5 @@ void draw_black_rect(rect_t box, double radius, double intensity)
 	if (fb.use_drawq)
 		draw_black_rect_dq(box, radius, intensity);
 	else
-		draw_rect_full_lrgb(box, radius, col_to_lrgb(make_grey(0.)), blend_alphablend, intensity);
+		draw_rect_full_lrgb(box, radius, col_to_lrgb(make_grey(0.)), blend_alphablendfg, intensity);
 }

@@ -154,7 +154,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "text/edit.h"
 #include "text/undo.h"
 #include "text/history.h"
-#include "vector_type/vector_type.h"
+#include "vector_type/vector_type.h"		// vector type fileball loading needs RL_INCL_VECTOR_TYPE_FILEBALL
 #include "vector_type/make_font.h"
 #include "vector_type/draw.h"
 #include "vector_type/stats.h"

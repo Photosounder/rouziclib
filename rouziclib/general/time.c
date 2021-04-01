@@ -59,6 +59,9 @@ double get_time_hr()	// High-resolution timing
 	#elif __APPLE__
 	return (double) mach_absolute_time() * tick_dur;
 
+	#elif __EMSCRIPTEN__
+	return (double) get_time_ms() * 1e-3;		// Emscripten doesn't work well with my clock_gettime() code below
+
 	#else
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);

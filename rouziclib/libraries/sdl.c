@@ -176,13 +176,19 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	but_state = SDL_GetGlobalMouseState(&mpos.x, &mpos.y);	// 1 = lmb, 2 = mmb, 4 = rmb
 	wr = sdl_get_window_rect(fb.window);
 
+	#ifdef __EMSCRIPTEN__					// emscripten doesn't have SDL_GetGlobalMouseState
+	but_state = SDL_GetMouseState(&mpos.x, &mpos.y);
+	wr.p1 = sub_xyi(wr.p1, wr.p0);
+	wr.p0 = XYI0;
+	#endif
+
 	inside_window = check_point_within_box_int(mpos, wr);
 
 	if (inside_window && mouse->mouse_focus_flag <= 0)	// if the mouse just entered the window
-			mouse->mouse_focus_flag = 2;
+		mouse->mouse_focus_flag = 2;
 
 	if (inside_window==0 && mouse->mouse_focus_flag >= 0)	// if the mouse just left the window
-			mouse->mouse_focus_flag = -2;
+		mouse->mouse_focus_flag = -2;
 
 	if (mouse->warp_if_move && is0_xy(mouse->d)==0)
 	{
