@@ -1,4 +1,4 @@
-int circ_index(int index, const int size)
+ssize_t circ_index(ssize_t index, const size_t size)
 {
 	if (size <= 0)
 		return 0;
@@ -13,7 +13,7 @@ int circ_index(int index, const int size)
 }
 
 // example call: memset_circular(buffer, 0, sizeof(double), 120, buffer_start, buffer_size);
-void *memset_circular(void *s, int c, int esize, int num, int pos, int limit)
+void *memset_circular(void *s, int c, size_t esize, size_t num, ssize_t pos, size_t limit)
 {
 	uint8_t *sb = s;
 
@@ -30,8 +30,9 @@ void *memset_circular(void *s, int c, int esize, int num, int pos, int limit)
 	return s;
 }
 
+// Copy circular buffer from pos to linear buffer from 0
 // example call: memcpy_circular(dest, src, sizeof(double), 120, buffer_start, buffer_size);
-void *memcpy_circular(void *dest, void *src, int esize, int num, int pos, int limit)
+void *memcpy_circular(void *dest, void *src, size_t esize, size_t num, ssize_t pos, size_t limit)
 {
 	uint8_t *db = dest, *sb = src;
 
@@ -46,4 +47,24 @@ void *memcpy_circular(void *dest, void *src, int esize, int num, int pos, int li
 	}
 
 	return dest;
+}
+
+// Copy linear buffer from 0 to circular buffer from pos
+ssize_t memcpy_to_circular(void *dest, void *src, size_t esize, size_t num, ssize_t pos, size_t limit)
+{
+	uint8_t *db = dest, *sb = src;
+
+	pos = circ_index(pos, limit);
+
+	if (pos+num <= limit)
+		memcpy(&db[pos*esize], sb, num * esize);
+	else
+	{
+		memcpy(&db[pos*esize], sb, (limit-pos) * esize);
+		memcpy(db, &sb[(limit-pos) * esize], (num-(limit-pos)) * esize);
+	}
+
+	pos = circ_index(pos+num, limit);
+
+	return pos;
 }

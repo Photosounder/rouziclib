@@ -125,6 +125,7 @@ void blend_alphablendfg(lrgb_t *bg, lrgb_t fg, int32_t p)	// alpha blending (doe
 	bg->r = fg.r * p + bg->r * pinv >> 15;
 	bg->g = fg.g * p + bg->g * pinv >> 15;
 	bg->b = fg.b * p + bg->b * pinv >> 15;
+	bg->a = fg.a * p + bg->a * pinv >> 15;
 }
 
 void blend_blendalphaonly(lrgb_t *bg, lrgb_t fg, int32_t p)

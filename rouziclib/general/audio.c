@@ -115,7 +115,7 @@ void sdl_audiosys_init(int def_buflen)
 #ifdef RL_SDL
 	SDL_AudioSpec audio_format={0}, obtained={0};
 	int i, driver_index=0, device_index=0;
-	const char *driver_name, *device_name;
+	const char *driver_name=NULL, *device_name=NULL;
 
 	// Pick the default driver
 	for (i=0; i < SDL_GetNumAudioDrivers(); i++)
