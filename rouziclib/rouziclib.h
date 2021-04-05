@@ -104,6 +104,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "geometry/rotation.h"
 #include "geometry/fit.h"
 #include "geometry/distance.h"
+#include "geometry/bezier.h"
 #include "geometry/misc.h"
 #include "math/functions.h"
 #include "math/ieee754.h"

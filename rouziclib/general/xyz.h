@@ -76,6 +76,7 @@ extern xy_t func2_xy(xy_t a, xy_t b, double (*f)(double,double));
 extern xyz_t func2_xyz(xyz_t a, xyz_t b, double (*f)(double,double));
 extern xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int));
 
+#define mix_xy(a, b, c)		func3_xy(a, b, c, mix)
 #define rangelimit_xy(a, b, c)	func3_xy(a, b, c, rangelimit)
 #define rangelimit_xyz(a, b, c)	func3_xyz(a, b, c, rangelimit)
 #define rangelimit_xyi(a, b, c)	func3_xyi(a, b, c, rangelimit_i32)

@@ -33,6 +33,7 @@
 #include "geometry/rotation.c"
 #include "geometry/fit.c"
 #include "geometry/distance.c"
+#include "geometry/bezier.c"
 #include "geometry/misc.c"
 #include "math/functions.c"
 #include "math/ieee754.c"

@@ -26,7 +26,7 @@ int next_fast_fft_size(int x)	// returns the next size >= x with which a FFT run
 	const int count = sizeof(fft_size) / sizeof(fft_size[0]);
 	int i;
 
-	for (i=0; i<count; i++)
+	for (i=0; i < count; i++)
 		if (fft_size[i] >= x)
 			return fft_size[i];
 
