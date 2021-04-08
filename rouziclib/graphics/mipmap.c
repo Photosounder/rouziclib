@@ -621,7 +621,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 				ipt.x = 0;
 			}
 
-			mipmap_make_fast_pixel_recursively(&m, start_lvl, ir, ip);
+			mipmap_make_fast_pixel_recursively(&m, start_lvl, ir, ipt);
 		}
 
 		// Right edge pixels
@@ -633,7 +633,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 				ipt.x = 0;
 			}
 
-			mipmap_make_edge_pixel_recursively(&m, start_lvl, ir, ip, 0);
+			mipmap_make_edge_pixel_recursively(&m, start_lvl, ir, ipt, 0);
 		}
 	}
 
@@ -656,7 +656,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 				ipt.x = 0;
 			}
 
-			mipmap_make_edge_pixel_recursively(&m, start_lvl, ir, ip, 0);
+			mipmap_make_edge_pixel_recursively(&m, start_lvl, ir, ipt, 0);
 		}
 	}
 
@@ -679,7 +679,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 				ipt.x = 0;
 			}
 
-			mipmap_make_edge_pixel_recursively(&m, final_lvl, ir, ip, start_lvl);
+			mipmap_make_edge_pixel_recursively(&m, final_lvl, ir, ipt, start_lvl);
 		}
 	}
 
