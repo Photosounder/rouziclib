@@ -93,3 +93,191 @@ I realise that this is a bit unusual, but it's pretty simple and very handy. You
 
 === Example project
 Have a look at a minimal https://github.com/Photosounder/rouziclib-picture-viewer[picture viewer] built around rouziclib, with explanations of its features, how it works and how to expand on it or create a similar program.
+
+=== Files
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general[general/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/xyz.c[xyz.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/xyz.h[xyz.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/xyz_struct.h[xyz_struct.h] +
+Vectors (2D, 3D integer 2D and 3x3 matrices) with conversions and operations. Very widely used throughout the library.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/time.c[time.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/time.h[time.h] +
+Multiplatform standard and high resolution time-measuring, sleep, date-time string parsing and Julian date conversion.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/estimates.c[estimates.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/estimates.h[estimates.h] +
+Functions for estimating the program's framerate.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/mouse.c[mouse.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/mouse.h[mouse.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/mouse_struct.h[mouse_struct.h] +
+Mouse cursor logic and cursor drawing.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/keyboard.c[keyboard.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/keyboard.h[keyboard.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/keyboard_struct.h[keyboard_struct.h] +
+Processing SDL keyboard events to update arrays of flags while avoiding missing quick presses like when both the down and up event arrive at the same time. Also controls the zoon-scroll system from key combos.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/noop.c[noop.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/noop.h[noop.h] +
+Functions that do nothing and say so when that's needed.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/hashing.c[hashing.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/hashing.h[hashing.h] +
+Functions for hashing using https://github.com/Cyan4973/xxHash/[xxHash].
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/threading.c[threading.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/threading.h[threading.h] +
+Multiplatform threading, mainly wrappers for https://github.com/mattiasgustavsson/libs/blob/main/thread.h[thread.h].
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/intrinsics.c[intrinsics.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/intrinsics.h[intrinsics.h] +
+Functions for testing Intel x86 CPU features at runtime, replacements for certain intrinsics that can be missing or inefficient, macros that simplify basic operations.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/crash_dump.c[crash_dump.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/crash_dump.h[crash_dump.h] +
+Windows-only functions to generate a minidump file in case the program crashes.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/audio.c[audio.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/audio.h[audio.h] +
+Audio system that can call multiple callbacks, mix their outputs, register them, deregister and stop running them automatically.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/structs.h[structs.h] +
+Generic buffer structure and generic lookup table structure.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/globals.c[globals.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/globals.h[globals.h] +
+Creates the globals used by the various system in rouziclib, such as the framebuffer structure (thread-local so that other threads can render to a framebuffer and therefore use the usual drawing and GUI functions, like when rendering a video), the zoom-scroll state, the mouse-keyboard state, the vector typeface, the audio system, the window manager as well as the default drawing thickness.
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory[memory/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/alloc.c[alloc.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/alloc.h[alloc.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/fill.c[fill.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/fill.h[fill.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/swap.c[swap.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/swap.h[swap.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/circular_buffer.c[circular_buffer.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/circular_buffer.h[circular_buffer.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/generic_buffer.c[generic_buffer.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/generic_buffer.h[generic_buffer.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/comparison.c[comparison.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/comparison.h[comparison.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry[geometry/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rect.c[rect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rect.h[rect.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rect_struct.h[rect_struct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/intersection.c[intersection.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/intersection.h[intersection.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rotation.c[rotation.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rotation.h[rotation.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/fit.c[fit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/fit.h[fit.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/distance.c[distance.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/distance.h[distance.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/bezier.c[bezier.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/bezier.h[bezier.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/misc.c[misc.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/misc.h[misc.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math[math/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/functions.c[functions.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/functions.h[functions.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/ieee754.c[ieee754.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/ieee754.h[ieee754.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/rand.c[rand.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/rand.h[rand.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dsp.c[dsp.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dsp.h[dsp.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dct.c[dct.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dct.h[dct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/matrix.c[matrix.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/matrix.h[matrix.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/physics.c[physics.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/physics.h[physics.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/debug.c[debug.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/debug.h[debug.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/polynomials.c[polynomials.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/polynomials.h[polynomials.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/erf_radlim.c[erf_radlim.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/erf_radlim.h[erf_radlim.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fixedpoint[fixedpoint/] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat[fastfloat/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fixedpoint/fp.c[fp.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fixedpoint/fp.h[fp.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastfloat.c[fastfloat.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastfloat.h[fastfloat.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastcos.c[fastcos.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastcos.h[fastcos.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/simd.c[simd.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/simd.h[simd.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics[graphics/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/graphics.c[graphics.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/graphics.h[graphics.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/pixel_conv.c[pixel_conv.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/pixel_conv.h[pixel_conv.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/srgb.c[srgb.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/srgb.h[srgb.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/sqrgb.c[sqrgb.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/sqrgb.h[sqrgb.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/yuv.c[yuv.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/yuv.h[yuv.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/colour.c[colour.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/colour.h[colour.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blending.c[blending.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blending.h[blending.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blit.c[blit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blit.h[blit.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawline.c[drawline.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawline.h[drawline.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawrect.c[drawrect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawrect.h[drawrect.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawprimitives.c[drawprimitives.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawprimitives.h[drawprimitives.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue.c[drawqueue.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue.h[drawqueue.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue[drawqueue/]
+*** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawqueue_soft.c[drawqueue_soft.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawqueue_soft.h[drawqueue_soft.h] +
+*** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawrect.c[drawrect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawrect.h[drawrect.h] +
+*** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawline.c[drawline.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawline.h[drawline.h] +
+*** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/blit.c[blit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/blit.h[blit.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/draw_effects.c[draw_effects.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/draw_effects.h[draw_effects.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/processing.c[processing.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/processing.h[processing.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/mipmap.c[mipmap.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/mipmap.h[mipmap.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/cl_memory.c[cl_memory.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/cl_memory.h[cl_memory.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/texture_compression.c[texture_compression.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/texture_compression.h[texture_compression.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/vector.c[vector.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/vector.h[vector.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/polyline.c[polyline.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/polyline.h[polyline.h] +
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_data.c[unicode_data.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_data.h[unicode_data.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode.c[unicode.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode.h[unicode.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_bidi.c[unicode_bidi.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_bidi.h[unicode_bidi.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_arabic.c[unicode_arabic.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_arabic.h[unicode_arabic.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/parse.c[parse.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/parse.h[parse.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/format.c[format.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/format.h[format.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/string.c[string.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/string.h[string.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/edit.c[edit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/edit.h[edit.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/textedit_struct.h[textedit_struct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/undo.c[undo.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/undo.h[undo.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/history.c[history.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/history.h[history.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.c[vector_type.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.h[vector_type.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/make_font.c[make_font.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/make_font.h[make_font.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/draw.c[draw.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/draw.h[draw.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/stats.c[stats.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/stats.h[stats.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/fit.c[fit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/fit.h[fit.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/cjk.c[cjk.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/cjk.h[cjk.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/insert_rect.c[insert_rect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/insert_rect.h[insert_rect.h] +
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.c[zoom.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.h[zoom.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus.c[focus.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus.h[focus.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus_struct.h[focus_struct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/positioning.c[positioning.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/positioning.h[positioning.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/layout.c[layout.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/layout.h[layout.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/drawelements.c[drawelements.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/drawelements.h[drawelements.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.c[visualisations.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.h[visualisations.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.c[inputprocessing.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.h[inputprocessing.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing_struct.h[inputprocessing_struct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.c[knob_functions.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.h[knob_functions.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.c[controls.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.h[controls.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.c[control_array.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.h[control_array.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.c[selection.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.h[selection.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.c[make_gui.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.h[make_gui.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/editor_toolbar.c[editor_toolbar.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/editor_toolbar.h[editor_toolbar.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/floating_window.c[floating_window.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/floating_window.h[floating_window.h] +
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/bits.c[bits.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/bits.h[bits.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.c[open.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.h[open.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.c[endian.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.h[endian.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image.c[image.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image.h[image.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_bmp.c[image_bmp.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_bmp.h[image_bmp.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff.c[image_tiff.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff.h[image_tiff.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff_lzw.c[image_tiff_lzw.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff_lzw.h[image_tiff_lzw.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_fts.c[image_fts.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_fts.h[image_fts.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_screen.c[image_screen.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_screen.h[image_screen.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_format.c[sound_format.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_format.h[sound_format.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_aiff.c[sound_aiff.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_aiff.h[sound_aiff.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_wav.c[sound_wav.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_wav.h[sound_wav.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/path.c[path.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/path.h[path.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir.c[dir.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir.h[dir.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir_struct.h[dir_struct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/file_management.c[file_management.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/file_management.h[file_management.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/process.c[process.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/process.h[process.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.c[fileball.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.h[fileball.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/prefs.c[prefs.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/prefs.h[prefs.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dialog.c[dialog.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dialog.h[dialog.h] +
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.c[network.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.h[network.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.c[http.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.h[http.h] +
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.c[opencl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.h[opencl.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl_struct.h[opencl_struct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/sdl.c[sdl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/sdl.h[sdl.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan.c[vulkan.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan.h[vulkan.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan_struct.h[vulkan_struct.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/clfft.c[clfft.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/clfft.h[clfft.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg.c[ffmpeg.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg.h[ffmpeg.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg_enc.c[ffmpeg_enc.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg_enc.h[ffmpeg_enc.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.c[ffmpeg_sound_player.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.h[ffmpeg_sound_player.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencv.c[opencv.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencv.h[opencv.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/devil.c[devil.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/devil.h[devil.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libsndfile.c[libsndfile.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libsndfile.h[libsndfile.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libraw.c[libraw.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libraw.h[libraw.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libjpeg.c[libjpeg.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libjpeg.h[libjpeg.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_image.c[libstb_image.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_image.h[libstb_image.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_vorbis.c[libstb_vorbis.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_vorbis.h[libstb_vorbis.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminimp3.c[libminimp3.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminimp3.h[libminimp3.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libdr_flac.c[libdr_flac.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libdr_flac.h[libdr_flac.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/zlib.c[zlib.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/zlib.h[zlib.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/mpfr.c[mpfr.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/mpfr.h[mpfr.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/fftpack.c[fftpack.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/fftpack.h[fftpack.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/cfftpack.c[cfftpack.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/cfftpack.h[cfftpack.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/tinyexpr.c[tinyexpr.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/tinyexpr.h[tinyexpr.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.c[libcurl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.h[libcurl.h] +
