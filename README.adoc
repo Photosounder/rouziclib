@@ -369,12 +369,25 @@ I have no idea what this is, wtf.
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type[vector_type/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.c[vector_type.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.h[vector_type.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type_struct.h[vector_type_struct.h] +
+Mainly contains functions to retrieve glyphs from codepoints.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/make_font.c[make_font.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/make_font.h[make_font.h] +
+Generates the vector typeface from the markup.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/draw.c[draw.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/draw.h[draw.h] +
+Draw a string on screen using the vector typeface.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/stats.c[stats.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/stats.h[stats.h] +
+Functions to obtain the width of glyphs, and using those find the width of words and lines, which are then used to fit strings into rectangles.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/fit.c[fit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/fit.h[fit.h] +
+Fit strings into rectangles with line breaks either to maximise the size of the letters or to break the lines at a given threshold. Currently only works with strings that don't already contain line breaks, except for `draw_string_bestfit_asis()` which doesn't add line breaks.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/cjk.c[cjk.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/cjk.h[cjk.h] +
+Generates CJK glyphs by combining strokes using a list of combinations. Doesn't really produce anything readable.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/insert_rect.c[insert_rect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/insert_rect.h[insert_rect.h] +
+An insert rect is a space in a string to be drawn on screen, and that space has its coordinates reported so that they can be used to insert an interface element where the space is. The width of the space is specified by combining private use Unicode codepoints that each represent a different spacing, the sum of which is the width of the space, and then a variation selector character which represents an index in an array. So for example by using the character that represents a space of 36 units, followed by the character that represents 3 units, followed by the character that represents an index of 0, I can make a space 39 units wide in some text and then by querying the insert rect at index 0 get the on-screen coordinates for that space so that I can place something there. I use it mainly for inserting text edit controls to enter a value in the middle of some text, so the text input field is automatically adjusted to be the right size and position to fit in perfectly.
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui[gui/]
 
