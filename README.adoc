@@ -96,6 +96,9 @@ Have a look at a minimal https://github.com/Photosounder/rouziclib-picture-viewe
 
 === Files
 
+* https://github.com/Photosounder/rouziclib/blob/master/rouziclib/rouziclib.c[rouziclib.c] / https://github.com/Photosounder/rouziclib/blob/master/rouziclib/rouziclib.h[rouziclib.h] / https://github.com/Photosounder/rouziclib/blob/master/rouziclib/rouziclib.m[rouziclib.m] +
+Every piece of code in this library is ultimately included into one of those three files, so it's as if this whole library was only made of 2 (or 3 on macOS) files. Basically rouziclib is just like a two-file library broken down into over 360 files due to size.
+
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general[general/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/xyz.c[xyz.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/xyz.h[xyz.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/xyz_struct.h[xyz_struct.h] +
@@ -399,7 +402,7 @@ An insert rect is a space in a string to be drawn on screen, and that space has 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.c[visualisations.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.h[visualisations.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.c[inputprocessing.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.h[inputprocessing.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing_struct.h[inputprocessing_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.c[knob_functions.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.h[knob_functions.h] +
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.c[controls.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.h[controls.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls_struct.h[controls_struct.h]+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.c[controls.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.h[controls.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls_struct.h[controls_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.c[control_array.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.h[control_array.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.c[selection.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.h[selection.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.c[make_gui.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.h[make_gui.h] +
