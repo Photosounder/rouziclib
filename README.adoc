@@ -228,13 +228,23 @@ Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversio
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics[graphics/]
 
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/graphics.c[graphics.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/graphics.h[graphics.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/graphics.c[graphics.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/graphics.h[graphics.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/graphics_struct.h[graphics_struct.h] +
+Functions to manage the `raster_t` and `framebuffer_t` structures and access pixels in various formats.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/pixel_conv.c[pixel_conv.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/pixel_conv.h[pixel_conv.h] +
+Conversions between different pixel formats, with Intel x86 SIMD versions.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/srgb.c[srgb.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/srgb.h[srgb.h] +
+Conversions between linear valued and gamma-compressed sRGB.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/sqrgb.c[sqrgb.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/sqrgb.h[sqrgb.h] +
+Conversions for the 10-bit square root pixel format.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/yuv.c[yuv.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/yuv.h[yuv.h] +
+YUV conversions.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/colour.c[colour.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/colour.h[colour.h] +
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blending.c[blending.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blending.h[blending.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blending.c[blending.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blending.h[blending.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blending_struct.h[blending_struct.h]+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blit.c[blit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/blit.h[blit.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawline.c[drawline.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawline.h[drawline.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawrect.c[drawrect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawrect.h[drawrect.h] +
@@ -245,13 +255,58 @@ Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversio
 *** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawrect.c[drawrect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawrect.h[drawrect.h] +
 *** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawline.c[drawline.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawline.h[drawline.h] +
 *** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/blit.c[blit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/blit.h[blit.h] +
+
+*** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/opencl[opencl/] +
+The files below make up the OpenCL version of my drawing queue renderer.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/bits.cl[bits.cl] +
+Read bits in a binary stream. Used for decoding my compressed texture format which uses 3 bits per pixel.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/blending.cl[blending.cl] +
+Various blending modes available when closing a bracket.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/blit.cl[blit.cl] +
+Read textures in various formats and blit them with flat-top filtering or bilinear interpolation and rotation.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/colour.cl[colour.cl] +
+CIELab L, YUV and HSL conversions, colour matrix and transfer curves.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/drawcircle.cl[drawcircle.cl] +
+Draw full and hollow Gaussian-antialiased circles.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/drawline.cl[drawline.cl] +
+Draw Gaussian-antialiased thin lines and Gaussian dots.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/drawqueue.cl[drawqueue.c] +
+Includes all the other .cl files and is compiled to https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/drawqueue.cl.h[drawqueue.cl.h] for inclusion in the program, which then gets compiled by the OpenCL compiler at run time to generate the OpenCL kernels. Reads the buffers sent from the host and interprets them to execute the drawing functions.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/drawrect.cl[drawrect.cl] +
+Draw full Gaussian-antialiased rectangles, either additively or with multiplication to make dark rectangles. Can also add a plain colour to a rendering sector which is used in optimising the drawing of the insides of full rectangles and circles far from the edges.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/gaussian.cl[gaussian.cl] +
+Fast error function (`erf()`) approximation.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/rand.cl[rand.cl] +
+MINSTD-based PRNG used to generate a practically non-repeating Gaussian noise texture used for dithering.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/srgb.cl[srgb.cl] +
+sRGB conversions, out-of-gamut colour desaturation and Gaussian dithering and optional quantisation (with `max_s`) to simulate lower colour bit depths.
+
+**** https://github.com/Photosounder/rouziclib/blob/master/rouziclib/graphics/drawqueue/opencl/trig.cl[trig.cl] +
+Arccos and arcsin approximations.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/draw_effects.c[draw_effects.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/draw_effects.h[draw_effects.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/processing.c[processing.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/processing.h[processing.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/mipmap.c[mipmap.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/mipmap.h[mipmap.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/cl_memory.c[cl_memory.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/cl_memory.h[cl_memory.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/texture_compression.c[texture_compression.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/texture_compression.h[texture_compression.h] +
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/vector.c[vector.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/vector.h[vector.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector[vector/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/vector.c[vector.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/vector.h[vector.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/vector_struct.h[vector_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/polyline.c[polyline.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector/polyline.h[polyline.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text[text/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_data.c[unicode_data.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode_data.h[unicode_data.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode.c[unicode.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/unicode.h[unicode.h] +
@@ -263,7 +318,10 @@ Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversio
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/edit.c[edit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/edit.h[edit.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/textedit_struct.h[textedit_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/undo.c[undo.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/undo.h[undo.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/history.c[history.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/text/history.h[history.h] +
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.c[vector_type.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.h[vector_type.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type[vector_type/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.c[vector_type.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type.h[vector_type.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/vector_type_struct.h[vector_type_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/make_font.c[make_font.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/make_font.h[make_font.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/draw.c[draw.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/draw.h[draw.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/stats.c[stats.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/stats.h[stats.h] +
@@ -271,7 +329,9 @@ Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversio
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/cjk.c[cjk.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/cjk.h[cjk.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/insert_rect.c[insert_rect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/vector_type/insert_rect.h[insert_rect.h] +
 
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.c[zoom.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.h[zoom.h] +
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui[gui/]
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.c[zoom.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.h[zoom.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom_struct.h[zoom_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus.c[focus.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus.h[focus.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus_struct.h[focus_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/positioning.c[positioning.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/positioning.h[positioning.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/layout.c[layout.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/layout.h[layout.h] +
@@ -279,12 +339,14 @@ Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversio
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.c[visualisations.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.h[visualisations.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.c[inputprocessing.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.h[inputprocessing.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing_struct.h[inputprocessing_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.c[knob_functions.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.h[knob_functions.h] +
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.c[controls.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.h[controls.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.c[controls.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.h[controls.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls_struct.h[controls_struct.h]+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.c[control_array.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.h[control_array.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.c[selection.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.h[selection.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.c[make_gui.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.h[make_gui.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/editor_toolbar.c[editor_toolbar.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/editor_toolbar.h[editor_toolbar.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/floating_window.c[floating_window.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/floating_window.h[floating_window.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio[fileio/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/bits.c[bits.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/bits.h[bits.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.c[open.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.h[open.h] +
@@ -302,20 +364,23 @@ Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversio
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir.c[dir.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir.h[dir.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir_struct.h[dir_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/file_management.c[file_management.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/file_management.h[file_management.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/process.c[process.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/process.h[process.h] +
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.c[fileball.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.h[fileball.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.c[fileball.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.h[fileball.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball_struct.h[fileball_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/prefs.c[prefs.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/prefs.h[prefs.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dialog.c[dialog.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dialog.h[dialog.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.c[ffmpeg_sound_player.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.h[ffmpeg_sound_player.h] +
+
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network[network/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.c[network.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.h[network.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.c[http.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.h[http.h] +
 
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries[libraries/]
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.c[opencl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.h[opencl.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl_struct.h[opencl_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/sdl.c[sdl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/sdl.h[sdl.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan.c[vulkan.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan.h[vulkan.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan_struct.h[vulkan_struct.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/clfft.c[clfft.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/clfft.h[clfft.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg.c[ffmpeg.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg.h[ffmpeg.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg_enc.c[ffmpeg_enc.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg_enc.h[ffmpeg_enc.h] +
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.c[ffmpeg_sound_player.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.h[ffmpeg_sound_player.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencv.c[opencv.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencv.h[opencv.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/devil.c[devil.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/devil.h[devil.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libsndfile.c[libsndfile.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libsndfile.h[libsndfile.h] +
