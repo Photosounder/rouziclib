@@ -111,7 +111,7 @@ Functions for estimating the program's framerate.
 Mouse cursor logic and cursor drawing.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/keyboard.c[keyboard.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/keyboard.h[keyboard.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/keyboard_struct.h[keyboard_struct.h] +
-Processing SDL keyboard events to update arrays of flags while avoiding missing quick presses like when both the down and up event arrive at the same time. Also controls the zoon-scroll system from key combos.
+Processing SDL keyboard events to update arrays of flags while avoiding missing quick presses like when both the down and up event arrive at the same time. Also controls the zoom-scroll system from key combos.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/noop.c[noop.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/general/noop.h[noop.h] +
 Functions that do nothing and say so when that's needed.
@@ -140,41 +140,91 @@ Creates the globals used by the various system in rouziclib, such as the framebu
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory[memory/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/alloc.c[alloc.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/alloc.h[alloc.h] +
+Manages allocations, reallocations, deallocations, copying, 2D arrays and managing an allocation list. Contains the very essential `alloc_enough()` which I use extensively to resize buffers as needed.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/fill.c[fill.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/fill.h[fill.h] +
+Like `memset()` but with 32 and 64-bit words instead of 8 bits.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/swap.c[swap.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/swap.h[swap.h] +
+Functions to swap two values.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/circular_buffer.c[circular_buffer.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/circular_buffer.h[circular_buffer.h] +
+Manages circular buffers by wrapping indices around and doing the equivalent of `memset()` and `memcpy()` on circular buffers or from linear buffers to circular buffers.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/generic_buffer.c[generic_buffer.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/generic_buffer.h[generic_buffer.h] +
+A generic buffer is a structure that contains a buffer (usually used as a string, otherwise as a byte stream) as well as a count of how many bytes are currently used and how many are allocated. This allows for the buffer to be enlarged as needed, to avoid inefficiencies that come from running `strlen()` to know where a string ends, and to have functions that behave on strings just like on a `FILE` pointer. For instance `bufprintf()` works just like `fprintf()` except on a string (as a generic buffer), which is rather convenient, and `bufwrite()` works like `fwrite()`, which makes creating binary files in memory much easier.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/comparison.c[comparison.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/memory/comparison.h[comparison.h] +
+Contains often-needed comparison functions that like `strcmp()` can be used with `qsort()` or `bsearch()`. `array_find_index_by_cmp()` uses binary searching to find an index in a pre-sorted array based on a given value.
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry[geometry/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rect.c[rect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rect.h[rect.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rect_struct.h[rect_struct.h] +
+Vectors for rectangles, integer rectangles and triangles, and functions to create, transform or get information from such rectangles.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/intersection.c[intersection.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/intersection.h[intersection.h] +
+Functions to computer intersections between lines, find the distance between a point and a line, find the segment of a line inside a rectangle, intersect rectangles, intersect a circle with a rectangle, find if a point is inside a rectangle or circle, or find the angular radius of a circle from a point.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rotation.c[rotation.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/rotation.h[rotation.h] +
+Handle 2D and 3D vector rotation.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/fit.c[fit.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/fit.h[fit.h] +
+Functions to find how to best fit squares or rectangles in an area, manage a Hilbert curve grid, fit a rectangle inside a rectangular area or subdivide a rectangle.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/distance.c[distance.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/distance.h[distance.h] +
+Calculate the hypothenuse in 2D and 3D and move a point away from another point using a given distance multiplier.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/bezier.c[bezier.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/bezier.h[bezier.h] +
+Can turn an array of points into an array of cubic Bézier segments with automatic handles and evaluate an entire array of Bézier segments for a given value of `x`.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/misc.c[misc.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/geometry/misc.h[misc.h] +
+Mainly triangle functions.
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math[math/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/functions.c[functions.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/functions.h[functions.h] +
+Basic math functions, an approximation of the inverse error function, functions to find a value or interpolated value from an array of 2D points.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/ieee754.c[ieee754.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/ieee754.h[ieee754.h] +
+IEEE-754 floating point manipulation, fractional part calculation and dealing with numbers at the level of https://en.wikipedia.org/wiki/Unit_in_the_last_place[units of least precision] to guarantee incrementation or make floating point comparisons that take a degree of error into account.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/rand.c[rand.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/rand.h[rand.h] +
+Functions to generate uniform pseudo-random numbers in a given range, nmumbers with a normal (Gaussian) distribution and a PRNG based on MINSTD.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dsp.c[dsp.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dsp.h[dsp.h] +
+FFT size calculation, basic array operations, root mean square computation, decibel conversion, Blackman window, short Gaussian window (an original way to make a Gaussian window finite with desirable characteristics) and its integral, polynomial step functions, ramp filter kernel computation.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dct.c[dct.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/dct.h[dct.h] +
+Discrete Cosine Transform computation for JPEG 8x8 blocks.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/matrix.c[matrix.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/matrix.h[matrix.h] +
+Matrix determinant and inverse, including MPFR versions.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/physics.c[physics.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/physics.h[physics.h] +
+Euler physical integration.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/debug.c[debug.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/debug.h[debug.h] +
+Something used by my graphing calculator.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/polynomials.c[polynomials.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/polynomials.h[polynomials.h] +
+Polynomial evaluation (1D and 2D), error calculation for approximations, coefficient operations, Chebyshev fitting by discrete cosine transform, conversion of Chebyshev coefficients to polynomial coefficients, digit reduction to make coefficients take up less digits and an attempt at optimising fits to reduce the maximum error.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/erf_radlim.c[erf_radlim.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/math/erf_radlim.h[erf_radlim.h] +
+Part of my attempts at directly computing Gaussian-antialiased triangles.
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fixedpoint[fixedpoint/] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat[fastfloat/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fixedpoint/fp.c[fp.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fixedpoint/fp.h[fp.h] +
+Fixed point approximations for the square root, division, log2m exp2, cosine, atan2, the Gaussian function and the error function.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastfloat.c[fastfloat.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastfloat.h[fastfloat.h] +
+Floating point approximations for log2, exp2, pow, the square root (which tends to be slower than just using `sqrt()`), linear to sRGB gamma conversion and exp over a small range.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastcos.c[fastcos.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/fastcos.h[fastcos.h] +
+Floating point approximations for the cosine at different levels of precision, in turns or radians.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/simd.c[simd.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fastfloat/simd.h[simd.h] +
+Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversion approximations.
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics[graphics/]
 
