@@ -395,67 +395,178 @@ An insert rect is a space in a string to be drawn on screen, and that space has 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui[gui/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.c[zoom.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom.h[zoom.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/zoom_struct.h[zoom_struct.h] +
+Zoom-scroll system, with conversion between "world coordinates" (positions on the infinite plane) and screen coordinates and handling of the mouse to scroll around, zoom in and out, reset the view or change the zoom level and focus programatically. The GUI system relies on this system.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus.c[focus.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus.h[focus.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/focus_struct.h[focus_struct.h] +
+Can affect the drawing thickness and brightness of drawn elements to simulate a camera being out of focus, albeit with Gaussian blur rather than a circular kernel.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/positioning.c[positioning.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/positioning.h[positioning.h] +
+Convert local coordinates to world coordinates using an offset and scale. This is used when making interface elements fit into an area.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/layout.c[layout.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/layout.h[layout.h] +
+Manage control grids.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/drawelements.c[drawelements.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/drawelements.h[drawelements.h] +
+Drawing functions for various interface elements.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.c[visualisations.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/visualisations.h[visualisations.h] +
+Draw a bar graph.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.c[inputprocessing.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing.h[inputprocessing.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/inputprocessing_struct.h[inputprocessing_struct.h] +
+The core of the GUI system, this is how controls are identified when hovered or clicked and how each type of control processes mouse inputs.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.c[knob_functions.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/knob_functions.h[knob_functions.h] +
+Knobs can use a few different functions so that they don't have to always be linear.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.c[controls.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls.h[controls.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/controls_struct.h[controls_struct.h] +
+How the basic GUI controls are created.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.c[control_array.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/control_array.h[control_array.h] +
+Program arrays of controls.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.c[selection.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/selection.h[selection.h] +
+Generic selection logic, the kind you expect when selecting files in a folder.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.c[make_gui.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/make_gui.h[make_gui.h] +
+Make a GUI from layout markup, which can be generate by using the toolbar found in the next file. Contains functions to implement every element type using the data in a layout structure and various functions to modify them.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/editor_toolbar.c[editor_toolbar.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/editor_toolbar.h[editor_toolbar.h] +
+Toolbar to create and modify GUI layouts.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/floating_window.c[floating_window.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/gui/floating_window.h[floating_window.h] +
+Create and handle floating windows with a draggable title bar, a resizing control, a pinning control and a closing button.
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio[fileio/]
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/bits.c[bits.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/bits.h[bits.h] +
+Read, set or manipulate bits in a bit stream.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.c[open.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.h[open.h] +
+`fopen()` wrapper that takes UTF-8 paths, with another version that can create any folder needed to make the file being opened writable, query a file's size, load a file into memory, optionally with conversion of DOS file endings, save a whole buffer or string or array of strings to file, count lines in a text file, check if a file or folder exists.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.c[endian.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.h[endian.h] +
+Functions to load or write 8 to 64 bit integers in little or big endian to and from memory, file or generic buffer. By default to speed things up the platform is assumed to be little endian, this can be changed by defining RL_DONT_ASSUME_LITTLE_ENDIAN.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image.c[image.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image.h[image.h] +
+Convert images between different pixel formats, load and save images and image tiles in various formats, partly using https://github.com/nothings/stb/blob/master/stb_image.h[stb_image] and https://github.com/nothings/stb/blob/master/stb_image_write.h[stb_image_write].
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_bmp.c[image_bmp.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_bmp.h[image_bmp.h] +
+Save BMP images.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff.c[image_tiff.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff.h[image_tiff.h] +
+Load TIFF files in 8, 16 and 32-bit bits per channel, with either no compression or LZW compression. Save images to 32-bit per channel TIFF files.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff_lzw.c[image_tiff_lzw.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_tiff_lzw.h[image_tiff_lzw.h] +
+TIFF LZW decoder.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_fts.c[image_fts.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_fts.h[image_fts.h] +
+Load NASA FITS images. Only tested with SOHO mission images.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_screen.c[image_screen.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image_screen.h[image_screen.h] +
+Function to take screenshots of the main display on Windows.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_format.c[sound_format.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_format.h[sound_format.h] +
+Convert between different sound sample formats and channel layouts.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_aiff.c[sound_aiff.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_aiff.h[sound_aiff.h] +
+Load and save AIFF sound files.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_wav.c[sound_wav.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/sound_wav.h[sound_wav.h] +
+Load and save WAVE sound files.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/path.c[path.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/path.h[path.h] +
+Transform file paths to remove, extract or append elements, make appdata paths to save configuration files, check that a path is to an image or video file or change the current working directory.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir.c[dir.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir.h[dir.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dir_struct.h[dir_struct.h] +
+Load a directory to any depth as a tree using a modified version of https://github.com/Photosounder/rouziclib/blob/master/rouziclib/libraries/dirent.c[dirent.c] / https://github.com/Photosounder/rouziclib/blob/master/rouziclib/libraries/dirent.h[dirent.h] (I fixed some bugs from the original this was based on and reorganised it a bit) on Windows. Query volumes and their free space on Windows.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/file_management.c[file_management.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/file_management.h[file_management.h] +
+Create symbolic links, folders (even with multiple depths), move, copy, remove files and folders, open files or URLs in whatever program they're usually opened, show files in Explorer (Windows).
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/process.c[process.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/process.h[process.h] +
+Launch another process (Windows). Load the program's commandline arguments `argv` at any point in the program.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.c[fileball.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball.h[fileball.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/fileball_struct.h[fileball_struct.h] +
+Manage fileball archives, a simple format to pack many files into one and optionally compress them using Deflate (via https://github.com/richgel999/miniz[miniz]). This is used to pack the many files that make up the vector typeface into a C header with compression.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/prefs.c[prefs.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/prefs.h[prefs.h] +
+Preference management system. This is what I use to load and save preferences in my programs. Besides being quite elegant and readable it can be used independently by different parts of a program without any awareness of what the other parts do.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dialog.c[dialog.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/dialog.h[dialog.h] +
+Open and Save file dialogs on Windows and macOS. Both platforms use the same filter format.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.c[ffmpeg_sound_player.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.h[ffmpeg_sound_player.h] +
+Callback to load and play an audio stream using FFMPEG. The seeking leaves a bit to be desired, it can be quite slow compared to the video stream seeking and I don't know why.
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network[network/]
+TCP and HTTP socket-based code. Not very useful anymore since everything requires HTTPS.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.c[network.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.h[network.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.c[http.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.h[http.h] +
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries[libraries/]
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.c[opencl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.h[opencl.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl_struct.h[opencl_struct.h] +
+OpenCL code for initialising a context, compiling a kernel and more. Relies on https://github.com/martijnberger/clew[CLEW].
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/sdl.c[sdl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/sdl.h[sdl.h] +
+SDL2 code to get display and driver information, handle various types of events, control the mouse cursor, initialise graphics and audio, use the clipboard, poll drag-and-drop file events.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan.c[vulkan.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan.h[vulkan.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/vulkan_struct.h[vulkan_struct.h] +
+Aborted attempt to port my OpenCL system to Vulkan. Vulkan is rather complicated.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/clfft.c[clfft.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/clfft.h[clfft.h] +
+Code for dealing with https://github.com/clMathLibraries/clFFT[clFFT].
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg.c[ffmpeg.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg.h[ffmpeg.h] +
+FFMPEG-based decoding.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg_enc.c[ffmpeg_enc.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/ffmpeg_enc.h[ffmpeg_enc.h] +
+FFMPEG-based encoding (video-only, no audio).
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencv.c[opencv.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencv.h[opencv.h] +
+Decode videos and access webcam images using OpenCV.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/devil.c[devil.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/devil.h[devil.h] +
+Load images with DevIL. I don't use this anymore.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libsndfile.c[libsndfile.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libsndfile.h[libsndfile.h] +
+Open files for libsndfile. I also don't use this anymore.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libraw.c[libraw.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libraw.h[libraw.h] +
+Load RAW photographs with LibRAW in different ways.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libjpeg.c[libjpeg.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libjpeg.h[libjpeg.h] +
+Load JPEG with libJPEG and access DCT blocks.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_image.c[libstb_image.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_image.h[libstb_image.h] +
+Load and save images with stb_image.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_vorbis.c[libstb_vorbis.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_vorbis.h[libstb_vorbis.h] +
+Load OGG sound files with stb_vorbis.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminimp3.c[libminimp3.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminimp3.h[libminimp3.h] +
+Load MP3s with libminimp3.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libdr_flac.c[libdr_flac.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libdr_flac.h[libdr_flac.h] +
+Load FLAC sound files with dr_flac.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/zlib.c[zlib.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/zlib.h[zlib.h] +
+Compress or decompress using the Deflate compression using either zlib or miniz (miniz is built in rouziclib so there's no reason to use zlib).
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/mpfr.c[mpfr.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/mpfr.h[mpfr.h] +
+Macros to make MPFR syntax simpler (I used to have problems typing `mpfr_` correctly so I changed it to `r_`) and some other functions I need.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/fftpack.c[fftpack.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/fftpack.h[fftpack.h] +
+Older FFTPACK code, only handles real-to-real transforms with no negative frequencies.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/cfftpack.c[cfftpack.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/cfftpack.h[cfftpack.h] +
+FFTPACK code with both single and double precision available at the same time (I modified the code it's based on for this purpose). Does 1D and 2D complex-binned FFTs with negative frequencies, padding, conversion betwen real and complex bins, mixing single and double precision, padding, reallocation, and recompution or reallocation plans only as needed.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/tinyexpr.c[tinyexpr.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/tinyexpr.h[tinyexpr.h] +
+TinyExpr code which I use for many purposes, like parsing markup, knob text input evaluation, making graphing and image calculators. I added several of the functions I need and made `etof()` and `etoi()` as equivalents to `atof()` and `atoi()` but with mathematical expressions rather than simple number strings.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.c[libcurl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.h[libcurl.h] +
+cURL code to get files through HTTPS. I can't seem to get authentication right.
+
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/orig[orig/] +
+This where I put libraries I use from third parties. Several of them have modifications which are described in the https://github.com/Photosounder/rouziclib/blob/master/rouziclib/libraries/orig/update_notes.txt[update notes].
