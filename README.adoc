@@ -446,7 +446,7 @@ Read, set or manipulate bits in a bit stream.
 `fopen()` wrapper that takes UTF-8 paths, with another version that can create any folder needed to make the file being opened writable, query a file's size, load a file into memory, optionally with conversion of DOS file endings, save a whole buffer or string or array of strings to file, count lines in a text file, check if a file or folder exists.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.c[endian.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.h[endian.h] +
-Functions to load or write 8 to 64 bit integers in little or big endian to and from memory, file or generic buffer. By default to speed things up the platform is assumed to be little endian, this can be changed by defining RL_DONT_ASSUME_LITTLE_ENDIAN.
+Functions to load or write 8 to 64 bit integers in little or big endian to and from memory, file or generic buffer. By default to speed things up the platform is assumed to be little endian, this can be changed by defining `RL_DONT_ASSUME_LITTLE_ENDIAN`.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image.c[image.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/image.h[image.h] +
 Convert images between different pixel formats, load and save images and image tiles in various formats, partly using https://github.com/nothings/stb/blob/master/stb_image.h[stb_image] and https://github.com/nothings/stb/blob/master/stb_image_write.h[stb_image_write].
