@@ -443,7 +443,7 @@ Create and handle floating windows with a draggable title bar, a resizing contro
 Read, set or manipulate bits in a bit stream.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.c[open.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/open.h[open.h] +
-`fopen()` wrapper that takes UTF-8 paths, with another version that can create any folder needed to make the file being opened writable, query a file's size, load a file into memory, optionally with conversion of DOS file endings, save a whole buffer or string or array of strings to file, count lines in a text file, check if a file or folder exists.
+`fopen()` wrapper that takes UTF-8 paths, with another version that can create any folder needed to make the file being opened writable, query a file's size, load a file into memory, optionally with conversion of DOS line endings, save a whole buffer or string or array of strings to file, count lines in a text file, check if a file or folder exists.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.c[endian.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/endian.h[endian.h] +
 Functions to load or write 8 to 64 bit integers in little or big endian to and from memory, file or generic buffer. By default to speed things up the platform is assumed to be little endian, this can be changed by defining `RL_DONT_ASSUME_LITTLE_ENDIAN`.
