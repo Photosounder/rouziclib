@@ -268,6 +268,7 @@ Draw Gaussian-antialiased circles (full or hollow), hollow rectangles and chamfe
 Drawing queue rendering system.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue[drawqueue/]
+
 *** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawqueue_soft.c[drawqueue_soft.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawqueue/drawqueue_soft.h[drawqueue_soft.h] +
 Render drawing queue on the CPU with multiple threads using SIMD instructions. Used as a fallback for the OpenCL renderer. The 3 files that follow implement the functions needed by this system to draw rectangles, lines and images.
 
@@ -498,13 +499,14 @@ Open and Save file dialogs on Windows and macOS. Both platforms use the same fil
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.c[ffmpeg_sound_player.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/fileio/ffmpeg_sound_player.h[ffmpeg_sound_player.h] +
 Callback to load and play an audio stream using FFMPEG. The seeking leaves a bit to be desired, it can be quite slow compared to the video stream seeking and I don't know why.
 
-* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network[network/]
+* https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network[network/] +
 TCP and HTTP socket-based code. Not very useful anymore since everything requires HTTPS.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.c[network.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/network.h[network.h] +
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.c[http.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/network/http.h[http.h] +
 
 * https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries[libraries/]
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.c[opencl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl.h[opencl.h] and https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/opencl_struct.h[opencl_struct.h] +
 OpenCL code for initialising a context, compiling a kernel and more. Relies on https://github.com/martijnberger/clew[CLEW].
 
