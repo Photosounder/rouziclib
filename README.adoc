@@ -539,19 +539,19 @@ Load RAW photographs with LibRAW in different ways.
 Load JPEG with libJPEG and access DCT blocks.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_image.c[libstb_image.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_image.h[libstb_image.h] +
-Load and save images with stb_image.
+Load and save images with https://github.com/nothings/stb/blob/master/stb_image.h[stb_image].
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_vorbis.c[libstb_vorbis.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libstb_vorbis.h[libstb_vorbis.h] +
-Load OGG sound files with stb_vorbis.
+Load OGG sound files with https://github.com/nothings/stb/blob/master/stb_vorbis.c[stb_vorbis].
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminimp3.c[libminimp3.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminimp3.h[libminimp3.h] +
-Load MP3s with libminimp3.
+Load MP3s with https://github.com/lieff/minimp3/blob/master/minimp3.h[minimp3].
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libdr_flac.c[libdr_flac.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libdr_flac.h[libdr_flac.h] +
-Load FLAC sound files with dr_flac.
+Load FLAC sound files with https://github.com/mackron/dr_libs/blob/master/dr_flac.h[dr_flac].
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/zlib.c[zlib.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/zlib.h[zlib.h] +
-Compress or decompress using the Deflate compression using either zlib or miniz (miniz is built in rouziclib so there's no reason to use zlib).
+Compress or decompress using the Deflate compression using either zlib or https://github.com/richgel999/miniz[miniz] (miniz is built in rouziclib so there's no reason to use zlib).
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/mpfr.c[mpfr.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/mpfr.h[mpfr.h] +
 Macros to make MPFR syntax simpler (I used to have problems typing `mpfr_` correctly so I changed it to `r_`) and some other functions I need.
@@ -560,10 +560,10 @@ Macros to make MPFR syntax simpler (I used to have problems typing `mpfr_` corre
 Older FFTPACK code, only handles real-to-real transforms with no negative frequencies.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/cfftpack.c[cfftpack.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/cfftpack.h[cfftpack.h] +
-FFTPACK code with both single and double precision available at the same time (I modified the code it's based on for this purpose). Does 1D and 2D complex-binned FFTs with negative frequencies, padding, conversion betwen real and complex bins, mixing single and double precision, padding, reallocation, and recompution or reallocation plans only as needed.
+https://github.com/zywina/cfftpack[FFTPACK] code with both single and double precision available at the same time (I modified the code it's based on for this purpose). Does 1D and 2D complex-binned FFTs with negative frequencies, padding, conversion betwen real and complex bins, mixing single and double precision, padding, reallocation, and recompution or reallocation plans only as needed.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/tinyexpr.c[tinyexpr.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/tinyexpr.h[tinyexpr.h] +
-TinyExpr code which I use for many purposes, like parsing markup, knob text input evaluation, making graphing and image calculators. I added several of the functions I need and made `etof()` and `etoi()` as equivalents to `atof()` and `atoi()` but with mathematical expressions rather than simple number strings.
+https://github.com/codeplea/tinyexpr[TinyExpr] (logic branch) code which I use for many purposes, like parsing markup, knob text input evaluation, making graphing and image calculators. I added several of the functions I need and made `etof()` and `etoi()` as equivalents to `atof()` and `atoi()` but with mathematical expressions rather than simple number strings.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.c[libcurl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.h[libcurl.h] +
 cURL code to get files through HTTPS. I can't seem to get authentication right.
