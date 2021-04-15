@@ -304,7 +304,7 @@ void window_manager()
 			window_run(wind_man.wsor[i]);
 
 			// Put this window on top if one of its controls has been clicked
-			if (prev_hover_ided != mouse.ctrl_id->hover_ided && (mouse.b.lmb==2 || mouse.b.rmb==2))
+			if (prev_hover_ided != mouse.ctrl_id->hover_ided && (mouse.b.lmb>=1 || mouse.b.rmb>=1))
 			{
 				wind_man.max_order = wind_man.wsor[i]->order = wind_man.max_order + 1;
 			}

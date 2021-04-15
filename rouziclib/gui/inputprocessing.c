@@ -220,6 +220,7 @@ int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mous
 
 	if (mouse.b.lmb==1 && state->down)		// if the control is being dragged
 	{
+		mouse.ctrl_id->hover_ided = 1;	// this lets anyone who cares know that the one control being hovered has definitively been identified
 		xy_t new_pos = get_rect_centre(make_rect_off(mouse.u, state->dim, state->click_offset));
 		//state->offset = mul_xy(state->freedom, sub_xy(mouse.u, mouse.prev_u) );
 		state->offset = mul_xy(state->freedom, sub_xy(new_pos, state->pos) );

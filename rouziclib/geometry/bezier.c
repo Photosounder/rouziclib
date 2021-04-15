@@ -67,8 +67,8 @@ double bezier_seg_x_to_t(bezier_seg_t seg, double x)
 	x = (x - seg.p0.x) * scale;
 
 	// No need to search, t = x if the handles are at thirds
-	if (abs(double_diff_ulp(seg.p1.x, mix(seg.p0.x, seg.p3.x, 1./3.))) < 10 && 
-	    abs(double_diff_ulp(seg.p2.x, mix(seg.p3.x, seg.p0.x, 1./3.))) < 10)
+	if (abs((int) double_diff_ulp(seg.p1.x, mix(seg.p0.x, seg.p3.x, 1./3.))) < 10 && 
+	    abs((int) double_diff_ulp(seg.p2.x, mix(seg.p3.x, seg.p0.x, 1./3.))) < 10)
 		return x;
 
 	p1x = (seg.p1.x - seg.p0.x) * scale;

@@ -152,5 +152,6 @@
 #include "libraries/cfftpack.c"
 #include "libraries/tinyexpr.c"
 #include "libraries/libcurl.c"
+#include "libraries/libminiaudio.c"
 
 #include "general/globals.c"
