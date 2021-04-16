@@ -11,7 +11,7 @@ typedef struct
 
 typedef struct
 {
-	int init, pinned, hide_corner, hide_pin, parent_on;
+	int init, pinned, hide_corner, hide_pin;
 	ctrl_drag_state_t bar_drag, corner_drag;
 	col_t bg_col, bar_col, border_col, close_hover_col, close_down_col, title_col, close_x_col;
 	double bar_height, shadow_strength, bg_opacity;

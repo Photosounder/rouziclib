@@ -232,6 +232,89 @@
 		// set the default option by id
 		gui_layout_selmenu_set_entry_id(7, &layout, id);
 
+//**** Window manager ****
+
+	// Add window_manager() where the windows are ran in a variable order in the main loop before mousecursor_logic_and_draw();
+		window_manager();
+
+	// Window functions must follow this template
+		void my_window_function(rect_t parent_area, int *diag_on, <my_ptr_type *ptr1, my_ptr_type *ptr2 ...>)
+
+	// Window functions are registered like this
+		window_register(1, my_window_function, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
+
+	// Windows inside other windows
+		// The root function registers the parent window function and depending on the detachment status the child windows
+		// The root function must still contain the parent window's layout and pass it on the the parent window function so that the child window areas can be accessed
+		// After registering the child window function window_set_parent() must be called
+		void parent_window_function(rect_t parent_area, int *diag_on, flwindow_t *window, gui_layout_t *layout, int *child1_detach, int *child2_detach)
+		{
+			// Window
+			flwindow_init_defaults(window);
+			if (*diag_on)
+				draw_dialog_window_fromlayout(window, diag_on, NULL, layout, 0);
+
+			// Sub-windows
+			if (*child1_detach==0)
+			{
+				window_register(1, child1_func, gui_layout_elem_comp_area_os(layout, 100, XY0), child1_detach, 1, diag_on);
+				window_set_parent(child1_func, parent_window_function);
+			}
+
+			if (*child2_detach==0)
+			{
+				window_register(1, child2_func, gui_layout_elem_comp_area_os(layout, 110, XY0), child2_detach, 1, diag_on);
+				window_set_parent(child2_func, parent_window_function);
+			}
+		}
+
+		void root_function(int *diag_on)
+		{
+			static int child1_detach=0, child2_detach=0;
+
+			static flwindow_t window={0};
+			static gui_layout_t layout={0};
+			const char *layout_src[] = {
+				"elem 0", "type none", "label Parent window", "pos	0	0", "dim	7;2;6	5;9", "off	0	1", "",
+				"elem 100", "type rect", "pos	0;6	-1", "dim	1;9	4", "off	0	1", "",
+				"elem 110", "type rect", "link_pos_id 100", "pos	2;1	0", "dim	2;10	2;6", "off	0	1", "",
+			};
+
+			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Parent window layout");
+
+			// Window
+			window_register(1, parent_window_function, rect(XY0, XY0), diag_on, 4, &window, &layout, &child1_detach, &child2_detach);
+
+			// Sub-windows
+			if (child1_detach)
+			{
+				window_register(1, child1_func, gui_layout_elem_comp_area_os(&layout, 100, XY0), &child1_detach, 1, diag_on);
+				window_set_parent(child1_func, parent_window_function);
+			}
+
+			if (child2_detach)
+			{
+				window_register(1, child2_func, gui_layout_elem_comp_area_os(&layout, 110, XY0), &child2_detach, 1, diag_on);
+				window_set_parent(child2_func, parent_window_function);
+			}
+		}
+
+		// The child window is drawn if it's detached or the parent window is on
+		void child1_func(rect_t parent_area, int *detached, int *parent_on)
+		{
+			static gui_layout_t layout={0};
+			const char *layout_src[] = { ... };
+
+			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Child 1");
+
+			if (*parent_on==0 && *detached==0)	// keep the detached dialog open if the parent dialog is closed
+				return ;
+
+			// Window
+			static flwindow_t window={0};
+			flwindow_init_defaults(&window);
+			draw_dialog_window_fromlayout(&window, detached, &parent_area, &layout, 0);
+
 //**** Keyboard input ****
 
 	// Get state by scancode
@@ -337,17 +420,6 @@
 
 	// Subdividing an area into a smaller one by ratio and offset
 		sub_area = get_subdiv_area(area, xy(1., 1./8.), xy(0.5, 1.));
-
-//**** Window manager ****
-
-	// Add window_manager() where the windows are ran in a variable order in the main loop before mousecursor_logic_and_draw();
-		window_manager();
-
-	// Window functions must follow this template
-		void my_window_function(rect_t parent_area, int *diag_on, <my_ptr_type *ptr1, my_ptr_type *ptr2 ...>)
-
-	// Window functions are registered like this
-		window_register(1, my_window_function, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
 
 //**** Parsing ****
 

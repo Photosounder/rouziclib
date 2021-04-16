@@ -431,7 +431,6 @@ void dialog_cl_gl_interop_options(rect_t area, int *detached, int *parent_on)
 	// Window
 	static flwindow_t window={0};
 	flwindow_init_defaults(&window);
-	window.parent_on = *parent_on;
 	draw_dialog_window_fromlayout(&window, detached, &area, &layout, 0);
 
 	// Controls
