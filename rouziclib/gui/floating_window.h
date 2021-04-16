@@ -7,3 +7,7 @@ extern void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *p
 
 extern int window_register(int priority, void *window_func, rect_t parent_area, int *wind_on, int num_args, ...);
 extern void window_manager();
+extern int window_find_id_by_func(void *window_func);
+extern void window_set_parent(void *window_func, void *parent_window_func);
+extern void window_move_up(int id, int offset);
+extern void window_move_to_top(void *window_func);
