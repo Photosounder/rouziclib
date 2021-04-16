@@ -15,8 +15,8 @@ typedef struct
 	ctrl_drag_state_t bar_drag, corner_drag;
 	col_t bg_col, bar_col, border_col, close_hover_col, close_down_col, title_col, close_x_col;
 	double bar_height, shadow_strength, bg_opacity;
-	xy_t pinned_offset, parent_fit_offset;
-	double pinned_sm;
+	xy_t pinned_offset, pinned_offset_preset, parent_fit_offset;
+	double pinned_sm, pinned_sm_preset;
 } flwindow_t;
 
 typedef struct

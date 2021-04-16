@@ -10,9 +10,13 @@ void flwindow_init_defaults(flwindow_t *w)
 		w->close_down_col = make_grey(0.12);
 		w->title_col = make_grey(0.5);
 		w->close_x_col = make_grey(0.5);
-		w->parent_fit_offset = xy(0., 1.);
+		w->parent_fit_offset = xy(0., 1.);	// the offset for fitting the window into the parent_area
 		w->bg_opacity = 1.;
 		w->shadow_strength = 0.85;
+
+		// The pinning preset offset and scale
+		w->pinned_offset_preset = xy(-1e9, 1e9);
+		w->pinned_sm_preset = 1.;
 	}
 }
 
@@ -153,9 +157,14 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	// Pin control
 	if (w->hide_pin==0)
 	{
-		ctrl_checkbox_pin(&w->pinned, pin_area, w->title_col);
-
 		world_os_to_pinned_os(layout->offset, layout->sm, &w->pinned_offset, &w->pinned_sm);
+
+		if (ctrl_checkbox_pin(&w->pinned, pin_area, w->title_col).doubleclick)
+		{
+			w->pinned = 1;
+			w->pinned_offset = w->pinned_offset_preset;
+			w->pinned_sm = w->pinned_sm_preset;
+		}
 	}
 
 	draw_label(cur_elem->label, title_area, w->title_col, ALIG_CENTRE);				// title bar text

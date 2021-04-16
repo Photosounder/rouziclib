@@ -139,6 +139,10 @@
 		flwindow_init_pinned(&window);
 		draw_dialog_window_fromlayout(&window, &diag_on, NULL, &layout, 0);
 
+		// Double-clicking the pin control moves the window to the upper-left corner with a default scale which can be modified
+		window.pinned_offset_preset = xy(1e9, 1e9);	// upper right corner
+		window.pinned_sm_preset = 1.4;
+
 		// Background opacity and shadow intensity can be modified
 		window.bg_opacity = 0.94;
 		window.shadow_strength = 0.5*window.bg_opacity;
