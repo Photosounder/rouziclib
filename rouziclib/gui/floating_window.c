@@ -106,6 +106,10 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 			area_os = make_rect_off( rect_p01(area_os), new_dim, xy(0., 1.) );
 			//area_os = fit_rect_in_area(get_rect_dim(area), area_os, xy(0., 1.));
 			layout->offset = fit_into_area(area_os, area, 0., &layout->sm);
+
+			// Detach if detachable
+			if (parent_area)
+				*diag_on = 1;
 		}
 	}
 	//---- Background, title bar and resizing logic ----
