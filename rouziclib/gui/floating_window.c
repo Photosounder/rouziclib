@@ -61,7 +61,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	ctrl_drag_set_dim(&w->bar_drag, get_rect_dim(bar_area_os));
 	ctrl_draggable(&w->bar_drag);
 	layout->offset = add_xy(layout->offset, w->bar_drag.offset);
-	if (is0_xy(w->bar_drag.offset)==0 && parent_area)	// detach the window when moved
+	if (w->bar_drag.down && parent_area)			// detach the title bar is being dragged
 		*diag_on = 1;
 
 	// Prevent the bar from being out of the screen when pinned

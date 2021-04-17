@@ -255,8 +255,7 @@
 		{
 			// Window
 			flwindow_init_defaults(window);
-			if (*diag_on)
-				draw_dialog_window_fromlayout(window, diag_on, NULL, layout, 0);
+			draw_dialog_window_fromlayout(window, diag_on, NULL, layout, 0);
 
 			// Sub-windows
 			if (*child1_detach==0)
@@ -287,7 +286,8 @@
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Parent window layout");
 
 			// Window
-			window_register(1, parent_window_function, rect(XY0, XY0), diag_on, 4, &window, &layout, &child1_detach, &child2_detach);
+			if (diag_on)
+				window_register(1, parent_window_function, rect(XY0, XY0), diag_on, 4, &window, &layout, &child1_detach, &child2_detach);
 
 			// Sub-windows
 			if (child1_detach)
