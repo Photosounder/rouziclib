@@ -570,5 +570,8 @@ https://github.com/codeplea/tinyexpr[TinyExpr] (logic branch) code which I use f
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.c[libcurl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.h[libcurl.h] +
 cURL code to get files through HTTPS. I can't seem to get authentication right.
 
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminiaudio.c[libminiaudio.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminiaudio.h[libminiaudio.h] +
+Adds https://github.com/mackron/miniaudio[MiniAudio]. Excluded by default due to the code size.
+
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/orig[orig/] +
 This where I put libraries I use from third parties. Several of them have modifications which are described in the https://github.com/Photosounder/rouziclib/blob/master/rouziclib/libraries/orig/update_notes.txt[update notes].
