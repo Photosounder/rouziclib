@@ -237,6 +237,8 @@ int32_t drawq_entry_size(const enum dq_type type)
 		//case DQT_BLIT_BILINEAR:		return 8;
 		case DQT_BLIT_FLATTOP:		return 11;
 		case DQT_BLIT_FLATTOP_ROT:	return 11;
+		case DQT_BLIT_AANEAREST:	return 9;
+		case DQT_BLIT_AANEAREST_ROT:	return 10;
 		//case DQT_BLIT_PHOTO:		return 13;
 		default:			return 0;
 	}

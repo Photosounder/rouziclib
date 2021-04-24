@@ -186,6 +186,14 @@ float *load_sound_fl32_select_chan(char *in_path, size_t *sample_count, int *cha
 	return s1;
 }
 
+sound_sample_t load_sound_sample(char *in_path, int sel_chan)
+{
+	sound_sample_t s={0};
+	s.snd = load_sound_fl32_select_chan(in_path, &s.sample_count, &s.channels, &s.samplerate, sel_chan);
+	s.as = s.sample_count;
+	return s;
+}
+
 void save_sound_fl32_file(const char *path, float *snd, size_t sample_count, int channels, int samplerate, void *codec_param)
 {
 	char ext[32];

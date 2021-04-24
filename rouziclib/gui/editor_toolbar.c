@@ -21,7 +21,7 @@ void elem_te_val(gui_layout_t *layout, const int id, gui_layout_t *lp, int *val,
 		*val = atoi(te->string);
 }
 
-void gui_layout_edit_toolbar(int toggle_edit_on)
+void gui_layout_edit_toolbar_core(rect_t parent_area, int *diag_on, int *toggle_edit_on)
 {
 	static int pinned=0;
 	textedit_t *te;
@@ -30,6 +30,7 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 	static int sel_id = -1, elem_id = 0, elem_id_prev = -1;
 	const int label_te_id = 31;
 	static int sel_change = 0;
+	static double rounding_prec_v=NAN;
 
 	int i, ret;
 	static gui_layout_t layout={0}, *lp=NULL;
@@ -37,23 +38,21 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 
 	const char *layout_src[] = {
 		"v 1	0;0;6	0;4;6", "v 2	1;10	0;4", "v 3	0	-0;8", "v 4	2	0;6", "v 5	0	-0;7", "v 6	2;4	0;1", "v 7	0;4;6	0;0;11", "",
-		"elem 0", "type rect", "pos	0	0;2", "dim	2;4	14;1", "off	0;6	1", "",
-		"elem 1", "type label", "label Gui Editor", "pos	0	0", "dim	2	0;6", "off	0;6	1", "",
-		"elem 10", "type checkbox", "label Pinned", "pos	0	-0;7", "dim	2	0;5", "off	0;6	1", "",
-		"elem 20", "type textedit", "pos	-0;1	-2;9", "dim	0;11	0;6", "off	1", "",
+		"elem 0", "type rect", "label GUI Layout Editor", "pos	0	-0;6", "dim	2;4	12;11", "off	0;6	1", "",
+		"elem 20", "type textedit", "pos	-0;1	-2;3", "dim	0;11	0;6", "off	1", "",
 		"elem 21", "type label", "label Sel ID", "link_pos_id 20", "pos	-0;5;6	0;3", "dim	0;10	0;2;6", "off	0;6	1", "",
 		"elem 22", "type textedit", "link_pos_id 20", "pos	0;2	0", "dim	0;11	0;6", "off	0	1", "",
 		"elem 23", "type label", "label Elem ID", "link_pos_id 22", "pos	0;5;6	0;3", "dim	0;10	0;2;6", "off	0;6	1", "",
 		"elem 30", "type label", "label Label", "link_pos_id 31", "pos	v1", "dim	v2", "off	0;6	1", "",
 		"elem 31", "type textedit", "link_pos_id 64", "pos	0	-1", "dim	2	0;8", "off	0;6	1", "",
-		"elem 40", "type rect", "pos	0	-3;5", "dim	v6", "off	0;6	1", "",
+		"elem 40", "type rect", "pos	0	-3", "dim	v6", "off	0;6	1", "",
 		"elem 41", "type label", "label Create", "link_pos_id 50", "pos	v1", "dim	v2", "off	0;6	1", "",
 		"elem 50", "type selmenu", "link_pos_id 40", "pos	v5", "dim	v4", "off	0;6	1", "",
 		"elem 60", "type rect", "link_pos_id 40", "pos	0	-1;4", "dim	v6", "off	0;6	1", "",
 		"elem 61", "type label", "label Edit", "link_pos_id 62", "pos	v1", "dim	v2", "off	0;6	1", "",
 		"elem 62", "type button", "label Duplicate", "link_pos_id 60", "pos	v5", "dim	v4", "off	0;6	1", "",
 		"elem 63", "type button", "label Delete", "link_pos_id 62", "pos	v3", "dim	v4", "off	0;6	1", "",
-		"elem 64", "type button", "label Round pos/dim to _;__;6", "link_pos_id 63", "pos	v3", "dim	v4", "off	0;6	1", "",
+		"elem 64", "type button", "label Round pos/dim to _;__;\356\200\234\363\240\204\200", "link_pos_id 63", "pos	v3", "dim	v4", "off	0;6	1", "",
 		"elem 70", "type textedit", "link_pos_id 31", "pos	-0;3	-1;1", "dim	0;9	0;6", "off	1", "",
 		"elem 71", "type label", "label Linked pos ID", "link_pos_id 70", "pos	-0;8;6	0;3", "dim	0;8	0;2;6", "off	0	1", "",
 		"elem 72", "type textedit", "link_pos_id 70", "pos	0;7;6	0", "dim	0;6;6	0;6", "off	1", "",
@@ -88,7 +87,10 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 		"elem 121", "type label", "label Layout selection", "link_pos_id 120", "pos	-0;0;6	0;0;6", "dim	v2", "off	0;6	0", "",
 	};
 
-	if (layout.sm==0.)
+	gui_layout_init_pos_scale(&layout, xy(-16., -16.), 1., XY0, 0);
+	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout editing toolbar");
+
+	/*if (layout.sm==0.)
 	{
 		layout.offset = xy(-16., -16.);
 		layout.sm = 1.;
@@ -100,11 +102,12 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 		layout.sm = 1.3 * 1. / zc.zoomscale;
 	}
 
-	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout editing toolbar");
+	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout editing toolbar");*/
 
+	// Selection logic and display unimplemented elements
 	if (lp)
 	{
-		lp->edit_on ^= toggle_edit_on;
+		lp->edit_on ^= *toggle_edit_on;
 
 		if (check_elem_id_validity(lp, lp->sel_id, 0)==0)
 			lp->sel_id = -1;
@@ -120,9 +123,9 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 
 	// Layout elements
 
-	if (lp == &layout)
+	/*if (lp == &layout)
 	{
-		draw_rect_fromlayout(2, &layout, 0);
+		//draw_rect_fromlayout(2, &layout, 0);
 		if (lp)
 			draw_unit_grid(lp->offset, lp->sm);
 	}
@@ -130,12 +133,24 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 	{
 		if (lp)
 			draw_unit_grid(lp->offset, lp->sm);
-		draw_rect_fromlayout(2, &layout, 0);
-	}
-	draw_rect_fromlayout(0, &layout, 0);
+		//draw_rect_fromlayout(2, &layout, 0);
+	}*/
+	/*draw_rect_fromlayout(0, &layout, 0);
 	draw_label_fromlayout(&layout, 1, ALIG_LEFT);	// temporary, title/drag thing
 
-	ctrl_checkbox_fromlayout(&pinned, &layout, 10);
+	ctrl_checkbox_fromlayout(&pinned, &layout, 10);*/
+
+	// Draw editing grid and toolbar window
+	if (lp && lp != &layout)
+		draw_unit_grid(lp->offset, lp->sm);
+
+	static flwindow_t window={0};
+	flwindow_init_defaults(&window);
+	window.pinned_sm_preset = 1.3;
+	draw_dialog_window_fromlayout(&window, NULL, NULL, &layout, 0);
+
+	if (lp && lp == &layout)
+		draw_unit_grid(lp->offset, lp->sm);
 
 	// IDs
 	draw_label_fromlayout(&layout, 21, ALIG_LEFT);
@@ -215,7 +230,14 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 
 	// Round off pos/dim
 	if (ctrl_button_fromlayout(&layout, 64))
-		gui_round_elem_posdim(lp, sel_id, 24.);
+		gui_round_elem_posdim(lp, sel_id, 144./nearbyint(rounding_prec_v));
+
+	// Insert knob in the button
+	static knob_t roundprec_knob={0};
+	if (roundprec_knob.main_label==NULL)
+		roundprec_knob = make_knob("", 6., knobf_log, 1., 12., "%.0f");
+	ctrl_knob(&rounding_prec_v, &roundprec_knob, insert_rect_change_height(get_insert_rect(0), -3., 9.), GUI_COL_DEF);
+	reset_insert_rect_array();
 
 	// Link pos
 	draw_label_fromlayout(&layout, 71, ALIG_LEFT);
@@ -377,4 +399,12 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 
 	gui_layout_registry_reset();
 	gui_layout_registry_add(NULL, "(none)");
+}
+
+void gui_layout_edit_toolbar(int toggle_edit_on)
+{
+	static int toggle_edit_on_copy;
+
+	toggle_edit_on_copy = toggle_edit_on;
+	window_register(1, gui_layout_edit_toolbar_core, rect(XY0, XY0), NULL, 1, &toggle_edit_on_copy);
 }

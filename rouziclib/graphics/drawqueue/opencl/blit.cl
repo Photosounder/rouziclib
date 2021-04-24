@@ -1,4 +1,4 @@
-/*bool check_image_bounds(int2 pi, int2 im_dim)
+bool check_image_bounds(int2 pi, int2 im_dim)
 {
 	if (pi.x >= 0 && pi.x < im_dim.x)
 		if (pi.y >= 0 && pi.y < im_dim.y)
@@ -6,7 +6,7 @@
 	return false;
 }
 
-float4 image_interp_nearest(global float4 *im, int2 im_dim, float2 pif)
+/*float4 image_interp_nearest(global float4 *im, int2 im_dim, float2 pif)
 {
 	float4 pv;
 	int2 pi;
@@ -86,6 +86,18 @@ float4 read_srgb_pixel(global uint *im, int index)
 	pv.z = s8lrgb((v >> 16) & 255);
 	pv.y = s8lrgb((v >> 8) & 255);
 	pv.x = s8lrgb(v & 255);
+	pv.w = 1.f;
+
+	return pv;
+}
+
+float4 read_lrgb_pixel(global ushort *im, int index)
+{
+	float4 pv;
+
+	pv.x = im[index]   * 0.000030517578125f;
+	pv.y = im[index+1] * 0.000030517578125f;
+	pv.z = im[index+2] * 0.000030517578125f;
 	pv.w = 1.f;
 
 	return pv;
@@ -300,7 +312,7 @@ float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, com
 	return d->pv;
 }
 
-float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i, comp_decode_t *cd1)
+float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, comp_decode_t *cd1)
 {
 	switch (fmt)
 	{
@@ -313,8 +325,11 @@ float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i, comp
 		case 2:		// srgb_t
 			return read_srgb_pixel((global uint *) im, i.y * im_dim.x + i.x);
 
+		case 3:		// lrgb_t
+			return read_lrgb_pixel((global ushort *) im, 4*(i.y * im_dim.x + i.x));
+
 		case 10:	// YCbCr 420 planar 8-bit (AV_PIX_FMT_YUV420P)
-			return read_yuv420p8_pixel(im, im_dim, i);
+			return read_yuv420p8_pixel((global uchar *) im, im_dim, i);
 
 		case 11:	// YCbCr 420 planar 10-bit LE (AV_PIX_FMT_YUV420P10LE)
 			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.25f);
@@ -323,10 +338,22 @@ float4 read_fmt_pixel(const int fmt, global uchar *im, int2 im_dim, int2 i, comp
 			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.0625f);
 
 		case 20:	// Compressed texture format
-			return read_compressed_texture1_pixel(im, im_dim, i, cd1);
+			return read_compressed_texture1_pixel((global uchar *) im, im_dim, i, cd1);
 	}
 
 	return 0.f;
+}
+
+float4 read_fmt_pixel_checked(global float4 *im, int2 im_dim, const int fmt, int2 pi, comp_decode_t *cd1)
+{
+	float4 pv;
+
+	if (check_image_bounds(pi, im_dim))
+		pv = read_fmt_pixel(fmt, im, im_dim, pi, cd1);
+	else
+		pv = 0.f;
+
+	return pv;
 }
 
 float calc_flattop_weight(float2 pif, float2 i, float2 knee, float2 slope, float2 pscale)
@@ -353,7 +380,42 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 
 	for (i.y = start.y; i.y <= end.y; i.y+=1.f)
 		for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-			pv += read_fmt_pixel(fmt, (global uchar *) im, im_dim, convert_int2(i), &cd1) * calc_flattop_weight(pif, i, knee, slope, pscale);
+			pv += read_fmt_pixel(fmt, im, im_dim, convert_int2(i), &cd1) * calc_flattop_weight(pif, i, knee, slope, pscale);
+
+	return pv;
+}
+
+float2 calc_aa_nearest_weights(float2 pif, float2 i, float2 pscale)
+{
+	float2 d, w;
+
+	d = fabs(pif - i);
+	w = clamp(native_divide(0.5f - d, pscale) + 0.5f, 0.f, 1.f);
+
+	return w;
+}
+
+float4 image_filter_aa_nearest(global float4 *im, int2 im_dim, const int fmt, float2 pif, float2 pscale)
+{
+	float4 pv = 0.f;
+	comp_decode_t cd1={0};
+	float2 pif00, w00;
+	int2 pi00;
+	float w;
+
+	pif00 = floor(pif);
+	pi00 = convert_int2(pif00);
+	w00 = calc_aa_nearest_weights(pif, pif00, pscale);
+
+	w = w00.x * w00.y;
+	pv  = read_fmt_pixel_checked(im, im_dim, fmt, pi00, &cd1) * w;
+
+	if (w < 1.f)
+	{
+		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(0, 1), &cd1) * w00.x * (1.f - w00.y);
+		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(1, 0), &cd1) * (1.f - w00.x) * w00.y;
+		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(1, 1), &cd1) * (1.f - w00.x) * (1.f - w00.y);
+	}
 
 	return pv;
 }
@@ -439,6 +501,61 @@ float4 blit_sprite_flattop_rot(global uint *lei, global uchar *data_cl, float4 p
 	pif.y = pifo.x * sinth + pifo.y * costh;
 	pscale = max(1.f, pscale);
 	pv += image_filter_flattop(im, im_dim, fmt, pif, pscale, slope);
+
+	return pv;
+}
+
+float4 blit_sprite_aa_nearest(global uint *lei, global uchar *data_cl, float4 pv)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const float2 pf = convert_float2(p);
+	global float *lef = (global float *) lei;
+	global float4 *im;
+	int2 im_dim;
+	int fmt;
+	float2 pscale, pos, pif;
+
+	im = (global float4 *) &data_cl[lei[0]+(lei[1]<<32)];
+	im_dim.x = lei[2];
+	im_dim.y = lei[3];
+	pscale.x = lef[4];
+	pscale.y = lef[5];
+	pos.x = lef[6];
+	pos.y = lef[7];
+	fmt = lei[8];
+
+	pif = pscale * (pf + pos);
+	pv += image_filter_aa_nearest(im, im_dim, fmt, pif, pscale);
+
+	return pv;
+}
+
+float4 blit_sprite_aa_nearest_rot(global uint *lei, global uchar *data_cl, float4 pv)
+{
+	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const float2 pf = convert_float2(p);
+	global float *lef = (global float *) lei;
+	global float4 *im;
+	int2 im_dim;
+	int fmt;
+	float2 pscale, pos, pif, pifo;
+	float costh, sinth;
+
+	im = (global float4 *) &data_cl[lei[0]+(lei[1]<<32)];
+	im_dim.x = lei[2];
+	im_dim.y = lei[3];
+	pscale.x = lef[4];
+	pscale.y = pscale.x;
+	pos.x = lef[5];
+	pos.y = lef[6];
+	fmt = lei[7];
+	costh = lef[8];
+	sinth = lef[9];
+
+	pifo = pscale * (pf + pos);
+	pif.x = pifo.x * costh - pifo.y * sinth;
+	pif.y = pifo.x * sinth + pifo.y * costh;
+	pv += image_filter_aa_nearest(im, im_dim, fmt, pif, pscale);
 
 	return pv;
 }

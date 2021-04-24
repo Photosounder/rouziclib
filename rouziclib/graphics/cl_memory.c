@@ -344,5 +344,8 @@ uint64_t cl_add_raster_to_data_table(raster_t *r)
 	if (r->f)
 		return cl_add_buffer_to_data_table(r->f, mul_x_by_y_xyi(r->dim) * sizeof(frgb_t), sizeof(frgb_t), &r->table_index);
 
+	if (r->l)
+		return cl_add_buffer_to_data_table(r->l, mul_x_by_y_xyi(r->dim) * sizeof(lrgb_t), sizeof(lrgb_t), &r->table_index);
+
 	return 0;
 }

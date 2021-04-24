@@ -70,7 +70,7 @@
 		static double value=NAN;
 		static knob_t value_knob={0};
 		if (value_knob.main_label==NULL)
-			value_knob = make_knob("Knob name", default_value, knobf_linear, min_value, max_value, VALFMT_DEFAULT)
+			value_knob = make_knob("Knob name", default_value, knobf_linear, min_value, max_value, VALFMT_DEFAULT);
 		ctrl_knob(&value, &value_knob, box, colour);
 
 	// Text editor

@@ -75,5 +75,5 @@ miniz:
 	line #if MINIZ_X86_OR_X64_CPU, and of course add the appropriate #endif
 
 miniaudio:
-	https://github.com/mackron/miniaudio/blob/master/miniaudio.h
-	Version 0.10.33, Apr 4, 2021
+	https://github.com/mackron/miniaudio/blob/dev/miniaudio.h
+	Version 0.10.34, Apr 20, 2021

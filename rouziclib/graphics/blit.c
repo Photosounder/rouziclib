@@ -313,23 +313,32 @@ void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 	uint64_t dqbuf_da;
 	xy_t rad;
 	recti_t bbi;
-	int flattop=0;
+	int flattop=0, aa_nearest=0;
 
-	if (r->f==NULL && r->sq==NULL && r->srgb==NULL && r->buf==NULL)
-		return ;
-
-	rad = max_xy(set_xy(1.), pscale);	// for interp == LINEAR_INTERP where the radius is 1 * pscale
-
-	if (drawq_get_bounding_box(make_rect_off(pos, mul_xy( xyi_to_xy(sub_xyi(r->dim, xyi(1, 1))) , pscale ), XY0), rad, &bbi)==0)
+	if (r->f==NULL && r->sq==NULL && r->srgb==NULL && r->buf==NULL && r->l==NULL)
 		return ;
 
 	//if (pscale.x < 1. || pscale.y < 1.)
 		flattop = 1;
 
+	if (interp==AA_NEAREST_INTERP && pscale.x >= 1. && pscale.y >= 1.)
+	{
+		flattop = 0;
+		aa_nearest = 1;
+	}
+
+	if (aa_nearest)
+		rad = add_xy(max_xy(set_xy(0.5), pscale), XY1);
+	else
+		rad = max_xy(set_xy(1.), pscale);	// for interp == LINEAR_INTERP where the radius is 1 * pscale
+
+	if (drawq_get_bounding_box(make_rect_off(pos, mul_xy( xyi_to_xy(sub_xyi(r->dim, xyi(1, 1))) , pscale ), XY0), rad, &bbi)==0)
+		return ;
+
 	dqbuf_da = cl_add_raster_to_data_table(r);
 
-	// store the drawing parameters in the main drawing queue
-	di = drawq_add_to_main_queue(flattop ? DQT_BLIT_FLATTOP : DQT_BLIT_BILINEAR);
+	// Store the drawing parameters in the main drawing queue
+	di = drawq_add_to_main_queue(flattop ? DQT_BLIT_FLATTOP : (aa_nearest ? DQT_BLIT_AANEAREST : DQT_BLIT_BILINEAR));
 	df = (float *) di;
 	di[0] = dqbuf_da;
 	di[1] = dqbuf_da >> 32;
@@ -342,15 +351,16 @@ void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 	if (r->buf)
 		di[8] = r->buf_fmt;
 	else
-		di[8] = r->sq ? 1 : (r->srgb ? 2 : 0);
-	pscale = min_xy(pscale, set_xy(1.));
+		di[8] = r->sq ? 1 : (r->srgb ? 2 : (r->l ? 3 : 0));
+
 	if (flattop)
 	{
+		pscale = min_xy(pscale, set_xy(1.));
 		df[9] = calc_flattop_slope(1./pscale.x);
 		df[10] = calc_flattop_slope(1./pscale.y);
 	}
 
-	// go through the affected sectors
+	// Go through the affected sectors
 	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
 		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
 			drawq_add_sector_id(iy*fb.sector_w + ix);	// add sector reference
@@ -377,11 +387,18 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 	double costh=1., sinth=0.;
 	rect_t obr, rbr;
 	xy_t rp[4];
+	int aa_nearest=0;
 
-	if (r->f==NULL && r->sq==NULL && r->srgb==NULL && r->buf==NULL)
+	if (r->f==NULL && r->sq==NULL && r->srgb==NULL && r->buf==NULL && r->l==NULL)
 		return ;
 
-	rad = max_xy(set_xy(1.), pscale);	// for interp == LINEAR_INTERP where the radius is 1 * pscale
+	if (interp==AA_NEAREST_INTERP && pscale.x >= 1. && pscale.y >= 1.)
+		aa_nearest = 1;
+
+	if (aa_nearest)
+		rad = add_xy(max_xy(set_xy(0.5), pscale), XY1);
+	else
+		rad = max_xy(set_xy(1.), pscale);	// for interp == LINEAR_INTERP where the radius is 1 * pscale
 
 	costh = cos(angle);
 	sinth = sin(angle);
@@ -408,7 +425,7 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 	dqbuf_da = cl_add_raster_to_data_table(r);
 
 	// store the drawing parameters in the main drawing queue
-	di = drawq_add_to_main_queue(DQT_BLIT_FLATTOP_ROT);
+	di = drawq_add_to_main_queue(aa_nearest ? DQT_BLIT_AANEAREST_ROT : DQT_BLIT_FLATTOP_ROT);
 	df = (float *) di;
 	di[0] = dqbuf_da;
 	di[1] = dqbuf_da >> 32;
@@ -420,11 +437,20 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 	if (r->buf)
 		di[7] = r->buf_fmt;
 	else
-		di[7] = r->sq ? 1 : (r->srgb ? 2 : 0);
-	pscale = min_xy(pscale, set_xy(1.));
-	df[8] = calc_flattop_slope(1./pscale.x);
-	df[9] = costh;
-	df[10] = -sinth;
+		di[7] = r->sq ? 1 : (r->srgb ? 2 : (r->l ? 3 : 0));
+
+	if (aa_nearest)
+	{
+		df[8] = costh;
+		df[9] = -sinth;
+	}
+	else
+	{
+		pscale = min_xy(pscale, set_xy(1.));
+		df[8] = calc_flattop_slope(1./pscale.x);
+		df[9] = costh;
+		df[10] = -sinth;
+	}
 
 	// go through the affected sectors
 	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
