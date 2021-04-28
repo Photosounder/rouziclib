@@ -307,6 +307,14 @@ xy_t sign_xy(xy_t a)
 	return a;
 }
 
+xyz_t sign_xyz(xyz_t a)
+{
+	a.x = sign(a.x);
+	a.y = sign(a.y);
+	a.z = sign(a.z);
+	return a;
+}
+
 int isnan_xy(xy_t a)
 {
 	return isnan(a.x) || isnan(a.y);

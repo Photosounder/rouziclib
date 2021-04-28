@@ -52,12 +52,14 @@ extern xyi_t inv_xyi(xyi_t a);
 extern xy_t neg_x(xy_t a);
 extern xy_t neg_y(xy_t a);
 extern xy_t sign_xy(xy_t a);
+extern xyz_t sign_xyz(xyz_t a);
 extern int isnan_xy(xy_t a);
 extern int isfinite_xy(xy_t a);
 extern xyi_t cmp_ge_xyi(xyi_t a, xyi_t b);
 
 #define abs_xy(a)	func1_xy(a, fabs)
 #define abs_xyz(a)	func1_xyz(a, fabs)
+#define abs_xyi(a)	func1_xyi(a, abs)
 #define cos_xy(a)	func1_xy(a, cos)
 #define cos_xyz(a)	func1_xyz(a, cos)
 #define sin_xy(a)	func1_xy(a, sin)
@@ -66,6 +68,7 @@ extern xyi_t cmp_ge_xyi(xyi_t a, xyi_t b);
 #define ceil_xy(a)	func1_xy(a, ceil)
 #define nearbyint_xy(a)	func1_xy(a, nearbyint)
 #define sq_xy(a)	func1_xy(a, sq)
+#define sq_xyz(a)	func1_xyz(a, sq)
 #define xy_to_xyi_round(a)  xy_to_xyi(nearbyint_xy(a))
 extern xy_t func1_xy(xy_t a, double (*f)(double));
 extern xyz_t func1_xyz(xyz_t a, double (*f)(double));

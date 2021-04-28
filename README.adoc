@@ -256,7 +256,7 @@ Pixel blending functions.
 Image blitting with no scaling, flat-top filtering or bilinear interpolation and rotation.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawline.c[drawline.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawline.h[drawline.h] +
-Draw Gaussian-antialiased thin lines and Gaussian dots.
+Draw Gaussian-antialiased thin lines and Gaussian dots. Also contains a generic Bresenham line drawing function that takes a function pointer to edit a pixel in custom ways.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawrect.c[drawrect.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/graphics/drawrect.h[drawrect.h] +
 Draw Gaussian-antialiased full or dark rectangles.

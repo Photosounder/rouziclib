@@ -712,6 +712,15 @@ frgb_t mul_scalar_frgba(frgb_t a, float m)
 	return a;
 }
 
+lrgb_t mul_scalar_lrgb(lrgb_t a, int m)
+{
+	a.r = a.r * m >> LBD;
+	a.g = a.g * m >> LBD;
+	a.b = a.b * m >> LBD;
+
+	return a;
+}
+
 frgb_t func1_frgb(frgb_t a, float (*f)(float))
 {
 	a.r = f(a.r);
