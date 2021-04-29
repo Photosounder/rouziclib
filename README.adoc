@@ -570,7 +570,7 @@ https://github.com/codeplea/tinyexpr[TinyExpr] (logic branch) code which I use f
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.c[libcurl.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libcurl.h[libcurl.h] +
 cURL code to get files through HTTPS. I can't seem to get authentication right.
 
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminiaudio.c[libminiaudio.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminiaudio.h[libminiaudio.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminiaudio.c[&#x1F4C4; libminiaudio.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/libminiaudio.h[libminiaudio.h] +
 Adds https://github.com/mackron/miniaudio[MiniAudio]. Excluded by default due to the code size.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/orig[orig/] +
