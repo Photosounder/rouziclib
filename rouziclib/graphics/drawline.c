@@ -493,10 +493,11 @@ void draw_line_thin_short(xy_t p1, xy_t p2, double u1, double u2, double radius,
 
 void bres_func_lrgb(xyi_t ip, raster_t *r, lrgb_t *col, void *arg3, void *arg4)		// lrgb opaque pixel drawing function for bresenham_line_core
 {
-	r->l[ip.y * r->dim.x + ip.x] = *col;
+	if (check_pixel_within_image(ip, r->dim))
+		r->l[ip.y * r->dim.x + ip.x] = *col;
 }
 
-void bresenham_line_core(xyi_t b0, xyi_t b1, xyi_t dim, void (*func)(xyi_t,void*,void*,void*,void*), void *arg1, void *arg2, void *arg3, void *arg4)
+void bresenham_line_core(xyi_t b0, xyi_t b1, const void (*func)(xyi_t,void*,void*,void*,void*), void *arg1, void *arg2, void *arg3, void *arg4)
 {
 	xyi_t d, s, i;
 	int err, e2;
@@ -509,8 +510,7 @@ void bresenham_line_core(xyi_t b0, xyi_t b1, xyi_t dim, void (*func)(xyi_t,void*
 
 	while (1)
 	{
-		if (check_pixel_within_image(i, dim))
-			func(i, arg1, arg2, arg3, arg4);
+		func(i, arg1, arg2, arg3, arg4);
 
 		if (equal_xyi(i, b1))
 			break;
