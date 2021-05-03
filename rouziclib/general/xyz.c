@@ -300,6 +300,24 @@ xy_t neg_y(xy_t a)
 	return a;
 }
 
+xyz_t neg_x_xyz(xyz_t a)
+{
+	a.x = -a.x;
+	return a;
+}
+
+xyz_t neg_y_xyz(xyz_t a)
+{
+	a.y = -a.y;
+	return a;
+}
+
+xyz_t neg_z_xyz(xyz_t a)
+{
+	a.z = -a.z;
+	return a;
+}
+
 xy_t sign_xy(xy_t a)
 {
 	a.x = sign(a.x);
@@ -320,9 +338,19 @@ int isnan_xy(xy_t a)
 	return isnan(a.x) || isnan(a.y);
 }
 
+int isnan_xyz(xyz_t a)
+{
+	return isnan(a.x) || isnan(a.y) || isnan(a.z);
+}
+
 int isfinite_xy(xy_t a)
 {
 	return isfinite(a.x) && isfinite(a.y);
+}
+
+int isfinite_xyz(xyz_t a)
+{
+	return isfinite(a.x) && isfinite(a.y) && isfinite(a.z);
 }
 
 xyi_t cmp_ge_xyi(xyi_t a, xyi_t b)

@@ -50,7 +50,6 @@ extern "C" {
 #include <shlobj.h>
 #endif
 
-
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
@@ -224,6 +223,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "libraries/tinyexpr.h"
 #include "libraries/libcurl.h"		// used if RL_LIBCURL is defined
 #include "libraries/libminiaudio.h"	// used if RL_MINIAUDIO is defined
+#include "libraries/openal.h"		// used if RL_OPENAL is defined
 
 #include "general/noop.h"
 #include "general/globals.h"

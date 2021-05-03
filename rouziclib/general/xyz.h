@@ -51,10 +51,15 @@ extern xyz_t inv_xyz(xyz_t a);
 extern xyi_t inv_xyi(xyi_t a);
 extern xy_t neg_x(xy_t a);
 extern xy_t neg_y(xy_t a);
+extern xyz_t neg_x_xyz(xyz_t a);
+extern xyz_t neg_y_xyz(xyz_t a);
+extern xyz_t neg_z_xyz(xyz_t a);
 extern xy_t sign_xy(xy_t a);
 extern xyz_t sign_xyz(xyz_t a);
 extern int isnan_xy(xy_t a);
+extern int isnan_xyz(xyz_t a);
 extern int isfinite_xy(xy_t a);
+extern int isfinite_xyz(xyz_t a);
 extern xyi_t cmp_ge_xyi(xyi_t a, xyi_t b);
 
 #define abs_xy(a)	func1_xy(a, fabs)
@@ -80,6 +85,7 @@ extern xyz_t func2_xyz(xyz_t a, xyz_t b, double (*f)(double,double));
 extern xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int));
 
 #define mix_xy(a, b, c)		func3_xy(a, b, c, mix)
+#define mix_xyz(a, b, c)	func3_xyz(a, b, c, mix)
 #define rangelimit_xy(a, b, c)	func3_xy(a, b, c, rangelimit)
 #define rangelimit_xyz(a, b, c)	func3_xyz(a, b, c, rangelimit)
 #define rangelimit_xyi(a, b, c)	func3_xyi(a, b, c, rangelimit_i32)

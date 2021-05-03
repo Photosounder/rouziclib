@@ -367,4 +367,3 @@ enum
 	RL_NUM_SCANCODES = 512 /**< not a key, just marks the number of scancodes
 				  for array bounds */
 };
-

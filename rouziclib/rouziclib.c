@@ -153,5 +153,6 @@
 #include "libraries/tinyexpr.c"
 #include "libraries/libcurl.c"
 #include "libraries/libminiaudio.c"
+#include "libraries/openal.c"
 
 #include "general/globals.c"
