@@ -366,13 +366,13 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		v = knob->default_value;
 
 	// calculate new position and value
-	t = knob->func(v, knob->min, knob->max, 1);
+	t = knob->func(v, knob->min, knob->max, knob->arg, 1);
 
 	if (knob->circular)
 		t = rangewrap(t+t_off, 0., 1.);
 	else
 		t = rangelimit(t+t_off, 0., 1.);
-	v = knob->func(t, knob->min, knob->max, 0);
+	v = knob->func(t, knob->min, knob->max, knob->arg, 0);
 
 	// Draw knob
 	intensity *= intensity_scaling(total_scale, 24.);

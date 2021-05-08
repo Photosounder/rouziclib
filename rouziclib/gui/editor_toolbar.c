@@ -233,11 +233,11 @@ void gui_layout_edit_toolbar_core(rect_t parent_area, int *diag_on, int *toggle_
 		gui_round_elem_posdim(lp, sel_id, 144./nearbyint(rounding_prec_v));
 
 	// Insert knob in the button
+	reset_insert_rect_array();
 	static knob_t roundprec_knob={0};
 	if (roundprec_knob.main_label==NULL)
 		roundprec_knob = make_knob("", 6., knobf_log, 1., 12., "%.0f");
 	ctrl_knob(&rounding_prec_v, &roundprec_knob, insert_rect_change_height(get_insert_rect(0), -3., 9.), GUI_COL_DEF);
-	reset_insert_rect_array();
 
 	// Link pos
 	draw_label_fromlayout(&layout, 71, ALIG_LEFT);
@@ -337,8 +337,11 @@ void gui_layout_edit_toolbar_core(rect_t parent_area, int *diag_on, int *toggle_
 		new_elem_src = (char **) calloc_2d(5, 32, sizeof(char));
 		sprintf(new_elem_src[0], "type %s", layout_elem_type_name[selmenu_data->sel_id+gui_type_none]);
 		sprintf(new_elem_src[1], "pos	0	0");
-		sprintf(new_elem_src[2], "dim	2	1");
-		sprintf(new_elem_src[3], "off	0;6	1");
+		if (selmenu_data->sel_id+gui_type_none == gui_type_knob)
+			sprintf(new_elem_src[2], "dim	1");
+		else
+			sprintf(new_elem_src[2], "dim	2	1");
+		sprintf(new_elem_src[3], "off	0	1");
 
 		if (selmenu_data->sel_id==gui_type_knob)
 			sprintf(new_elem_src[4], "knob 0 0 1 linear");

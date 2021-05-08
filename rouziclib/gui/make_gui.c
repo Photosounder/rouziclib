@@ -371,7 +371,7 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 
 		if (strcmp(a, "knob_unit")==0)
 		{
-			if (cur_elem->data==NULL)
+			if (cur_elem->data==NULL || cur_elem->type != gui_type_knob)
 			{
 				fprintf_rl(stderr, "Knob element data should have been initialised by a 'type knob' command before line %d: \"%s\"\n", il, line);
 				return ;
@@ -383,6 +383,19 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 
 			if (sscanf(line, "knob_unit %[^\n]", b)==1)
 				knob_data->unit_label = make_string_copy(b);
+		}
+
+		if (strcmp(a, "knob_arg")==0)	// arguments for knob functions like knobf_logoff
+		{
+			if (cur_elem->data==NULL || cur_elem->type != gui_type_knob)
+			{
+				fprintf_rl(stderr, "Knob element data should have been initialised by a 'type knob' command before line %d: \"%s\"\n", il, line);
+				return ;
+			}
+
+			knob_data = (knob_t *) cur_elem->data;
+
+			knob_data->arg_count = sscanf(line, "knob_arg %lg %lg %lg %lg", &knob_data->arg[0], &knob_data->arg[1], &knob_data->arg[2], &knob_data->arg[3]);
 		}
 	}
 }
@@ -417,7 +430,7 @@ void gui_layout_add_elem(gui_layout_t *layout, int *id, const char **src, const 
 
 void sprint_gui_layout(gui_layout_t *layout, char **str, size_t *str_as)
 {
-	int id, any_v_printed=0;
+	int i, id, any_v_printed=0;
 	layout_elem_t *cur_elem=NULL;
 	layout_value_t *cur_val=NULL;
 	knob_t *knob_data;
@@ -470,6 +483,14 @@ void sprint_gui_layout(gui_layout_t *layout, char **str, size_t *str_as)
 				if (cur_elem->fmt_str_set && knob_data->fmt_str)
 					sprintf_realloc(str, str_as, 1, " %s", knob_data->fmt_str);
 				sprintf_realloc(str, str_as, 1, "\n");
+
+				if (knob_data->arg_count)
+				{
+					sprintf_realloc(str, str_as, 1, "knob_arg");
+					for (i=0; i < knob_data->arg_count; i++)
+						sprintf_realloc(str, str_as, 1, " %lg", knob_data->arg[i]);
+					sprintf_realloc(str, str_as, 1, "\n");
+				}
 
 				if (knob_data->unit_label)
 					sprintf_realloc(str, str_as, 1, "knob_unit %s\n", knob_data->unit_label);

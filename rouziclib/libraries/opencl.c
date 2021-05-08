@@ -133,6 +133,19 @@ void check_compilation_log(clctx_t *c, cl_program program)
 	free (log);
 }
 
+char *cl_get_device_string(clctx_t *c, cl_device_info param_name)
+{
+	cl_int ret=0;
+	size_t info_size;
+	char *string=NULL;
+
+	ret = clGetDeviceInfo(c->device_id, param_name, 0, NULL, &info_size);
+	string = calloc(info_size, sizeof(char));
+	ret = clGetDeviceInfo(c->device_id, param_name, info_size, string, NULL);
+
+	return string;
+}
+
 #ifdef RL_OPENCL_GL
 #ifdef __APPLE__
 extern CGLContextObj CGLGetCurrentContext(void);
@@ -261,21 +274,115 @@ void deinit_clctx(clctx_t *c, int deinit_kernel)
 	clReleaseContext(c->context);
 }
 
+uint64_t cl_make_program_and_device_hash(clctx_t *c, const char *src, const char *compil_opt)
+{
+	int i;
+	uint64_t hash;
+	buffer_t buf={0};
+	char *string;
+	cl_device_info param[] = { CL_DEVICE_NAME, CL_DEVICE_VERSION, CL_DRIVER_VERSION, CL_DEVICE_OPENCL_C_VERSION, CL_DEVICE_EXTENSIONS };
+
+	// Print everything needed to make the hash to a string
+	for (i=0; i < sizeof(param)/sizeof(*param); i++)
+	{
+		string = cl_get_device_string(c, param[i]);
+		bufprintf(&buf, "%s\n", string);
+		free(string);
+	}
+
+	bufprintf(&buf, "%s\n", src);
+	bufprintf(&buf, "%s\n", compil_opt);
+
+	// Make the hash
+	hash = get_string_hash(buf.buf);
+	free_buf(&buf);
+
+	return hash;
+}
+
 cl_int build_cl_program(clctx_t *c, cl_program *program, const char *src)
 {
 	cl_int ret;
 	size_t src_len;
+	const char compil_opt[] = "-cl-single-precision-constant -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-finite-math-only -cl-fast-relaxed-math";	// removed options: -save-temps
 
 	src_len = strlen(src);
 
 	// Compile source
-	*program = clCreateProgramWithSource(c->context, 1, (const char **)&src, (const size_t *)&src_len, &ret);
+	*program = clCreateProgramWithSource(c->context, 1, &src, &src_len, &ret);
 	CL_ERR_RET("clCreateProgramWithSource (in build_cl_program)", ret);
 
-	ret = clBuildProgram(*program, 1, &c->device_id, "-cl-single-precision-constant -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-finite-math-only -cl-fast-relaxed-math", NULL, NULL);	// removed options: -save-temps
+	ret = clBuildProgram(*program, 1, &c->device_id, compil_opt, NULL, NULL);
 	if (ret != CL_SUCCESS)
 		check_compilation_log(c, *program);
 	CL_ERR_RET("clBuildProgram (in build_cl_program)", ret);
+
+	return ret;
+}
+
+char *make_cl_filecache_path(clctx_t *c, const char *src, const char *compil_opt)
+{
+	uint64_t hash;
+	char name[64];
+
+	// Hash to find binary program file
+	hash = cl_make_program_and_device_hash(c, src, compil_opt);
+	sprintf(name, "OpenCL cached program %llx.bin", hash);
+	return make_appdata_path("rouziclib", name, 1);
+}
+
+cl_int build_cl_program_filecache(clctx_t *c, cl_program *program, const char *src)
+{
+	cl_int ret, binary_status;
+	size_t src_len;
+	const char compil_opt[] = "-cl-single-precision-constant -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -cl-unsafe-math-optimizations -cl-finite-math-only -cl-fast-relaxed-math";	// removed options: -save-temps
+	char *path;
+	buffer_t buf={0};
+	int binary_loaded=0;
+
+	// Try to load binary source
+	path = make_cl_filecache_path(c, src, compil_opt);
+	if (check_file_is_readable(path))
+	{
+		buf = buf_load_raw_file(path);
+		*program = clCreateProgramWithBinary(c->context, 1, &c->device_id, &buf.len, &buf.buf, &binary_status, &ret);
+		free_buf(&buf);
+
+		if (ret == CL_SUCCESS && binary_status == CL_SUCCESS)
+			binary_loaded = 1;
+		else
+			fprintf_rl(stderr, "clCreateProgramWithBinary() in build_cl_program_filecache() failed with ret = %s and binary_status = %s\n", get_cl_error_string(ret), get_cl_error_string(binary_status));
+	}
+
+	// Otherwise use text source
+	if (binary_loaded == 0)
+	{
+		src_len = strlen(src);
+		*program = clCreateProgramWithSource(c->context, 1, &src, &src_len, &ret);
+		CL_ERR_RET("clCreateProgramWithSource (in build_cl_program_filecache)", ret);
+	}
+
+	// Compile program
+	ret = clBuildProgram(*program, 1, &c->device_id, compil_opt, NULL, NULL);
+	if (ret != CL_SUCCESS)
+		check_compilation_log(c, *program);
+	CL_ERR_RET("clBuildProgram (in build_cl_program_filecache)", ret);
+
+	// Store program binary if needed
+	if (binary_loaded == 0)
+	{
+		// Get the binary
+		ret = clGetProgramInfo(*program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &buf.len, NULL);
+		CL_ERR_RET("clGetProgramInfo (in build_cl_program_filecache)", ret);
+		buf_alloc_enough(&buf, buf.len+1);
+		ret = clGetProgramInfo(*program, CL_PROGRAM_BINARIES, sizeof(char *), &buf.buf, NULL);
+		CL_ERR_RET("clGetProgramInfo (in build_cl_program_filecache)", ret);
+
+		// Save it
+		buf_save_raw_file(&buf, path, "wb");
+	}
+
+	free(path);
 
 	return ret;
 }

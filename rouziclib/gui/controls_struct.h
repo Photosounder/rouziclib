@@ -1,12 +1,12 @@
-typedef double (*knob_func_t)(double, double, double, const int);
+typedef double (*knob_func_t)(double, double, double, double *, const int);
 
 typedef struct
 {
 	char *main_label, *fmt_str, *unit_label;
 	knob_func_t func;
-	double min, max, default_value;
+	double min, max, default_value, arg[4];
 	textedit_t edit;
-	int edit_open, circular;
+	int edit_open, circular, arg_count;
 } knob_t;
 
 typedef struct

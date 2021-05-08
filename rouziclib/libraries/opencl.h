@@ -5,10 +5,13 @@
 
 extern const char *get_cl_error_string(cl_int err);
 extern void check_compilation_log(clctx_t *c, cl_program program);
+extern char *cl_get_device_string(clctx_t *c, cl_device_info param_name);
 extern cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform);
 extern cl_int init_cl_context(clctx_t *c, const int from_gl);
 extern void deinit_clctx(clctx_t *c, int deinit_kernel);
+extern uint64_t cl_make_program_and_device_hash(clctx_t *c, const char *src, const char *compil_opt);
 extern cl_int build_cl_program(clctx_t *c, cl_program *program, const char *src);
+extern cl_int build_cl_program_filecache(clctx_t *c, cl_program *program, const char *src);
 extern cl_int create_cl_kernel(clctx_t *c, cl_program program, cl_kernel *kernel, const char *name);
 extern cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size);
 extern void init_framebuffer_cl(const clctx_t *clctx);

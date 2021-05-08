@@ -96,8 +96,8 @@ void drawq_run()
 		if (init)
 		{
 			init=0;
-			ret = build_cl_program(&fb.clctx, &fb.clctx.program, clsrc_draw_queue);
-			CL_ERR_NORET("build_cl_program (in drawq_run)", ret);
+			ret = build_cl_program_filecache(&fb.clctx, &fb.clctx.program, clsrc_draw_queue);
+			CL_ERR_NORET("build_cl_program_filecache (in drawq_run)", ret);
 
 			#ifdef RL_OPENCL_GL
 			ret = create_cl_kernel(&fb.clctx, fb.clctx.program, &fb.clctx.kernel, "draw_queue_srgb_kernel");
