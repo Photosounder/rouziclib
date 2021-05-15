@@ -268,8 +268,8 @@ const char *strstr_i(const char *fullstr, const char *substr)		// case insensiti
 	if (p)
 		ret = fullstr + (p - fullstr_low);
 
-	free (fullstr_low);
-	free (substr_low);
+	free(fullstr_low);
+	free(substr_low);
 
 	return ret;
 }

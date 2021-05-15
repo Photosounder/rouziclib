@@ -229,11 +229,11 @@ void gui_layout_edit_toolbar_core(rect_t parent_area, int *diag_on, int *toggle_
 			free_layout_elem(&lp->elem[sel_id]);
 
 	// Round off pos/dim
+	reset_insert_rect_array();
 	if (ctrl_button_fromlayout(&layout, 64))
 		gui_round_elem_posdim(lp, sel_id, 144./nearbyint(rounding_prec_v));
 
 	// Insert knob in the button
-	reset_insert_rect_array();
 	static knob_t roundprec_knob={0};
 	if (roundprec_knob.main_label==NULL)
 		roundprec_knob = make_knob("", 6., knobf_log, 1., 12., "%.0f");

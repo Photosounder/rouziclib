@@ -147,10 +147,18 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	}
 
 	// Drawing
-	if (w->shadow_strength)
-		//draw_rect_full(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), make_grey(0.), blend_alphablend, w->shadow_strength);	// doesn't work in CL mode
-		draw_black_rect(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), w->shadow_strength);	// shadow
-	draw_black_rect(sc_rect(area_os), drawing_thickness, w->bg_opacity);		// black out the background
+	int draw_bg = 1;
+	if (diag_on)
+		if (*diag_on == 0)
+			draw_bg = 0;
+
+	if (draw_bg)
+	{
+		if (w->shadow_strength)
+			draw_black_rect(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), w->shadow_strength);	// shadow
+		draw_black_rect(sc_rect(area_os), drawing_thickness, w->bg_opacity);		// black out the background
+	}
+
 	draw_rect_full(sc_rect(diag_area), drawing_thickness, w->bg_col, blend_add, 1.);	// diag rectangle
 	draw_rect_full(sc_rect(bar_area_os), drawing_thickness, w->bar_col, blend_add, 1.);	// title bar rectangle
 	draw_rect(sc_rect(area_os), drawing_thickness, w->border_col, blend_add, 1.);		// thin window border
