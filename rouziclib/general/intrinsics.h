@@ -40,13 +40,20 @@ static int check_avx2()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_A
 #include <intrin.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <xmmintrin.h>
+#include <wasm_simd128.h>
+#endif
+
 #ifndef RL_EXCL_INTEL_INTR
 #define RL_INTEL_INTR
 #endif
 
 #ifdef __GNUC__
+#ifndef __EMSCRIPTEN__
 extern void __cpuid(int *cpuinfo, int info);
 extern uint64_t rl_xgetbv(uint32_t index);
+#endif
 #else
 #define rl_xgetbv _xgetbv
 #endif

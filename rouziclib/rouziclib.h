@@ -224,6 +224,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "libraries/libcurl.h"		// used if RL_LIBCURL is defined
 #include "libraries/libminiaudio.h"	// used if RL_MINIAUDIO is defined
 #include "libraries/openal.h"		// used if RL_OPENAL is defined
+#include "libraries/emscripten.h"
 
 #include "general/noop.h"
 #include "general/globals.h"

@@ -60,6 +60,8 @@ const knob_func_t knob_func_array[] =
 	knobf_logoff,
 };
 
+const int knob_func_count = sizeof(knob_func_name)/sizeof(*knob_func_name);
+
 knob_func_t knob_func_name_to_ptr(const char *name)
 {
 	int i;
@@ -67,7 +69,7 @@ knob_func_t knob_func_name_to_ptr(const char *name)
 	if (name==NULL)	return NULL;
 	if (name[0]=='\0') return NULL;
 
-	for (i=0; i < sizeof(knob_func_name)/sizeof(char *); i++)
+	for (i=0; i < knob_func_count; i++)
 		if (strcmp(name, knob_func_name[i])==0)
 			return knob_func_array[i];
 
@@ -78,7 +80,7 @@ const char *knob_func_ptr_to_name(knob_func_t fp)
 {
 	int i;
 
-	for (i=0; i < sizeof(knob_func_name)/sizeof(char *); i++)
+	for (i=0; i < knob_func_count; i++)
 		if (fp == knob_func_array[i])
 			return knob_func_name[i];
 

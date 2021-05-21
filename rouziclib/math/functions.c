@@ -143,10 +143,10 @@ void minmax_i32(int32_t *a, int32_t *b)
 		swap_i32(a, b);
 }
 
-double normalised_notation_split(double number, double *m)	// splits number into m * 10^n
+double normalised_notation_split(double number, double *m)	// splits number into m * 10^vexp
 {
-	int logv, neg=0;
-	double vm, vexp;
+	int neg=0;
+	double vexp, vm;
 
 	if (number < 0.)
 	{
@@ -154,12 +154,8 @@ double normalised_notation_split(double number, double *m)	// splits number into
 		number = -number;
 	}
 
-	logv = log10(number);			// 16 million -> 7
-	if (number < 1.)
-		logv--;
-
-	vexp = pow(10., (double) logv);		// 16 million -> 10,000,000.
-	vm = number / vexp;			// 16 million -> 1.6
+	vexp = floor(log10(number));		// 16 million -> 7
+	vm = number * pow(10., -vexp);		// 16 million -> 1.6
 	if (neg)
 		vm = -vm;
 

@@ -247,6 +247,26 @@
 	// Window functions are registered like this
 		window_register(1, my_window_function, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
 
+	// Registered window function template with parent area
+void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *arg2)
+{
+	static gui_layout_t layout={0};
+	const char *layout_src[] = {
+		"elem 0", "type none", "label Window_title", "pos	0	0", "dim	4	4", "off	0	1", "",
+	};
+
+	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "my_window_function");
+
+	static flwindow_t window={0};
+	flwindow_init_defaults(&window);
+	window.bg_opacity = 0.94;
+	window.shadow_strength = 0.5*window.bg_opacity;
+	window.pinned_sm_preset = 1.2;
+	draw_dialog_window_fromlayout(&window, diag_on, &parent_area, &layout, 0);
+
+	// Controls
+}
+
 	// Windows inside other windows
 		// The root function registers the parent window function and depending on the detachment status the child windows
 		// The root function must still contain the parent window's layout and pass it on the the parent window function so that the child window areas can be accessed

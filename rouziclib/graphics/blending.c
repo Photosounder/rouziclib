@@ -171,7 +171,7 @@ void alphablend_lrgb_on_srgb_simd128(uint8_t *s0, __m128i *l_ptr, int64_t *s1_pt
 	{
 		// RGBA -> AAAA for the 2 lrgb pixels
 		Aa = _mm_shuffle_epi8(Ca, _mm_set_epi8(8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 8+7, 8+6, 7, 6, 7, 6, 7, 6, 7, 6));
-		Aai = _mm_sub_epi16(_mm_set1_epi16(32768), Aa);		// 32768 - Aa
+		Aai = _mm_sub_epi16(_mm_set1_epi16(0x8000), Aa);	// 32768 - Aa
 
 		// Convert 2 srgb pixels to lrgb
 		Cb = _mm_set_epi16(lut0[s0[7]], lut0[s0[6]], lut0[s0[5]], lut0[s0[4]], lut0[s0[3]], lut0[s0[2]], lut0[s0[1]], lut0[s0[0]]);

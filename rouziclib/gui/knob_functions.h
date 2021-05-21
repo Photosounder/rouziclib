@@ -9,5 +9,6 @@ extern double knobf_logoff(double v, double min, double max, double *arg, const 
 
 extern const char *knob_func_name[];
 extern const knob_func_t knob_func_array[];
+extern const int knob_func_count;
 extern knob_func_t knob_func_name_to_ptr(const char *name);
 extern const char *knob_func_ptr_to_name(knob_func_t fp);

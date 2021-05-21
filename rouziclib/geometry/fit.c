@@ -58,7 +58,7 @@ double fit_n_squares_in_area_fill_x(xy_t area_dim, int count, xyi_t *grid_count_
 			{
 				size = min_of_xy(div_xy(area_dim, g));
 
-				if (size * g.x >= double_add_ulp(area_dim.x, -40))
+				if (size * g.x >= double_add_ulp(area_dim.x, -40) || max_size==0.)
 				if (size > max_size)
 				{
 					max_size = size;

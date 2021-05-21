@@ -1,8 +1,9 @@
 int check_cpuinfo(const enum cpu_feat_n fid)
 {
-#ifdef RL_INTEL_INTR
-	static int info1[4], info7[4], init=1;
 	int ret=0;
+#ifdef RL_INTEL_INTR
+#ifndef __EMSCRIPTEN__
+	static int info1[4], info7[4], init=1;
 
 	if (init)
 	{
@@ -40,15 +41,30 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 		default:
 			ret = 0;
 	}
+#else
+	switch (fid)
+	{
+		case CPU_HAS_SSE2:
+		case CPU_HAS_SSE3:
+		case CPU_HAS_SSSE3:
+		case CPU_HAS_SSE4_1:
+		case CPU_HAS_SSE4_2:
+		case CPU_HAS_AVX:
+			ret = 1;
+			break;
 
-	return ret!=0;
+		default:
+			ret = 0;
+	}
 #endif
-	return 0;
+#endif
+	return ret!=0;
 }
 
 #ifdef RL_INTEL_INTR
 
 #ifdef __GNUC__
+#ifndef __EMSCRIPTEN__
 void __cpuid(int *cpuinfo, int info)
 {
 	__asm__ __volatile__(
@@ -70,6 +86,7 @@ uint64_t rl_xgetbv(uint32_t index)
 	);
 	return ((uint64_t) edx << 32) | eax;
 }
+#endif
 #endif
 
 #ifdef RL_STOREU_SI32

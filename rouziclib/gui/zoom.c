@@ -78,6 +78,10 @@ void zoom_toggle(zoom_t *zc, int *flag_zoom_key)
 		#endif
 		zc->mouse->a = xy(fb.w/2, fb.h/2);
 		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
+
+		#ifdef __EMSCRIPTEN__
+		em_release_cursor();
+		#endif
 	}
 
 	calc_screen_limits(zc);

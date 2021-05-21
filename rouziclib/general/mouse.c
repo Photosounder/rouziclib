@@ -132,7 +132,17 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 		calc_screen_limits(zc);
 	}
 
-	// post-input logic
+	// Post-input logic
+	#ifdef __EMSCRIPTEN__
+	if (mouse->warp != mouse->warp_prev)
+	{
+		if (mouse->warp)
+			em_capture_cursor();
+		else
+			em_release_cursor();
+	}
+	#endif
+
 	mouse->warp_prev = mouse->warp;
 	if (mouse->warp_if_move==0)
 	{

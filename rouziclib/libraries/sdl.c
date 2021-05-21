@@ -388,6 +388,10 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		init = 0;
 		if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 			fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+
+		#ifdef __EMSCRIPTEN__
+		em_mmb_capture();		// captures the mouse correctly on a middle-click
+		#endif
 	}
 
 	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
@@ -505,6 +509,10 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		mouse.window_minimised_flag = 1;
 
 	fprintf_rl(stdout, "mouse %d focus %d minimised %d\n", mouse.mouse_focus_flag, mouse.window_focus_flag, mouse.window_minimised_flag);*/
+
+	#ifdef __EMSCRIPTEN__
+	SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#screen");
+	#endif
 }
 
 void sdl_graphics_init_autosize(const char *window_name, int flags, int window_index)
