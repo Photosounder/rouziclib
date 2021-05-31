@@ -235,6 +235,9 @@ void sleep_ms(int ms)
 	#ifdef _WIN32
 	Sleep(ms);
 
+	#elif __EMSCRIPTEN__
+	emscripten_sleep(ms);
+
 	#else
 	struct timespec t;
 
@@ -269,6 +272,9 @@ void sleep_hr(double t)
 	LARGE_INTEGER interval;
 	interval.QuadPart = -1e7 * t;
 	NtDelayExecution(FALSE, &interval);
+
+	#elif __EMSCRIPTEN__
+	emscripten_sleep(nearbyint(t * 1000.));
 
 	#else
 	struct timespec ts;

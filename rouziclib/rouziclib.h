@@ -40,10 +40,6 @@ extern "C" {
 #include <float.h>
 #include <limits.h>
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 #ifdef _WIN32
 #define _WINSOCKAPI_	// prevents Winsock.h / Winsock2.h conflict
 #include <windows.h>

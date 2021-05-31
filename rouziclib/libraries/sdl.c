@@ -739,6 +739,16 @@ int sdl_toggle_borderless_fullscreen()
 		SDL_SetWindowBordered(fb.window, SDL_TRUE);
 	}
 
+	#ifdef __EMSCRIPTEN__
+	//em_sync_by_mutex(1);
+	em_browser_toggle_fullscreen(fb.fullscreen_on);
+	//em_sync_by_mutex(1);
+	//em_sync_by_mutex(0);
+	//if (fb.fullscreen_on == 0)
+	//	SDL_SetWindowSize(fb.window, 900, 600);
+	fprintf_rl(stdout, "fb.fullscreen_on %d %d\n", fb.fullscreen_on, rand()&63);
+	#endif
+
 	sdl_handle_window_resize(&zc);
 
 	return fb.fullscreen_on;
