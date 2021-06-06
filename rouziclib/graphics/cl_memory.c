@@ -6,7 +6,7 @@ void cl_copy_buffer_to_device(void *buffer, size_t offset, size_t size)
 	if (fb.use_drawq==1)
 	{
 		#ifdef RL_OPENCL
-		cl_int ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
+		cl_int ret = clEnqueueWriteBuffer_wrap(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
 		CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device(), for fb.data_cl)", ret);
 		#endif
 	}

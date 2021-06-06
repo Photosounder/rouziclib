@@ -21,9 +21,9 @@ typedef struct
 } frgb_t;			// linear RGB format
 
 #ifdef COL_FRGB
-	#define col_t 			frgb_t
+	#define col_t 	frgb_t
 #else
-	#define col_t			lrgb_t
+	#define col_t	lrgb_t
 #endif
 
 typedef struct
@@ -95,6 +95,7 @@ typedef struct
 	xyi_t maxdim;		// formerly max[wh]
 	int use_drawq;
 	int srgb_order;		// channel order of the sRGB output
+	int64_t frame_count;	// count main loop iterations
 
 	#ifdef RL_SDL
 	void *window;

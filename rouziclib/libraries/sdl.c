@@ -539,7 +539,7 @@ int sdl_handle_window_resize(zoom_t *zc)
 
 	#ifdef RL_OPENCL_GL
 	if (fb.use_drawq==1)
-		clFinish(fb.clctx.command_queue);	// wait for end of queue
+		clFinish_wrap(fb.clctx.command_queue);	// wait for end of queue
 	#endif
 
 	if (fb.use_drawq==2)
@@ -596,7 +596,7 @@ void sdl_flip_fb()
 			#ifdef RL_OPENCL_GL
 			if (fb.opt_interop)
 			{
-				ret = clEnqueueReleaseGLObjects(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
+				ret = clEnqueueReleaseGLObjects_wrap(fb.clctx.command_queue, 1, &fb.cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
 				CL_ERR_NORET("clEnqueueReleaseGLObjects in sdl_flip_fb()", ret);
 			}
 			#endif
@@ -604,7 +604,7 @@ void sdl_flip_fb()
 			// display srgb
 			if (fb.opt_clfinish)
 			{
-				ret = clFinish(fb.clctx.command_queue);
+				ret = clFinish_wrap(fb.clctx.command_queue);
 				CL_ERR_NORET("clFinish in sdl_flip_fb()", ret);
 			}
 
@@ -699,6 +699,8 @@ void sdl_flip_fb()
 	fb.timing[fb.timing_index].start = t;
 	sleep_hr(rangelimit(fb.start_sleep_dur - t + fb.timing[circ_index(fb.timing_index-1, fb.timing_count)].flip_end, 0., fb.start_sleep_dur));
 	fb.timing[fb.timing_index].start_sleep = get_time_hr();
+
+	fb.frame_count++;
 }
 
 void sdl_flip_fb_srgb(srgb_t *sfb)

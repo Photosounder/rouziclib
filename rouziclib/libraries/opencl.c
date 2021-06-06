@@ -445,7 +445,7 @@ void cl_make_srgb_tex()
 
 	if (fb.interop_sync==0)		// acquire the GL texture with OpenCL only once if no interop sync is needed
 	{
-		ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
+		ret = clEnqueueAcquireGLObjects_wrap(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
 		CL_ERR_NORET("clEnqueueAcquireGLObjects (in cl_make_srgb_tex(), for fb.cl_srgb)", ret);
 
 		fb.opt_glfinish = 1;
@@ -483,6 +483,62 @@ cl_int init_fb_cl()
 	cl_make_srgb_tex();
 
 	return ret;
+}
+
+// OpenCL API wrappers to help identify leaks
+cl_int clEnqueueNDRangeKernel_wrap(cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+{
+	return clEnqueueNDRangeKernel(command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
+}
+
+cl_int clFinish_wrap(cl_command_queue command_queue)
+{
+	return clFinish(command_queue);
+}
+
+cl_int clEnqueueWriteBuffer_wrap(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t size, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+{
+	return clEnqueueWriteBuffer(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+}
+
+cl_int clEnqueueReadBuffer_wrap(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t size, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+{
+	return clEnqueueReadBuffer(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+}
+
+cl_int clEnqueueReleaseGLObjects_wrap(cl_command_queue command_queue, cl_uint num_objects, const cl_mem *mem_objects, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+{
+	return clEnqueueReleaseGLObjects(command_queue, num_objects, mem_objects, num_events_in_wait_list, event_wait_list, event);
+}
+
+cl_int clEnqueueAcquireGLObjects_wrap(cl_command_queue command_queue, cl_uint num_objects, const cl_mem *mem_objects, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event)
+{
+	return clEnqueueAcquireGLObjects(command_queue, num_objects, mem_objects, num_events_in_wait_list, event_wait_list, event);
+}
+
+cl_int clWaitForEvents_wrap(cl_uint num_events, const cl_event *event_list)
+{
+	return clWaitForEvents(num_events, event_list);
+}
+
+cl_int clGetEventProfilingInfo_wrap(cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
+{
+	return clGetEventProfilingInfo(event, param_name, param_value_size, param_value, param_value_size_ret);
+}
+
+cl_int clReleaseEvent_wrap(cl_event event)
+{
+	return clReleaseEvent(event);
+}
+
+cl_int clSetKernelArg_wrap(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value)
+{
+	return clSetKernelArg(kernel, arg_index, arg_size, arg_value);
+}
+
+cl_int clFlush_wrap(cl_command_queue command_queue)
+{
+	return clFlush(command_queue);
 }
 
 #endif

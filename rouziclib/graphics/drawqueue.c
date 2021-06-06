@@ -29,7 +29,7 @@ void drawq_alloc()
 
 	#ifdef RL_OPENCL
 	if (fb.use_drawq==1)
-		clFinish(fb.clctx.command_queue);	// wait for end of queue
+		clFinish_wrap(fb.clctx.command_queue);	// wait for end of queue
 	#endif
 
 	if (fb.use_drawq==2)
@@ -119,7 +119,7 @@ void drawq_run()
 		if (fb.opt_interop)
 		{
 			#if 1
-			ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, NULL, NULL);	// get the ownership of cl_srgb
+			ret = clEnqueueAcquireGLObjects_wrap(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, NULL, NULL);	// get the ownership of cl_srgb
 			#else
 			ret = clEnqueueAcquireGLObjects(fb.clctx.command_queue, 1,  &fb.cl_srgb, 0, NULL, &ev);		// get the ownership of cl_srgb
 			CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb.cl_srgb)", ret);
@@ -145,10 +145,11 @@ void drawq_run()
 		#ifdef RL_OPENCL
 
 		// Get profiling times
-		clWaitForEvents(1, &fb.clctx.ev);
-		clGetEventProfilingInfo(fb.clctx.ev, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &fb.clctx.queue_time, NULL);
-		clGetEventProfilingInfo(fb.clctx.ev, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &fb.clctx.start_time, NULL);
-		clGetEventProfilingInfo(fb.clctx.ev, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &fb.clctx.end_time, NULL);
+		clWaitForEvents_wrap(1, &fb.clctx.ev);
+		clReleaseEvent_wrap(fb.clctx.ev);
+		clGetEventProfilingInfo_wrap(fb.clctx.ev, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &fb.clctx.queue_time, NULL);
+		clGetEventProfilingInfo_wrap(fb.clctx.ev, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &fb.clctx.start_time, NULL);
+		clGetEventProfilingInfo_wrap(fb.clctx.ev, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &fb.clctx.end_time, NULL);
 		frame_timing_t *timing = &fb.timing[circ_index(fb.timing_index-1, fb.timing_count)];
 		timing->thread_start = timing->cl_enqueue_end;// + (double) (fb.clctx.start_time - fb.clctx.queue_time)*1e-9;
 		timing->thread_end = timing->cl_enqueue_end + (double) (fb.clctx.end_time-fb.clctx.queue_time)*1e-9;
@@ -160,8 +161,8 @@ void drawq_run()
 		cl_ulong entry_list_index = cl_add_buffer_to_data_table(fb.entry_list, fb.entry_list_end*sizeof(int32_t), sizeof(int32_t), NULL);
 
 		// Copy last data space to data_cl
-		ret = clEnqueueWriteBuffer(fb.clctx.command_queue, fb.data_cl, CL_FALSE, fb.data_copy_start, fb.data_space_start - fb.data_copy_start, &fb.data[fb.data_copy_start], 0, NULL, &ev);
-		CL_ERR_NORET("clEnqueueWriteBuffer (in drawq_run, for fb.data_cl)", ret);
+		ret = clEnqueueWriteBuffer_wrap(fb.clctx.command_queue, fb.data_cl, CL_FALSE, fb.data_copy_start, fb.data_space_start - fb.data_copy_start, &fb.data[fb.data_copy_start], 0, NULL, &ev);
+		CL_ERR_NORET("clEnqueueWriteBuffer(in drawq_run, for fb.data_cl)", ret);
 		fb.data_copy_start = fb.data_space_start;
 
 		// Remove compiled lists from data_cl
@@ -177,28 +178,28 @@ void drawq_run()
 		randseed %= ((1<<i) - fb.w*fb.h);	// seed + fbi will fit inside i bits to speed up the PRNG
 
 		// wait for the input data copies to end
-		clWaitForEvents(1, &ev);	// somehow this also waits for the kernel to end, which isn't good
-		clReleaseEvent(ev);
+		clWaitForEvents_wrap(1, &ev);	// somehow this also waits for the kernel to end, which isn't good
+		clReleaseEvent_wrap(ev);
 		fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
 
 		// Run the fb.clctx.kernel
-		ret = clSetKernelArg(fb.clctx.kernel, 0, sizeof(cl_ulong), &drawq_data_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for drawq_data_index)", ret);
-		ret = clSetKernelArg(fb.clctx.kernel, 1, sizeof(cl_ulong), &sector_pos_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for sector_pos_index)", ret);
-		ret = clSetKernelArg(fb.clctx.kernel, 2, sizeof(cl_ulong), &entry_list_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for entry_list_index)", ret);
-		ret = clSetKernelArg(fb.clctx.kernel, 3, sizeof(cl_mem), &fb.data_cl);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.data_cl)", ret);
-		ret = clSetKernelArg(fb.clctx.kernel, 4, sizeof(cl_mem), &fb.cl_srgb);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.cl_srgb)", ret);
-		ret = clSetKernelArg(fb.clctx.kernel, 5, sizeof(cl_int), &fb.sector_w);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.sector_w)", ret);
-		ret = clSetKernelArg(fb.clctx.kernel, 6, sizeof(cl_int), &fb.sector_size);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.sector_size)", ret);
-		ret = clSetKernelArg(fb.clctx.kernel, 7, sizeof(cl_int), &randseed);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for randseed)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 0, sizeof(cl_ulong), &drawq_data_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for drawq_data_index)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 1, sizeof(cl_ulong), &sector_pos_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for sector_pos_index)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 2, sizeof(cl_ulong), &entry_list_index);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for entry_list_index)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 3, sizeof(cl_mem), &fb.data_cl);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.data_cl)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 4, sizeof(cl_mem), &fb.cl_srgb);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.cl_srgb)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 5, sizeof(cl_int), &fb.sector_w);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.sector_w)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 6, sizeof(cl_int), &fb.sector_size);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb.sector_size)", ret);
+		ret = clSetKernelArg_wrap(fb.clctx.kernel, 7, sizeof(cl_int), &randseed);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for randseed)", ret);
 
 		global_work_offset[0] = 0;
 		global_work_offset[1] = 0;
 		global_work_size[0] = fb.w;
 		global_work_size[1] = fb.h;
-		ret = clEnqueueNDRangeKernel(fb.clctx.command_queue, fb.clctx.kernel, 2, global_work_offset, global_work_size, NULL, 0, NULL, &fb.clctx.ev);
+		ret = clEnqueueNDRangeKernel_wrap(fb.clctx.command_queue, fb.clctx.kernel, 2, global_work_offset, global_work_size, NULL, 0, NULL, &fb.clctx.ev);
 		CL_ERR_NORET("clEnqueueNDRangeKernel (in drawq_run)", ret);
 
-		ret = clFlush(fb.clctx.command_queue);
+		ret = clFlush_wrap(fb.clctx.command_queue);
 		CL_ERR_NORET("clFlush (in drawq_run)", ret);
 		fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
 
@@ -206,7 +207,7 @@ void drawq_run()
 		int pitch;
 		SDL_LockTexture(fb.texture, NULL, &fb.r.srgb, &pitch);
 		fb.tex_lock = 1;
-		ret = clEnqueueReadBuffer(fb.clctx.command_queue, fb.cl_srgb, CL_FALSE, 0, mul_x_by_y_xyi(fb.r.dim)*4, fb.r.srgb, 0, NULL, NULL);
+		ret = clEnqueueReadBuffer_wrap(fb.clctx.command_queue, fb.cl_srgb, CL_FALSE, 0, mul_x_by_y_xyi(fb.r.dim)*4, fb.r.srgb, 0, NULL, NULL);
 		CL_ERR_NORET("clEnqueueReadBuffer (in drawq_run(), for fb.cl_srgb)", ret);
 		#endif
 		#endif

@@ -1296,6 +1296,10 @@ void gui_layout_registry_add(gui_layout_t *layout, const char *layout_name)
 {
 	int i;
 
+	// If the registry hasn't been cleared in the previous frame we don't register
+	if (fb.frame_count > layout_reg.last_reset_frame+1)
+		return;
+
 	if (layout_name)
 	{
 		i = layout_reg.reg_count;
@@ -1312,6 +1316,7 @@ void gui_layout_registry_reset()
 {
 	memset(layout_reg.reg, 0, layout_reg.reg_count * sizeof(layout_reg_entry_t));
 	layout_reg.reg_count = 0;
+	layout_reg.last_reset_frame = fb.frame_count;
 }
 
 rect_t fit_sublayout_into_area(rect_t area0, gui_layout_t *sublayout, int main_area_id, xy_t offset, int save_os)
