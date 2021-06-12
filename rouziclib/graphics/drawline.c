@@ -449,6 +449,9 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 
 void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
+	if (fb.discard)
+		return;
+
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 0);	// adjusts the focus
 
 	if (fb.use_drawq)

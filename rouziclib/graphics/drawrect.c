@@ -227,6 +227,9 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 
 void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
+	if (fb.discard)
+		return;
+
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb.use_drawq)
@@ -272,6 +275,9 @@ void draw_black_rect_dq(rect_t box, double radius, double intensity)
 
 void draw_black_rect(rect_t box, double radius, double intensity)
 {
+	if (fb.discard)
+		return;
+
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb.use_drawq)

@@ -23,6 +23,11 @@ double erfr(double x)
 	return 0.5 + 0.5*erf(x);
 }
 
+double integral_of_erfr(double x)
+{
+	return (x*erf(x) + gaussian(x)*(1./sqrt(pi)) + x) * 0.5;
+}
+
 double erfinv(double x)		// inverse of erf(x), approximated to 1e-12
 {
 	double x2, xm, xm2;

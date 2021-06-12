@@ -3,7 +3,7 @@ void cl_copy_buffer_to_device(void *buffer, size_t offset, size_t size)
 	if (size==0)
 		return ;
 
-	if (fb.use_drawq==1)
+	if (fb.use_drawq==1 && fb.discard==0)
 	{
 		#ifdef RL_OPENCL
 		cl_int ret = clEnqueueWriteBuffer_wrap(fb.clctx.command_queue, fb.data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
@@ -43,10 +43,11 @@ void data_cl_alloc(int mb)
 	fb.data_alloc_table = calloc(fb.data_alloc_table_as, sizeof(cl_data_alloc_t));
 }
 
-void data_cl_realloc(size_t buffer_size)
+void data_cl_realloc(ssize_t buffer_size)
 {
 	size_t orig_as, new_as;
 
+	// Free device buffer
 	#ifdef RL_OPENCL
 	cl_int ret;
 	if (fb.use_drawq==1)
@@ -55,13 +56,25 @@ void data_cl_realloc(size_t buffer_size)
 		CL_ERR_NORET("clFinish in data_cl_realloc()", ret);
 
 		// free CL buffer
-		ret = clReleaseMemObject(fb.data_cl);
-		CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc(), for fb.data_cl)", ret);
+		if (fb.data_cl)
+		{
+			ret = clReleaseMemObject(fb.data_cl);
+			CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc(), for fb.data_cl)", ret);
+		}
 	}
 	#endif
 
 	if (fb.use_drawq==2)
 		drawq_soft_finish();
+
+	// Only free the device buffer if requested size is negative
+	if (buffer_size < 0)
+	{
+		memset(&fb.data_cl, 0, sizeof(cl_mem));
+		fb.data_cl_as = 0;
+		free_null(&fb.data);
+		return;
+	}
 
 	// Calculate the new allocation size
 	orig_as = new_as = fb.data_cl_as;

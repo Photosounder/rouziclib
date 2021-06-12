@@ -368,6 +368,9 @@ void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 
 void blit_scale(raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
+	if (fb.discard)
+		return;
+
 	if (fb.use_drawq)
 		blit_scale_dq(r, pscale, pos, interp);
 	else if (fb.r.use_frgb==0)
@@ -460,6 +463,9 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 
 void blit_scale_rotated(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)
 {
+	if (fb.discard)
+		return;
+
 	if (angle==0.)
 	{
 		blit_scale(r, pscale, pos, interp);

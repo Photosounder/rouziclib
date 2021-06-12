@@ -176,6 +176,9 @@ void draw_circle_with_lines(xy_t pos, double circrad, double radius, col_t colou
 
 void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
+	if (fb.discard)
+		return;
+
 	//if (circlemode!=HOLLOWCIRCLE)
 		radius = drawing_focus_adjust(focus_rlg, radius, circlemode==FULLCIRCLE ? NULL : &intensity, 0);	// adjusts the focus
 
@@ -559,6 +562,9 @@ void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 
 void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
+	if (fb.discard)
+		return;
+
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
 
 	if (fb.use_drawq)

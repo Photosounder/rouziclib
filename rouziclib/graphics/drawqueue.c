@@ -67,13 +67,13 @@ void drawq_free()
 {
 	if (fb.drawq_data)
 	{
-		free (fb.drawq_data);
-		free (fb.sector_pos);
-		free (fb.entry_list);
-		free (fb.sector_list);
-		free (fb.sector_count);
-		free (fb.pending_bracket);
-		free (fb.entry_pos);
+		free(fb.drawq_data);
+		free(fb.sector_pos);
+		free(fb.entry_list);
+		free(fb.sector_list);
+		free(fb.sector_count);
+		free(fb.pending_bracket);
+		free(fb.entry_pos);
 
 		fb.drawq_data = NULL;
 	}
@@ -253,6 +253,9 @@ void *drawq_add_to_main_queue(const enum dq_type type)
 	if (di==NULL)
 		return NULL;
 
+	if (fb.discard)
+		return NULL;
+
 	// store the drawing parameters in the main drawing queue
 	end = di[DQ_END];
 	alloc_enough(&fb.drawq_data, end + entry_size + 1, &fb.drawq_as, sizeof(int32_t), 2.);
@@ -274,6 +277,9 @@ void *drawq_add_to_main_queue(const enum dq_type type)
 
 void drawq_add_sector_id_nopending(int32_t sector_id)
 {
+	if (fb.discard)
+		return;
+
 	fb.sector_count[sector_id]++;				// increment the count of entries for this sector
 
 	alloc_enough(&fb.sector_list, fb.sector_list[DQ_END] + 1, &fb.sector_list_as, sizeof(int32_t), 2.);
@@ -292,6 +298,9 @@ void drawq_add_sector_id(int32_t sector_id)	// like drawq_add_sector_id_nopendin
 void drawq_add_sectors_for_area(recti_t bb)
 {
 	int ix, iy;
+
+	if (fb.discard)
+		return;
 
 	for (iy=bb.p0.y; iy <= bb.p1.y; iy++)
 		for (ix=bb.p0.x; ix <= bb.p1.x; ix++)
@@ -465,7 +474,10 @@ void drawq_bracket_open()
 	xyi_t ip, bb0, bb1;
 
 	if (fb.use_drawq==0)
-		return ;
+		return;
+
+	if (fb.discard)
+		return;
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
@@ -491,7 +503,10 @@ void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are list
 	xyi_t ip, bb0, bb1;
 
 	if (fb.use_drawq==0)
-		return ;
+		return;
+
+	if (fb.discard)
+		return;
 
 	bb0 = xyi(0, 0);
 	bb1 = xyi(fb.w-1 >> fb.sector_size, fb.h-1 >> fb.sector_size);
