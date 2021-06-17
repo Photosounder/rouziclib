@@ -269,32 +269,9 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 
 	// Windows inside other windows
 		// The root function registers the parent window function and depending on the detachment status the child windows
-		// The root function must still contain the parent window's layout and pass it on the the parent window function so that the child window areas can be accessed
-		// After registering the child window function window_set_parent() must be called
-		void parent_window_function(rect_t parent_area, int *diag_on, flwindow_t *window, gui_layout_t *layout, int *child1_detach, int *child2_detach)
+		// After registering the detached child window function window_set_parent() can be called so that the child window is always on top of the parent window
+		void parent_window_function(rect_t parent_area, int *diag_on, int *child1_detach, int *child2_detach)
 		{
-			// Window
-			flwindow_init_defaults(window);
-			draw_dialog_window_fromlayout(window, diag_on, NULL, layout, 0);
-
-			// Sub-windows
-			if (*child1_detach==0)
-			{
-				window_register(1, child1_func, gui_layout_elem_comp_area_os(layout, 100, XY0), child1_detach, 1, diag_on);
-				window_set_parent(child1_func, parent_window_function);
-			}
-
-			if (*child2_detach==0)
-			{
-				window_register(1, child2_func, gui_layout_elem_comp_area_os(layout, 110, XY0), child2_detach, 1, diag_on);
-				window_set_parent(child2_func, parent_window_function);
-			}
-		}
-
-		void root_function(int *diag_on)
-		{
-			static int child1_detach=0, child2_detach=0;
-
 			static flwindow_t window={0};
 			static gui_layout_t layout={0};
 			const char *layout_src[] = {
@@ -306,19 +283,35 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Parent window layout");
 
 			// Window
-			if (diag_on)
-				window_register(1, parent_window_function, rect(XY0, XY0), diag_on, 4, &window, &layout, &child1_detach, &child2_detach);
+			flwindow_init_defaults(&window);
+			draw_dialog_window_fromlayout(&window, diag_on, NULL, &layout, 0);
+
+			// Sub-windows
+			if (*child1_detach==0)
+				window_register(1, child1_func, gui_layout_elem_comp_area_os(&layout, 100, XY0), child1_detach, 1, diag_on);
+
+			if (*child2_detach==0)
+				window_register(1, child2_func, gui_layout_elem_comp_area_os(&layout, 110, XY0), child2_detach, 1, diag_on);
+		}
+
+		void root_function(int *diag_on)
+		{
+			static int child1_detach=0, child2_detach=0;
+
+			// Window
+			if (*diag_on)
+				window_register(1, parent_window_function, RECTNAN, diag_on, 2, &child1_detach, &child2_detach);
 
 			// Sub-windows
 			if (child1_detach)
 			{
-				window_register(1, child1_func, gui_layout_elem_comp_area_os(&layout, 100, XY0), &child1_detach, 1, diag_on);
+				window_register(1, child1_func, RECTNAN, &child1_detach, 1, diag_on);
 				window_set_parent(child1_func, parent_window_function);
 			}
 
 			if (child2_detach)
 			{
-				window_register(1, child2_func, gui_layout_elem_comp_area_os(&layout, 110, XY0), &child2_detach, 1, diag_on);
+				window_register(1, child2_func, RECTNAN, &child2_detach, 1, diag_on);
 				window_set_parent(child2_func, parent_window_function);
 			}
 		}
@@ -327,17 +320,17 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 		void child1_func(rect_t parent_area, int *detached, int *parent_on)
 		{
 			static gui_layout_t layout={0};
-			const char *layout_src[] = { ... };
+			const char *layout_src[] = {
+				"elem 0", "type none", "label Child1 window", "pos	0	0", "dim	3	3;6", "off	0	1", "",
+			};
 
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Child 1");
-
-			if (*parent_on==0 && *detached==0)	// keep the detached dialog open if the parent dialog is closed
-				return ;
 
 			// Window
 			static flwindow_t window={0};
 			flwindow_init_defaults(&window);
 			draw_dialog_window_fromlayout(&window, detached, &parent_area, &layout, 0);
+		}
 
 //**** Keyboard input ****
 

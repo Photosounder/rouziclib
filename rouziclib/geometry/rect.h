@@ -1,6 +1,9 @@
 // in geometry/rect_struct.h:
 // rect_t, recti_t
 
+#define RECT0	rect(XY0,XY0)
+#define RECTNAN	rect(XYNAN,XYNAN)
+
 extern rect_t rect(const xy_t p0, const xy_t p1);
 extern recti_t recti(const xyi_t p0, const xyi_t p1);
 extern triangle_t triangle(const xy_t a, const xy_t b, const xy_t c);

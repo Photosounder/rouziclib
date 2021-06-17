@@ -1,5 +1,5 @@
 // in gui/controls_struct.h:
-// flwindow_t
+// flwindow_t, window_manager_entry_t, window_manager_t
 
 extern void flwindow_init_defaults(flwindow_t *w);
 extern void flwindow_init_pinned(flwindow_t *w);

@@ -588,9 +588,6 @@ void dialog_cl_gl_interop_options(rect_t area, int *detached, int *parent_on)
 
 	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "CL/GL options");
 
-	if (*parent_on==0 && *detached==0)	// keep the detached dialog open if the parent dialog is closed
-		return ;
-
 	// Window
 	static flwindow_t window={0};
 	flwindow_init_defaults(&window);

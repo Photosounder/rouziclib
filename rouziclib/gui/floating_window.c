@@ -250,10 +250,10 @@ skip_add1:
 	wind_man.window[i].ptr_array = calloc(wind_man.window[i].ptr_count, sizeof(void *));
 
 	// Set window orders
+	wind_man.min_order = wind_man.window[i].order = wind_man.min_order - 1;
+
 	if (priority==1)
-		wind_man.max_order = wind_man.window[i].order = wind_man.max_order + 1;
-	else
-		wind_man.min_order = wind_man.window[i].order = wind_man.min_order - 1;
+		window_move_to_top(window_func);
 
 skip_add2:
 	// Copy pointers to array

@@ -6,6 +6,7 @@
 #define XYI0	xyi(0,0)
 #define XYI1	xyi(1,1)
 #define XYZ0	xyz(0.,0.,0.)
+#define XYNAN	xy(NAN,NAN)
 #define zyx(z, y, x)	xyz(x, y, z)
 
 extern xy_t xy(const double x, const double y);
