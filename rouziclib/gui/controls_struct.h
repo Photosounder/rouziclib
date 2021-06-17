@@ -33,4 +33,5 @@ typedef struct
 	window_manager_entry_t *window, **wsor;
 	int window_count, window_as, wsor_as;
 	int min_order, max_order;
+	int manager_is_calling;
 } window_manager_t;

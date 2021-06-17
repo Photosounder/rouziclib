@@ -229,28 +229,45 @@ int window_register(int priority, void *window_func, rect_t parent_area, int *wi
 {
 	int i, ia;
 	va_list ap;
+	window_manager_entry_t *entry=NULL, entry_s={0};
+
+	// Don't bother actually registering if this runs from the manager, just run the window function
+	if (wind_man.manager_is_calling)
+	{
+		entry = &entry_s;
+		entry->window_func = window_func;
+		entry->ptr_count = num_args;
+		entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));
+		i = -1;
+
+		goto skip_add2;		// skip to filling the entry and run the function
+	}
 
 	// Check if the window function is already registered
 	for (i=0; i < wind_man.window_count; i++)
 		if (wind_man.window[i].window_func == window_func)
+		{
+			entry = &wind_man.window[i];
 			goto skip_add2;
+		}
 
 	// Look for a free slot in the registry
 	for (i=0; i < wind_man.window_count; i++)
 		if (wind_man.window[i].window_func == NULL)
 			goto skip_add1;
 
-	// Add new window
+	// Add new window at the end of the registry
 	i = wind_man.window_count;
 	alloc_enough(&wind_man.window, wind_man.window_count+=1, &wind_man.window_as, sizeof(window_manager_entry_t), 2.);
 
 skip_add1:
-	wind_man.window[i].window_func = window_func;
-	wind_man.window[i].ptr_count = num_args;
-	wind_man.window[i].ptr_array = calloc(wind_man.window[i].ptr_count, sizeof(void *));
+	entry = &wind_man.window[i];
+	entry->window_func = window_func;
+	entry->ptr_count = num_args;
+	entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));
 
 	// Set window orders
-	wind_man.min_order = wind_man.window[i].order = wind_man.min_order - 1;
+	wind_man.min_order = entry->order = wind_man.min_order - 1;
 
 	if (priority==1)
 		window_move_to_top(window_func);
@@ -259,17 +276,20 @@ skip_add2:
 	// Copy pointers to array
 	va_start(ap, num_args);
 	for (ia=0; ia < num_args; ia++)
-		wind_man.window[i].ptr_array[ia] = va_arg(ap, void *);
+		entry->ptr_array[ia] = va_arg(ap, void *);
 	va_end(ap);
 
-	wind_man.window[i].parent_area = parent_area;
-	wind_man.window[i].wind_on = wind_on;
-	wind_man.window[i].dereg = 0;
+	entry->parent_area = parent_area;
+	entry->wind_on = wind_on;
+	entry->dereg = 0;
 
 	// Run here if window has a close button and is "closed"
 	if (wind_on)
 		if (*wind_on == 0)
-			window_run(&wind_man.window[i]);
+			window_run(entry);
+
+	if (wind_man.manager_is_calling)
+		free(entry->ptr_array);
 
 	return i;
 }
@@ -319,6 +339,7 @@ void window_manager()
 	window_man_sort(reg_count);
 
 	// Run all windows in sorted order
+	wind_man.manager_is_calling = 1;
 	for (i=0; i < reg_count; i++)
 		if (wind_man.wsor[i]->window_func)
 		{
@@ -330,6 +351,7 @@ void window_manager()
 
 			prev_hover_ided = mouse.ctrl_id->hover_ided;
 		}
+	wind_man.manager_is_calling = 0;
 
 	// Mark all windows for deregistration
 	for (i=0; i < wind_man.window_count; i++)
