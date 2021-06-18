@@ -686,9 +686,11 @@ void sdl_flip_fb()
 		SDL_RenderClear(fb.renderer);
 		SDL_RenderCopy(fb.renderer, fb.texture, NULL, NULL);
 		SDL_RenderPresent(fb.renderer);
-		fb.timing[fb.timing_index].flip_end = get_time_hr();
-		fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
+		fb.timing[fb.timing_index].interop_sync_end = get_time_hr();
+		fb.timing[fb.timing_index].dq_comp_end = get_time_hr();
 		fb.timing[fb.timing_index].cl_copy_end = get_time_hr();
+		fb.timing[fb.timing_index].cl_enqueue_end = get_time_hr();
+		fb.timing[fb.timing_index].flip_end = get_time_hr();
 
 		screen_blank();
 	}

@@ -70,7 +70,9 @@ void data_cl_realloc(ssize_t buffer_size)
 	// Only free the device buffer if requested size is negative
 	if (buffer_size < 0)
 	{
+		#ifdef RL_OPENCL
 		memset(&fb.data_cl, 0, sizeof(cl_mem));
+		#endif
 		fb.data_cl_as = 0;
 		free_null(&fb.data);
 		return;

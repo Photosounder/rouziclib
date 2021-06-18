@@ -37,7 +37,7 @@ double knobf_logoff(double v, double min, double max, double *arg, const int mod
 	double off = arg[0];
 
 	if (mode==0)
-		return exp(knobf_linear(v, log(min+off), log(max+off), NULL, mode)) - off;
+		return rangelimit(exp(knobf_linear(v, log(min+off), log(max+off), NULL, mode)) - off, min, max);
 	else
 		return knobf_linear(log(v+off), log(min+off), log(max+off), NULL, mode);
 }
