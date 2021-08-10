@@ -95,20 +95,57 @@ void em_fit_canvas_to_innerwindow()
 
 EM_JS(void, em_enumerate_av_devices, (),
 {
-	navigator.mediaDevices.enumerateDevices()
-		.then(function(devices) {
-			var str="";
-			devices.forEach(
-			function(device)
-			{
-				console.log(device.kind + ": " + device.label + " id = " + device.deviceId);
-				str += device.kind + " \"" + device.label + "\" id = " + device.deviceId + "\n";
-			}
-			);
-			console.log(str);
-			var c_str = js_string_to_c_string(str);		// this is the C string on the WASM heap I'm trying to access in C
-			})
-		.catch(function(err) { console.log(err.name + ": " + err.message); });
+	em_enumerate_av_devices();
 });
+
+typedef struct
+{
+	int id, order;
+	char *string;
+} em_string_reg_entry_t;
+
+/* IDs:
+   1327 (avd): list of audio devices
+*/
+
+char *em_string_registry(int id, char *str)
+{
+	int i, min_order=INT_MAX;
+	static em_string_reg_entry_t *entry=NULL;
+	static size_t entry_count=0, entry_as=0;
+	static int order=0;
+
+	// If we're adding a string
+	if (str)
+	{
+		order++;
+
+		// Look for free entry
+		for (i=0; i < entry_count; i++)
+			if (entry[i].id == 0)
+				goto skip_add1;
+
+		// otherwise add new entry
+		i = entry_count;
+		alloc_enough(&entry, entry_count+=1, &entry_as, sizeof(em_string_reg_entry_t), 1.5);
+skip_add1:
+		entry[i].id = id;
+		entry[i].string = str;
+		entry[i].order = order;
+		return str;
+	}
+
+	// If we're retrieving a string
+	// Find entry with correct ID and lowest order, delete it and return the string
+	for (i=0; i < entry_count; i++)
+		if (entry[i].id == id && entry[i].order < min_order)
+		{
+			min_order = entry[i].order;
+			str = entry[i].string;
+			memset(&entry[i], 0, sizeof(em_string_reg_entry_t));
+		}
+
+	return str;
+}
 
 #endif

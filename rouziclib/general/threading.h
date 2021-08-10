@@ -1,12 +1,14 @@
 // _Thread_local definition
-#if !(defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201102L)) && !defined(_Thread_local)
-  #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__SUNPRO_CC) || defined(__IBMCPP__)
-    #define _Thread_local __thread
-  #else
+#if defined(_MSC_VER) && !defined(_Thread_local)
     #define _Thread_local __declspec(thread)
-  #endif
+#endif
+
+#if !(defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201102L)) && !defined(_Thread_local)
+    #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__SUNPRO_CC) || defined(__IBMCPP__)
+        #define _Thread_local __thread
+    #endif
 #elif defined(__GNUC__) && defined(__GNUC_MINOR__) && (((__GNUC__ << 8) | __GNUC_MINOR__) < ((4 << 8) | 9))
-  #define _Thread_local __thread
+    #define _Thread_local __thread
 #endif
 
 #if defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ ) || defined( __EMSCRIPTEN__ )

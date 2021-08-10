@@ -576,7 +576,7 @@ Adds https://github.com/mackron/miniaudio[MiniAudio]. Excluded by default due to
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/openal.c[openal.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/openal.h[openal.h] +
 Adds OpenAL.
 
-** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/emscripten.c[emscripten.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/emscripten.h[emscripten.h] +
+** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/emscripten.c[emscripten.c] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/emscripten.h[emscripten.h] / https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/emscripten.js[emscripten.js] +
 Emscripten-specific code.
 
 ** https://github.com/Photosounder/rouziclib/tree/master/rouziclib/libraries/orig[orig/] +

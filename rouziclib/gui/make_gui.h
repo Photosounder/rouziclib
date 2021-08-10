@@ -28,6 +28,7 @@ typedef struct
 	int label_set, label_as_set, fmt_str_set, pos_val, dim_val;
 	int implemented;
 	int link_pos_id;
+	xy_t link_pos_off;
 } layout_elem_t;
 
 typedef struct

@@ -32,11 +32,12 @@ int ctrl_array_checkbox(int *array, int count, const char **label, col_t *col, i
 
 int ctrl_array_checkbox_with_all(int *array, int count, const char *all_label, col_t all_col, const char **label, col_t *col, int col_count, rect_t box, xy_t pos_inc)
 {
-	int status_all;
+	int i, status_all;
 
 	status_all = get_state_checkbox_array(array, count);
 	if (ctrl_checkbox(&status_all, all_label, box, all_col))
-		memset(array, status_all, count);
+		for (i=0; i < count; i++)
+			array[i] = status_all;
 
 	box = add_rect_xy(box, pos_inc);
 	return ctrl_array_checkbox(array, count, label, col, col_count, box, pos_inc);

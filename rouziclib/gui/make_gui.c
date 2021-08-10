@@ -313,8 +313,23 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 
 		if (strcmp(a, "link_pos_id")==0)		// sets the ID of the element that gives its position as an offset for this element
 		{
-			if (sscanf(line, "link_pos_id %d", &cur_elem->link_pos_id) != 1)
+			char offset[3]={0};
+			if (sscanf(line, "link_pos_id %d.%2s", &cur_elem->link_pos_id, offset) < 1)
 				fprintf_rl(stderr, "No ID provided for link_pos_id in line %d: \"%s\"\n", il, line);
+
+			cur_elem->link_pos_off = XYNAN;
+
+			// Parse the offset, if specified
+			if (offset[0] && offset[1])
+			{
+				if (offset[0] == '0' || offset[0] == 'l') cur_elem->link_pos_off.x = 0.;
+				if (offset[0] == 'm' || offset[0] == 'c') cur_elem->link_pos_off.x = 0.5;
+				if (offset[0] == '1' || offset[0] == 'r') cur_elem->link_pos_off.x = 1.;
+
+				if (offset[1] == '0' || offset[1] == 'b') cur_elem->link_pos_off.y = 0.;
+				if (offset[1] == 'm' || offset[1] == 'c') cur_elem->link_pos_off.y = 0.5;
+				if (offset[1] == '1' || offset[1] == 't') cur_elem->link_pos_off.y = 1.;
+			}
 		}
 
 		if (strcmp(a, "knob")==0)	// sets the knob data structure
