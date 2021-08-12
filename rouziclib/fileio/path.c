@@ -185,6 +185,21 @@ char *extract_file_extension(const char *path, char *ext)
 	return ext;
 }
 
+char *win_get_system_folder_path(int csidl)
+{
+	char *path = NULL;
+
+	#ifdef _WIN32
+	wchar_t path_w[PATH_MAX];
+
+	SHGetFolderPathW(NULL, csidl, NULL, 0, path_w);
+	//SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, path_w);
+	path = wchar_to_utf8(path_w, NULL);
+	#endif
+
+	return path;
+}
+
 #ifdef __APPLE__
 #include <glob.h>
 #endif
@@ -194,12 +209,8 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 	char *path=NULL, *dirpath=NULL;
 
 	#ifdef _WIN32
-	wchar_t origpath_w[PATH_MAX];
-	char origpath[PATH_MAX*4];
 
-	SHGetFolderPathW(NULL, 0x001a /*CSIDL_APPDATA*/, NULL, 0, origpath_w);
-	//SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, origpath_w);
-	wchar_to_utf8(origpath_w, origpath);
+	char *origpath = win_get_system_folder_path(0x001a /*CSIDL_APPDATA*/);
 
 	#elif defined(__APPLE__)
 
@@ -230,6 +241,10 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 	}
 	else
 		path = dirpath;
+
+	#ifdef _WIN32
+	free(origpath);
+	#endif
 
 	#ifdef __APPLE__
 	globfree(&globbuf);

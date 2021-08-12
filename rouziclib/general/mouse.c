@@ -143,6 +143,9 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 	}
 	#endif
 
+	if (mouse->warp != mouse->warp_prev)	// prevent recording jumps when switching warp modes
+		mouse->discard_warp_first_move = 1;
+
 	mouse->warp_prev = mouse->warp;
 	if (mouse->warp_if_move==0)
 	{

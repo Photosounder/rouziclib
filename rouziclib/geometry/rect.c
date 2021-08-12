@@ -267,3 +267,29 @@ rect_t resize_rect_around_offset(rect_t r, xy_t dim1, xy_t offset)
 {
 	return make_rect_off(pos_in_rect_by_ratio(r, offset), dim1, offset);
 }
+
+rect_t rect_boolean_intersection(rect_t a, rect_t b)
+{
+	rect_t c;
+
+	a = sort_rect(a);
+	b = sort_rect(b);
+
+	c.p0 = max_xy(a.p0, b.p0);
+	c.p1 = min_xy(a.p1, b.p1);
+
+	return c;
+}
+
+recti_t recti_boolean_intersection(recti_t a, recti_t b)
+{
+	recti_t c;
+
+	a = sort_recti(a);
+	b = sort_recti(b);
+
+	c.p0 = max_xyi(a.p0, b.p0);
+	c.p1 = min_xyi(a.p1, b.p1);
+
+	return c;
+}

@@ -237,7 +237,11 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	}
 
 	if (event.type==SDL_MOUSEMOTION)
-		mouse->d = add_xy(mouse->d, xy(event.motion.xrel, event.motion.yrel));	// only works when the cursor is inside the window or with mouse.warp
+	{
+		if (mouse->discard_warp_first_move==0 || abs(event.motion.xrel)+abs(event.motion.yrel) < 40)
+			mouse->d = add_xy(mouse->d, xy(event.motion.xrel, event.motion.yrel));			// only works when the cursor is inside the window or with mouse.warp
+		mouse->discard_warp_first_move = 0;
+	}
 
 	// Mouse button events
 	if (event.type==SDL_MOUSEBUTTONDOWN)

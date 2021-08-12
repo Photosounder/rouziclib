@@ -29,7 +29,7 @@ enum
 typedef struct
 {
 	xy_t a, u, d, u_stored, prev_u;
-	int window_focus_flag, mouse_focus_flag, window_minimised_flag, zoom_flag, zoom_scroll_freeze, showcursor, warp, warp_prev, warp_if_move, zoom_allowed;
+	int window_focus_flag, mouse_focus_flag, window_minimised_flag, zoom_flag, zoom_scroll_freeze, showcursor, warp, warp_prev, warp_if_move, zoom_allowed, discard_warp_first_move;
 	int mod_key[mouse_mod_count];
 	mousebut_t b;
 	mouse_ctrl_id_t *ctrl_id;

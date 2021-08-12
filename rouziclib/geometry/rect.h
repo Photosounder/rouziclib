@@ -47,3 +47,5 @@ extern int equal_rect(rect_t r1, rect_t r2);
 extern xy_t pos_in_rect_by_ratio(rect_t r, xy_t ratio);
 extern xy_t pos_to_rect_ratio(xy_t pos, rect_t r);
 extern rect_t resize_rect_around_offset(rect_t r, xy_t dim1, xy_t offset);
+extern rect_t rect_boolean_intersection(rect_t a, rect_t b);
+extern recti_t recti_boolean_intersection(recti_t a, recti_t b);
