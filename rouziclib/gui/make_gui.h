@@ -148,6 +148,8 @@ dim		<x y dimensions of area> | v<value ID>
 off		<x y position offset for area>
 
 knob		<min> <default> <max> <function (linear|log|recip)> (<format string>)
+knob_unit	<string to display below the number>
+knob_arg	<arg0> (<arg1> <arg2> <arg3>)
 
 TODO colour
 */

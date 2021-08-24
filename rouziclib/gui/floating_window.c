@@ -13,6 +13,7 @@ void flwindow_init_defaults(flwindow_t *w)
 		w->parent_fit_offset = xy(0., 1.);	// the offset for fitting the window into the parent_area
 		w->bg_opacity = 1.;
 		w->shadow_strength = 0.85;
+		w->draw_bg_always = 0;
 
 		// The pinning preset offset and scale
 		w->pinned_offset_preset = xy(-1e9, 1e9);
@@ -149,7 +150,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	// Drawing
 	int draw_bg = 1;
 	if (diag_on)
-		if (*diag_on == 0)
+		if (*diag_on == 0 && w->draw_bg_always == 0)
 			draw_bg = 0;
 
 	if (draw_bg)
