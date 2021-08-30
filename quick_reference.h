@@ -806,6 +806,10 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 		#pragma check_stack()
 		#pragma strict_gs_check()
 
+	// Flashing in the taskbar through SDL
+		// SDL_FLASH_BRIEFLY can also be used, as well as SDL_FLASH_CANCEL to cancel
+		SDL_FlashWindow(fb.window, SDL_FLASH_UNTIL_FOCUSED);
+
 // How to transition code
 	// 190610 transition that involves removing any 'fb' from any function call, making it a TLS global only
 	// run this on every file that passes fb to functions
