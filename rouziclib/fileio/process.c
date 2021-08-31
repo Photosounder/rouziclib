@@ -23,14 +23,14 @@ PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags)
 				&procinf)	// Pointer to PROCESS_INFORMATION structure
 	  ) 
 	{
-		fprintf_rl(stderr, "CreateProcessW failed (%d) in create_process(%s)\n", GetLastError(), cmd);
+		fprintf_rl(stderr, "CreateProcessW failed (%d) in create_process_direct(%s)\n", GetLastError(), cmd);
 		return procinf;
 	}
 
 	return procinf;
 }
 
-PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags)
+PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags, int close_handles)
 {
 	STARTUPINFOW si={0};
 	PROCESS_INFORMATION procinf={0};
@@ -55,8 +55,16 @@ PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags)
 				&procinf)	// Pointer to PROCESS_INFORMATION structure
 	  ) 
 	{
-		fprintf_rl(stderr, "CreateProcessW failed (%d) in create_process(%s)\n", GetLastError(), cmd);
+		fprintf_rl(stderr, "CreateProcessW failed (%d) in create_process_flags(%s)\n", GetLastError(), cmd);
 		return procinf;
+	}
+
+	if (close_handles)
+	{		
+		CloseHandle(procinf.hProcess);
+		CloseHandle(procinf.hThread);
+		procinf.hProcess = NULL;
+		procinf.hThread = NULL;
 	}
 
 	return procinf;
@@ -65,13 +73,13 @@ PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags)
 void wait_process_end(PROCESS_INFORMATION *procinf)
 {
 //fprintf_rl(stdout, "Waiting...\n");
-	// Wait until child process exits.
+	// Wait until child process exits
 //fprintf_rl(stdout, "return %d\n", WaitForSingleObject(procinf->hProcess, 0));
 	WaitForSingleObject(procinf->hProcess, INFINITE);
 //fprintf_rl(stdout, "return %d\n", WaitForSingleObject(procinf->hProcess, 0));
 //fprintf_rl(stdout, "Done.\n");
 
-	// Close process and thread handles. 
+	// Close process and thread handles
 	CloseHandle(procinf->hProcess);
 	CloseHandle(procinf->hThread);
 }
@@ -93,6 +101,18 @@ void send_SIGINT(HANDLE hProcess)	// probably better to use TerminateProcess(hPr
 
 		WaitForSingleObject(hProcess, 10000);
 	}
+}
+
+int is_process_running(HANDLE hProcess)
+{
+	DWORD exit_code=0;
+
+	if (hProcess == NULL)
+		return 0;
+
+	GetExitCodeProcess(hProcess, &exit_code);
+
+	return exit_code == STILL_ACTIVE;
 }
 
 #endif
