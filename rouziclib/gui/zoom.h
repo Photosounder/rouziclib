@@ -22,6 +22,9 @@ extern void toggle_guizoom(zoom_t *zc, int on);
 extern void change_zoom(xy_t pos, double zoom_scale);
 extern void change_zoom_and_turn_off_zoom_mode(xy_t pos, double zoom_scale);
 
+extern void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key);
+extern void zoom_overlay_control(zoom_t *zc, int *flag_zoom_key);
+
 #define sc_x(p) to_screen_coord_x(zc, p)
 #define sc_y(p) to_screen_coord_y(zc, p)
 #define sc_xy(p) to_screen_coord_xy(zc, p)

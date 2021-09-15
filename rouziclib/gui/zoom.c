@@ -119,7 +119,7 @@ void zoom_wheel(zoom_t *zc, int flag_zoom_key, int y)
 
 	if (flag_zoom_key)			// if the zoom key is down
 	{
-		ratio = pow (2., 1./2. * (double) y);
+		ratio = pow(2., 1./2. * (double) y);
 		zc->zoomscale *= ratio;
 
 		//zc->offset_u = sub_xy(zc->mouse->u, div_xy(sub_xy(zc->mouse->u, zc->offset_u), set_xy(ratio)));	// zoom using the cursor position as an anchor point
@@ -194,4 +194,90 @@ void change_zoom_and_turn_off_zoom_mode(xy_t pos, double zoom_scale)
 		zoom_key_released(&zc, &mouse.zoom_flag, 1);
 
 	change_zoom(pos, zoom_scale);
+}
+
+void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key)
+{
+	xy_t move_vector=XY0;
+	double zoom_way = 0.;
+	const double rep_inc=0.25;
+	int s;
+
+	if (zc->mouse->zoom_allowed && get_kb_alt())
+	{
+		// Toggle or reset zoom with (Shift-)Alt-Z or toggle the overlay controls with Ctrl-Alt-Z
+		if (zc->mouse->key_state[RL_SCANCODE_Z]==2)
+			if (get_kb_shift()==0)
+				if (get_kb_ctrl())
+					zc->overlay_ctrl ^= 1;
+				else
+					zoom_toggle(zc, flag_zoom_key);
+			else
+				zoom_reset(zc, flag_zoom_key);
+
+		// Scroll with Alt-WASD
+		if ((s=zc->mouse->key_state[RL_SCANCODE_A]) >= 2)	move_vector.x -= s==2 ? 1. : rep_inc;
+		if ((s=zc->mouse->key_state[RL_SCANCODE_D]) >= 2)	move_vector.x += s==2 ? 1. : rep_inc;
+		if ((s=zc->mouse->key_state[RL_SCANCODE_S]) >= 2)	move_vector.y -= s==2 ? 1. : rep_inc;
+		if ((s=zc->mouse->key_state[RL_SCANCODE_W]) >= 2)	move_vector.y += s==2 ? 1. : rep_inc;
+
+		// Zoom in or out
+		if (zc->mouse->key_state[RL_SCANCODE_Q]==2)	zoom_way = -1.;
+		if (zc->mouse->key_state[RL_SCANCODE_E]==2)	zoom_way = 1.;
+	}
+
+	// Apply the move
+	if (is0_xy(move_vector)==0)
+	{
+		move_vector = mul_xy(move_vector, set_xy(4./zc->zoomscale));	// move by steps of 4 units
+		zc->zoomscale *= pow(2., 1./2. * zoom_way);
+		zc->offset_u = add_xy(zc->offset_u, move_vector);
+		calc_screen_limits(zc);
+		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
+		zc->mouse->b.orig = zc->mouse->u;
+	}
+}
+
+void zoom_overlay_control(zoom_t *zc, int *flag_zoom_key)
+{
+	xy_t move_vector=XY0;
+	double zoom_way = 0.;
+
+	// Overlay controls
+	if (zc->overlay_ctrl)
+	{
+		static gui_layout_t layout={0};
+		const char *layout_src[] = {
+			"v 1	1;3", "",
+			"elem 10", "type button", "label \342\207\247", "pos	0	3", "dim	v1", "off	0;6", "",
+			"elem 11", "type button", "label \342\207\251", "pos	0	-3", "dim	v1", "off	0;6", "",
+			"elem 12", "type button", "label \342\207\246", "pos	-3	0", "dim	v1", "off	0;6", "",
+			"elem 13", "type button", "label \342\207\250", "pos	3	0", "dim	v1", "off	0;6", "",
+			"elem 20", "type button", "label -", "pos	-2	3", "dim	v1", "off	0;6", "",
+			"elem 21", "type button", "label +", "pos	2	3", "dim	v1", "off	0;6", "",
+		};
+
+		layout.offset = zc->offset_u;
+		layout.sm = 1./zc->zoomscale;
+		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Zoom control overlay");
+
+		// Controls
+		if (ctrl_button_fromlayout(&layout, 10))	move_vector.y += 1.;
+		if (ctrl_button_fromlayout(&layout, 11))	move_vector.y -= 1.;
+		if (ctrl_button_fromlayout(&layout, 12))	move_vector.x -= 1.;
+		if (ctrl_button_fromlayout(&layout, 13))	move_vector.x += 1.;
+		if (ctrl_button_fromlayout(&layout, 20))	zoom_way = -1.;
+		if (ctrl_button_fromlayout(&layout, 21))	zoom_way = 1.;
+	}
+
+	// Apply the move
+	if (is0_xy(move_vector)==0 || zoom_way)
+	{
+		move_vector = mul_xy(move_vector, set_xy(20./12./zc->zoomscale));	// move by steps of 1;8 units
+		zc->zoomscale *= pow(2., 1./2. * zoom_way);
+		zc->offset_u = add_xy(zc->offset_u, move_vector);
+		calc_screen_limits(zc);
+		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
+		zc->mouse->b.orig = zc->mouse->u;
+	}
 }

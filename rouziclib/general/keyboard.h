@@ -10,7 +10,6 @@ extern int get_kb_enter();
 extern int get_kb_all_mods();
 extern void keyboard_pre_event_proc(mouse_t *mouse);
 extern void keyboard_button_event(int *b, int *quick_b, int way, int repeat);
-extern void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key);
 
 #ifdef __APPLE__
 #define get_kb_cmd	get_kb_guikey

@@ -285,3 +285,55 @@ void sleep_hr(double t)
 	nanosleep(&ts, NULL);
 	#endif
 }
+
+void time_struct_minimise_elem(struct tm *ts, const int level)
+{
+	// Set DST to unknown to handle DST changes properly
+	ts->tm_isdst = -1;
+
+	// Set the elements to their lowest value depending on the given level
+	switch (level)
+	{
+		case 5: ts->tm_mon = 0;
+		case 4: ts->tm_mday = 1;
+		case 3: ts->tm_hour = 0;
+		case 2: ts->tm_min = 0;
+		case 1: ts->tm_sec = 0;
+	}
+}
+
+time_t time_struct_local_get_next_period(struct tm ts0, const int level)
+{
+	struct tm ts1 = ts0, ts1_copy;
+	time_t tt0, tt1;
+	int isdst;
+
+	// Convert to time_t
+	tt0 = mktime(&ts0);
+	tt1 = tt0;
+
+	// Over-increment based on the level
+	switch (level)
+	{
+			case 5:	tt1 += 367 * 24 * 3600;
+		break;	case 4: tt1 += 33 * 24 * 3600;
+		break;	case 3: tt1 += 25 * 3600 + 1;
+		break;	case 2: tt1 += 3601;
+		break;	case 1: tt1 += 61;
+		break;	case 0: tt1 += 1;
+	}
+
+	// Convert over-incremented time to struct tm
+	localtime_r(&tt1, &ts1);
+
+	// Take care of fall DST change (albeit not quite right)
+	if (level <= 2 && ts0.tm_isdst > ts1.tm_isdst)
+		ts1.tm_isdst = 0;
+
+	// Set to the lowest level to set the incrementation just right
+	isdst = ts1.tm_isdst;
+	time_struct_minimise_elem(&ts1, level);
+	ts1.tm_isdst = isdst;
+
+	return mktime(&ts1);
+}

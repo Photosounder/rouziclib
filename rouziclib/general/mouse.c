@@ -250,4 +250,7 @@ void mousecursor_logic_and_draw()
 	SDL_ShowCursor(mouse.showcursor==1);
 	#endif
 	draw_mousecursor(mouse.u);
+
+	// Zoom overlay control
+	zoom_overlay_control(&zc, &mouse.zoom_flag);
 }

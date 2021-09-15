@@ -57,36 +57,3 @@ void keyboard_button_event(int *b, int *quick_b, int way, int repeat)
 	else
 		*b = (2 + repeat) * (way==1);
 }
-
-void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key)
-{
-	xy_t move_vector=XY0;
-	const double rep_inc=0.25;
-	int s;
-
-	if (zc->mouse->zoom_allowed && get_kb_alt())
-	{
-		// Toggle or reset zoom with (Shift-)Alt-Z
-		if (zc->mouse->key_state[RL_SCANCODE_Z]==2)
-			if (get_kb_shift()==0)
-				zoom_toggle(zc, flag_zoom_key);
-			else
-				zoom_reset(zc, flag_zoom_key);
-
-		// Scroll with Alt-WASD
-		if ((s=zc->mouse->key_state[RL_SCANCODE_A]) >= 2)	move_vector.x -= s==2 ? 1. : rep_inc;
-		if ((s=zc->mouse->key_state[RL_SCANCODE_D]) >= 2)	move_vector.x += s==2 ? 1. : rep_inc;
-		if ((s=zc->mouse->key_state[RL_SCANCODE_S]) >= 2)	move_vector.y -= s==2 ? 1. : rep_inc;
-		if ((s=zc->mouse->key_state[RL_SCANCODE_W]) >= 2)	move_vector.y += s==2 ? 1. : rep_inc;
-
-		if (is0_xy(move_vector)==0)
-		{
-			zc->offset_u = add_xy(zc->offset_u, mul_xy(move_vector, set_xy(4./zc->zoomscale)));	// move by steps of 4 units
-			calc_screen_limits(zc);
-		}
-
-		// Zoom in or out
-		if (zc->mouse->key_state[RL_SCANCODE_Q]==2)	zoom_wheel(zc, 1, -1);
-		if (zc->mouse->key_state[RL_SCANCODE_E]==2)	zoom_wheel(zc, 1, 1);
-	}
-}

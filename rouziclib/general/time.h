@@ -3,6 +3,7 @@
 #ifdef _WIN32
 #define timegm _mkgmtime
 #define gmtime_r(t, tm) gmtime_s(tm, t)
+#define localtime_r(t, tm) localtime_s(tm, t)
 #endif
 
 extern uint32_t get_time_ms();
@@ -18,3 +19,5 @@ extern time_t parse_date_time_string(const char *string);
 extern double parse_date_time_string_hr(const char *string);
 extern void sleep_ms(int ms);
 extern void sleep_hr(double t);
+extern void time_struct_minimise_elem(struct tm *ts, const int level);
+extern time_t time_struct_local_get_next_period(struct tm ts0, const int level);
