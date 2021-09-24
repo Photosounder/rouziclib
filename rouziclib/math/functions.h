@@ -7,6 +7,9 @@
 #define MAXN(x, y)	(((x) > (y)) ? (x) : (y))
 #define MINN(x, y)	(((x) < (y)) ? (x) : (y))
 
+#define cos_tr(x)	cos((x)*2.*pi)
+#define sin_tr(x)	sin((x)*2.*pi)
+
 extern int32_t fphypot(int32_t x, int32_t y);
 extern double sq(double x);
 extern float sqf(float x);

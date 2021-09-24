@@ -35,7 +35,7 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 	return butt_state.uponce;
 }
 
-int ctrl_button_chamf(const uint8_t *name, rect_t box, col_t colour)
+ctrl_button_state_t ctrl_button_chamf_state(const uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);
@@ -46,7 +46,7 @@ int ctrl_button_chamf(const uint8_t *name, rect_t box, col_t colour)
 
 	ctrl_button_invis(box, &butt_state);
 	if (butt_state.too_small || butt_state.out_of_screen)
-		return 0;
+		return butt_state;
 
 	intensity *= intensity_scaling(total_scale, 48.);
 
@@ -64,7 +64,12 @@ int ctrl_button_chamf(const uint8_t *name, rect_t box, col_t colour)
 	box = rect_add_margin(box, xy(MINN(-dim.x/10., -dim.y/6.), -dim.y/6.));
 	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
-	return butt_state.uponce;
+	return butt_state;
+}
+
+int ctrl_button_chamf(const uint8_t *name, rect_t box, col_t colour)
+{
+	return ctrl_button_chamf_state(name, box, colour).uponce;
 }
 
 int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour)
@@ -172,31 +177,36 @@ int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 	rect_t open_box, entry_box;
 	int i, ret = 0, over_something=0;
 
-	state->open = state->next_open;
+	state->open = state->next_open;		// set the menu's open status based on the previous input
 
+	// Menu top control (opens/closes the menu)
 	ctrl_button_invis(box, &butt_state);
 	if (butt_state.too_small || (state->open==0 && butt_state.out_of_screen))
 		return 0;
 
 	if (butt_state.uponce)
-		state->next_open ^= 1;
+		state->next_open ^= 1;		// open/close menu when top control is clicked
 
 	if (butt_state.over)
 		over_something = 1;
 
+	// Draw top control box
 	intensity *= intensity_scaling(total_scale, 24.);
-
 	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, intensity);
+	draw_label("\363\260\204\200", make_rect_off(box.p1, set_xy(rect_min_side(box)), xy(1., 1.)), colour, ALIG_CENTRE);	// check mark
 
+	// When the menu is open
 	state->hover_id = -1;
 	if (state->open)
 	{
+		// Draw containing frame
 		open_box = selectmenu_rect(box, -state->count);
 		draw_black_rect(sc_rect(open_box), drawing_thickness, 1.);
 		draw_rect(sc_rect(open_box), drawing_thickness, colour, cur_blend, intensity);
 
 		for (i=0; i < state->count; i++)
 		{
+			// Process input for each menu entry
 			entry_box = selectmenu_rect(box, i);
 			if (ctrl_button_invis(entry_box, &subbutt_state))
 			{
@@ -209,11 +219,14 @@ int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 			{
 				over_something = 1;
 				state->hover_id = i;
+
+				// Highlight hovered entry with a blue background
 				draw_rect_full(sc_rect(entry_box), drawing_thickness, make_colour_hsl(220., 0.5, 0.08, HUEDEG, 0), cur_blend, 1.);
 			}
 		}
 	}
 
+	// Close menu if clicked outside of any of its controls
 	if (over_something==0 && butt_state.down==0 && mouse.b.lmb==2)
 		state->next_open = 0;
 
@@ -225,6 +238,7 @@ void draw_selectmenu_entry(ctrl_selectmenu_state_t *state, rect_t box, col_t col
 	double scale = rect_min_side(box);
 	rect_t entry_box, main_label_box;
 
+	// Draw the selected entry's name in the top control
 	if (id == state->sel_id)
 	{
 		main_label_box = box;
@@ -232,15 +246,16 @@ void draw_selectmenu_entry(ctrl_selectmenu_state_t *state, rect_t box, col_t col
 		main_label_box.p1.x -= scale;
 		main_label_box = rect_add_margin(main_label_box, xy(0., -2.*scale/LINEVSPACING));
 		draw_label(label, main_label_box, colour, ALIG_LEFT);
-		draw_label("\xf3\xb0\x84\x80", make_rect_off(box.p1, set_xy(scale), xy(1., 1.)), colour, ALIG_CENTRE);
 	}
 
 	entry_box = selectmenu_rect(box, id);
 
+	// Draw the entry's name in the menu
 	if (state->open)
 	{
+		// Draw checkmark if selected
 		if (id == state->sel_id)
-			draw_label("\xe2\x9c\x94", rect_add_margin(make_rect_off(entry_box.p0, set_xy(scale), XY0), set_xy(-1.5/12.*scale)), colour, ALIG_CENTRE);
+			draw_label("\342\234\224", rect_add_margin(make_rect_off(entry_box.p0, set_xy(scale), XY0), set_xy(-1.5/12.*scale)), colour, ALIG_CENTRE);
 
 		entry_box.p0.x += scale;
 		entry_box.p1.x -= 3.*scale/LINEVSPACING;
