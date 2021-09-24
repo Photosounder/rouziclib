@@ -297,7 +297,7 @@ Draw full and hollow Gaussian-antialiased circles.
 **** link:rouziclib/graphics/drawqueue/opencl/drawline.cl[drawline.cl] +
 Draw Gaussian-antialiased thin lines and Gaussian dots.
 
-**** link:rouziclib/graphics/drawqueue/opencl/drawqueue.cl[drawqueue.c] +
+**** link:rouziclib/graphics/drawqueue/opencl/drawqueue.cl[drawqueue.cl] +
 Includes all the other .cl files and is compiled to link:rouziclib/graphics/drawqueue/opencl/drawqueue.cl.h[drawqueue.cl.h] for inclusion in the program, which then gets compiled by the OpenCL compiler at run time to generate the OpenCL kernels. Reads the buffers sent from the host and interprets them to execute the drawing functions.
 
 **** link:rouziclib/graphics/drawqueue/opencl/drawrect.cl[drawrect.cl] +
