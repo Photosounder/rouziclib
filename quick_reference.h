@@ -255,6 +255,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 		"elem 0", "type none", "label Window_title", "pos	0	0", "dim	4	4", "off	0	1", "",
 	};
 
+	layout.sm = 1.;
 	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "my_window_function");
 
 	static flwindow_t window={0};
@@ -280,6 +281,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 				"elem 110", "type rect", "link_pos_id 100", "pos	2;1	0", "dim	2;10	2;6", "off	0	1", "",
 			};
 
+			layout.sm = 1.;
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Parent window layout");
 
 			// Window
@@ -323,6 +325,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 				"elem 0", "type none", "label Child1 window", "pos	0	0", "dim	3	3;6", "off	0	1", "",
 			};
 
+			layout.sm = 1.;
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Child 1");
 
 			// Window
