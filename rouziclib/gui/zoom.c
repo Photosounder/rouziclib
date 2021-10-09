@@ -227,7 +227,7 @@ void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key)
 	}
 
 	// Apply the move
-	if (is0_xy(move_vector)==0)
+	if (is0_xy(move_vector)==0 || zoom_way)
 	{
 		move_vector = mul_xy(move_vector, set_xy(4./zc->zoomscale));	// move by steps of 4 units
 		zc->zoomscale *= pow(2., 1./2. * zoom_way);

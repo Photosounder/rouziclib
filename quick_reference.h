@@ -288,10 +288,10 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 
 			// Sub-windows
 			if (*child1_detach==0)
-				window_register(1, child1_func, gui_layout_elem_comp_area_os(&layout, 100, XY0), child1_detach, 1, diag_on);
+				window_register(1, child1_func, gui_layout_elem_comp_area_os(&layout, 100, XY0), child1_detach, 0);
 
 			if (*child2_detach==0)
-				window_register(1, child2_func, gui_layout_elem_comp_area_os(&layout, 110, XY0), child2_detach, 1, diag_on);
+				window_register(1, child2_func, gui_layout_elem_comp_area_os(&layout, 110, XY0), child2_detach, 0);
 		}
 
 		void root_function(int *diag_on)
@@ -305,19 +305,18 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 			// Sub-windows
 			if (child1_detach)
 			{
-				window_register(1, child1_func, RECTNAN, &child1_detach, 1, diag_on);
+				window_register(1, child1_func, RECTNAN, &child1_detach, 0);
 				window_set_parent(child1_func, parent_window_function);
 			}
 
 			if (child2_detach)
 			{
-				window_register(1, child2_func, RECTNAN, &child2_detach, 1, diag_on);
+				window_register(1, child2_func, RECTNAN, &child2_detach, 0);
 				window_set_parent(child2_func, parent_window_function);
 			}
 		}
 
-		// The child window is drawn if it's detached or the parent window is on
-		void child1_func(rect_t parent_area, int *detached, int *parent_on)
+		void child1_func(rect_t parent_area, int *detached)
 		{
 			static gui_layout_t layout={0};
 			const char *layout_src[] = {

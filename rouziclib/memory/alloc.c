@@ -126,6 +126,19 @@ void **copy_2d(void **ptr, const size_t ptr_count, const size_t size_buffers)
 	return array;
 }
 
+void **copy_2d_contig(void **ptr, const size_t ptr_count, const size_t size_buffers, const size_t size_elem)
+{
+	void **array;
+
+	array = calloc_2d_contig(ptr_count, size_buffers, size_elem);
+	if (array==NULL)
+		return NULL;
+
+	memcpy_2d(array, ptr, ptr_count, size_buffers*size_elem);
+
+	return array;
+}
+
 void **memset_2d(void **ptr, const int word, const size_t size, const size_t count)
 {
 	size_t i;

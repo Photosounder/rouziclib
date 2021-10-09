@@ -121,6 +121,8 @@ extern int mul_x_by_y_xyi(xyi_t a);
 
 extern xy_t fma_xy(xy_t pos, xy_t tmul, xy_t tadd);
 extern double get_xyz_index(xyz_t v, const int index);
+extern xy_t swap_xy(xy_t v);
+
 extern matrix_t matrix_xyz(xyz_t x, xyz_t y, xyz_t z);
 extern matrix_t matrices_mul(matrix_t a, matrix_t b);
 extern xyz_t matrix_mul(xyz_t v, matrix_t m);

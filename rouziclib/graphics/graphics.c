@@ -305,7 +305,7 @@ void screen_blank()
 	if (fb.use_drawq)
 		return ;
 	else if (fb.r.use_frgb)
-		memset (fb.r.f, 0, fb.w*fb.h*sizeof(frgb_t));
+		memset(fb.r.f, 0, fb.w*fb.h*sizeof(frgb_t));
 	else
-		memset (fb.r.l, 0, fb.w*fb.h*sizeof(lrgb_t));
+		memset(fb.r.l, 0, fb.w*fb.h*sizeof(lrgb_t));
 }

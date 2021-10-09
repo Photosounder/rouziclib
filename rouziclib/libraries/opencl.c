@@ -571,7 +571,7 @@ int check_opencl()
 #endif
 }
 
-void dialog_cl_gl_interop_options(rect_t area, int *detached, int *parent_on)
+void dialog_cl_gl_interop_options(rect_t area, int *detached)
 {
 	#ifdef RL_OPENCL
 	// GUI layout

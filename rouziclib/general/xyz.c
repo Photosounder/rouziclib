@@ -586,6 +586,12 @@ double get_xyz_index(xyz_t v, const int index)
 	return 0.;
 }
 
+xy_t swap_xy(xy_t v)
+{
+	swap_double(&v.x, &v.y);
+	return v;
+}
+
 matrix_t matrix_xyz(xyz_t x, xyz_t y, xyz_t z)
 {
 	matrix_t out;
