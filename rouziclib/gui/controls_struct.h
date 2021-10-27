@@ -23,6 +23,7 @@ typedef struct
 {
 	int *wind_on, dereg, order, already_ran;
 	void *window_func, *parent_window_func;
+	void *window_data;	// pointer to data, only used for identifying different windows with the same function
 	void **ptr_array;
 	int ptr_count;
 	rect_t parent_area;

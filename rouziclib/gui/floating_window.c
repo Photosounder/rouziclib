@@ -184,6 +184,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	if (close_on)
 		draw_label("\342\250\211", close_x_area, w->close_x_col, ALIG_CENTRE);			// close button
 
+	// Resizing corner
 	if (w->hide_corner==0)
 	{
 		corner_area_os = make_rect_off( rect_p10(area_os), set_xy(get_rect_dim(bar_area_os).y * 6./12.), xy(1., 0.) );

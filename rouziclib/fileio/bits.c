@@ -105,3 +105,15 @@ uint32_t reverse_n_bits32(uint32_t v, int n)
 {
 	return reverse_bits32(v) >> (32-n);
 }
+
+uint32_t reverse_iterator_bits32(int *i, uint32_t count)	// i should not be the for loop iterator but rather a variable that starts from 0 and isn't touched outside of this function
+{
+	uint32_t ir;
+
+	ir = reverse_n_bits32(*i, log2_ffo32(count));	// reverse the correct number of bits
+	(*i)++;						// iterate i for the next call to this function
+	if (ir >= count)				// if ir is too large
+		ir = reverse_iterator_bits32(i, count);	// get the next ir in the sequence
+
+	return ir;
+}
