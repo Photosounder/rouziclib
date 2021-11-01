@@ -672,7 +672,7 @@ It starts with a subglyph called "A" (subglyphs get a single ASCII character to 
 ++++
 <p align="center">
   <img src="./tools/img/058D.png">
-  The glyph &#1421; as it appears in Spacewar's typeface editor.
+  <br>The glyph &#1421; as it appears in Spacewar's typeface editor.
 </p>
 ++++
 
