@@ -1,6 +1,10 @@
+:toc:
+
 = rouziclib
 
-This is my library of code that is common to all my different projects such as https://photosounder.com[Photosounder], https://photosounder.com/spiral/[Spiral] and https://photosounder.com/splineeq/[SplineEQ], but also lesser projects such as my minimalistic https://github.com/Photosounder/rouziclib-picture-viewer[picture viewer], my https://github.com/Photosounder/screenshot-tool[screenshot tool] or my modernised version of NASA's https://github.com/Photosounder/Voyager-Image-Decoder[Voyager Image Decoder] as well as projects you don't know about such as my private project Spacewar which is where all my new code is born.
+This is my library of code that is common to all my different projects such as https://photosounder.com[Photosounder], https://photosounder.com/spiral/[Spiral] and https://photosounder.com/splineeq/[SplineEQ], but also lesser projects such as my minimalistic https://github.com/Photosounder/rouziclib-picture-viewer[picture viewer], my https://github.com/Photosounder/screenshot-tool[screenshot tool] or my modernised version of NASA's https://github.com/Photosounder/Voyager-Image-Decoder[Voyager Image Decoder] as well as projects you don't know about such as my private project Spacewar where all my new code is born.
+
+== What it does
 
 It includes some of the following:
 
@@ -33,7 +37,7 @@ It includes some of the following:
 
 All graphical functions operate on pixels in a linear colour space. Please do not use these functions directly in a gamma-compressed colour space, instead use an intermediary linear framebuffer which you can then convert to an sRGB framebuffer using the function `convert_lrgb_to_srgb`.
 
-=== How to use it
+== How to use it
 
 Unusually for a library, rouziclib's code relies on macros that are defined inside your project's code. This means that rouziclib isn't entirely independently compiled. So the way to make this work is to create two files in your project, a header file which directly includes the main header, but not before you add the macros you can optionally define, and a code file which includes the aforementioned header file you just created and then includes the library's rouziclib.c. Here's how it looks:
 
@@ -91,10 +95,10 @@ void fprintf_wrapper (FILE *stream, const char* format, ...)
 
 I realise that this is a bit unusual, but it's pretty simple and very handy. You can for instance include rouziclib in a simple command-line C program without having to worry about dependencies as none will be included, and in another project add dependencies as you need by adding the necessary macros, so without having the recompile anything separately (as you would have to were you to use two versions of a same library compiled with different dependencies) you can have in separate projects a rouziclib with no dependencies or a rouziclib that uses SDL, DevIL, OpenCV, OpenCL, clFFT, FFMPEG and LibRAW.
 
-=== Example project
+== Example project
 Have a look at a minimal https://github.com/Photosounder/rouziclib-picture-viewer[picture viewer] built around rouziclib, with explanations of its features, how it works and how to expand on it or create a similar program.
 
-=== Files
+== Files
 
 * link:rouziclib/rouziclib.c[rouziclib.c] / link:rouziclib/rouziclib.h[rouziclib.h] / link:rouziclib/rouziclib.m[rouziclib.m] +
 Every piece of code in this library is ultimately included into one of those three files, so it's as if this whole library was only made of 2 (or 3 on macOS) files. Basically rouziclib is just like a two-file library broken down into over 360 files due to size.
@@ -581,3 +585,105 @@ Emscripten-specific code.
 
 ** link:rouziclib/libraries/orig[orig/] +
 This where I put libraries I use from third parties. Several of them have modifications which are described in the link:rouziclib/libraries/orig/update_notes.txt[update notes].
+
+== Vector typeface
+
+The link:vector_type/[vector_type] folder contains the files that make up my vector typeface which is embedded into rouziclib. Unlike usual digital typefaces which typically define outlines using splines, with a set of different fixed weights, my typeface defines strokes, it is only made of thin straight lines and it has only one weight which is infinity thinness. Simplicity is the goal, both simplicity of design, each glyph is made of a few straight lines, no curves, no outlines, no weights, so the glyph for A is defined with 3 straight lines instead of a more typical 10 or 11 for outlines, and simplicity of implementation, as every glyph can be displayed provided only that the current display system (I currently have 4 different display systems in rouziclib (fixed-point framebuffer, floating-point framebuffer, OpenCL drawing queue and CPU multithreaded SIMD drawing queue) and every system lacks features that another system might have) has an implementation for `draw_line_thin()`.
+
+Another difference with typical computer fonts is that the files that make up my typeface are meant to be read and edited by hand (although my project Spacewar contains tools to generate glyphs, which I used mainly to make Japanese kana glyphs by tracing). I believe that readable text markup is a powerful way to represent anything, be it entire projects (like the PHA files of Photosounder), configuration files, or as in this case the data and commands needed to generate a typeface. Unlike meme formats like XML or JSON it's more readable, elegant, natural and doesn't require the use of a parsing library (little more than `sscanf()` is needed to parse my markup), it doesn't require specialised tools, because it's more understandable the data is more portable, and because it's so simple and natural it's more future-proof, a future parser can easily make use of outdated markup.
+
+=== Structure
+
+When rouziclib loads the typeface, it starts by loading link:vector_type/type_index.txt[type_index.txt], which itself points to 3 types of files through 3 commands.
+
+* `range` points to a file that represents a Unicode range of glyphs. The range start and end points indicated are only there so that my glyph design tool (in Spacewar) would know in which file to put a glyph.
+
+* `substitutions` points to the file that defines certain glyphs as being exactly another glyph. For instance the Greek &#927;, the Cyrillic &#1054; and the Armenian &#1365; all look pretty similar to the Latin O, so substitution is used. When the renderer tries to render a Cyrillic &#1054; it draws the Latin O instead, so we don't even store a copy of the substituted glyph.
+
+* `cjkdecomp` contains commands (coded as a number) to assemble two CJK glyphs into a new one, so that the basic strokes I designed can be assembled into making any CJK glyph. Because it's a rather heavy file and that very few glyphs looked correct it's excluded from the compressed header used to embed the typeface in a program. It's based on https://github.com/amake/cjk-decomp/blob/master/cjk-decomp.txt[this file] and hopefully one day in the future I'll have a better more solid way of generating CJK glyphs.
+
+=== Glyph notation
+
+Let's have a look at a simple glyph, A:
+
+```
+glyph 'A'
+        p1      2       0
+        p2      1;2;8   2;4
+        p3      0       6
+        mirror  v 0     p1 p2   p4
+        lines   p1 p3 p4
+        lines   p2 p5
+        bounds  -1;9 1;9
+```
+
+There are many things to explain. The shape of the glyph A is defined by only 3 points, this is because it's a symmetrical glyph, it would be inelegant to not automate symmetry along the vertical axis. So 3 points are defined, `p1`, the bottom of the right leg at x=2 and y=0 (x=0 is the middle of the glyph, y=0 is the baseline, y=6 is the cap height), `p3` is the top middle point, and `p2` defines the middle bar. Points `p1` to `p2` are then mirrored along the vertical axis, the mirrored points starting from `p4`, and then those 5 points need to be connected to form lines, `p1` to `p3` and then `p4` to form the &#923; part of the glyph, and then `p2` to `p5` for the horizontal line. The last command is optional but quite necessary for such a glyph, it's used for https://en.wikipedia.org/wiki/Kerning[kerning]. Without it the glyph would be considered to have bounds at x=-2 and x=2, which in the case of such glyphs such as A or T looks wrong, it makes them look like they're too far away from other letters. So by setting narrower bounds the distance to other letters (which is 1.5 units by default) is reduced, in this case by 0.25 units.
+
+=== Quasi-base 12 notation
+
+Now you must be wondering, what's going on with the semicolons? What can "1;2;8" possibly mean? Well you see, it's nice to define points on a 4 by 6 grid, but what if you need to go finer, what if you need to put a point on a third of a unit? Should I write it as "0.33333333333333"? That's very inelegant. We use base 10, and the problem with this is that it's only good if you want to represent halves, fifths or tenths. If you want to represent thirds, sixths, ninths or twelfths it's absolutely horrible. Unfortunately using thirds is a very essential part of geometrically designing such things as glyphs, so I wanted a better approach. I chose to represent numbers as a combination of fractions of powers of 12, separated by a semicolon. For instance 2;10;8 means 2 + 10/12 + 8/144, in other words 2.888888888888. Since it's not a strict dozenal representation it's easy to type (no need for special characters for 10 and 11), and since it's a way to represent fractions real numbers can be used to make up for the deficiencies of a dozenal system. For instance 1/60 (0.01666666) in strict dozenal notation also yields an endless number, whereas which my approach I can simply write it as 0;0.2, which means 0 + 0.2/12. It's simple and elegant.
+
+The point `p2` of the glyph A is a good example of the need for such notation. The middle bar looked way too high at a height of 3 units, even 2.5 units looked too high, and 2 and a third seemed like a natural choice, so it was convenient to represent the height as 2;4. Then came the problem of the horizontal position, the bar has to stop right where it means the diagonal lines. That means it has to stop at a x position of 2 * (6-(2+1/3))/6 = 1.2222222222, or 1;2;8. The number 1;2;8, by only taking 5 characters yet having full precision, fits nicely in its 8-character column. When designing things geometrically you need to think in terms of fractions and formulas, therefore a suitable representation is needed. That itself helps you in not being scared of using fractions that are inconvenient to use in decimal notation.
+
+I also use a similar notation for angles. For geometrical design I think it's most sensible to think of angles as fractions of a full circle, using radians would be absurd, and in a way traditional notation by degrees lets you do this, but in a flawed way (because you must multiply everything by 360 and 360 isn't a multiple of 16, and frankly I'm not a fan of using a strange number like 45 to represent an eighth of a circle). If you want to represent an angle that is a third of a circle, it would make sense to represent it as 0;4. However since in geometry there is hardly any use for angles that are larger than a full circle, that means every angle in my notation would have to start with "0;". So I do away with it and simply represent a third of a circle as 4. This notation has advantages over using degrees, for instance 1/32 of a circle is 11.25&#176;, a number that I wouldn't be like to find without using a calculator, but simply 0;4;6 in my representation, a number that I can find by simple successive halvings starting from a quarter of a circle: 3 &#8594; 1;6 &#8594; 0;9 &#8594; 0;4;6 (and it's easy to go on a bit longer, &#8594; 0;2;3 &#8594; 0;1;1;6, only by 1/256 of a circle does it get harder). That representation also has the benefit of matching the familiar clock face, you already know what a 2 o'clock angle looks like.
+
+=== Curved segments, subglyphs and other advanced features
+
+I use this notation in designing glyphs for rotations or the command called `curveseg` which defines a new point that forms a line that forms a curve by defining an angle to the previous line in the curve, and also defining a length that is either a ratio of the previous line's length or an absolute length. My design for the glyph &#1421; is a good example of this:
+
+```
+glyph 058D
+	subglyph A
+	p1      0       0
+	p2      0       0;10;9
+	curveseg p3     0;9     0;10x
+	curveseg p4     0;9     0;10;3x
+	curveseg p5     0;9     0;10;6x
+	curveseg p6     0;9     0;10;9x
+	curveseg p7     0;9     0;11x
+	curveseg p8     0;9     0;11;3x
+	curveseg p9     0;9     0;11;6x
+	curveseg p10    0;9     0;11;9x
+	curveseg p11    0;9     0;10;0;10;5x
+	lines p1 to p11
+	subend
+
+	copy 058D A
+	rotate 1;6
+	copy 058D A
+	rotate 1;6
+	copy 058D A
+	rotate 1;6
+	copy 058D A
+	rotate 1;6
+	copy 058D A
+	rotate 1;6
+	copy 058D A
+	rotate 1;6
+	copy 058D A
+	rotate 1;6
+	copy 058D A
+	rotate 1;6
+	move 0 3
+```
+
+It starts with a subglyph called "A" (subglyphs get a single ASCII character to identify them), a subglyph which will be copied, then the whole glyph rotated by 1;6 (one eigths of a circle or 45&#176;), this process repeated eight times and then the whole glyph moved up 3 units to be properly centered. The design of the subglyph, which is one branch of the symbol, is the most interesting. It starts with a vertical line, `p1`, the center of the whole glyph and start of this branch, and `p2`, the first point along the curve. The vertical position of `p2` defines the scale of the glyph, if `p2` was only 0;9 instead of 0;10;9 the whole glyph would be exactly the same except about 84% its current size. The point `p3` is defined using `curveseg`, and what the first parameter means is that the line p2-p3 forms an angle of 0;9 (1/16 of a circle or 22.5&#176;) with the previous line (p1-p2). The second parameter means that the line p2-p3 is 0;10 times the length of the previous line. The lines that follow are each smaller than the line that immediately precedes by a given ratio, however this ratio progressively increases. This means that which lines become smaller and smaller, their length changes less and less. As the ratio goes towards 1, the curve becomes more circular, so that while our branch starts off a bit like a logarithmic spiral, in the end it becomes almost circular. It would be impossible to design such a glyph, least of all in such an elegant manner, without a command like `curveseg`. Note that the last line, p10 to p11, had its length ratio finely adjusted so that it would stop where it meets the next branch.
+
+++++
+<p align="center">
+  <img src="./tools/img/058D.png">
+</p>
+<p align="center">
+  The glyph &#1421; as it appears in Spacewar's typeface editor.
+</p>
+++++
+
+More such commands are briefly described in link:rouziclib/vector_type/make_font.h[make_font.h], such as `rect` to create points that form a rectangle, `circle` to create any number of points along a circle, and commands to move, scale, rotate or shear a glyph or parts of a glyph to help in combining glyphs or subglyphs.
+
+== Tools
+
+Tools used to generate parts of rouziclib, such as the compressed typeface header, the many lookup tables or the C header containing the OpenCL code, are described link:tools/[here].
+
+== Quick reference
+
+This library being my own personal library, the documentation is sparse and limited to the bare minimum that I need to use it. The bulk of it is in link:quick_reference.h[quick_reference.h], which has the `.h` suffix only to benefit from syntax highlighting. I consult this file when coding something, as a sort of template. For instance if I want to draw a line, I don't remember the syntax so I just copy the line in `quick_reference.h` that says `draw_line_thin(sc_xy(p0), sc_xy(p1), drawing_thickness, white, blend_add, intensity);` and then adapt it to my needs. Same thing when I want to redimension an array as needed, I search for `alloc_enough` in the file and adapt the relevant line. It can also serve as a checklist of sort, for instance when making threads, to make sure I haven't forgotten anything. Having templates all in one file beats looking through source code for examples of how to use a function, so having a file filled with ready to copy examples of how to use a functionality and occasionally with an explanation of what arguments do is something I recommend. I typically add code to this file when I catch myself looking more than once for an example of code of one functionality of rouziclib.

@@ -4,7 +4,7 @@ Some external tools are needed to generate parts of rouziclib or to work with it
 
 ## Tablegen
 
-Tablegen is what I made to generate the lookup tables used for my fast floating point and fixed point arithmetic approximations. For some of them like the quintic cosine approximation the precision had to be higher than double precision so I used [MPFR](https://www.mpfr.org/) to generate tables with high accuracy. My method starts to fail with sextic polynomial fitting. The code isn't very pretty but it does the job.
+Tablegen is what I made to generate the lookup tables used for my fast floating point and fixed point arithmetic approximations. For some of them like the quintic cosine approximation the precision had to be higher than double precision so I used [MPFR](https://www.mpfr.org/) to generate tables with high accuracy.
 
 ## Bin-to-C
 
@@ -12,7 +12,7 @@ If you look at the top of [drawqueue.cl](https://github.com/Photosounder/rouzicl
 
 ## Fileball
 
-Fileballs are my own approach to something similar to tarballs, except simpler. That means that many files are put together into one. The format is dead simple, it starts with the line `fileball 1.0` just in case I ever make new versions, then follows a UTF-8 relative file path to extract to such as `images/01.png`, then on the next line the number of bytes in it, then on the next line all the bytes, and after the specified number of bytes you may find the next entry, if any. That fileball can then be compressed using the DEFLATE compression, and then it can be turned into a C header. The goal is to be able to include small files all at once into an executable in a totally portable for the sake of convenience.
+Fileballs are my own approach to something similar to tarballs, except simpler. That means that many files are put together into one. The format is dead simple, it starts with the line `fileball 1.0` just in case I ever make new versions, then follows a UTF-8 relative file path to extract to such as `images/01.png`, then on the next line the number of bytes in it, then on the next line all the bytes, and after the specified number of bytes you may find the next entry, if any. That fileball can then be compressed using the DEFLATE compression, and then it can be turned into a C header. The goal is to be able to include small files all at once into an executable in a totally portable way for the sake of convenience.
 
 Fileball.c shows you how to compress a list of files in one call to either an uncompressed fileball, a compressed fileball or a compressed C header fileball that's ready to include as a string literal. You can tell that I didn't dwell on it very long given that I didn't bother with setting a proper output path, but that's easy for you to solve. I heard that the limit you can expect from compilers is 32 kB (measured at the level of the binary compressed fileball), so that's good if you have about 100 kB of small files to put into your binary which you can then extract to a path using code like this:
 
