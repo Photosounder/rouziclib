@@ -656,7 +656,7 @@ double **chebyshev_coefs_2d(xyi_t degree)
 	return t;
 }
 
-double chebyshev_node(double degree, double node)		// node = 0,...,degree-1
+double chebyshev_node(double degree, double node)		// node = 0,...,degree-1  FIXME degree isn't really degree but degree+1
 {
 	if (degree < 1. || node+0.5 < 0. || node+0.5 > degree)
 		return 0.;

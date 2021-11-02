@@ -409,5 +409,5 @@ void gui_layout_edit_toolbar(int toggle_edit_on)
 	static int toggle_edit_on_copy;
 
 	toggle_edit_on_copy = toggle_edit_on;
-	window_register(1, gui_layout_edit_toolbar_core, rect(XY0, XY0), NULL, 1, &toggle_edit_on_copy);
+	window_register(1, gui_layout_edit_toolbar_core, NULL, rect(XY0, XY0), NULL, 1, &toggle_edit_on_copy);
 }

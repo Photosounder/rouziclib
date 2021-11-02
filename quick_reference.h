@@ -245,7 +245,7 @@
 		void my_window_function(rect_t parent_area, int *diag_on, <my_ptr_type *ptr1, my_ptr_type *ptr2 ...>)
 
 	// Window functions are registered like this
-		window_register(1, my_window_function, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
+		window_register(1, my_window_function, NULL, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
 
 	// Registered window function template with parent area
 void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *arg2)
@@ -290,10 +290,10 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 
 			// Sub-windows
 			if (*child1_detach==0)
-				window_register(1, child1_func, gui_layout_elem_comp_area_os(&layout, 100, XY0), child1_detach, 0);
+				window_register(1, child1_func, NULL, gui_layout_elem_comp_area_os(&layout, 100, XY0), child1_detach, 0);
 
 			if (*child2_detach==0)
-				window_register(1, child2_func, gui_layout_elem_comp_area_os(&layout, 110, XY0), child2_detach, 0);
+				window_register(1, child2_func, NULL, gui_layout_elem_comp_area_os(&layout, 110, XY0), child2_detach, 0);
 		}
 
 		void root_function(int *diag_on)
@@ -302,18 +302,18 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 
 			// Window
 			if (*diag_on)
-				window_register(1, parent_window_function, RECTNAN, diag_on, 2, &child1_detach, &child2_detach);
+				window_register(1, parent_window_function, NULL, RECTNAN, diag_on, 2, &child1_detach, &child2_detach);
 
 			// Sub-windows
 			if (child1_detach)
 			{
-				window_register(1, child1_func, RECTNAN, &child1_detach, 0);
+				window_register(1, child1_func, NULL, RECTNAN, &child1_detach, 0);
 				window_set_parent(child1_func, parent_window_function);
 			}
 
 			if (child2_detach)
 			{
-				window_register(1, child2_func, RECTNAN, &child2_detach, 0);
+				window_register(1, child2_func, NULL, RECTNAN, &child2_detach, 0);
 				window_set_parent(child2_func, parent_window_function);
 			}
 		}
@@ -819,3 +819,6 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 
 	// 190712 transition changing how floating windows work
 	// add NULL as a 3rd argument for normal floating windows
+
+	// 211102 transition of adding a window_data argument to window_register()
+	// add NULL as a 3rd argument

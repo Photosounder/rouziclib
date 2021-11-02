@@ -227,7 +227,7 @@ void window_run(window_manager_entry_t *w)
 	w->already_ran = 1;
 }
 
-int window_register(int priority, void *window_func, rect_t parent_area, int *wind_on, int num_args, ...)
+int window_register(int priority, void *window_func, void *window_data, rect_t parent_area, int *wind_on, int num_args, ...)
 {
 	int i, ia;
 	va_list ap;
