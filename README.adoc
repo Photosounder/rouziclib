@@ -196,7 +196,7 @@ Basic math functions, an approximation of the inverse error function, functions 
 IEEE-754 floating point manipulation, fractional part calculation and dealing with numbers at the level of https://en.wikipedia.org/wiki/Unit_in_the_last_place[units of least precision] to guarantee incrementation or make floating point comparisons that take a degree of error into account.
 
 ** link:rouziclib/math/rand.c[rand.c] / link:rouziclib/math/rand.h[rand.h] +
-Functions to generate uniform pseudo-random numbers in a given range, nmumbers with a normal (Gaussian) distribution and a PRNG based on MINSTD.
+Functions to generate uniform pseudo-random numbers in a given range, nmumbers with a normal (Gaussian) distribution and a PRNG based on https://github.com/skeeto/hash-prospector[xorshift-multiply hashing].
 
 ** link:rouziclib/math/dsp.c[dsp.c] / link:rouziclib/math/dsp.h[dsp.h] +
 FFT size calculation, basic array operations, root mean square computation, decibel conversion, Blackman window, short Gaussian window (an original way to make a Gaussian window finite with desirable characteristics) and its integral, polynomial step functions, ramp filter kernel computation.
@@ -311,7 +311,7 @@ Draw full Gaussian-antialiased rectangles, either additively or with multiplicat
 Fast error function (`erf()`) approximation.
 
 **** link:rouziclib/graphics/drawqueue/opencl/rand.cl[rand.cl] +
-MINSTD-based PRNG used to generate a practically non-repeating Gaussian noise texture used for dithering.
+Xorshift-multiply hashing PRNG used to generate a practically non-repeating Gaussian noise texture used for dithering.
 
 **** link:rouziclib/graphics/drawqueue/opencl/srgb.cl[srgb.cl] +
 sRGB conversions, out-of-gamut colour desaturation and Gaussian dithering and optional quantisation (with `max_s`) to simulate lower colour bit depths.
