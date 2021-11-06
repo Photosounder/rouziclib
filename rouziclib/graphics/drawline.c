@@ -500,7 +500,7 @@ void bres_func_lrgb(xyi_t ip, raster_t *r, lrgb_t *col, void *arg3, void *arg4)	
 		r->l[ip.y * r->dim.x + ip.x] = *col;
 }
 
-void bresenham_line_core(xyi_t b0, xyi_t b1, const void (*func)(xyi_t,void*,void*,void*,void*), void *arg1, void *arg2, void *arg3, void *arg4)
+void bresenham_line_core(xyi_t b0, xyi_t b1, void (*func)(xyi_t,void*,void*,void*,void*), void *arg1, void *arg2, void *arg3, void *arg4)
 {
 	xyi_t d, s, i;
 	int err, e2;

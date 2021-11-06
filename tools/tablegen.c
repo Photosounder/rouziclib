@@ -39,7 +39,7 @@ void write_isqrt_lut()
 	int32_t i, lutsize=1UL<<lutsp;
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 
-	file = fopen("../rouziclib/fixedpoint/fracsqrt_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fracsqrt_d1i.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d, abdp = %d;\n", lutsp, prec, abdp);
 	fprintf(file, "static const uint32_t fracsqrt[] = {");
@@ -94,7 +94,7 @@ void write_fplog2_lut()
 
 	//abdp = log2_ffo(abd);
 
-	file = fopen("../rouziclib/fixedpoint/fraclog2_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fraclog2_d1i.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d, abdp = %d;\n", lutsp, prec, abdp);
 	fprintf(file, "static const int32_t fraclog2[] = {");
@@ -134,7 +134,7 @@ void write_fpexp2_lut()
 	int32_t i, lutsize=1UL<<lutsp;
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 
-	file = fopen("../rouziclib/fixedpoint/fracexp2_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fracexp2_d1i.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d, abdp = %d;\n", lutsp, prec, abdp);
 	fprintf(file, "static const int32_t fracexp2[] = {");
@@ -176,7 +176,7 @@ void write_fpcos_lut()
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 	char errlvl[256];
 
-	file = fopen("../rouziclib/fixedpoint/fpcos_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpcos_d1i.h", "wb");
 	
 	fprintf(file, "#ifndef FPCOS_PREC\n#define FPCOS_PREC 10\n#endif");
 
@@ -241,7 +241,7 @@ void write_fpwsinc_lut()
 	int32_t i, lutsize=1UL<<lutsp;
 	double x, y, ls=lutsize, ratio = (double) (1UL<<prec);
 
-	file = fopen("../rouziclib/fixedpoint/fpwsinc_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpwsinc_d1i.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d, abdp = %d;\n", lutsp, prec, abdp);
 	fprintf(file, "static const int32_t fpwsinc_lut[] = {%d, ", (int32_t) ratio);
@@ -294,7 +294,7 @@ void write_fpatan_lut()
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 	double x, y, a, t;
 
-	file = fopen("../rouziclib/fixedpoint/fpatan_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpatan_d1i.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d, abdp = %d;\n", lutsp, prec, abdp);
 	fprintf(file, "static const int32_t fpatan_lut[] = {");
@@ -335,7 +335,7 @@ void write_fpgauss_d1i_lut()
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 	double x;
 
-	file = fopen("../rouziclib/fixedpoint/fpgauss_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpgauss_d1i.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d, abdp = %d;\n", lutsp, prec, abdp);
 	fprintf(file, "static const int32_t fpgauss_lut[] = {");
@@ -361,7 +361,7 @@ void write_fpgauss_d0_lut()
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 	double x;
 
-	file = fopen("../rouziclib/fixedpoint/fpgauss_d0.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpgauss_d0.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d;\n", lutsp, prec);
 	fprintf(file, "static const uint16_t fpgauss_lut[] = {");
@@ -397,7 +397,7 @@ void write_fperfr_d1i_lut()
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 	double x;
 
-	file = fopen("../rouziclib/fixedpoint/fperfr_d1i.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fperfr_d1i.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d, abdp = %d;\n", lutsp, prec, abdp);
 	fprintf(file, "static const int32_t fperfr_lut[] = {");
@@ -423,7 +423,7 @@ void write_fperfr_d0_lut()
 	double ls=lutsize, ratio = (double) (1UL<<prec);
 	double x;
 
-	file = fopen("../rouziclib/fixedpoint/fperfr_d0.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fperfr_d0.h", "wb");
 
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d;\n", lutsp, prec);
 	fprintf(file, "static const uint16_t fperfr_lut[] = {");
@@ -439,171 +439,21 @@ void write_fperfr_d0_lut()
 	fclose (file);
 }
 
-#define t(x) ((end-start)*(x)+start)
-#define dft(x) df(t(x))
-#define df(x) diff_f(f, x, c)
-double diff_f(double (*f)(double), double x, double *c)
-{
-	return f(x) - (((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0]);
-}
-
 double cb(double x) { return x*x*x; }
 
 void find_polynomial_fit(double (*f)(double), double start, double end, double *c, int order)
 {
-	double	cep1=0.5-0.5*sqrt(0.5),
-		cep2=0.5+0.5*sqrt(0.5);		// cubic error peaks
-	double	qep1 = (3.-sqrt(5.))/8.,	// quartic error peaks
-		qep2 = (5.-sqrt(5.))/8.,
-		qep3 = (3.+sqrt(5.))/8.,
-		qep4 = (5.+sqrt(5.))/8.;
-	double	sep1 = (2.-sqrt(3.))/4.,	// sextic error peaks
-		sep2 = (2.+sqrt(3.))/4.;
-	
-	memset(c, 0, 6*sizeof(double));
-
-	if (order >= 0)
-	{
-		c[0] += 0.5 * (dft(1.0) + dft(0.0));
-	}
-
-	if (order >= 1)
-	{
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[0] += 0.5 * (dft(1.0) + dft(0.0));
-		c[0] += 0.5 * dft(0.5);
-	}
-
-	if (order >= 2)
-	{
-		c[2] += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
-
-		c[1] += 0.5 * (dft(0.75) - dft(0.0)) / (t(0.75) - t(0.0))
-		    + 0.5 * (dft(1.0) - dft(0.25)) / (t(1.0) - t(0.25));
-
-		c[0] += 0.5 * (dft(1.0) + dft(0.0));
-	}
-
-	if (order >= 3)
-	{
-		c[3] += -0.25 * (dft(0.75) - dft(0.5)) / cb(t(0.75) - t(0.5))
-		     - 0.25 * (dft(0.25) - dft(0.5)) / cb(t(0.25) - t(0.5));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[2] += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[0] += 0.5 * (dft(1.0) + dft(0.0));
-		c[0] += 0.5 * (dft(cep1) + dft(cep2));
-	}
-
-	if (order >= 4)
-	{
-		c[4] += -0.5 * (dft(cep1) - dft(0.5)) / sq(sq(t(cep1) - t(0.5)))
-		     - 0.5 * (dft(cep2) - dft(0.5)) / sq(sq(t(cep2) - t(0.5)));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[2] += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
-
-		c[1] += 0.5 * (dft(0.75) - dft(0.0)) / (t(0.75) - t(0.0))
-		    + 0.5 * (dft(1.0) - dft(0.25)) / (t(1.0) - t(0.25));
-
-		c[3] += -0.25 * (dft(0.75) - dft(0.5)) / cb(t(0.75) - t(0.5))
-		     - 0.25 * (dft(0.25) - dft(0.5)) / cb(t(0.25) - t(0.5));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[2] += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
-
-		c[1] += 0.5 * (dft(qep3) - dft(qep1)) / (t(qep3) - t(qep1))
-		    + 0.5 * (dft(qep4) - dft(qep2)) / (t(qep4) - t(qep2));
-
-		c[0] += 0.5 * (dft(1.0) + dft(0.0));
-	}
-
-	if (order >= 5)
-	{
-		c[5] += 0.72131471451 * (dft(qep3) - dft(qep2)) / pow(t(qep3) - t(qep2), 5.);	// why 0.72131471451?
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[2] += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
-
-		c[1] += 0.5 * (dft(0.75) - dft(0.0)) / (t(0.75) - t(0.0))
-		    + 0.5 * (dft(1.0) - dft(0.25)) / (t(1.0) - t(0.25));
-
-		c[3] += -0.25 * (dft(0.75) - dft(0.5)) / cb(t(0.75) - t(0.5))
-		     - 0.25 * (dft(0.25) - dft(0.5)) / cb(t(0.25) - t(0.5));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[2] += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		// error curve is now mostly quartic
-		c[4] += -0.5 * (dft(cep1) - dft(0.5)) / sq(sq(t(cep1) - t(0.5)))
-		     - 0.5 * (dft(cep2) - dft(0.5)) / sq(sq(t(cep2) - t(0.5)));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[2] += (dft(1.0) - dft(0.5)) / sq(t(1.0) - t(0.5));
-
-		c[1] += 0.5 * (dft(0.75) - dft(0.0)) / (t(0.75) - t(0.0))
-		    + 0.5 * (dft(1.0) - dft(0.25)) / (t(1.0) - t(0.25));
-
-		c[3] += -0.25 * (dft(0.75) - dft(0.5)) / cb(t(0.75) - t(0.5))
-		     - 0.25 * (dft(0.25) - dft(0.5)) / cb(t(0.25) - t(0.5));
-
-		c[1] += 0.5 * (dft(qep3) - dft(qep1)) / (t(qep3) - t(qep1))
-		    + 0.5 * (dft(qep4) - dft(qep2)) / (t(qep4) - t(qep2));
-
-		c[2] += 0.5 * (dft(sep1) - dft(0.5)) / sq(t(sep1) - t(0.5))
-		    + 0.5 * (dft(sep2) - dft(0.5)) / sq(t(sep2) - t(0.5));
-
-		c[1] += (dft(1.0) - dft(0.0)) / (t(1.0) - t(0.0));
-
-		c[0] += 0.5 * (dft(1.0) + dft(0.0));
-		c[0] += 0.5 * dft(0.5);
-	}
+	return polynomial_fit_on_function_by_dct(f, start, end, c, order);
 }
 
 void find_quadratic_fit(double (*f)(double), double start, double end, double *c)
 {
-	double middle, p1, p2, height2, width2;
-
-	memset(c, 0, 6*sizeof(double));
-
-	c[1] = (f(end) - f(start)) / (end - start);
-
-	middle = (end+start) * 0.5;
-	height2 = (f(end)-c[1]*end) - (f(middle)-c[1]*middle);
-	width2 = end - middle;
-	c[2] = height2 / (width2*width2);
-
-	p1 = 0.75*(end-start) + start;
-	p2 = 0.25*(end-start) + start;
-	c[1] = ((f(p1)-c[2]*p1*p1) - (f(start)-c[2]*start*start)) / (p1-start);
-	c[1] += ((f(end)-c[2]*end*end) - (f(p2)-c[2]*p2*p2)) / (end-p2);
-	c[1] *= 0.5;
-
-	c[0] = ((f(end)-((c[2]*end + c[1])*end)) + (f(start)-((c[2]*start + c[1])*start))) * 0.5;
+	return polynomial_fit_on_function_by_dct(f, start, end, c, 2);
 }
 
 void find_linear_fit(double (*f)(double), double start, double end, double *c, int errmode)
 {
-	double middle;
-
-	memset(c, 0, 6*sizeof(double));
-
-	c[1] = (f(end) - f(start)) / (end - start);
-
-	middle = (end+start) * 0.5;
-	c[0] = ((f(start)-c[1]*start) + (f(middle)-c[1]*middle)) * 0.5;
+	return polynomial_fit_on_function_by_dct(f, start, end, c, 1);
 }
 
 double f_reciprocal(double x)
@@ -637,7 +487,7 @@ void write_quad_fit_fpdiv()
 	FILE *file;
 	double ratio = (double) (1ULL<<prec);
 
-	file = fopen("../rouziclib/fixedpoint/fpdiv_d2.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpdiv_d2.h", "wb");
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d;\n", lutsp, prec);
 	fprintf(file, "static const int32_t fpdiv_lut[] = {");
 
@@ -692,7 +542,7 @@ void write_quad_fit_fpatan2()
 	FILE *file;
 	double ratio = (double) (1ULL<<prec);
 
-	file = fopen("../rouziclib/fixedpoint/fpatan2_d2.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpatan2_d2.h", "wb");
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d;\n", lutsp, prec);
 	fprintf(file, "static const int32_t fpatan2_lut_off[] = {");
 
@@ -759,7 +609,7 @@ void write_poly_fit_fpcos()
 //double n, errmin=1.;
 //cend = pi/2.;
 
-	file = fopen("../rouziclib/fixedpoint/fpcos_d2.h", "w");
+	file = fopen("../rouziclib/fixedpoint/fpcos_d2.h", "wb");
 	fprintf(file, "const uint32_t lutsp = %d, prec = %d;\n", lutsp, prec);
 	fprintf(file, "static const int32_t fpcos_lut[] = {");
 
@@ -778,7 +628,7 @@ void write_poly_fit_fpcos()
 		/*if (err < errmin)
 		{
 			errmin = err;
-			printf("n=%.16f, err %g\n", n, err);
+			//printf("n=%.16f, err %g\n", n, err);
 		}
 		}*/
 
@@ -827,7 +677,7 @@ void write_fastlog2_lut()
 
 	FILE *file;
 
-	file = fopen("../rouziclib/fastfloat/fastlog2.h", "w");
+	file = fopen("../rouziclib/fastfloat/fastlog2.h", "wb");
 	//fprintf(file, "static const double fastlog2_lut[] = {");
 	fprintf(file, "{");
 
@@ -836,7 +686,11 @@ void write_fastlog2_lut()
 		segstart = (cend-cstart) * (double) is / (double) segcount + cstart;
 		segend = segstart+(cend-cstart)*segratio;
 
+		if (is == 0)	// adjust the start of the first segment to avoid having fastlog2(1) > 0
+			segstart = 0.99943966;
+
 		find_quadratic_fit(f_log2, segstart, segend, c);
+		//if (is==0) printf("fastlog2(1) = %.20lg (segstart %.10lg)\n", (c[2]*1.+c[1])*1.+c[0], segstart);
 		err = get_polynomial_error(f_log2, segstart, segend, c, 2, DIVMODE);
 
 		//printf("%.16f*x^2 + %.16f*x + %.16f\n%g max error (segratio 1/%.0f) [%.7f , %.7f]\n", c[2], c[1], c[0], err, 1./segratio, segstart, segend);
@@ -895,7 +749,7 @@ void write_fastexp2_lut()
 
 	FILE *file;
 
-	file = fopen("../rouziclib/fastfloat/fastexp2.h", "w");
+	file = fopen("../rouziclib/fastfloat/fastexp2.h", "wb");
 	//fprintf(file, "static const double fastexp2_lut[] = {");
 	fprintf(file, "{");
 
@@ -939,7 +793,7 @@ void write_fastsqrt_lut()
 
 	FILE *file;
 
-	file = fopen("../rouziclib/fastfloat/fastsqrt.h", "w");
+	file = fopen("../rouziclib/fastfloat/fastsqrt.h", "wb");
 	//fprintf(file, "static const double fastsqrt_lut[] = {");
 	fprintf(file, "{");
 
@@ -988,7 +842,7 @@ void write_poly_fit_generic_offset_noshift(const char *name, double (*f)(double)
 	}
 
 	sprintf(path, "../rouziclib/fastfloat/%s_d%d.h", name, order);
-	file = fopen(path, "w");
+	file = fopen(path, "wb");
 	fprintf(file, "const float offset = %.0f.f, limit = %g%sf;\n", offset+xoffset, cend, (cend==floor(cend)) ? "." : "");
 	fprintf(file, "static const float %s_lut[] = {", name);
 
@@ -1015,7 +869,7 @@ void write_poly_fit_generic_offset_noshift(const char *name, double (*f)(double)
 		if (err > maxerr) { maxerr = err;	maxpos = segstart; }
 	}
 
-	printf("\n%s:\n\tLUT size: %.2g kB\n\tMax error: %g at %g\n", path, (double) ((segcount+1)*(order+1)) * sizeof(float) / 1024., maxerr, maxpos);
+	//printf("\n%s:\n\tLUT size: %.2g kB\n\tMax error: %g at %g\n", path, (double) ((segcount+1)*(order+1)) * sizeof(float) / 1024., maxerr, maxpos);
 
 	fclose (file);
 }
@@ -1058,7 +912,7 @@ void write_fastlsrgb_lut()
 
 	FILE *file;
 
-	file = fopen("../rouziclib/fastfloat/fastlsrgb.h", "w");
+	file = fopen("../rouziclib/fastfloat/fastlsrgb.h", "wb");
 	fprintf(file, "{");
 
 	for (is=0; segend < 1.; is++)
@@ -1083,7 +937,7 @@ void write_fastlsrgb_lut()
 			err = 0.;
 		}
 
-		printf("[%02d] e %5.1fe-6 [%f , %f] span 1/%g\n", is, err*1e6, segstart, segend, MAXN(0., 1./(segend-segstart)));
+		//printf("[%02d] e %5.1fe-6 [%f , %f] span 1/%g\n", is, err*1e6, segstart, segend, MAXN(0., 1./(segend-segstart)));
 
 		fprintf(file, "%.16g, %.16g, %.16g%s", c[0], c[1], c[2], (segend >= 1.) ? "};\n" : ", ");
 	}
@@ -1110,7 +964,7 @@ void write_fastexp_limited_lut()
 
 	FILE *file;
 
-	file = fopen("../rouziclib/fastfloat/fastexp_limited.h", "w");
+	file = fopen("../rouziclib/fastfloat/fastexp_limited.h", "wb");
 	fprintf(file, "{");
 
 	for (is=0; segend < end; is++)
@@ -1126,7 +980,7 @@ void write_fastexp_limited_lut()
 		err = get_polynomial_error(f_exp, segstart, segend, c, order, NEGMODE);
 		err = reduce_digits(f_exp, segstart, segend, c, order, NEGMODE, 1.00003, 20.);
 
-		printf("[%02d] e 1/%5.0f [%f , %f] span 1/%g\n", is, 1./err, segstart, segend, MAXN(0., 1./(segend-segstart)));
+		//printf("[%02d] e 1/%5.0f [%f , %f] span 1/%g\n", is, 1./err, segstart, segend, MAXN(0., 1./(segend-segstart)));
 
 		fprintf(file, "%.9g, %.9g, %.9g%s", c[0], c[1], c[2], (segend >= end) ? "};\n" : ",\n");
 	}
@@ -1138,7 +992,7 @@ void write_fastexp_limited_lut()
 
 int main(int argc, char *argv[])
 {
-	/*write_isqrt_lut();
+	write_isqrt_lut();
 	write_fplog2_lut();
 	write_fpexp2_lut();
 	write_fpcos_lut();
@@ -1163,10 +1017,8 @@ int main(int argc, char *argv[])
 	write_poly_fit_fasterfr(7, 3., 0);
 	write_poly_fit_fasterfr(5, 4., 1);
 
-	write_fastlsrgb_lut();*/
+	write_fastlsrgb_lut();
 	write_fastexp_limited_lut();
-
-	//comp_cos(16.*pi);
 
 	return 0;
 }
