@@ -1,6 +1,21 @@
+uint32_t rand_xsm32_state = 1;
+
+// Xorshift-multiply hashing PRNG based on github.com/skeeto/hash-prospector
+uint32_t rand_xsm32(uint32_t x)		// x can be seen as a sequence position
+{
+	//x += 0x3243f6a8u;	// suggested by nullprogram.com/blog/2021/09/14/, avoids 0 -> 0
+	x ^= x >> 15;
+	x *= 0xd168aaadu;
+	x ^= x >> 15;
+	x *= 0xaf723597u;
+	x ^= x >> 15;
+	return x;
+}
+
 uint32_t rand32()
 {
-	return (rand()&0x7FE0)<<17 | (rand()&0x7FF0)<<7 | (rand()&0x7FF0)>>4;
+	return rand_xsm32(rand_xsm32_state++);
+	//return (rand()&0x7FE0)<<17 | (rand()&0x7FF0)<<7 | (rand()&0x7FF0)>>4;
 }
 
 double randrange(double low, double high)
@@ -27,8 +42,8 @@ double gaussian_rand()
 	}
 	while (s >= 1.);	// clips points inside the unit square but outside the unit circle
 
-	return sqrt(-2. * log(s) / s) * v1;
-	//y = sqrt(-2. * log(s) / s) * v2;
+	return sqrt(-2. * fastlog(s) / s) * v1;
+	//y = sqrt(-2. * fastlog(s) / s) * v2;
 }
 
 xy_t gaussian_rand_xy()
@@ -43,10 +58,21 @@ xy_t gaussian_rand_xy()
 	}
 	while (s >= 1.);	// clips points inside the unit square but outside the unit circle
 
-	return xy( sqrt(-2. * log(s) / s) * v1 , sqrt(-2. * log(s) / s) * v2 );
+	return xy( sqrt(-2. * fastlog(s) / s) * v1 , sqrt(-2. * fastlog(s) / s) * v2 );
 }
 
-// adapted from rand.cl
+double gaussian_rand_approx()							// max error: 0.00865 at ±0.772135
+{
+	double r = ((double) rand32() - 2147483647.5) * 4.656612874e-10;	// r = ]-1 , 1[
+	return copysign(0.8862269254 * sqrt(- fastlog(1. - r*r)), r);		// gives a e^-x^2 distribution, [-4.286 , 4.286]
+}
+
+xy_t gaussian_rand_approx_xy()
+{
+	return xy( gaussian_rand_approx(), gaussian_rand_approx() );
+}
+
+/*// adapted from rand.cl
 int pow_mod(int base, uint32_t expon, uint32_t mod)
 {
 	int x = 1, power = base % mod;
@@ -62,6 +88,8 @@ int pow_mod(int base, uint32_t expon, uint32_t mod)
 	return x;
 }
 
+// This version of MINSTD uses sequence position, meaning it jumps to the provided position in the sequence
+// Avoid MINSTD-based algorithms and use hashes instead
 uint32_t rand_minstd(uint32_t pos)
 {
 	return pow_mod(16807, pos, 2147483647);		// bit 0 and bits 11 to 30 are fine, the others get worse towards bit 1
@@ -101,4 +129,4 @@ double gaussian_rand_minstd_approx(uint32_t pos)					// max error: 0.00865 at ±0
 {
 	double r = ((double) rand_minstd(pos) - 1073741823.) * 9.313225466e-10;		// r = ]-1 , 1[
 	return copysign(0.8862269254 * sqrt(- log(1. - r*r)), r);			// gives a e^-x^2 distribution
-}
+}*/

@@ -238,6 +238,7 @@ int window_register(int priority, void *window_func, void *window_data, rect_t p
 	{
 		entry = &entry_s;
 		entry->window_func = window_func;
+		entry->window_data = window_data;
 		entry->ptr_count = num_args;
 		entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));
 		i = -1;
@@ -248,6 +249,7 @@ int window_register(int priority, void *window_func, void *window_data, rect_t p
 	// Check if the window function is already registered
 	for (i=0; i < wind_man.window_count; i++)
 		if (wind_man.window[i].window_func == window_func)
+		if (wind_man.window[i].window_data == window_data)
 		{
 			entry = &wind_man.window[i];
 			goto skip_add2;
@@ -265,6 +267,7 @@ int window_register(int priority, void *window_func, void *window_data, rect_t p
 skip_add1:
 	entry = &wind_man.window[i];
 	entry->window_func = window_func;
+	entry->window_data = window_data;
 	entry->ptr_count = num_args;
 	entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));
 
@@ -272,7 +275,7 @@ skip_add1:
 	wind_man.min_order = entry->order = wind_man.min_order - 1;
 
 	if (priority==1)
-		window_move_to_top(window_func);
+		window_move_to_top(window_func, window_data);
 
 skip_add2:
 	// Copy pointers to array
@@ -349,7 +352,7 @@ void window_manager()
 
 			// Put this window on top if one of its controls has been clicked
 			if (prev_hover_ided != mouse.ctrl_id->hover_ided && (mouse.b.lmb>=1 || mouse.b.rmb>=1))
-				window_move_to_top(wind_man.wsor[i]->window_func);
+				window_move_to_top(wind_man.wsor[i]->window_func, wind_man.wsor[i]->window_data);
 
 			prev_hover_ided = mouse.ctrl_id->hover_ided;
 		}
@@ -363,24 +366,26 @@ void window_manager()
 	}
 }
 
-int window_find_id_by_func(void *window_func)
+int window_find_id_by_func(void *window_func, void *window_data)
 {
 	for (int i=0; i < wind_man.window_count; i++)
 		if (wind_man.window[i].window_func == window_func)
+		if (wind_man.window[i].window_data == window_data)
 			return i;
 
 	return -1;
 }
 
-void window_set_parent(void *window_func, void *parent_window_func)
+void window_set_parent(void *window_func, void *window_data, void *parent_window_func, void *parent_window_data)
 {
 	int window_id;
 
-	window_id = window_find_id_by_func(window_func);
+	window_id = window_find_id_by_func(window_func, window_data);
 	if (window_id == -1)
 		return ;
 
 	wind_man.window[window_id].parent_window_func = parent_window_func;
+	wind_man.window[window_id].parent_window_data = parent_window_data;
 }
 
 void window_move_up(int id, int offset)
@@ -393,14 +398,15 @@ void window_move_up(int id, int offset)
 	// Move children up
 	for (i=0; i < wind_man.window_count; i++)
 		if (wind_man.window[i].parent_window_func == wind_man.window[id].window_func)
+		if (wind_man.window[i].parent_window_data == wind_man.window[id].window_data)
 			window_move_up(i, offset);
 }
 
-void window_move_to_top(void *window_func)
+void window_move_to_top(void *window_func, void *window_data)
 {
 	int i, window_id, offset;
 
-	window_id = window_find_id_by_func(window_func);
+	window_id = window_find_id_by_func(window_func, window_data);
 	if (window_id == -1)
 		return ;
 

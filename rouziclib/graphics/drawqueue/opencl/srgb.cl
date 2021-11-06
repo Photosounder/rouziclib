@@ -98,7 +98,7 @@ float4 linear_to_srgb(float4 pl0, uint seed)
 	pl1.s2 = lsrgb(pl0.s2);		// red
 
 	// Dithering
-	dith = gaussian_rand_minstd_approx(seed) * dith_scale;
+	dith = gaussian_rand_approx(seed) * dith_scale;
 
 	pl1.s0 = apply_dithering(pl1.s0, dith);
 	pl1.s1 = apply_dithering(pl1.s1, dith);

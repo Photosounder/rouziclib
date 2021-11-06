@@ -308,13 +308,13 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 			if (child1_detach)
 			{
 				window_register(1, child1_func, NULL, RECTNAN, &child1_detach, 0);
-				window_set_parent(child1_func, parent_window_function);
+				window_set_parent(child1_func, NULL, parent_window_function, NULL);
 			}
 
 			if (child2_detach)
 			{
 				window_register(1, child2_func, NULL, RECTNAN, &child2_detach, 0);
-				window_set_parent(child2_func, parent_window_function);
+				window_set_parent(child2_func, NULL, parent_window_function, NULL);
 			}
 		}
 
@@ -507,22 +507,22 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 	// Init thread handle (not for detached threads)
 		static rl_thread_t thread_handle=NULL;
 	// Declare the thread data
-		static my_thread_data_t data={0};
+		static my_thread_data_t data={0}, *d=&data;
 
 	// before rl_thread_join the caller should signal to the thread function to quit using this element in the data struct
 		volatile int thread_on;
-		data.thread_on = 0;
+		d->thread_on = 0;
 
 	// Wait for thread to end (not for detached threads, use mutex instead)
 		rl_thread_join_and_null(&thread_handle);
 
 		// and before creating the thread:
-		data.thread_on = 1;
+		d->thread_on = 1;
 
 	// Create thread
-		rl_thread_create(&thread_handle, thread_function, &data);
+		rl_thread_create(&thread_handle, thread_function, d);
 		// or detached:
-		rl_thread_create_detached(thread_function, &data);
+		rl_thread_create_detached(thread_function, d);
 
 	// Thread function prototype
 		int thread_function(void *ptr)
@@ -772,6 +772,11 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 		#endif
 		#endif
 
+	// Reversed bits iteration
+		for (i2=i=0; i < count; i++)
+		{
+			ir = reverse_iterator_bits32(&i2, count);
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments
@@ -820,5 +825,6 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 	// 190712 transition changing how floating windows work
 	// add NULL as a 3rd argument for normal floating windows
 
-	// 211102 transition of adding a window_data argument to window_register()
-	// add NULL as a 3rd argument
+	// 211102 transition of adding a window_data arguments to window_register() and window_set_parent()
+	// add NULL as a 3rd argument of window_register()
+	// add NULL as 2nd and 4th arguments of window_set_parent()

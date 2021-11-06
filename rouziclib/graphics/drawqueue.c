@@ -172,10 +172,6 @@ void drawq_run()
 
 		// Compute the random seed
 		randseed = rand32();
-		i = 24;
-		while (fb.w*fb.h / (1<<i) < 4)		// while the period would be less than 4 times the number of pixels
-			i++;				// double the period
-		randseed %= ((1<<i) - fb.w*fb.h);	// seed + fbi will fit inside i bits to speed up the PRNG
 
 		// wait for the input data copies to end
 		clWaitForEvents_wrap(1, &ev);	// somehow this also waits for the kernel to end, which isn't good

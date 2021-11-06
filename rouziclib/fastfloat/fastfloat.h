@@ -3,6 +3,7 @@
 extern float polynomial_from_lutf(const float *lut, const int lutind, const int order, const float x);
 extern double polynomial_from_lut(const double *lut, const int lutind, const int order, const double x);
 extern double fastlog2(double x);
+#define fastlog(x)	(fastlog2(x) * 0.69314718055994531)
 extern double fastexp2(double x);
 extern double fastpow(double x, double y);
 extern double fastsqrt(double x);

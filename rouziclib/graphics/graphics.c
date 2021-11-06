@@ -72,6 +72,17 @@ raster_t copy_raster(raster_t r0)
 	return r1;
 }
 
+void blank_raster(raster_t *r)
+{
+	size_t pix_count = mul_x_by_y_xyi(r->dim);
+
+	if (r->l)	memset(r->l, 0, pix_count*sizeof(lrgb_t));
+	if (r->f)	memset(r->f, 0, pix_count*sizeof(frgb_t));
+	if (r->srgb)	memset(r->srgb, 0, pix_count*sizeof(srgb_t));
+	if (r->sq)	memset(r->sq, 0, pix_count*sizeof(sqrgb_t));
+	if (r->buf)	memset(r->sq, 0, r->buf_size);
+}
+
 void **get_raster_buffer_for_mode_ptr(raster_t *r, const int mode)
 {
 	switch (mode)

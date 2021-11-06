@@ -35,6 +35,7 @@ extern size_t get_raster_mode_elem_size(const int mode);
 extern raster_t make_raster(void *data, const xyi_t dim, xyi_t maxdim, const int mode);
 extern raster_t make_raster_empty();
 extern raster_t copy_raster(raster_t r0);
+extern void blank_raster(raster_t *r);
 extern void **get_raster_buffer_for_mode_ptr(raster_t *r, const int mode);
 extern void *get_raster_buffer_for_mode(raster_t r, const int mode);
 extern void **get_raster_buffer_ptr(raster_t *r);
