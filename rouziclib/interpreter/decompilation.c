@@ -25,10 +25,7 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_sq_v:    	return "op_sq_v";
 		case op_sqrt_v:    	return "op_sqrt_v";
 
-		case op_jmp_v_ez:    	return "op_jmp_v_ez";
-		case op_jmp_v_nz:    	return "op_jmp_v_nz";
-		case op_jmp_i_ez:    	return "op_jmp_i_ez";
-		case op_jmp_i_nz:    	return "op_jmp_i_nz";
+		case op_jmp_cond:    	return "op_jmp_cond";
 		case op_func0_v:    	return "op_func0_v";
 
 		case op_4word_ops:    	return "op_4word_ops";
@@ -44,8 +41,18 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_mod_vv:    	return "op_mod_vv";
 		case op_pow_vv:    	return "op_pow_vv";
 
-		case op_jmp_vv_lt:    	return "op_jmp_vv_lt";
-		case op_jmp_ii_lt:    	return "op_jmp_ii_lt";
+		case op_cmp_vv_eq:    	return "op_cmp_vv_eq";
+		case op_cmp_ii_eq:    	return "op_cmp_ii_eq";
+		case op_cmp_vv_ne:    	return "op_cmp_vv_ne";
+		case op_cmp_ii_ne:    	return "op_cmp_ii_ne";
+		case op_cmp_vv_lt:    	return "op_cmp_vv_lt";
+		case op_cmp_ii_lt:    	return "op_cmp_ii_lt";
+		case op_cmp_vv_le:    	return "op_cmp_vv_le";
+		case op_cmp_ii_le:    	return "op_cmp_ii_le";
+		case op_cmp_vv_gt:    	return "op_cmp_vv_gt";
+		case op_cmp_ii_gt:    	return "op_cmp_ii_gt";
+		case op_cmp_vv_ge:    	return "op_cmp_vv_ge";
+		case op_cmp_ii_ge:    	return "op_cmp_ii_ge";
 		case op_func1_vv:    	return "op_func1_vv";
 
 		case op_5word_ops:    	return "op_5word_ops";

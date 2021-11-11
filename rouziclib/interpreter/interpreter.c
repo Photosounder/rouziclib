@@ -42,7 +42,7 @@ int rlip_find_value(const char *name, rlip_counts_t *counts, rlip_reg_t *reg)
 
 void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, const char *type, rlip_t *d, rlip_counts_t *counts, rlip_reg_t *reg)
 {
-	reg[ir].name = make_string_copy(name);				// name can be NULL in which case this is a nameless variable used only by the compiler for intermediary values
+	reg[ir].name = make_string_copy(name);				// name can be NULL in which case this is a nameless variable only usable by the compiler
 	if (name)
 		reg[ir].hash = get_string_hash(name);
 	reg[ir].type = make_string_copy(type);
@@ -158,6 +158,31 @@ int rlip_find_convert_value(const char *name, rlip_t *d, rlip_counts_t *counts, 
 	return ir;
 }
 
+void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int *rd, int *ri, int i, rlip_t *d, rlip_counts_t *counts, rlip_reg_t *reg)
+{
+	int io;
+
+	// Convert the variable to a generic register if the type doesn't match the one expected
+	if (reg[*ir].type[0] != expected_type)
+	{
+		io = alloc_opcode(d, counts, 3);	// add conversion opcode
+		d->op[io+2] = reg[*ir].index;	// source index
+
+		if (expected_type == 'd')
+		{
+			d->op[io] = op_cvt_i_v;
+			d->op[io+1] = rd[1+i];		// destinaton index
+		}
+		else
+		{
+			d->op[io] = op_cvt_v_i;
+			d->op[io+1] = ri[1+i];
+		}
+
+		*ir = d->op[io+1];	// the ir for this argument is now the generic register
+	}
+}
+
 rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, buffer_t *log)
 {
 	int i, io, ir, il, ret, linecount, n, add_var_type, dest_ir, ret_cmd_done=0, cmd_found;
@@ -166,16 +191,16 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 	rlip_t data={0}, *d=&data;
 	rlip_counts_t counts={0};
 	rlip_reg_t *reg=NULL;
-	char *p, a[32], b[32], c[32], cmd_arg_type[16];
+	char *p, a[32], b[32], c[32], e[32], cmd_arg_type[16];
 	int arg_ir[16];
 	uint64_t hash;
 
-	// Add nameless variables as generic registers to structure
+	// Add generic registers
 	for (i=0; i < sizeof(rd)/sizeof(*rd); i++)
-		rd[i] = reg[rlip_add_value(NULL, NULL, "d", d, &counts, &reg)].index;
+		rd[i] = reg[rlip_add_value(sprintf_ret(a, "rd%d", i), NULL, "d", d, &counts, &reg)].index;
 
 	for (i=0; i < sizeof(ri)/sizeof(*ri); i++)
-		ri[i] = reg[rlip_add_value(NULL, NULL, "i", d, &counts, &reg)].index;
+		ri[i] = reg[rlip_add_value(sprintf_ret(a, "ri%d", i), NULL, "i", d, &counts, &reg)].index;
 
 	// Add inputs to structure
 	for (i=0; i < input_count; i++)
@@ -224,6 +249,12 @@ line_proc_start:
 			if (dest_ir == -1)
 			{
 				bufprintf(log, "Undeclared variable '%s' used in line %d: '%s'\n", a, il, line[il]);
+				goto invalid_prog;
+			}
+
+			if (reg[dest_ir].type[0]!='d' && reg[dest_ir].type[0]!='i')
+			{
+				bufprintf(log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'\n", a, reg[dest_ir].type, il, line[il]);
 				goto invalid_prog;
 			}
 
@@ -283,29 +314,12 @@ line_proc_start:
 
 							if (arg_ir[i] == -1)
 							{
-								bufprintf(log, "Argument '%s' unidentified in line %d: '%s'\n", a, il, line[il]);
+								bufprintf(log, "Argument '%s' unidentified in line %d: '%s'\n", b, il, line[il]);
 								goto invalid_prog;
 							}
 
 							// Convert the variable to a generic register if the type doesn't match the one expected
-							if (reg[arg_ir[i]].type[0] != cmd_arg_type[i])
-							{
-								io = alloc_opcode(d, &counts, 3);	// add conversion opcode
-								d->op[io+2] = reg[arg_ir[i]].index;	// source index
-
-								if (cmd_arg_type[i] == 'd')
-								{
-									d->op[io] = op_cvt_i_v;
-									d->op[io+1] = rd[1+i];		// destinaton index
-								}
-								else
-								{
-									d->op[io] = op_cvt_v_i;
-									d->op[io+1] = ri[1+i];
-								}
-
-								arg_ir[i] = d->op[io+1];	// the ir for this argument is now the generic register
-							}
+							rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[i], rd, ri, i, d, &counts, reg);
 						}
 						else
 						{
@@ -323,7 +337,11 @@ line_proc_start:
 					else if (strcmp(a, "addi")==0)	d->op[io] = op_add_ii;
 					else if (strcmp(a, "mul")==0)	d->op[io] = op_mul_vv;
 					else if (strcmp(a, "muli")==0)	d->op[io] = op_mul_ii;
-					// TODO
+					else if (strcmp(a, "div")==0)	d->op[io] = op_div_vv;
+					else if (strcmp(a, "divi")==0)	d->op[io] = op_div_ii;
+					else if (strcmp(a, "mod")==0)	d->op[io] = op_mod_ii;
+					else if (strcmp(a, "modi")==0)	d->op[io] = op_mod_vv;
+					else if (strcmp(a, "pow")==0)	d->op[io] = op_pow_vv;
 
 					// Add arguments to opcode
 					for (i=0; i < cmd_arg_count; i++)
@@ -351,6 +369,73 @@ line_proc_start:
 						{
 							d->op[io] = op_cvt_i_v;
 							d->op[io+2] = ri[0];
+						}
+					}
+				}
+
+				// Commands less typical needs
+				if (cmd_found == 0)
+				{
+					if (strcmp(a, "cmp")==0 || strcmp(a, "cmpi")==0)
+					{
+						cmd_found = 1;
+						if (strcmp(a, "cmp")==0)
+							sprintf(cmd_arg_type, "dd");
+						else
+							sprintf(cmd_arg_type, "ii");
+
+						n = 0;
+						ret = sscanf(p, "%*s %30s %30s %30s %n", b, c, e, &n);
+						
+						if (ret == 3)
+						{
+							// Find / convert variables
+							for (i=0; i < 2; i++)
+							{
+								arg_ir[i] = rlip_find_convert_value(i==0 ? b : e, d, &counts, &reg);
+
+								if (arg_ir[i] == -1)
+								{
+									bufprintf(log, "Argument '%s' unidentified in line %d: '%s'\n", i==0 ? b : e, il, line[il]);
+									goto invalid_prog;
+								}
+
+								// Convert the variable to a generic register if the type doesn't match the one expected
+								rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[i], rd, ri, i, d, &counts, reg);
+							}
+
+							// Add cmp opcode
+							io = alloc_opcode(d, &counts, 4);
+
+							// Select correct opcode
+							if (strcmp(c, "==")==0)	d->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_eq : op_cmp_ii_eq;
+							if (strcmp(c, "!=")==0)	d->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_ne : op_cmp_ii_ne;
+							if (strcmp(c, "<")==0)	d->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_lt : op_cmp_ii_lt;
+							if (strcmp(c, "<=")==0)	d->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_le : op_cmp_ii_le;
+							if (strcmp(c, ">")==0)	d->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_gt : op_cmp_ii_gt;
+							if (strcmp(c, ">=")==0)	d->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_ge : op_cmp_ii_ge;
+
+							d->op[io+1] = reg[dest_ir].index;
+							d->op[io+2] = reg[arg_ir[0]].index;
+							d->op[io+3] = reg[arg_ir[1]].index;
+							
+							// Convert integer result to double if needed
+							if (reg[dest_ir].type[0] == 'd')
+							{
+								// Output to generic register
+								d->op[io+1] = rd[0];
+
+								// Convert from generic register to destination
+								io = alloc_opcode(d, &counts, 3);	// add conversion opcode
+								d->op[io] = op_cvt_v_i;
+								d->op[io+1] = reg[dest_ir].index;	// destination index
+								d->op[io+2] = rd[0];		// source index
+							}
+						}
+						else
+						{
+							bufprintf(log, "Argument missing (3 arguments expected) in line %d: '%s'\n", cmd_arg_count, il, line[il]);
+							goto invalid_prog;
 						}
 					}
 				}
@@ -391,7 +476,7 @@ line_proc_start:
 
 			if (strcmp(a, "return")==0)
 			{
-				sscanf(p, "return %30s", b);
+				sscanf(p, "%*s %30s", b);
 				ir = rlip_find_convert_value(b, d, &counts, &reg);
 
 				// Add return opcode
@@ -429,7 +514,7 @@ line_proc_start:
 
 			if (strcmp(a, "set0")==0)
 			{
-				sscanf(p, "set0 %30s", b);
+				sscanf(p, "%*s %30s", b);
 				ir = rlip_find_value(b, &counts, reg);
 
 				// Add opcode
@@ -456,7 +541,7 @@ line_proc_start:
 
 			if (strcmp(a, "inc1")==0)
 			{
-				sscanf(p, "inc1 %30s", b);
+				sscanf(p, "%*s %30s", b);
 				ir = rlip_find_value(b, &counts, reg);
 
 				// Add opcode

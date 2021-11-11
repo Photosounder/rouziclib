@@ -17,7 +17,7 @@ int execute_bytecode(rlip_t *d)
 
 			// 2 word ops
 			break;	case op_ret_v:		d->return_value = vd[op[1]];					// return <var/ptr/expr>
-			break;	case op_jmp:		op = &op[op[1]];	inc = 0;				// compiler-only
+			break;	case op_jmp:		op = &op[(ptrdiff_t) op[1]];	inc = 0;			// compiler-only
 			break;	case op_set0_v:		vd[op[1]] = 0.;							// set0 <var>
 			break;	case op_set0_i:		vi[op[1]] = 0;
 			break;	case op_inc1_v:		vd[op[1]] += 1.;						// inc1 <var>
@@ -34,10 +34,7 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_sq_v:		vd[op[1]] = sq(vd[op[2]]);					// <var> = sq <var/ptr/expr>
 			break;	case op_sqrt_v:		vd[op[1]] = sqrt(vd[op[2]]);					// <var> = sqrt <var/ptr/expr>
 
-			break;	case op_jmp_v_ez:	if (vd[op[1]] == 0.)	op = &op[op[2]];	inc = 0;	// ?
-			break;	case op_jmp_v_nz:	if (vd[op[1]] != 0.)	op = &op[op[2]];	inc = 0;
-			break;	case op_jmp_i_ez:	if (vi[op[1]] == 0)	op = &op[op[2]];	inc = 0;
-			break;	case op_jmp_i_nz:	if (vi[op[1]] != 0)	op = &op[op[2]];	inc = 0;
+			break;	case op_jmp_cond:	if (vi[op[1]])	op = &op[(ptrdiff_t) op[2]];	inc = 0;	// if <var> goto <loc>
 			break;	case op_func0_v:	vd[op[1]] = ((double (*)(void))op[2])();
 
 			// 4 word ops
@@ -53,8 +50,18 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_mod_vv:		vd[op[1]] = fmod(vd[op[2]], vd[op[3]]);
 			break;	case op_pow_vv:		vd[op[1]] = pow(vd[op[2]], vd[op[3]]);
 
-			break;	case op_jmp_vv_lt:	if (vd[op[1]] < vd[op[2]])	op = &op[op[3]];	inc = 0;	// ?
-			break;	case op_jmp_ii_lt:	if (vi[op[1]] < vi[op[2]])	op = &op[op[3]];	inc = 0;
+			break;	case op_cmp_vv_eq:	vi[op[1]] = (vd[op[2]] == vd[op[3]]);				// <var> = cmp <var/ptr/expr> == <var/ptr/expr>
+			break;	case op_cmp_ii_eq:	vi[op[1]] = (vi[op[2]] == vi[op[3]]);				// <var> = cmpi <var/ptr/expr> == <var/ptr/expr>
+			break;	case op_cmp_vv_ne:	vi[op[1]] = (vd[op[2]] != vd[op[3]]);				// <var> = cmp <var/ptr/expr> != <var/ptr/expr>
+			break;	case op_cmp_ii_ne:	vi[op[1]] = (vi[op[2]] != vi[op[3]]);
+			break;	case op_cmp_vv_lt:	vi[op[1]] = (vd[op[2]] <  vd[op[3]]);				// <var> = cmp <var/ptr/expr> < <var/ptr/expr>
+			break;	case op_cmp_ii_lt:	vi[op[1]] = (vi[op[2]] <  vi[op[3]]);
+			break;	case op_cmp_vv_le:	vi[op[1]] = (vd[op[2]] <= vd[op[3]]);				// <var> = cmp <var/ptr/expr> <= <var/ptr/expr>
+			break;	case op_cmp_ii_le:	vi[op[1]] = (vi[op[2]] <= vi[op[3]]);
+			break;	case op_cmp_vv_gt:	vi[op[1]] = (vd[op[2]] >  vd[op[3]]);				// <var> = cmp <var/ptr/expr> > <var/ptr/expr>
+			break;	case op_cmp_ii_gt:	vi[op[1]] = (vi[op[2]] >  vi[op[3]]);
+			break;	case op_cmp_vv_ge:	vi[op[1]] = (vd[op[2]] >= vd[op[3]]);				// <var> = cmp <var/ptr/expr> >= <var/ptr/expr>
+			break;	case op_cmp_ii_ge:	vi[op[1]] = (vi[op[2]] >= vi[op[3]]);
 			break;	case op_func1_vv:	vd[op[1]] = ((double (*)(double))op[2])(vd[op[3]]);
 
 			// 5 word ops

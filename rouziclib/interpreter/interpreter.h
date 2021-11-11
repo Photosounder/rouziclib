@@ -21,10 +21,7 @@ enum opcode
 	op_sq_v,
 	op_sqrt_v,
 
-	op_jmp_v_ez,
-	op_jmp_v_nz,
-	op_jmp_i_ez,
-	op_jmp_i_nz,
+	op_jmp_cond,
 	op_func0_v,
 
 	op_4word_ops = 4096,
@@ -40,8 +37,18 @@ enum opcode
 	op_mod_vv,
 	op_pow_vv,
 
-	op_jmp_vv_lt,
-	op_jmp_ii_lt,
+	op_cmp_vv_eq,
+	op_cmp_ii_eq,
+	op_cmp_vv_ne,
+	op_cmp_ii_ne,
+	op_cmp_vv_lt,
+	op_cmp_ii_lt,
+	op_cmp_vv_le,
+	op_cmp_ii_le,
+	op_cmp_vv_gt,
+	op_cmp_ii_gt,
+	op_cmp_vv_ge,
+	op_cmp_ii_ge,
 	op_func1_vv,
 
 	op_5word_ops = 5120,
