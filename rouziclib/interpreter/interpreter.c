@@ -399,6 +399,7 @@ line_proc_start:
 				{
 					if (strcmp(reg[ir].type, "d")==0)
 					{
+						// Add return opcode
 						io = alloc_opcode(d, &counts, 2);
 						d->op[io] = op_ret_v;
 						d->op[io+1] = reg[ir].index;
@@ -406,8 +407,17 @@ line_proc_start:
 					}
 					else
 					{
-						bufprintf(log, "Command 'return' unimplemented for type '%s' in line %d: '%s'\n", reg[ir].type, il, line[il]);
-						goto invalid_prog;
+						// Convert from integer to double
+						io = alloc_opcode(d, &counts, 3);	// add conversion opcode
+						d->op[io] = op_cvt_i_v;
+						d->op[io+1] = rd[0];			// convert to generic register
+						d->op[io+2] = reg[ir].index;
+
+						// Add return opcode
+						io = alloc_opcode(d, &counts, 2);
+						d->op[io] = op_ret_v;
+						d->op[io+1] = rd[0];
+						ret_cmd_done = 1;
 					}
 				}
 				else
