@@ -101,19 +101,62 @@ uint32_t reverse_bits32(uint32_t v)	// from http://graphics.stanford.edu/~seande
 	return (v >> 16           ) | ( v              << 16);
 }
 
+uint64_t reverse_bits64(uint64_t v)
+{
+	v = ((v >> 1) & 0x5555555555555555ULL) | ((v & 0x5555555555555555ULL) << 1);
+	v = ((v >> 2) & 0x3333333333333333ULL) | ((v & 0x3333333333333333ULL) << 2);
+	v = ((v >> 4) & 0x0F0F0F0F0F0F0F0FULL) | ((v & 0x0F0F0F0F0F0F0F0FULL) << 4);
+	v = ((v >> 8) & 0x00FF00FF00FF00FFULL) | ((v & 0x00FF00FF00FF00FFULL) << 8);
+	v = ((v >>16) & 0x0000FFFF0000FFFFULL) | ((v & 0x0000FFFF0000FFFFULL) << 16);
+	return (v >> 32                      ) | ( v                          << 32);
+}
+
 uint32_t reverse_n_bits32(uint32_t v, int n)
 {
 	return reverse_bits32(v) >> (32-n);
 }
 
+uint64_t reverse_n_bits64(uint64_t v, int n)
+{
+	return reverse_bits64(v) >> (64-n);
+}
+
 uint32_t reverse_iterator_bits32(int *i, uint32_t count)	// i should not be the for loop iterator but rather a variable that starts from 0 and isn't touched outside of this function
 {
 	uint32_t ir;
+	int bits = log2_ffo32(count-1);
 
-	ir = reverse_n_bits32(*i, log2_ffo32(count));	// reverse the correct number of bits
+shuffle_start:
+	ir = reverse_n_bits32(*i, bits);		// reverse the correct number of bits
 	(*i)++;						// iterate i for the next call to this function
 	if (ir >= count)				// if ir is too large
-		ir = reverse_iterator_bits32(i, count);	// get the next ir in the sequence
+		goto shuffle_start;			// get the next ir in the sequence (jumps back up to 3 times)
+
+	return ir;
+}
+
+xyi_t reverse_iterator_bits_2d(uint64_t *i, xyi_t dim)
+{
+	xyi_t ir, dim_bits;
+	int ib, sh, shift;
+       
+	shift = log2_ffo32(MAXN(dim.x, dim.y) - 1) - 1;	// number of bits needed for each dimension
+
+shuffle_start:
+	// Shuffle bits from i into ir.x and ir.y
+	ir.x = 0;
+	ir.y = 0;
+	sh = shift;
+	for (ib=0; *i >> ib; ib++, sh--)
+	{
+		ir.x |= get_bit(*i, ib) << sh;
+		ib++;
+		ir.y |= get_bit(*i, ib) << sh;
+	}
+
+	(*i)++;						// iterate i for the next call to this function
+	if (ir.x >= dim.x || ir.y >= dim.y)		// if ir is too large
+		goto shuffle_start;			// get the next ir in the sequence
 
 	return ir;
 }

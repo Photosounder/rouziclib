@@ -1,5 +1,5 @@
 // in graphics/graphics_struct.h:
-// srgb_t, lrgb_t, frgb_t, raster_t
+// lrgb_t, frgb_t, srgb_t, sqrgb_t, raster_t
 
 #ifndef LBD			// for lrgb_t
 #define LBD	15		// Linear Bit Depth (per channel), 12 <= LBD <= 15
@@ -35,7 +35,7 @@ extern size_t get_raster_mode_elem_size(const int mode);
 extern raster_t make_raster(void *data, const xyi_t dim, xyi_t maxdim, const int mode);
 extern raster_t make_raster_empty();
 extern raster_t copy_raster(raster_t r0);
-extern void blank_raster(raster_t *r);
+extern void blank_raster(raster_t *r, const int set_alpha_to_1);
 extern void **get_raster_buffer_for_mode_ptr(raster_t *r, const int mode);
 extern void *get_raster_buffer_for_mode(raster_t r, const int mode);
 extern void **get_raster_buffer_ptr(raster_t *r);

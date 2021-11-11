@@ -193,6 +193,10 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/prefs.h"
 #include "fileio/dialog.h"
 
+#include "interpreter/interpreter.h"
+#include "interpreter/execution.h"
+#include "interpreter/decompilation.h"
+
 // used if RL_INCL_NETWORK is defined
 #include "network/network.h"
 #include "network/http.h"

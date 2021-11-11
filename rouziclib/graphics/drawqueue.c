@@ -146,10 +146,10 @@ void drawq_run()
 
 		// Get profiling times
 		clWaitForEvents_wrap(1, &fb.clctx.ev);
-		clReleaseEvent_wrap(fb.clctx.ev);
 		clGetEventProfilingInfo_wrap(fb.clctx.ev, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &fb.clctx.queue_time, NULL);
 		clGetEventProfilingInfo_wrap(fb.clctx.ev, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &fb.clctx.start_time, NULL);
 		clGetEventProfilingInfo_wrap(fb.clctx.ev, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &fb.clctx.end_time, NULL);
+		clReleaseEvent_wrap(fb.clctx.ev);
 		frame_timing_t *timing = &fb.timing[circ_index(fb.timing_index-1, fb.timing_count)];
 		timing->thread_start = timing->cl_enqueue_end;// + (double) (fb.clctx.start_time - fb.clctx.queue_time)*1e-9;
 		timing->thread_end = timing->cl_enqueue_end + (double) (fb.clctx.end_time-fb.clctx.queue_time)*1e-9;

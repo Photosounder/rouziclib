@@ -1,5 +1,15 @@
 typedef struct
 {
+	uint16_t r, g, b, a;	// in 1.LBD format (as it goes up to a fixed-point value of 1.0)
+} lrgb_t;			// linear RGB format
+
+typedef struct
+{
+	float r, g, b, a;
+} frgb_t;			// linear RGB format
+
+typedef struct
+{
 	uint8_t r, g, b, a;
 } srgb_t;			// sRGB
 
@@ -9,16 +19,6 @@ typedef struct
 	uint32_t g:12;
 	uint32_t b:10;
 } sqrgb_t;			// squared RGB, the stored values are proportional to the square root of the linear value
-
-typedef struct
-{
-	uint16_t r, g, b, a;	// in 1.LBD format (as it goes up to a fixed-point value of 1.0)
-} lrgb_t;			// linear RGB format
-
-typedef struct
-{
-	float r, g, b, a;
-} frgb_t;			// linear RGB format
 
 #ifdef COL_FRGB
 	#define col_t 	frgb_t

@@ -777,6 +777,12 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 		{
 			ir = reverse_iterator_bits32(&i2, count);
 
+		// and in 2D
+		uint64_t i2, pix_count = mul_x_by_y_xyi(r.dim);
+		for (i2=i=0; i < pix_count; i++)
+		{
+			ip = reverse_iterator_bits_2d(&i2, r.dim);
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments

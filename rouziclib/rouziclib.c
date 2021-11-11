@@ -127,6 +127,10 @@
 #include "fileio/prefs.c"
 #include "fileio/dialog.c"
 
+#include "interpreter/interpreter.c"
+#include "interpreter/execution.c"
+#include "interpreter/decompilation.c"
+
 #include "network/network.c"
 #include "network/http.c"
 
