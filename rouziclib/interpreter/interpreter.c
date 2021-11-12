@@ -4,6 +4,7 @@ enum opcode_table
 	table_vd,
 	table_vi,
 	table_ptr,
+	table_loc,
 };
 
 typedef struct 
@@ -20,7 +21,8 @@ typedef struct
 	rlip_t *d;
 	opint_t *op;
 	rlip_reg_t *reg;
-	size_t op_count, op_as, vd_count, vd_as, vi_count, vi_as, ptr_count, ptr_as, reg_count, reg_as;
+	int *loc;
+	size_t op_count, op_as, vd_count, vd_as, vi_count, vi_as, ptr_count, ptr_as, loc_count, loc_as, reg_count, reg_as;
 } rlip_data_t;
 
 int rlip_find_value(const char *name, rlip_data_t *ed)
@@ -74,6 +76,14 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 		alloc_enough((void **) &ed->d->ptr, ed->ptr_count+=1, &ed->ptr_as, sizeof(void *), 1.5);
 		ed->d->ptr[ed->reg[ir].index] = (void *) ptr;
 	}
+
+	else if (strcmp(type, "l")==0)			// add to loc table
+	{
+		ed->reg[ir].table = table_loc;
+		ed->reg[ir].index = ed->loc_count;
+		alloc_enough((void **) &ed->loc, ed->loc_count+=1, &ed->loc_as, sizeof(void *), 1.5);
+		ed->loc[ed->reg[ir].index] = *(int *) ptr;
+	}
 }
 
 int rlip_add_value(const char *name, const void *ptr, const char *type, rlip_data_t *ed)
@@ -103,8 +113,12 @@ size_t alloc_opcode(rlip_data_t *ed, size_t add_count)
 
 void prepend_opcode(rlip_data_t *ed, size_t add_count)
 {
-	size_t move_count = alloc_opcode(ed, add_count);			// make room for the ops to prepend
+	size_t i, move_count = alloc_opcode(ed, add_count);			// make room for the ops to prepend
 	memmove(&ed->op[add_count], ed->op, move_count * sizeof(ed->op[0]));	// move all ops to make room for the new ones at the beginning
+
+	// Shift all registered locations
+	for (i=0; i < ed->loc_count; i++)
+		ed->loc[i] += add_count;
 }
 
 void convert_pointer_to_variable(int ir, rlip_data_t *ed)
@@ -230,6 +244,23 @@ line_proc_start:
 			p = &p[n];
 
 			goto line_proc_start;
+		}
+
+		// Declaring a location
+		else if (s0[strlen(s0)-1] == ':')
+		{
+			s0[strlen(s0)-1] = '\0';	// remove : to make location name
+
+			// Check for previous declaration
+			ir = rlip_find_value(s0, ed);
+			if (ir > -1)
+			{
+				bufprintf(log, "Already declared location '%s' used in line %d: '%s'\n", s0, il, line[il]);
+				goto invalid_prog;
+			}
+
+			// Add location in table
+			ir = rlip_add_value(s0, &ed->op_count, "l", ed);
 		}
 
 		// When doing "<var> = ..."
@@ -381,9 +412,9 @@ add_command:
 					{
 						cmd_found = 1;
 						if (strcmp(s0, "cmp")==0)
-							sprintf(cmd_arg_type, "dd");
+							sprintf(cmd_arg_type, "idd");
 						else
-							sprintf(cmd_arg_type, "ii");
+							sprintf(cmd_arg_type, "iii");
 
 						n = 0;
 						ret = sscanf(p, "%*s %30s %30s %30s %n", s1, s2, s3, &n);
@@ -409,12 +440,12 @@ add_command:
 							io = alloc_opcode(ed, 4);
 
 							// Select correct opcode
-							if (strcmp(s2, "==")==0)	ed->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_eq : op_cmp_ii_eq;
-							if (strcmp(s2, "!=")==0)	ed->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_ne : op_cmp_ii_ne;
-							if (strcmp(s2, "<")==0) 	ed->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_lt : op_cmp_ii_lt;
-							if (strcmp(s2, "<=")==0)	ed->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_le : op_cmp_ii_le;
-							if (strcmp(s2, ">")==0) 	ed->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_gt : op_cmp_ii_gt;
-							if (strcmp(s2, ">=")==0)	ed->op[io] = cmd_arg_type[0]=='d' ? op_cmp_vv_ge : op_cmp_ii_ge;
+							if (strcmp(s2, "==")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_eq : op_cmp_ii_eq;
+							if (strcmp(s2, "!=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_ne : op_cmp_ii_ne;
+							if (strcmp(s2, "<")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_lt : op_cmp_ii_lt;
+							if (strcmp(s2, "<=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_le : op_cmp_ii_le;
+							if (strcmp(s2, ">")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_gt : op_cmp_ii_gt;
+							if (strcmp(s2, ">=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_ge : op_cmp_ii_ge;
 
 							ed->op[io+1] = ed->reg[dest_ir].index;
 							ed->op[io+2] = ed->reg[arg_ir[0]].index;
@@ -496,10 +527,10 @@ add_command:
 				}
 			}
 		}
+
+		// Commands starting with the command name
 		else
 		{
-			// 2 word ops
-
 			if (strcmp(s0, "return")==0)
 			{
 				sscanf(p, "%*s %30s", s1);
@@ -534,6 +565,39 @@ add_command:
 				else
 				{
 					bufprintf(log, "Value not found for command 'return' in line %d: '%s'\n", il, line[il]);
+					goto invalid_prog;
+				}
+			}
+
+			if (strcmp(s0, "if")==0)
+			{
+				ret = sscanf(p, "%*s %30s goto %30s", s1, s2);
+
+				if (ret == 2)
+				{
+					arg_ir[0] = rlip_find_value(s1, ed);
+					arg_ir[1] = rlip_find_value(s2, ed);
+
+					if (strcmp(ed->reg[arg_ir[0]].type, "i") != 0)	// s1 must be an integer variable
+					{
+						bufprintf(log, "Not an integer variable '%s' in line %d: '%s'\n", s1, il, line[il]);
+						goto invalid_prog;
+					}
+
+					if (strcmp(ed->reg[arg_ir[1]].type, "l") != 0)	// s2 must be a location
+					{
+						bufprintf(log, "Not a known location '%s' in line %d: '%s'\nNote that locations after this line cannot be jumped to.\n", s2, il, line[il]);
+						goto invalid_prog;
+					}
+
+					io = alloc_opcode(ed, 3);
+					ed->op[io] = op_jmp_cond;
+					ed->op[io+1] = ed->reg[arg_ir[0]].index;				// integer variable
+					ed->op[io+2] = (opint_t) ed->loc[ed->reg[arg_ir[1]].index] - io;	// signed jump offset
+				}
+				else
+				{
+					bufprintf(log, "Incorrect 'if <integer variable> goto <loc>' command in line %d: '%s'\n", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -591,8 +655,6 @@ add_command:
 					goto invalid_prog;
 				}
 			}
-
-			// 3 word ops
 		}
 	}
 
@@ -617,6 +679,7 @@ invalid_prog:
 		free(ed->reg[i].name);
 		free(ed->reg[i].type);
 	}
+	free(ed->loc);
 	free(ed->reg);
 
 	data.op = ed->op;

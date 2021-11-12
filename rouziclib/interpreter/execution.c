@@ -34,7 +34,7 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_sq_v:		vd[op[1]] = sq(vd[op[2]]);					// <var> = sq <var/ptr/expr>
 			break;	case op_sqrt_v:		vd[op[1]] = sqrt(vd[op[2]]);					// <var> = sqrt <var/ptr/expr>
 
-			break;	case op_jmp_cond:	if (vi[op[1]])	op = &op[(ptrdiff_t) op[2]];	inc = 0;	// if <var> goto <loc>
+			break;	case op_jmp_cond:	if (vi[op[1]]) { op = &op[(ptrdiff_t) op[2]];	inc = 0; }	// if <var> goto <loc>
 			break;	case op_func0_v:	vd[op[1]] = ((double (*)(void)) d->ptr[op[2]])();
 
 			// 4 word ops
