@@ -61,13 +61,16 @@ enum opcode
 	op_8word_ops = 8192,
 };
 
+#define opint_t int16_t
+
 typedef struct
 {
 	volatile int exec_on;
 	int valid_prog;
-	uint64_t *op;
-	double *vd, **pd;
-	int64_t *vi, **p_i;
+	opint_t *op;
+	double *vd;
+	int64_t *vi;
+	void **ptr;
 	double return_value;
 } rlip_t;
 

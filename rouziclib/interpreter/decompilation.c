@@ -72,14 +72,14 @@ buffer_t rlip_decompile(rlip_t *d)
 {
 	int i;
 	buffer_t buffer={0}, *b=&buffer;
-	uint64_t *op = d->op;
+	opint_t *op = d->op;
 
 	while (1)
 	{
 		bufprintf(b, "%s\t", rlip_get_op_name(op[0]));
 
 		for (i=1; i < op[0] >> 10; i++)
-			bufprintf(b, "%6ld\t", op[i]);
+			bufprintf(b, "%6d\t", op[i]);
 		bufprintf(b, "\n");
 
 		if (op[0] == op_end)

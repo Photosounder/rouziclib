@@ -1,7 +1,7 @@
 int execute_bytecode(rlip_t *d)
 {
 	int inc = 1;
-	uint64_t *op = d->op;
+	opint_t *op = d->op;
 	double *vd = d->vd;
 	int64_t *vi = d->vi;
 
@@ -24,8 +24,8 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_inc1_i:		vi[op[1]] += 1;
 
 			// 3 word ops
-			break;	case op_load_v:		vd[op[1]] = *d->pd[op[2]];					// compiler-only
-			break;	case op_load_i:		vi[op[1]] = *d->p_i[op[2]];					// compiler-only
+			break;	case op_load_v:		vd[op[1]] = *(double *) d->ptr[op[2]];				// compiler-only
+			break;	case op_load_i:		vi[op[1]] = *(int64_t *) d->ptr[op[2]];				// compiler-only
 			break;	case op_set_v:		vd[op[1]] = vd[op[2]];						// <var> = <var/ptr/expr>
 			break;	case op_set_i:		vi[op[1]] = vi[op[2]];
 			break;	case op_cvt_i_v:	vd[op[1]] = (double) vi[op[2]];					// <var> = <var/ptr/expr>
@@ -35,7 +35,7 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_sqrt_v:		vd[op[1]] = sqrt(vd[op[2]]);					// <var> = sqrt <var/ptr/expr>
 
 			break;	case op_jmp_cond:	if (vi[op[1]])	op = &op[(ptrdiff_t) op[2]];	inc = 0;	// if <var> goto <loc>
-			break;	case op_func0_v:	vd[op[1]] = ((double (*)(void))op[2])();
+			break;	case op_func0_v:	vd[op[1]] = ((double (*)(void)) d->ptr[op[2]])();
 
 			// 4 word ops
 			break;	case op_add_vv:		vd[op[1]] = vd[op[2]] + vd[op[3]];				// <var> = add <var/ptr/expr> <var/ptr/expr>
@@ -62,13 +62,13 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_cmp_ii_gt:	vi[op[1]] = (vi[op[2]] >  vi[op[3]]);
 			break;	case op_cmp_vv_ge:	vi[op[1]] = (vd[op[2]] >= vd[op[3]]);				// <var> = cmp <var/ptr/expr> >= <var/ptr/expr>
 			break;	case op_cmp_ii_ge:	vi[op[1]] = (vi[op[2]] >= vi[op[3]]);
-			break;	case op_func1_vv:	vd[op[1]] = ((double (*)(double))op[2])(vd[op[3]]);		// <var> = <func> <var/ptr/expr>
+			break;	case op_func1_vv:	vd[op[1]] = ((double (*)(double)) d->ptr[op[2]])(vd[op[3]]);		// <var> = <func> <var/ptr/expr>
 
 			// 5 word ops
-			break;	case op_func2_vvv:	vd[op[1]] = ((double (*)(double,double))op[2])(vd[op[3]], vd[op[4]]);
+			break;	case op_func2_vvv:	vd[op[1]] = ((double (*)(double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]]);
 
 			// 6 word ops
-			break;	case op_func3_vvvv:	vd[op[1]] = ((double (*)(double,double,double))op[2])(vd[op[3]], vd[op[4]], vd[op[5]]);
+			break;	case op_func3_vvvv:	vd[op[1]] = ((double (*)(double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]]);
 
 			// 7 word ops
 		}

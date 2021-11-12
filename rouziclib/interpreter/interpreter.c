@@ -3,13 +3,12 @@ enum opcode_table
 	table_none=0,
 	table_vd,
 	table_vi,
-	table_pd,
-	table_pi,
+	table_ptr,
 };
 
 typedef struct 
 {
-	size_t op_count, op_as, vd_count, vd_as, vi_count, vi_as, pd_count, pd_as, pi_count, pi_as, reg_count, reg_as;
+	size_t op_count, op_as, vd_count, vd_as, vi_count, vi_as, ptr_count, ptr_as, reg_count, reg_as;
 } rlip_counts_t;
 
 typedef struct 
@@ -17,8 +16,8 @@ typedef struct
 	char *name;
 	uint64_t hash;
 	char *type;
-	enum opcode_table table;	// table is 0 for not in a table (like function pointers), 1 for vd, 2 for vi, 3 for pd, 4 for p_i
-	uint64_t index;			// index is the index in the given table or a function pointer
+	enum opcode_table table;	// table is 0 for not in a table (like function pointers), 1 for vd, 2 for vi, 3 for ptr
+	size_t index;			// index is the index in the given table
 } rlip_reg_t;
 
 int rlip_find_value(const char *name, rlip_counts_t *counts, rlip_reg_t *reg)
@@ -47,7 +46,7 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 		reg[ir].hash = get_string_hash(name);
 	reg[ir].type = make_string_copy(type);
 
-	if (strcmp(type, "d")==0)		// add to vd table
+	if (strcmp(type, "d")==0)			// add to vd table
 	{
 		reg[ir].table = table_vd;
 		reg[ir].index = counts->vd_count;
@@ -56,7 +55,7 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 			d->vd[reg[ir].index] = *(double *) ptr;
 	}
 
-	else if (strcmp(type, "i")==0)		// add to vi table
+	else if (strcmp(type, "i")==0)			// add to vi table
 	{
 		reg[ir].table = table_vi;
 		reg[ir].index = counts->vi_count;
@@ -65,25 +64,12 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 			d->vi[reg[ir].index] = *(int64_t *) ptr;
 	}
 
-	else if (strcmp(type, "pd")==0)		// add to pd table
+	else if (type[0] == 'p' || type[0] == 'f')	// add to ptr table
 	{
-		reg[ir].table = table_pd;
-		reg[ir].index = counts->pd_count;
-		alloc_enough((void **) &d->pd, counts->pd_count+=1, &counts->pd_as, sizeof(double *), 1.5);
-		d->pd[reg[ir].index] = (double *) ptr;
-	}
-
-	else if (strcmp(type, "pi")==0)		// add to p_i table
-	{
-		reg[ir].table = table_pi;
-		reg[ir].index = counts->pi_count;
-		alloc_enough((void **) &d->p_i, counts->pi_count+=1, &counts->pi_as, sizeof(int64_t *), 1.5);
-		d->p_i[reg[ir].index] = (int64_t *) ptr;
-	}
-
-	if (type[0] == 'f')			// function pointer
-	{
-		reg[ir].index = (uint64_t) ptr;
+		reg[ir].table = table_ptr;
+		reg[ir].index = counts->ptr_count;
+		alloc_enough((void **) &d->ptr, counts->ptr_count+=1, &counts->ptr_as, sizeof(void *), 1.5);
+		d->ptr[reg[ir].index] = (void *) ptr;
 	}
 }
 
@@ -108,7 +94,7 @@ int rlip_add_value(const char *name, const void *ptr, const char *type, rlip_t *
 size_t alloc_opcode(rlip_t *d, rlip_counts_t *counts, size_t add_count)
 {
 	size_t index = counts->op_count;
-	alloc_enough(&d->op, counts->op_count+=add_count, &counts->op_as, sizeof(uint64_t), 1.5);
+	alloc_enough(&d->op, counts->op_count+=add_count, &counts->op_as, sizeof(opint_t), 1.5);
 	return index;
 }
 
@@ -636,6 +622,5 @@ void free_rlip(rlip_t *prog)
 	free(prog->op);
 	free(prog->vd);
 	free(prog->vi);
-	free(prog->pd);
-	free(prog->p_i);
+	free(prog->ptr);
 }
