@@ -79,7 +79,7 @@ buffer_t rlip_decompile(rlip_t *d)
 		bufprintf(b, "%s\t", rlip_get_op_name(op[0]));
 
 		for (i=1; i < op[0] >> 10; i++)
-			bufprintf(b, "%6d\t", op[i]);
+			bufprintf(b, "%6ld\t", op[i]);
 		bufprintf(b, "\n");
 
 		if (op[0] == op_end)

@@ -29,3 +29,11 @@ void swap_ptr(void **a, void **b)
 	*a = *b;
 	*b = c;
 }
+
+void swap_char(char *a, char *b)
+{
+	char c = *a;
+
+	*a = *b;
+	*b = c;
+}

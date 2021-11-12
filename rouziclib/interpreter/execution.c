@@ -62,7 +62,7 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_cmp_ii_gt:	vi[op[1]] = (vi[op[2]] >  vi[op[3]]);
 			break;	case op_cmp_vv_ge:	vi[op[1]] = (vd[op[2]] >= vd[op[3]]);				// <var> = cmp <var/ptr/expr> >= <var/ptr/expr>
 			break;	case op_cmp_ii_ge:	vi[op[1]] = (vi[op[2]] >= vi[op[3]]);
-			break;	case op_func1_vv:	vd[op[1]] = ((double (*)(double))op[2])(vd[op[3]]);
+			break;	case op_func1_vv:	vd[op[1]] = ((double (*)(double))op[2])(vd[op[3]]);		// <var> = <func> <var/ptr/expr>
 
 			// 5 word ops
 			break;	case op_func2_vvv:	vd[op[1]] = ((double (*)(double,double))op[2])(vd[op[3]], vd[op[4]]);

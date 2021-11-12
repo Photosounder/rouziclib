@@ -18,7 +18,7 @@ typedef struct
 	uint64_t hash;
 	char *type;
 	enum opcode_table table;	// table is 0 for not in a table (like function pointers), 1 for vd, 2 for vi, 3 for pd, 4 for p_i
-	int index;			// index is the index in the given table
+	uint64_t index;			// index is the index in the given table or a function pointer
 } rlip_reg_t;
 
 int rlip_find_value(const char *name, rlip_counts_t *counts, rlip_reg_t *reg)
@@ -79,6 +79,11 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 		reg[ir].index = counts->pi_count;
 		alloc_enough((void **) &d->p_i, counts->pi_count+=1, &counts->pi_as, sizeof(int64_t *), 1.5);
 		d->p_i[reg[ir].index] = (int64_t *) ptr;
+	}
+
+	if (type[0] == 'f')			// function pointer
+	{
+		reg[ir].index = (uint64_t) ptr;
 	}
 }
 
@@ -194,6 +199,7 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 	char *p, a[32], b[32], c[32], e[32], cmd_arg_type[16];
 	int arg_ir[16];
 	uint64_t hash;
+	enum opcode new_opcode;
 
 	// Add generic registers
 	for (i=0; i < sizeof(rd)/sizeof(*rd); i++)
@@ -301,6 +307,20 @@ line_proc_start:
 				// Add command
 				if (cmd_found == 1)
 				{
+					new_opcode = 0;
+
+					if (strcmp(a, "sq")==0)		new_opcode = op_sq_v;
+					else if (strcmp(a, "sqrt")==0)	new_opcode = op_sqrt_v;
+					else if (strcmp(a, "add")==0)	new_opcode = op_add_vv;
+					else if (strcmp(a, "addi")==0)	new_opcode = op_add_ii;
+					else if (strcmp(a, "mul")==0)	new_opcode = op_mul_vv;
+					else if (strcmp(a, "muli")==0)	new_opcode = op_mul_ii;
+					else if (strcmp(a, "div")==0)	new_opcode = op_div_vv;
+					else if (strcmp(a, "divi")==0)	new_opcode = op_div_ii;
+					else if (strcmp(a, "mod")==0)	new_opcode = op_mod_ii;
+					else if (strcmp(a, "modi")==0)	new_opcode = op_mod_vv;
+					else if (strcmp(a, "pow")==0)	new_opcode = op_pow_vv;
+add_command:
 					// Go through arguments to convert them and determine their types
 					for (i=0; i < cmd_arg_count; i++)
 					{
@@ -319,7 +339,8 @@ line_proc_start:
 							}
 
 							// Convert the variable to a generic register if the type doesn't match the one expected
-							rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[i], rd, ri, i, d, &counts, reg);
+							if (cmd_arg_type[1+i] != 'f')
+								rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[1+i], rd, ri, i, d, &counts, reg);
 						}
 						else
 						{
@@ -330,18 +351,7 @@ line_proc_start:
 
 					// Add opcode
 					io = alloc_opcode(d, &counts, 2+cmd_arg_count);
-
-					if (strcmp(a, "sq")==0)		d->op[io] = op_sq_v;
-					else if (strcmp(a, "sqrt")==0)	d->op[io] = op_sqrt_v;
-					else if (strcmp(a, "add")==0)	d->op[io] = op_add_vv;
-					else if (strcmp(a, "addi")==0)	d->op[io] = op_add_ii;
-					else if (strcmp(a, "mul")==0)	d->op[io] = op_mul_vv;
-					else if (strcmp(a, "muli")==0)	d->op[io] = op_mul_ii;
-					else if (strcmp(a, "div")==0)	d->op[io] = op_div_vv;
-					else if (strcmp(a, "divi")==0)	d->op[io] = op_div_ii;
-					else if (strcmp(a, "mod")==0)	d->op[io] = op_mod_ii;
-					else if (strcmp(a, "modi")==0)	d->op[io] = op_mod_vv;
-					else if (strcmp(a, "pow")==0)	d->op[io] = op_pow_vv;
+					d->op[io] = new_opcode;
 
 					// Add arguments to opcode
 					for (i=0; i < cmd_arg_count; i++)
@@ -401,7 +411,7 @@ line_proc_start:
 								}
 
 								// Convert the variable to a generic register if the type doesn't match the one expected
-								rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[i], rd, ri, i, d, &counts, reg);
+								rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[1+i], rd, ri, i, d, &counts, reg);
 							}
 
 							// Add cmp opcode
@@ -434,13 +444,13 @@ line_proc_start:
 						}
 						else
 						{
-							bufprintf(log, "Argument missing (3 arguments expected) in line %d: '%s'\n", cmd_arg_count, il, line[il]);
+							bufprintf(log, "Argument missing (%d arguments expected) in line %d: '%s'\n", cmd_arg_count, il, line[il]);
 							goto invalid_prog;
 						}
 					}
 				}
 
-				// Check if it's a variable, pointer or expression rather than a command making "=" a set or cvt command
+				// Check if it's a variable, pointer, expression or function pointer rather than a command making "=" a set, cvt or func command
 				if (cmd_found == 0)
 				{
 					ir = rlip_find_convert_value(a, d, &counts, &reg);	// converts pointers and expressions to variables
@@ -459,6 +469,31 @@ line_proc_start:
 							d->op[io+1] = reg[dest_ir].index;
 							d->op[io+2] = reg[ir].index;
 							cmd_found = 2;
+						}
+
+						// Provided function pointer
+						if (reg[ir].type[0]=='f')
+						{
+							cmd_arg_count = strlen(reg[ir].type) - 1;
+							sprintf(cmd_arg_type, "%s", reg[ir].type);
+							swap_char(&cmd_arg_type[0], &cmd_arg_type[1]);
+							cmd_found = 3;
+
+							// FIXME only functions with double format arguments are supported
+							switch (cmd_arg_count)
+							{
+								case 1:	new_opcode = op_func0_v;	break;
+								case 2:	new_opcode = op_func1_vv;	break;
+								case 3:	new_opcode = op_func2_vvv;	break;
+								case 4:	new_opcode = op_func3_vvvv;	break;
+								
+								default:
+									bufprintf(log, "Argument count (%d) not supported in line %d: '%s'\n", cmd_arg_count, il, line[il]);
+									goto invalid_prog;
+							}
+
+							n = 0;			// makes the parsing keep the name of the function as an argument
+							goto add_command;
 						}
 					}
 				}
