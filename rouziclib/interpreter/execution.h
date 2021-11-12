@@ -1,1 +1,1 @@
-extern int execute_bytecode(rlip_t *d);
+extern int rlip_execute_opcode(rlip_t *d);

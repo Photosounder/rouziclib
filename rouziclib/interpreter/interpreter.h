@@ -35,7 +35,9 @@ enum opcode
 	op_div_ii,
 	op_mod_ii,
 	op_mod_vv,
-	op_pow_vv,
+
+	op_and_ii,
+	op_or_ii,
 
 	op_cmp_vv_eq,
 	op_cmp_ii_eq,
@@ -65,7 +67,7 @@ enum opcode
 
 typedef struct
 {
-	volatile int exec_on;
+	volatile int *exec_on;
 	int valid_prog;
 	opint_t *op;
 	double *vd;
@@ -81,5 +83,45 @@ typedef struct
 	const char *type;
 } rlip_inputs_t;
 
-extern rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, buffer_t *log);
 extern void free_rlip(rlip_t *prog);
+
+// Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"}, ... };
+#define RLIP_FUNC					\
+	{"abs", fabs,	"fdd"},				\
+	{"acos", acos,	"fdd"},				\
+	{"asin", asin,	"fdd"},				\
+	{"atan", atan,	"fdd"},				\
+	{"atan2", atan2, "fddd"},			\
+	{"ceil", ceil,	"fdd"},				\
+	{"cos", cos,	"fdd"},				\
+	{"cosh", cosh,	"fdd"},				\
+	{"exp", exp,	"fdd"},				\
+	{"floor", floor, "fdd"},			\
+	{"log", log,	"fdd"},				\
+	{"log10", log10, "fdd"},			\
+	{"log2", log2,	"fdd"},				\
+	{"pow", pow, "fddd"},				\
+	{"sin", sin, "fdd"},				\
+	{"sinh", sinh, "fdd"},				\
+	{"tan", tan, "fdd"},				\
+	{"tanh", tanh, "fdd"},				\
+	{"gaussian", gaussian, "fdd"},			\
+	{"erf", erf, "fdd"},				\
+	{"erfr", erfr, "fdd"},				\
+	{"erfinv", erfinv, "fdd"},			\
+	{"integral_erfr", integral_of_erfr, "fdd"},	\
+	{"short_erf", short_erf, "fddd"},		\
+	{"lab_to_linear", Lab_L_to_linear, "fdd"},	\
+	{"linear_to_lab", linear_to_Lab_L, "fdd"},	\
+	{"lab_invert", Lab_L_invert, "fdd"},		\
+	{"lsrgb", lsrgb, "fdd"},			\
+	{"slrgb", slrgb, "fdd"},			\
+	{"db_to_vol", db_to_vol, "fdd"},		\
+	{"vol_to_db", vol_to_db, "fdd"},		\
+	{"nearbyint", nearbyint, "fdd"},		\
+	{"min", min_tefunc, "fddd"},			\
+	{"max", max_tefunc, "fddd"},			\
+	{"clamp", clamp_tefunc, "fdd"},			\
+	{"rangelimit", rangelimit, "fdddd"},		\
+	{"sign", sign_tefunc, "fdd"},			\
+	{"trunc", trunc, "fdd"}

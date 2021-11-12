@@ -4,6 +4,7 @@
 	{"gaussian", gaussian, TE_FUNCTION1 | TE_FLAG_PURE},			\
 	{"erf", erf, TE_FUNCTION1 | TE_FLAG_PURE},				\
 	{"erfr", erfr, TE_FUNCTION1 | TE_FLAG_PURE},				\
+	{"erfinv", erfinv, TE_FUNCTION1 | TE_FLAG_PURE},			\
 	{"integral_erfr", integral_of_erfr, TE_FUNCTION1 | TE_FLAG_PURE},	\
 	{"lgamma", lgamma, TE_FUNCTION1 | TE_FLAG_PURE},			\
 	{"gamma", tgamma, TE_FUNCTION1 | TE_FLAG_PURE},				\
@@ -25,7 +26,7 @@
 	{"rangelimit", rangelimit, TE_FUNCTION3 | TE_FLAG_PURE},		\
 	{"sign", sign_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},			\
 	{"sgn", sign_tefunc, TE_FUNCTION1 | TE_FLAG_PURE},			\
-	{"trunc", trunc, TE_FUNCTION1 | TE_FLAG_PURE},			\
+	{"trunc", trunc, TE_FUNCTION1 | TE_FLAG_PURE},				\
 	{"sq", sq, TE_FUNCTION1 | TE_FLAG_PURE}
 
 extern double min_tefunc(double a, double b);

@@ -39,7 +39,9 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_div_ii:    	return "op_div_ii";
 		case op_mod_ii:    	return "op_mod_ii";
 		case op_mod_vv:    	return "op_mod_vv";
-		case op_pow_vv:    	return "op_pow_vv";
+
+		case op_and_ii:    	return "op_and_ii";
+		case op_or_ii:    	return "op_or_ii";
 
 		case op_cmp_vv_eq:    	return "op_cmp_vv_eq";
 		case op_cmp_ii_eq:    	return "op_cmp_ii_eq";
@@ -73,11 +75,18 @@ buffer_t rlip_decompile(rlip_t *d)
 	int i;
 	buffer_t buffer={0}, *b=&buffer;
 	opint_t *op = d->op;
+	const char *opname;
 
 	while (1)
 	{
-		bufprintf(b, "%s\t", rlip_get_op_name(op[0]));
+		// Get op name
+		opname = rlip_get_op_name(op[0]);
+		bufprintf(b, "%s\t", opname);
 
+		if (strcmp(opname, "Unknown op")==0)
+			return buffer;
+
+		// Print arguments
 		for (i=1; i < op[0] >> 10; i++)
 			bufprintf(b, "%6d\t", op[i]);
 		bufprintf(b, "\n");

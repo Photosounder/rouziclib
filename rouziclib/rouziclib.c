@@ -128,6 +128,7 @@
 #include "fileio/dialog.c"
 
 #include "interpreter/interpreter.c"
+#include "interpreter/compilation.c"
 #include "interpreter/execution.c"
 #include "interpreter/decompilation.c"
 

@@ -1,11 +1,17 @@
-int execute_bytecode(rlip_t *d)
+int rlip_execute_opcode(rlip_t *d)
 {
 	int inc = 1;
 	opint_t *op = d->op;
 	double *vd = d->vd;
 	int64_t *vi = d->vi;
 
-	while (d->exec_on)
+	if (d->valid_prog == 0)
+	{
+		d->return_value = NAN;
+		return -1;
+	}
+
+	while (*d->exec_on)
 	{
 		inc = 1;
 
@@ -45,10 +51,12 @@ int execute_bytecode(rlip_t *d)
 			break;	case op_mul_vv:		vd[op[1]] = vd[op[2]] * vd[op[3]];
 			break;	case op_mul_ii:		vi[op[1]] = vi[op[2]] * vi[op[3]];
 			break;	case op_div_vv:		vd[op[1]] = vd[op[2]] / vd[op[3]];
-			break;	case op_div_ii:		vi[op[1]] = vi[op[2]] / vi[op[3]];
-			break;	case op_mod_ii:		vi[op[1]] = vi[op[2]] % vi[op[3]];
+			break;	case op_div_ii:		vi[op[1]] = vi[op[3]]==0 ? 0 : vi[op[2]] / vi[op[3]];
+			break;	case op_mod_ii:		vi[op[1]] = vi[op[3]]==0 ? 0 : vi[op[2]] % vi[op[3]];
 			break;	case op_mod_vv:		vd[op[1]] = fmod(vd[op[2]], vd[op[3]]);
-			break;	case op_pow_vv:		vd[op[1]] = pow(vd[op[2]], vd[op[3]]);
+			
+			break;	case op_and_ii:		vi[op[1]] = vi[op[2]] & vi[op[3]];
+			break;	case op_or_ii:		vi[op[1]] = vi[op[2]] | vi[op[3]];
 
 			break;	case op_cmp_vv_eq:	vi[op[1]] = (vd[op[2]] == vd[op[3]]);				// <var> = cmp <var/ptr/expr> == <var/ptr/expr>
 			break;	case op_cmp_ii_eq:	vi[op[1]] = (vi[op[2]] == vi[op[3]]);				// <var> = cmpi <var/ptr/expr> == <var/ptr/expr>
@@ -69,8 +77,11 @@ int execute_bytecode(rlip_t *d)
 
 			// 6 word ops
 			break;	case op_func3_vvvv:	vd[op[1]] = ((double (*)(double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]]);
+			break;
 
-			// 7 word ops
+			default:
+				fprintf_rl(stderr, "Invalid opcode '%d' at op[%d]\n", op[0], (op - d->op) / sizeof(opint_t));
+				return -2;
 		}
 
 		// Increment to next op

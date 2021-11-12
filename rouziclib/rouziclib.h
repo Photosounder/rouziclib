@@ -194,6 +194,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/dialog.h"
 
 #include "interpreter/interpreter.h"
+#include "interpreter/compilation.h"
 #include "interpreter/execution.h"
 #include "interpreter/decompilation.h"
 
