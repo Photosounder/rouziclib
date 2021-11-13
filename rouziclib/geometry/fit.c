@@ -194,6 +194,19 @@ rect_t fit_rect_in_area(xy_t r_dim0, rect_t area, xy_t off)
 	return make_rect_off(add_xy(area.p0, mul_xy(dim_diff, off)), r_dim1, XY0);
 }
 
+rect_t fit_rect_containing_area(xy_t r_dim0, rect_t area, xy_t off)	// instead of rect fitting in area, area fits inside rect
+{
+	double scale;
+	xy_t area_dim, r_dim1, dim_diff;
+
+	area = sort_rect(area);
+	area_dim = get_rect_dim(area);
+	scale = max_of_xy(div_xy(area_dim, r_dim0));
+	r_dim1 = mul_xy(r_dim0, set_xy(scale));
+	dim_diff = sub_xy(area_dim, r_dim1);
+	return make_rect_off(add_xy(area.p0, mul_xy(dim_diff, off)), r_dim1, XY0);
+}
+
 rect_t get_subdiv_area(rect_t area, xy_t ratio, xy_t offset)
 {
 	xy_t area_dim, subdiv_dim, pos;
