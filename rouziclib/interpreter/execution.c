@@ -54,6 +54,8 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_div_ii:		vi[op[1]] = vi[op[3]]==0 ? 0 : vi[op[2]] / vi[op[3]];
 			break;	case op_mod_ii:		vi[op[1]] = vi[op[3]]==0 ? 0 : vi[op[2]] % vi[op[3]];
 			break;	case op_mod_vv:		vd[op[1]] = fmod(vd[op[2]], vd[op[3]]);
+			break;	case op_sqadd_vv:	vd[op[1]] = sq(vd[op[2]]) + sq(vd[op[3]]);
+			break;	case op_sqsub_vv:	vd[op[1]] = sq(vd[op[2]]) - sq(vd[op[3]]);
 			
 			break;	case op_and_ii:		vi[op[1]] = vi[op[2]] & vi[op[3]];
 			break;	case op_or_ii:		vi[op[1]] = vi[op[2]] | vi[op[3]];
@@ -70,9 +72,13 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_cmp_ii_gt:	vi[op[1]] = (vi[op[2]] >  vi[op[3]]);
 			break;	case op_cmp_vv_ge:	vi[op[1]] = (vd[op[2]] >= vd[op[3]]);				// <var> = cmp <var/ptr/expr> >= <var/ptr/expr>
 			break;	case op_cmp_ii_ge:	vi[op[1]] = (vi[op[2]] >= vi[op[3]]);
-			break;	case op_func1_vv:	vd[op[1]] = ((double (*)(double)) d->ptr[op[2]])(vd[op[3]]);		// <var> = <func> <var/ptr/expr>
+			break;	case op_func1_vv:	vd[op[1]] = ((double (*)(double)) d->ptr[op[2]])(vd[op[3]]);	// <var> = <func> <var/ptr/expr>
 
 			// 5 word ops
+			break;	case op_aad_vvv:	vd[op[1]] = vd[op[2]] + vd[op[3]] + vd[op[4]];			// <var> = aad <var/ptr/expr> <var/ptr/expr> <var/ptr/expr>
+			break;	case op_mmul_vvv:	vd[op[1]] = vd[op[2]] * vd[op[3]] * vd[op[4]];
+			break;	case op_mad_vvv:	vd[op[1]] = vd[op[2]] * vd[op[3]] + vd[op[4]];
+			break;	case op_adm_vvv:	vd[op[1]] = (vd[op[2]] + vd[op[3]]) * vd[op[4]];
 			break;	case op_func2_vvv:	vd[op[1]] = ((double (*)(double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]]);
 
 			// 6 word ops

@@ -6,6 +6,7 @@ enum opcode
 	op_2word_ops = 2048,
 	op_ret_v,
 	op_jmp,
+	nop_jmp,
 	op_set0_v,
 	op_set0_i,
 	op_inc1_v,
@@ -22,6 +23,7 @@ enum opcode
 	op_sqrt_v,
 
 	op_jmp_cond,
+	nop_jmp_cond,
 	op_func0_v,
 
 	op_4word_ops = 4096,
@@ -35,6 +37,8 @@ enum opcode
 	op_div_ii,
 	op_mod_ii,
 	op_mod_vv,
+	op_sqadd_vv,
+	op_sqsub_vv,
 
 	op_and_ii,
 	op_or_ii,
@@ -54,6 +58,10 @@ enum opcode
 	op_func1_vv,
 
 	op_5word_ops = 5120,
+	op_aad_vvv,
+	op_mmul_vvv,
+	op_mad_vvv,
+	op_adm_vvv,
 	op_func2_vvv,
 
 	op_6word_ops = 6144,

@@ -261,16 +261,18 @@ line_proc_start:
 				// Go through all previous opcodes to look for forward jumps to this location
 				for (io=0; io < ed->op_count;)
 				{
-					if (ed->op[io] == op_jmp)
+					if (ed->op[io] == nop_jmp)
 						if (ed->op[io+1] == ir)
 						{
+							ed->op[io] = op_jmp;
 							ed->op[io+1] = ed->op_count - io;
 							fwd_jumps--;
 						}
 
-					if (ed->op[io] == op_jmp_cond)
+					if (ed->op[io] == nop_jmp_cond)
 						if (ed->op[io+2] == ir)
 						{
+							ed->op[io] = op_jmp_cond;
 							ed->op[io+2] = ed->op_count - io;
 							fwd_jumps--;
 						}
@@ -325,18 +327,20 @@ line_proc_start:
 					cmd_found = 1;
 				}
 
-				if (	strcmp(s0, "add")==0 ||
+				else if ( strcmp(s0, "add")==0 ||
 					strcmp(s0, "sub")==0 ||
 					strcmp(s0, "mul")==0 ||
 					strcmp(s0, "div")==0 ||
-					strcmp(s0, "mod")==0 )
+					strcmp(s0, "mod")==0 ||
+					strcmp(s0, "sqadd")==0 ||
+					strcmp(s0, "sqsub")==0 )
 				{
 					cmd_arg_count = 2;
 					sprintf(cmd_arg_type, "ddd");
 					cmd_found = 1;
 				}
 
-				if (	strcmp(s0, "addi")==0 ||
+				else if ( strcmp(s0, "addi")==0 ||
 					strcmp(s0, "subi")==0 ||
 					strcmp(s0, "muli")==0 ||
 					strcmp(s0, "divi")==0 ||
@@ -349,25 +353,41 @@ line_proc_start:
 					cmd_found = 1;
 				}
 
+				else if ( strcmp(s0, "aad")==0 ||
+					strcmp(s0, "mmul")==0 ||
+					strcmp(s0, "mad")==0 ||
+					strcmp(s0, "adm")==0 )
+				{
+					cmd_arg_count = 3;
+					sprintf(cmd_arg_type, "dddd");
+					cmd_found = 1;
+				}
+
 				// Add command
 				if (cmd_found == 1)
 				{
 					new_opcode = 0;
 
 					if (strcmp(s0, "sq")==0)		new_opcode = op_sq_v;
-					else if (strcmp(s0, "sqrt")==0)	new_opcode = op_sqrt_v;
-					else if (strcmp(s0, "add")==0)	new_opcode = op_add_vv;
-					else if (strcmp(s0, "addi")==0)	new_opcode = op_add_ii;
-					else if (strcmp(s0, "sub")==0)	new_opcode = op_sub_vv;
-					else if (strcmp(s0, "subi")==0)	new_opcode = op_sub_ii;
-					else if (strcmp(s0, "mul")==0)	new_opcode = op_mul_vv;
-					else if (strcmp(s0, "muli")==0)	new_opcode = op_mul_ii;
-					else if (strcmp(s0, "div")==0)	new_opcode = op_div_vv;
-					else if (strcmp(s0, "divi")==0)	new_opcode = op_div_ii;
-					else if (strcmp(s0, "mod")==0)	new_opcode = op_mod_vv;
-					else if (strcmp(s0, "modi")==0)	new_opcode = op_mod_ii;
-					else if (strcmp(s0, "and")==0)	new_opcode = op_and_ii;
-					else if (strcmp(s0, "or")==0)	new_opcode = op_or_ii;
+					else if (strcmp(s0, "sqrt")==0)		new_opcode = op_sqrt_v;
+					else if (strcmp(s0, "add")==0)		new_opcode = op_add_vv;
+					else if (strcmp(s0, "addi")==0)		new_opcode = op_add_ii;
+					else if (strcmp(s0, "sub")==0)		new_opcode = op_sub_vv;
+					else if (strcmp(s0, "subi")==0)		new_opcode = op_sub_ii;
+					else if (strcmp(s0, "mul")==0)		new_opcode = op_mul_vv;
+					else if (strcmp(s0, "muli")==0)		new_opcode = op_mul_ii;
+					else if (strcmp(s0, "div")==0)		new_opcode = op_div_vv;
+					else if (strcmp(s0, "divi")==0)		new_opcode = op_div_ii;
+					else if (strcmp(s0, "mod")==0)		new_opcode = op_mod_vv;
+					else if (strcmp(s0, "modi")==0)		new_opcode = op_mod_ii;
+					else if (strcmp(s0, "sqadd")==0)	new_opcode = op_sqadd_vv;
+					else if (strcmp(s0, "sqsub")==0)	new_opcode = op_sqsub_vv;
+					else if (strcmp(s0, "and")==0)		new_opcode = op_and_ii;
+					else if (strcmp(s0, "or")==0)		new_opcode = op_or_ii;
+					else if (strcmp(s0, "aad")==0)		new_opcode = op_aad_vvv;
+					else if (strcmp(s0, "mmul")==0)		new_opcode = op_mmul_vvv;
+					else if (strcmp(s0, "mad")==0)		new_opcode = op_mad_vvv;
+					else if (strcmp(s0, "adm")==0)		new_opcode = op_adm_vvv;
 add_command:
 					// Go through arguments to convert them and determine their types
 					for (i=0; i < cmd_arg_count; i++)
@@ -633,6 +653,7 @@ add_command:
 						ed->op[io+2] = (opint_t) ed->loc[ed->reg[arg_ir[1]].index] - io;	// signed backward jump offset
 					else
 					{
+						ed->op[io] = nop_jmp_cond;	// this indicates that the forward jump must be edited later
 						ed->op[io+2] = arg_ir[1];	// in case of a forward jump the jump offset will have to be specified later
 						fwd_jumps++;
 					}
