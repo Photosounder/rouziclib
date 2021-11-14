@@ -695,7 +695,7 @@ More such commands are briefly described in link:rouziclib/vector_type/make_font
 
 == RLIP - rouziclib interpreted programming
 
-When parsing expressions with https://github.com/codeplea/tinyexpr[TinyExpr] doesn't cut it anymore, as was the case with my image calculator, something else is needed, something that allows you to type in interpreted programs. Since it was made with my image calculator in mind you maybe think of it as a kind of shader language, except that it runs on the CPU.
+When parsing expressions with https://github.com/codeplea/tinyexpr[TinyExpr] doesn't cut it anymore, as was the case with my image calculator, something else is needed, something that allows you to type in interpreted programs. Since it was made with my image calculator in mind you may think of it as a kind of shader language, except that it runs on the CPU.
 
 Let's first look at how to run a basic example:
 
