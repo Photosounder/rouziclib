@@ -503,6 +503,21 @@ Open and Save file dialogs on Windows and macOS. Both platforms use the same fil
 ** link:rouziclib/fileio/ffmpeg_sound_player.c[ffmpeg_sound_player.c] / link:rouziclib/fileio/ffmpeg_sound_player.h[ffmpeg_sound_player.h] +
 Callback to load and play an audio stream using FFMPEG. The seeking leaves a bit to be desired, it can be quite slow compared to the video stream seeking and I don't know why.
 
+* link:rouziclib/interpreter[interpreter/] +
+RLIP, my interpreted programming system.
+
+** link:rouziclib/interpreter/interpreter.c[interpreter.c] / link:rouziclib/interpreter/interpreter.h[interpreter.h] +
+The opcodes, structures and default inputs are defined there.
+
+** link:rouziclib/interpreter/compilation.c[compilation.c] / link:rouziclib/interpreter/compilation.h[compilation.h] +
+The complicated part of RLIP where source code is turned into a simple list of opcodes.
+
+** link:rouziclib/interpreter/execution.c[execution.c] / link:rouziclib/interpreter/execution.h[execution.h] +
+The simple part of RLIP where the compiled opcodes are ran.
+
+** link:rouziclib/interpreter/decompilation.c[decompilation.c] / link:rouziclib/interpreter/decompilation.h[decompilation.h] +
+The decompiler shows what the opcodes mean so I can check what's really going on.
+
 * link:rouziclib/network[network/] +
 TCP and HTTP socket-based code. Not very useful anymore since everything requires HTTPS.
 
@@ -677,6 +692,174 @@ It starts with a subglyph called "A" (subglyphs get a single ASCII character to 
 ++++
 
 More such commands are briefly described in link:rouziclib/vector_type/make_font.h[make_font.h], such as `rect` to create points that form a rectangle, `circle` to create any number of points along a circle, and commands to move, scale, rotate or shear a glyph or parts of a glyph to help in combining glyphs or subglyphs.
+
+== RLIP - rouziclib interpreted programming
+
+When parsing expressions with https://github.com/codeplea/tinyexpr[TinyExpr] doesn't cut it anymore, as was the case with my image calculator, something else is needed, something that allows you to type in interpreted programs. Since it was made with my image calculator in mind you maybe think of it as a kind of shader language, except that it runs on the CPU.
+
+Let's first look at how to run a basic example:
+
+```
+	// Inputs
+	static double x;
+	rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
+	const char source[] = "d v1 = cos x\n return v1";
+
+	// Compilation
+	buffer_t comp_log={0};
+	rlip_t prog = rlip_compile(source, inputs, sizeof(inputs)/sizeof(*inputs), &comp_log);
+	if (comp_log.len)
+		fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
+
+	// Decompilation
+	buffer_t decomp = rlip_decompile(&prog);
+	fprintf_rl(stdout, "Decompilation:\n%s\n", decomp.buf);
+	free_buf(&comp_log);
+	free_buf(&decomp);
+
+	// Execution
+	x = 4.;
+	volatile int exec_on = 1;
+	prog.exec_on = &exec_on;
+	rlip_execute_opcode(&prog);
+	fprintf_rl(stdout, "Program returned %.16lg\n", prog.return_value);
+	free_rlip(&prog);
+```
+
+First the inputs. We create a variable `x`, then the inputs structure which only contains the default functions plus our `x` which will also be accessed by the name `"x"`. It is defined as a type `pd` which means a pointer to a `double`. Then our source code:
+
+```
+d v1 = cos x
+return v1
+```
+
+We declare a variable named `v1` as a type `d` (a `double`) which will receive the result of `cos(x)`. Here `cos` comes from a function pointer provided in `RLIP_FUNC`, it's not a builtin operation. Then `v1` is defined as a return value. Every such program must have a return value.
+
+Then the source and inputs are compiled, which as always is a bit complicated, though I tried to keep it simple. Essentially my compiler relies on a registry to keep track of everything, and the argument to each compiled instruction is an index to one of the 3 arrays (besides the array of opcodes), namely an array of `double`, of `int64_t` and of pointers. Each opcode has specific types so it knows in which array to look for its arguments. Looking at the decompilation will make it clear:
+
+```
+op_load_v            9      38
+op_func1_vv          8       6       9
+op_ret_v             8
+op_end
+```
+
+The first operation loads the value of `x` in the `double` array. `x` was provided as a pointer which ended up at index 38 in the pointer array, and it will be copied to index 9 in the `double` array. After this `x` won't be loaded anew (this is ensured by keeping all the load commands at the very beginning of the program so they can't be looped) and will be treated as a normal `double` variable, not a pointer to a value anymore. After this we can call `cos`, which was also provided as a pointer and is at index 6 in the pointer array. So `op_func1_vv` calls the function at the address at index 6 in the pointer array, with one argument which is from index 9 in the `double` array. It then stores the result at index 8 in the `double` array. Then this result is copied from the array to `prog.return_value`, which is how we access it.
+
+Given that we set `x` to 4.0 before executing the compiled program we obtain the expected result:
+```
+Program returned -0.6536436208636119
+```
+
+Before calling `rlip_execute_opcode()` we set up something you might consider a kill switch. When `rlip_execute_opcode()` it constantly checks for the value pointed to by `prog.exec_on`, if it's 0 the execution stops. It's quite necessary in case you have a program that doesn't stop running on its own. Since I execute my compiled programs in a thread that also depends on a `volatile int` flag to keep running I set `prog.exec_on` to point to the same flag so that the program stops running when I signal for my thread to stop running. Programs get compiled and executed as I type them, one character after the other, so it's important that invalid programs don't get executed and that infinite loops aren't a problem. The compiler also provides very useful error messages so you always know where it chokes.
+
+=== Language features
+
+I tried to keep the language minimalistic and simple in syntax to keep the compiler simple. It looks more like an assembly language than anything else, and I wanted to make sure that unlike more sophisticated languages with their fancy operators you'd always know the type of the operation you're writing. For instance in C the operator `/` could be a floating-point division as well as an integer division. Few question the wisdom of doing this, yet it can be a source of undesired behaviour. To make the operator do what you want you might have to cast the arguments, which isn't very elegant. With RLIP a division is either `div` in which case all arguments are cast to `double` if necessary (using the variables named `rd1` and `rd2` for temporary storage) or `divi` in which case the arguments are made `int64_t` (using `ri1` and `ri2` if needed). This particularly important given that arguments provided as numbers or simple mathematical expressions are interpreted as `double`. The return value can also be cast to the other type automatically using `rd0` or `ri0` as temporary storage.
+
+Speaking of numbers and expressions, a strange feature of RLIP is that if you do something like `v1 = add v1 -1/3` this will create, in the `double` array, a variable named "-1/3" with the value you'd expect, but a variable nonetheless, so you could access that variable later by that name and give it a different value. Hardly a desirable feature, just what happens when you try to keep things simple.
+
+Let's go through each coding feature:
+
+- Variables are declared in the program as type `d` (`double`) or `i` (`int64_t`) the first time you use them. You can keep the `d` or `i` the next time you use the `=` operator on them but that's not necessary. A valid example:
+```
+d x2 = sq x
+x2 = add x2 0.5
+d x2 = sqrt x2
+```
+
+- Locations, which is where `goto` commands go to, are defined by a name followed by `:`. For instance `loop_start:`. Unlike with variables it's possible to `goto` a location that is defined later in the program, so both backward and forward jumps are possible.
+
+- When using `<variable> = ...` there are a few possibilities. What follows can be a builtin command with arguments such as `v1 = sub v1 v2`, it can be a simple assignment like `d max_iter = 400`, loading a value from an input pointer, copying a value (with casting if needed) like `x1 = x_tmp`, or running a function provided as a function pointer like `d xc = clamp x`.
+
+- Comparison is its own operation which returns either 0 or 1 as an integer and must be stored in a variable declared as type `i`. For example: `i cond1 = cmp x < 0` makes the integer variable named "cond1" contain the result of the comparison. The command `cmp` compares two arguments as `double`, the command `cmpi` as `int64_t`. This makes such things as conditional jumps based on two conditions possible:
+```
+i cond1 = cmpi ni < max_iter
+i cond2 = cmp x2 < 4
+cond1 = and cond1 cond2
+if cond1 goto loop_start
+```
+
+- Other commands start directly with the command name, like the statement `if <condition integer variable> goto <location>`, or the mandatory `return <variable>` command as well as the commands of convenience `set0 <variable>` or `inc1 <variable>`, both of which have the distinction of having the operand type depend on the type of the variable, since there is only one variable that is both the source and the destination.
+
+- Unrecognised lines are just ignored, as are things that follow the expected number of arguments, so we can have comment lines or comments appended to regular lines.
+
+The link:rouziclib/interpreter/execution.c[execution code] makes it fairly clear what each operand does and how it is used in code.
+
+=== RLIP fractal example
+
+Here's a good example of what can be done with RLIP. This only takes pointers to `double` variables `x` and `y` as input, and the output is a pixel value for those input coordinates.
+
+```
+// Parameters
+d threshold = 4
+d max_iter = 400
+d pix_modulo = 40
+
+d x1 = 0
+d y1 = 0
+i ni = 0
+
+// Fractal loop
+loop:
+d x2 = sqsub x1 y1
+x2 = add x2 x
+
+y1 = mmul y1 x1 2
+y1 = add y1 y
+
+x1 = x2
+
+inc1 ni
+i cond1 = cmpi ni < max_iter
+
+x2 = sqadd x1 y1
+i cond2 = cmp x2 < threshold
+cond1 = and cond1 cond2
+if cond1 goto loop
+// Loop end
+
+d v = mod ni pix_modulo
+v = div v pix_modulo
+return v
+```
+
+++++
+<p align="center">
+  <img src="./tools/img/basic_fractal.png">
+  <br>The output when this little program runs on every pixel of an image.
+</p>
+++++
+
+In case you're curious to see what it decompiles to:
+
+```
+op_load_v           20      39
+op_load_v           18      38
+op_set_v             8       9
+op_set_v            10      11
+op_set_v            12      13
+op_set_v            14      15
+op_set_v            16      15
+op_cvt_v_i           8      15
+op_sqsub_vv         17      14      16
+op_add_vv           17      17      18
+op_mmul_vvv         16      16      14      19
+op_add_vv           16      16      20
+op_set_v            14      17
+op_inc1_i            8
+op_cvt_v_i           2      10
+op_cmp_ii_lt         9       8       2
+op_sqadd_vv         17      14      16
+op_cmp_vv_lt        10      17       8
+op_and_ii            9       9      10
+op_jmp_cond          9     -41
+op_cvt_i_v           1       8
+op_mod_vv           21       1      12
+op_div_vv           21      21      12
+op_ret_v            21
+op_end
+```
 
 == Tools
 
