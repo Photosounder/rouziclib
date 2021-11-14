@@ -834,30 +834,29 @@ return v
 In case you're curious to see what it decompiles to:
 
 ```
-op_load_v           20      39
-op_load_v           18      38
+op_load_v           19      39
+op_load_v           17      38
 op_set_v             8       9
-op_set_v            10      11
-op_set_v            12      13
-op_set_v            14      15
-op_set_v            16      15
-op_cvt_v_i           8      15
-op_sqsub_vv         17      14      16
-op_add_vv           17      17      18
-op_mmul_vvv         16      16      14      19
-op_add_vv           16      16      20
-op_set_v            14      17
-op_inc1_i            8
-op_cvt_v_i           2      10
-op_cmp_ii_lt         9       8       2
-op_sqadd_vv         17      14      16
-op_cmp_vv_lt        10      17       8
-op_and_ii            9       9      10
-op_jmp_cond          9     -41
-op_cvt_i_v           1       8
-op_mod_vv           21       1      12
-op_div_vv           21      21      12
-op_ret_v            21
+op_cvt_v_i           8      10
+op_set_v            11      12
+op_set_v            13      14
+op_set_v            15      14
+op_cvt_v_i           9      14
+op_sqsub_vv         16      13      15
+op_add_vv           16      16      17
+op_mmul_vvv         15      15      13      18
+op_add_vv           15      15      19
+op_set_v            13      16
+op_inc1_i            9
+op_cmp_ii_lt        10       9       8
+op_sqadd_vv         16      13      15
+op_cmp_vv_lt        11      16       8
+op_and_ii           10      10      11
+op_jmp_cond         10     -38
+op_cvt_i_v           1       9
+op_mod_vv           20       1      11
+op_div_vv           20      20      11
+op_ret_v            20
 op_end
 ```
 
