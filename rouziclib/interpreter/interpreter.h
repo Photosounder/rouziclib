@@ -131,5 +131,6 @@ extern void free_rlip(rlip_t *prog);
 	{"max", max_tefunc, "fddd"},			\
 	{"clamp", clamp_tefunc, "fdd"},			\
 	{"rangelimit", rangelimit, "fdddd"},		\
+	{"mix", mix, "fdddd"},				\
 	{"sign", sign_tefunc, "fdd"},			\
 	{"trunc", trunc, "fdd"}

@@ -501,11 +501,11 @@ add_command:
 							if (ed->reg[dest_ir].type[0] == 'd')
 							{
 								// Output to generic register
-								ed->op[io+1] = rd[0];
+								ed->op[io+1] = ri[0];
 
 								// Convert from generic register to destination
 								io = alloc_opcode(ed, 3);		// add conversion opcode
-								ed->op[io] = op_cvt_v_i;
+								ed->op[io] = op_cvt_i_v;
 								ed->op[io+1] = ed->reg[dest_ir].index;	// destination index
 								ed->op[io+2] = rd[0];			// source index
 							}
