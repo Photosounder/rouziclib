@@ -770,7 +770,7 @@ d x2 = sqrt x2
 
 - Locations, which is where `goto` commands go to, are defined by a name followed by `:`. For instance `loop_start:`. Unlike with variables it's possible to `goto` a location that is defined later in the program, so both backward and forward jumps are possible.
 
-- When using `<variable> = ...` there are a few possibilities. What follows can be a builtin command with arguments such as `v1 = sub v1 v2`, it can be a simple assignment like `d max_iter = 400`, loading a value from an input pointer, copying a value (with casting if needed) like `x1 = x_tmp`, or running a function provided as a function pointer like `d xc = clamp x`.
+- When using `<variable> = ...` there are a few possibilities. What follows can be a builtin command with arguments such as `v1 = sub v1 v2`, it can be a simple assignment like `i max_iter = 400`, loading a value from an input pointer, copying a value (with casting if needed) like `x1 = x_tmp`, or running a function provided as a function pointer like `d xc = clamp x`.
 
 - Comparison is its own operation which returns either 0 or 1 as an integer and must be stored in a variable declared as type `i`. For example: `i cond1 = cmp x < 0` makes the integer variable named "cond1" contain the result of the comparison. The command `cmp` compares two arguments as `double`, the command `cmpi` as `int64_t`. This makes such things as conditional jumps based on two conditions possible:
 ```
@@ -793,7 +793,7 @@ Here's a good example of what can be done with RLIP. This only takes pointers to
 ```
 // Parameters
 d threshold = 4
-d max_iter = 400
+i max_iter = 400
 d pix_modulo = 40
 
 d x1 = 0
