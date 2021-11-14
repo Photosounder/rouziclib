@@ -1,7 +1,6 @@
 int rlip_execute_opcode(rlip_t *d)
 {
-	int inc = 1;
-	opint_t *op = d->op;
+	opint_t *op = d->op, *op_next;
 	double *vd = d->vd;
 	int64_t *vi = d->vi;
 
@@ -13,7 +12,8 @@ int rlip_execute_opcode(rlip_t *d)
 
 	while (*d->exec_on)
 	{
-		inc = 1;
+		// Point to next op
+		op_next = &op[op[0] >> 10];
 
 		// Execute op
 		switch (op[0])
@@ -23,7 +23,7 @@ int rlip_execute_opcode(rlip_t *d)
 
 			// 2 word ops
 			break;	case op_ret_v:		d->return_value = vd[op[1]];					// return <var/ptr/expr>
-			break;	case op_jmp:		op = &op[(ptrdiff_t) op[1]];	inc = 0;			// compiler-only
+			break;	case op_jmp:		op_next = &op[(ptrdiff_t) op[1]];				// unused for now
 			break;	case op_set0_v:		vd[op[1]] = 0.;							// set0 <var>
 			break;	case op_set0_i:		vi[op[1]] = 0;
 			break;	case op_inc1_v:		vd[op[1]] += 1.;						// inc1 <var>
@@ -40,7 +40,7 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_sq_v:		vd[op[1]] = sq(vd[op[2]]);					// <var> = sq <var/ptr/expr>
 			break;	case op_sqrt_v:		vd[op[1]] = sqrt(vd[op[2]]);					// <var> = sqrt <var/ptr/expr>
 
-			break;	case op_jmp_cond:	if (vi[op[1]]) { op = &op[(ptrdiff_t) op[2]];	inc = 0; }	// if <var> goto <loc>
+			break;	case op_jmp_cond:	if (vi[op[1]]) { op_next = &op[(ptrdiff_t) op[2]]; }		// if <var> goto <loc>
 			break;	case op_func0_v:	vd[op[1]] = ((double (*)(void)) d->ptr[op[2]])();
 
 			// 4 word ops
@@ -91,8 +91,7 @@ int rlip_execute_opcode(rlip_t *d)
 		}
 
 		// Increment to next op
-		if (inc)
-			op = &op[op[0] >> 10];
+		op = op_next;
 	}
 
 	return 0;
