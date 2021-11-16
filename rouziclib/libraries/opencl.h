@@ -36,4 +36,4 @@ extern cl_int clFlush_wrap(cl_command_queue command_queue);
 #endif
 
 extern int check_opencl();
-extern void dialog_cl_gl_interop_options(rect_t area, int *detached);
+extern void dialog_cl_gl_interop_options();

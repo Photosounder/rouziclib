@@ -106,6 +106,7 @@
 #include "gui/make_gui.c"
 #include "gui/editor_toolbar.c"
 #include "gui/floating_window.c"
+#include "gui/window_manager.c"
 
 #include "fileio/bits.c"
 #include "fileio/open.c"

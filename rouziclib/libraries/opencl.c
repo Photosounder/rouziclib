@@ -571,7 +571,7 @@ int check_opencl()
 #endif
 }
 
-void dialog_cl_gl_interop_options(rect_t area, int *detached)
+void dialog_cl_gl_interop_options()
 {
 	#ifdef RL_OPENCL
 	// GUI layout
@@ -591,7 +591,7 @@ void dialog_cl_gl_interop_options(rect_t area, int *detached)
 	// Window
 	static flwindow_t window={0};
 	flwindow_init_defaults(&window);
-	draw_dialog_window_fromlayout(&window, detached, &area, &layout, 0);
+	draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
 
 	// Controls
 	ctrl_checkbox_fromlayout(&fb.opt_clfinish, &layout, 10);

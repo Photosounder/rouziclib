@@ -7,15 +7,19 @@ void alloc_mipmap_level(mipmap_level_t *ml, xyi_t fulldim, xyi_t tilesize, const
 	ml->fulldim = fulldim;
 	ml->tilecount = div_round_up_xyi(fulldim , tilesize);
 
-	ml->r = calloc(mul_x_by_y_xyi(ml->tilecount), sizeof(raster_t));
+	ml->r = malloc(mul_x_by_y_xyi(ml->tilecount) * sizeof(raster_t));	// array of raster tiles
 	ml->total_bytes = mul_x_by_y_xyi(ml->tilecount) * sizeof(raster_t);
+
+	// Contiguous allocation
+	ml->total_bytes += mul_x_by_y_xyi(fulldim) * elem_size;
+	uint8_t *ptr = calloc(mul_x_by_y_xyi(fulldim), elem_size);
 
 	for (it.y=0; it.y < ml->tilecount.y; it.y++)
 		for (it.x=0; it.x < ml->tilecount.x; it.x++)
 		{
 			rdim = get_dim_of_tile(fulldim, tilesize, it);
-			ml->r[it.y*ml->tilecount.x + it.x] = make_raster(NULL, rdim, XYI0, mode);
-			ml->total_bytes += mul_x_by_y_xyi(rdim) * elem_size;
+			ml->r[it.y*ml->tilecount.x + it.x] = make_raster(ptr, rdim, XYI0, mode);
+			ptr = &ptr[mul_x_by_y_xyi(rdim) * elem_size];
 		}
 }
 
@@ -712,8 +716,9 @@ void free_mipmap_level(mipmap_level_t *ml)
 {
 	int i;
 
-	for (i=0; i < mul_x_by_y_xyi(ml->tilecount); i++)
-		free_raster(&ml->r[i]);
+	//for (i=0; i < mul_x_by_y_xyi(ml->tilecount); i++)
+	//	free_raster(&ml->r[i]);
+	free_raster(&ml->r[0]);		// contiguous allocation
 	free(ml->r);
 
 	memset(ml, 0, sizeof(mipmap_level_t));

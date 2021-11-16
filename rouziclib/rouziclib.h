@@ -172,6 +172,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "gui/make_gui.h"
 #include "gui/editor_toolbar.h"
 #include "gui/floating_window.h"
+#include "gui/window_manager.h"
 
 #include "fileio/bits.h"
 #include "fileio/open.h"

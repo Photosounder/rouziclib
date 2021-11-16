@@ -137,7 +137,7 @@
 
 		flwindow_init_defaults(&window);
 		flwindow_init_pinned(&window);
-		draw_dialog_window_fromlayout(&window, &diag_on, NULL, &layout, 0);
+		draw_dialog_window_fromlayout(&window, cur_wind_on, NULL, &layout, 0);
 
 		// Double-clicking the pin control moves the window to the upper-left corner with a default scale which can be modified
 		window.pinned_offset_preset = xy(1e9, 1e9);	// upper right corner
@@ -242,13 +242,13 @@
 		window_manager();
 
 	// Window functions must follow this template
-		void my_window_function(rect_t parent_area, int *diag_on, <my_ptr_type *ptr1, my_ptr_type *ptr2 ...>)
+		void my_window_function(<my_ptr_type *ptr1, my_ptr_type *ptr2 ...>)
 
 	// Window functions are registered like this
 		window_register(1, my_window_function, NULL, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
 
 	// Registered window function template with parent area
-void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *arg2)
+void my_window_function(double *arg1, double *arg2)
 {
 	static gui_layout_t layout={0};
 	const char *layout_src[] = {
@@ -263,7 +263,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 	window.bg_opacity = 0.94;
 	window.shadow_strength = 0.5*window.bg_opacity;
 	window.pinned_sm_preset = 1.2;
-	draw_dialog_window_fromlayout(&window, diag_on, &parent_area, &layout, 0);
+	draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
 
 	// Controls
 }
@@ -271,7 +271,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 	// Windows inside other windows
 		// The root function registers the parent window function and depending on the detachment status the child windows
 		// After registering the detached child window function window_set_parent() can be called so that the child window is always on top of the parent window
-		void parent_window_function(rect_t parent_area, int *diag_on, int *child1_detach, int *child2_detach)
+		void parent_window_function(int *child1_detach, int *child2_detach)
 		{
 			static flwindow_t window={0};
 			static gui_layout_t layout={0};
@@ -286,7 +286,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 
 			// Window
 			flwindow_init_defaults(&window);
-			draw_dialog_window_fromlayout(&window, diag_on, NULL, &layout, 0);
+			draw_dialog_window_fromlayout(&window, cur_wind_on, NULL, &layout, 0);
 
 			// Sub-windows
 			if (*child1_detach==0)
@@ -318,7 +318,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 			}
 		}
 
-		void child1_func(rect_t parent_area, int *detached)
+		void child1_func()
 		{
 			static gui_layout_t layout={0};
 			const char *layout_src[] = {
@@ -331,7 +331,7 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 			// Window
 			static flwindow_t window={0};
 			flwindow_init_defaults(&window);
-			draw_dialog_window_fromlayout(&window, detached, &parent_area, &layout, 0);
+			draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
 		}
 
 //**** Keyboard input ****
@@ -834,3 +834,6 @@ void my_window_function(rect_t parent_area, int *diag_on, double *arg1, double *
 	// 211102 transition of adding a window_data arguments to window_register() and window_set_parent()
 	// add NULL as a 3rd argument of window_register()
 	// add NULL as 2nd and 4th arguments of window_set_parent()
+
+	// 211116 transition of removing rect_t parent_area and int *wind_on in window functions
+	// remove the two first arguments and replace every instance with cur_parent_area (rect_t) and cur_wind_on (int *)
