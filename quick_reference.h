@@ -269,7 +269,7 @@ void my_window_function(double *arg1, double *arg2)
 }
 
 	// Windows inside other windows
-		// The root function registers the parent window function and depending on the detachment status the child windows
+		// The root function registers the parent window function and the child windows
 		// After registering the detached child window function window_set_parent() can be called so that the child window is always on top of the parent window
 		void parent_window_function(int *child1_detach, int *child2_detach)
 		{
@@ -288,34 +288,24 @@ void my_window_function(double *arg1, double *arg2)
 			flwindow_init_defaults(&window);
 			draw_dialog_window_fromlayout(&window, cur_wind_on, NULL, &layout, 0);
 
-			// Sub-windows
-			if (*child1_detach==0)
-				window_register(1, child1_func, NULL, gui_layout_elem_comp_area_os(&layout, 100, XY0), child1_detach, 0);
-
-			if (*child2_detach==0)
-				window_register(1, child2_func, NULL, gui_layout_elem_comp_area_os(&layout, 110, XY0), child2_detach, 0);
+			// Set parent area for child windows
+			window_set_parent_area(child1_func, NULL, gui_layout_elem_comp_area_os(&layout, 100, XY0));
+			window_set_parent_area(child2_func, NULL, gui_layout_elem_comp_area_os(&layout, 110, XY0));
 		}
 
-		void root_function(int *diag_on)
+		void root_function(int *diag_on, rect_t parent_area)
 		{
 			static int child1_detach=0, child2_detach=0;
 
 			// Window
 			if (*diag_on)
-				window_register(1, parent_window_function, NULL, RECTNAN, diag_on, 2, &child1_detach, &child2_detach);
+				window_register(1, parent_window_function, NULL, parent_area, diag_on, 2, &child1_detach, &child2_detach);
 
 			// Sub-windows
-			if (child1_detach)
-			{
-				window_register(1, child1_func, NULL, RECTNAN, &child1_detach, 0);
-				window_set_parent(child1_func, NULL, parent_window_function, NULL);
-			}
-
-			if (child2_detach)
-			{
-				window_register(1, child2_func, NULL, RECTNAN, &child2_detach, 0);
-				window_set_parent(child2_func, NULL, parent_window_function, NULL);
-			}
+			window_register(1, child1_func, NULL, RECTNAN, &child1_detach, 0);
+			window_set_parent(child1_func, NULL, parent_window_function, NULL);
+			window_register(1, child2_func, NULL, RECTNAN, &child2_detach, 0);
+			window_set_parent(child2_func, NULL, parent_window_function, NULL);
 		}
 
 		void child1_func()

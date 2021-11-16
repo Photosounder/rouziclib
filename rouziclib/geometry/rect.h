@@ -44,6 +44,8 @@ extern rect_t sort_rect(rect_t r);
 extern recti_t sort_recti(recti_t r);
 extern rect_t add_rect_xy(rect_t r, xy_t a);
 extern int equal_rect(rect_t r1, rect_t r2);
+extern int isnan_rect(rect_t r);
+extern int is0_rect(const rect_t r);
 extern xy_t pos_in_rect_by_ratio(rect_t r, xy_t ratio);
 extern xy_t pos_to_rect_ratio(xy_t pos, rect_t r);
 extern rect_t resize_rect_around_offset(rect_t r, xy_t dim1, xy_t offset);

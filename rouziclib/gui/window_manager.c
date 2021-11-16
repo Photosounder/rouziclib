@@ -7,12 +7,21 @@ void window_run(window_manager_entry_t *w)
 	void *f = w->window_func;
 	void **p = w->ptr_array;
 
+	if (w->already_ran || is0_rect(w->parent_area))
+		return ;
+
+	// Don't run if window is detachable but not detached and parent window isn't registered
+	int parent_id = window_find_id_by_func(w->parent_window_func, w->parent_window_data);
+	if (w->parent_window_func && parent_id == -1)
+	{
+		if (w->wind_on)
+			if (*w->wind_on == 0)
+				return;
+	}
+
 	cur_parent_area = w->parent_area;
 	cur_wind_on = w->wind_on;
 	cur_window_data = w->window_data;
-
-	if (w->already_ran)
-		return ;
 
 	switch (w->ptr_count)
 	{
@@ -27,6 +36,17 @@ void window_run(window_manager_entry_t *w)
 	}
 
 	w->already_ran = 1;
+
+	// Run all undetached children
+	int i;
+	for (i=0; i < wind_man.window_count; i++)
+	{
+		// Look for children
+		if (wind_man.window[i].parent_window_func == w->window_func && wind_man.window[i].parent_window_data == w->window_data)
+			if (wind_man.window[i].wind_on)				// that can be detached
+				if (*wind_man.window[i].wind_on == 0)		// but aren't
+					window_run(&wind_man.window[i]);	// and run them right after their parent
+	}
 }
 
 int window_register(int priority, void *window_func, void *window_data, rect_t parent_area, int *wind_on, int num_args, ...)
@@ -86,13 +106,14 @@ skip_add2:
 		entry->ptr_array[ia] = va_arg(ap, void *);
 	va_end(ap);
 
-	entry->parent_area = parent_area;
+	if (isnan_rect(parent_area)==0)
+		entry->parent_area = parent_area;
 	entry->wind_on = wind_on;
 	entry->dereg = 0;
 
 	// Run here if window has a close button and is "closed"
 	if (wind_on)
-		if (*wind_on == 0)
+		if (*wind_on == 0 && entry->parent_window_func == NULL)
 			window_run(entry);
 
 	if (wind_man.manager_is_calling)
@@ -219,4 +240,11 @@ void window_move_to_top(void *window_func, void *window_data)
 	window_move_up(window_id, offset);
 
 	wind_man.max_order += offset;
+}
+
+void window_set_parent_area(void *child_func, void *child_data, rect_t area)
+{
+	int id = window_find_id_by_func(child_func, child_data);
+	if (id > -1)
+		wind_man.window[id].parent_area = area;
 }

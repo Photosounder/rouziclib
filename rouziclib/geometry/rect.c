@@ -253,6 +253,16 @@ int equal_rect(rect_t r1, rect_t r2)
 	return equal_xy(r1.p0, r2.p0) && equal_xy(r1.p1, r2.p1);
 }
 
+int isnan_rect(rect_t r)
+{
+	return isnan_xy(r.p0) || isnan_xy(r.p1);
+}
+
+int is0_rect(const rect_t r)
+{
+	return is0_xy(r.p0) && is0_xy(r.p1);
+}
+
 xy_t pos_in_rect_by_ratio(rect_t r, xy_t ratio)
 {
 	return add_xy(r.p0, mul_xy(ratio, sub_xy(r.p1, r.p0)));
