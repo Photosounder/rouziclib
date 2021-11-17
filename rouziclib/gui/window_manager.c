@@ -7,7 +7,8 @@ void window_run(window_manager_entry_t *w)
 	void *f = w->window_func;
 	void **p = w->ptr_array;
 
-	if (w->already_ran || is0_rect(w->parent_area))
+	// Don't run a child window with an unset parent area
+	if (w->already_ran || (w->parent_window_func && is0_rect(w->parent_area)))
 		return ;
 
 	// Don't run if window is detachable but not detached and parent window isn't registered

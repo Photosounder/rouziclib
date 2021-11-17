@@ -271,6 +271,7 @@ void my_window_function(double *arg1, double *arg2)
 	// Windows inside other windows
 		// The root function registers the parent window function and the child windows
 		// After registering the detached child window function window_set_parent() can be called so that the child window is always on top of the parent window
+		// Child windows must be registered before the parent window so that the parent window can set their parent areas in case it runs right away
 		void parent_window_function(int *child1_detach, int *child2_detach)
 		{
 			static flwindow_t window={0};
@@ -281,7 +282,6 @@ void my_window_function(double *arg1, double *arg2)
 				"elem 110", "type rect", "link_pos_id 100", "pos	2;1	0", "dim	2;10	2;6", "off	0	1", "",
 			};
 
-			layout.sm = 1.;
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Parent window layout");
 
 			// Window
@@ -297,15 +297,15 @@ void my_window_function(double *arg1, double *arg2)
 		{
 			static int child1_detach=0, child2_detach=0;
 
-			// Window
-			if (*diag_on)
-				window_register(1, parent_window_function, NULL, parent_area, diag_on, 2, &child1_detach, &child2_detach);
-
 			// Sub-windows
 			window_register(1, child1_func, NULL, RECTNAN, &child1_detach, 0);
 			window_set_parent(child1_func, NULL, parent_window_function, NULL);
 			window_register(1, child2_func, NULL, RECTNAN, &child2_detach, 0);
 			window_set_parent(child2_func, NULL, parent_window_function, NULL);
+
+			// Window
+			if (*diag_on)
+				window_register(1, parent_window_function, NULL, parent_area, diag_on, 2, &child1_detach, &child2_detach);
 		}
 
 		void child1_func()
@@ -315,7 +315,6 @@ void my_window_function(double *arg1, double *arg2)
 				"elem 0", "type none", "label Child1 window", "pos	0	0", "dim	3	3;6", "off	0	1", "",
 			};
 
-			layout.sm = 1.;
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Child 1");
 
 			// Window
