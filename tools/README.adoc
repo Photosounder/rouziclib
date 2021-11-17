@@ -8,7 +8,7 @@ Tablegen is what I made to generate the lookup tables used for my fast floating 
 
 === Bin-to-C
 
-If you look at the top of link:rouziclib/graphics/drawqueue/opencl/drawqueue.cl[drawqueue.cl] you will see a comment containing the command I use to generate link:rouziclib/graphics/drawqueue/opencl/drawqueue.cl.h[drawqueue.cl.h].  GCC resolves the include statements to put all the OpenCL code into one file, then bin_to_c turns that file into a string in a C header, which is then included in link:rouziclib/graphics/drawqueue.c[drawqueue.c].
+If you look at the top of link:../rouziclib/graphics/drawqueue/opencl/drawqueue.cl[drawqueue.cl] you will see a comment containing the command I use to generate link:../rouziclib/graphics/drawqueue/opencl/drawqueue.cl.h[drawqueue.cl.h].  GCC resolves the include statements to put all the OpenCL code into one file, then bin_to_c turns that file into a string in a C header, which is then included in link:../rouziclib/graphics/drawqueue.c[drawqueue.c].
 
 === Fileball
 
