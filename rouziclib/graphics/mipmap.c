@@ -716,6 +716,9 @@ void free_mipmap_level(mipmap_level_t *ml)
 {
 	int i;
 
+	if (ml->r == NULL)
+		return;
+
 	//for (i=0; i < mul_x_by_y_xyi(ml->tilecount); i++)
 	//	free_raster(&ml->r[i]);
 	free_raster(&ml->r[0]);		// contiguous allocation

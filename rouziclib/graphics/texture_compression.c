@@ -532,10 +532,10 @@ mipmap_t raster_to_mipmap_compr_then_free(raster_t *r, const int mode, xyi_t thr
 				{
 					ml1->r[it.y*ml1->tilecount.x + it.x] = frgb_to_compressed_texture(ml0->r[it.y*ml0->tilecount.x + it.x], NULL);
 					ml1->total_bytes += ml1->r[it.y*ml1->tilecount.x + it.x].buf_size;
-					free_raster(&ml0->r[it.y*ml0->tilecount.x + it.x]);
 				}
 
 			m1.total_bytes += ml1->total_bytes;
+			free_mipmap_level(ml0);
 		}
 		free_null(&ml0->r);
 	}
