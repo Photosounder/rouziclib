@@ -547,17 +547,25 @@ add_command:
 							swap_char(&cmd_arg_type[0], &cmd_arg_type[1]);
 							cmd_found = 3;
 
-							// FIXME only functions with double format arguments are supported
+							// Set opcode
+							new_opcode = 0;
 							switch (cmd_arg_count)
 							{
 								case 1:	new_opcode = op_func0_v;	break;
 								case 2:	new_opcode = op_func1_vv;	break;
 								case 3:	new_opcode = op_func2_vvv;	break;
-								case 4:	new_opcode = op_func3_vvvv;	break;
-								
-								default:
-									bufprintf(log, "Argument count (%d) not supported in line %d: '%s'\n", cmd_arg_count, il, line[il]);
-									goto invalid_prog;
+								case 4:
+									if (strcmp(ed->reg[ir].type, "fdddd")==0)
+										new_opcode = op_func3_vvvv;
+									else if (strcmp(ed->reg[ir].type, "fdddi")==0)
+										new_opcode = op_func3_vvvi;
+									break;
+							}
+
+							if (new_opcode == 0)
+							{
+								bufprintf(log, "Function type '%s' not implemented in line %d: '%s'\n", ed->reg[ir].type, il, line[il]);
+								goto invalid_prog;
 							}
 
 							n = 0;			// makes the parsing keep the name of the function as an argument

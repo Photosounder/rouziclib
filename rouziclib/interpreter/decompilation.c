@@ -70,6 +70,7 @@ const char *rlip_get_op_name(enum opcode op)
 
 		case op_6word_ops:    	return "op_6word_ops";
 		case op_func3_vvvv:    	return "op_func3_vvvv";
+		case op_func3_vvvi:    	return "op_func3_vvvi";
 
 		case op_7word_ops:    	return "op_7word_ops";
 		case op_8word_ops:    	return "op_8word_ops";

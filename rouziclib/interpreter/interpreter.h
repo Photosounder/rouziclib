@@ -66,6 +66,7 @@ enum opcode
 
 	op_6word_ops = 6144,
 	op_func3_vvvv,
+	op_func3_vvvi,
 
 	op_7word_ops = 7168,
 	op_8word_ops = 8192,

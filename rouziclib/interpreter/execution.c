@@ -83,6 +83,7 @@ int rlip_execute_opcode(rlip_t *d)
 
 			// 6 word ops
 			break;	case op_func3_vvvv:	vd[op[1]] = ((double (*)(double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]]);
+			break;	case op_func3_vvvi:	vd[op[1]] = ((double (*)(double,double,int)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vi[op[5]]);
 			break;
 
 			default:
