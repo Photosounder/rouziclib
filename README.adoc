@@ -738,13 +738,13 @@ We declare a variable named `v1` as a type `d` (a `double`) which will receive t
 Then the source and inputs are compiled, which as always is a bit complicated, though I tried to keep it simple. Essentially my compiler relies on a registry to keep track of everything, and the argument to each compiled instruction is an index to one of the 3 arrays (besides the array of opcodes), namely an array of `double`, of `int64_t` and of pointers. Each opcode has specific types so it knows in which array to look for its arguments. Looking at the decompilation will make it clear:
 
 ```
-op_load_v            9      38
-op_func1_vv          8       6       9
-op_ret_v             8
+op_load_d            9      38
+op_func1_dd          8       6       9
+op_ret_d             8
 op_end
 ```
 
-The first operation loads the value of `x` in the `double` array. `x` was provided as a pointer which ended up at index 38 in the pointer array, and it will be copied to index 9 in the `double` array. After this `x` won't be loaded anew (this is ensured by keeping all the load commands at the very beginning of the program so they can't be looped) and will be treated as a normal `double` variable, not a pointer to a value anymore. After this we can call `cos`, which was also provided as a pointer and is at index 6 in the pointer array. So `op_func1_vv` calls the function at the address at index 6 in the pointer array, with one argument which is from index 9 in the `double` array. It then stores the result at index 8 in the `double` array. Then this result is copied from the array to `prog.return_value`, which is how we access it.
+The first operation loads the value of `x` in the `double` array. `x` was provided as a pointer which ended up at index 38 in the pointer array, and it will be copied to index 9 in the `double` array. After this `x` won't be loaded anew (this is ensured by keeping all the load commands at the very beginning of the program so they can't be looped) and will be treated as a normal `double` variable, not a pointer to a value anymore. After this we can call `cos`, which was also provided as a pointer and is at index 6 in the pointer array. So `op_func1_dd` calls the function at the address at index 6 in the pointer array, with one argument which is from index 9 in the `double` array. It then stores the result at index 8 in the `double` array. Then this result is copied from the array to `prog.return_value`, which is how we access it.
 
 Given that we set `x` to 4.0 before executing the compiled program we obtain the expected result:
 ```
@@ -834,29 +834,29 @@ return v
 In case you're curious to see what it decompiles to:
 
 ```
-op_load_v           19      39
-op_load_v           17      38
-op_set_v             8       9
-op_cvt_v_i           8      10
-op_set_v            11      12
-op_set_v            13      14
-op_set_v            15      14
-op_cvt_v_i           9      14
-op_sqsub_vv         16      13      15
-op_add_vv           16      16      17
-op_mmul_vvv         15      15      13      18
-op_add_vv           15      15      19
-op_set_v            13      16
+op_load_d           19      39
+op_load_d           17      38
+op_set_d             8       9
+op_cvt_d_i           8      10
+op_set_d            11      12
+op_set_d            13      14
+op_set_d            15      14
+op_cvt_d_i           9      14
+op_sqsub_dd         16      13      15
+op_add_dd           16      16      17
+op_mmul_ddd         15      15      13      18
+op_add_dd           15      15      19
+op_set_d            13      16
 op_inc1_i            9
 op_cmp_ii_lt        10       9       8
-op_sqadd_vv         16      13      15
-op_cmp_vv_lt        11      16       8
+op_sqadd_dd         16      13      15
+op_cmp_dd_lt        11      16       8
 op_and_ii           10      10      11
 op_jmp_cond         10     -38
-op_cvt_i_v           1       9
-op_mod_vv           20       1      11
-op_div_vv           20      20      11
-op_ret_v            20
+op_cvt_i_d           1       9
+op_mod_dd           20       1      11
+op_div_dd           20      20      11
+op_ret_d            20
 op_end
 ```
 

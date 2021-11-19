@@ -8,69 +8,69 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_end:    	return "op_end";
 
 		case op_2word_ops:    	return "op_2word_ops";
-		case op_ret_v:    	return "op_ret_v";
+		case op_ret_d:    	return "op_ret_d";
 		case op_jmp:    	return "op_jmp";
 		case nop_jmp:    	return "nop_jmp";
-		case op_set0_v:    	return "op_set0_v";
+		case op_set0_d:    	return "op_set0_d";
 		case op_set0_i:    	return "op_set0_i";
-		case op_inc1_v:    	return "op_inc1_v";
+		case op_inc1_d:    	return "op_inc1_d";
 		case op_inc1_i:    	return "op_inc1_i";
 
 		case op_3word_ops:    	return "op_3word_ops";
-		case op_load_v:    	return "op_load_v";
+		case op_load_d:    	return "op_load_d";
 		case op_load_i:    	return "op_load_i";
-		case op_set_v:    	return "op_set_v";
+		case op_set_d:    	return "op_set_d";
 		case op_set_i:    	return "op_set_i";
-		case op_cvt_i_v:    	return "op_cvt_i_v";
-		case op_cvt_v_i:    	return "op_cvt_v_i";
-		case op_sq_v:    	return "op_sq_v";
-		case op_sqrt_v:    	return "op_sqrt_v";
+		case op_cvt_i_d:    	return "op_cvt_i_d";
+		case op_cvt_d_i:    	return "op_cvt_d_i";
+		case op_sq_d:    	return "op_sq_d";
+		case op_sqrt_d:    	return "op_sqrt_d";
 
 		case op_jmp_cond:    	return "op_jmp_cond";
 		case nop_jmp_cond:    	return "nop_jmp_cond";
-		case op_func0_v:    	return "op_func0_v";
+		case op_func0_d:    	return "op_func0_d";
 
 		case op_4word_ops:    	return "op_4word_ops";
-		case op_add_vv:    	return "op_add_vv";
+		case op_add_dd:    	return "op_add_dd";
 		case op_add_ii:    	return "op_add_ii";
-		case op_sub_vv:    	return "op_sub_vv";
+		case op_sub_dd:    	return "op_sub_dd";
 		case op_sub_ii:    	return "op_sub_ii";
-		case op_mul_vv:    	return "op_mul_vv";
+		case op_mul_dd:    	return "op_mul_dd";
 		case op_mul_ii:    	return "op_mul_ii";
-		case op_div_vv:    	return "op_div_vv";
+		case op_div_dd:    	return "op_div_dd";
 		case op_div_ii:    	return "op_div_ii";
 		case op_mod_ii:    	return "op_mod_ii";
-		case op_mod_vv:    	return "op_mod_vv";
-		case op_sqadd_vv:    	return "op_sqadd_vv";
-		case op_sqsub_vv:    	return "op_sqsub_vv";
+		case op_mod_dd:    	return "op_mod_dd";
+		case op_sqadd_dd:    	return "op_sqadd_dd";
+		case op_sqsub_dd:    	return "op_sqsub_dd";
 
 		case op_and_ii:    	return "op_and_ii";
 		case op_or_ii:    	return "op_or_ii";
 
-		case op_cmp_vv_eq:    	return "op_cmp_vv_eq";
+		case op_cmp_dd_eq:    	return "op_cmp_dd_eq";
 		case op_cmp_ii_eq:    	return "op_cmp_ii_eq";
-		case op_cmp_vv_ne:    	return "op_cmp_vv_ne";
+		case op_cmp_dd_ne:    	return "op_cmp_dd_ne";
 		case op_cmp_ii_ne:    	return "op_cmp_ii_ne";
-		case op_cmp_vv_lt:    	return "op_cmp_vv_lt";
+		case op_cmp_dd_lt:    	return "op_cmp_dd_lt";
 		case op_cmp_ii_lt:    	return "op_cmp_ii_lt";
-		case op_cmp_vv_le:    	return "op_cmp_vv_le";
+		case op_cmp_dd_le:    	return "op_cmp_dd_le";
 		case op_cmp_ii_le:    	return "op_cmp_ii_le";
-		case op_cmp_vv_gt:    	return "op_cmp_vv_gt";
+		case op_cmp_dd_gt:    	return "op_cmp_dd_gt";
 		case op_cmp_ii_gt:    	return "op_cmp_ii_gt";
-		case op_cmp_vv_ge:    	return "op_cmp_vv_ge";
+		case op_cmp_dd_ge:    	return "op_cmp_dd_ge";
 		case op_cmp_ii_ge:    	return "op_cmp_ii_ge";
-		case op_func1_vv:    	return "op_func1_vv";
+		case op_func1_dd:    	return "op_func1_dd";
 
 		case op_5word_ops:    	return "op_5word_ops";
-		case op_aad_vvv:    	return "op_aad_vvv";
-		case op_mmul_vvv:    	return "op_mmul_vvv";
-		case op_mad_vvv:    	return "op_mad_vvv";
-		case op_adm_vvv:    	return "op_adm_vvv";
-		case op_func2_vvv:    	return "op_func2_vvv";
+		case op_aad_ddd:    	return "op_aad_ddd";
+		case op_mmul_ddd:    	return "op_mmul_ddd";
+		case op_mad_ddd:    	return "op_mad_ddd";
+		case op_adm_ddd:    	return "op_adm_ddd";
+		case op_func2_ddd:    	return "op_func2_ddd";
 
 		case op_6word_ops:    	return "op_6word_ops";
-		case op_func3_vvvv:    	return "op_func3_vvvv";
-		case op_func3_vvvi:    	return "op_func3_vvvi";
+		case op_func3_dddd:    	return "op_func3_dddd";
+		case op_func3_dddi:    	return "op_func3_dddi";
 
 		case op_7word_ops:    	return "op_7word_ops";
 		case op_8word_ops:    	return "op_8word_ops";

@@ -129,7 +129,7 @@ void convert_pointer_to_variable(int ir, rlip_data_t *ed)
 	{
 		// Prepend load opcode
 		prepend_opcode(ed, 3);
-		ed->op[0] = ed->reg[ir].type[1]=='d' ? op_load_v : op_load_i;
+		ed->op[0] = ed->reg[ir].type[1]=='d' ? op_load_d : op_load_i;
 		ed->op[2] = ed->reg[ir].index;
 
 		// Convert reg entry from pointer to variable
@@ -179,12 +179,12 @@ void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int *r
 
 		if (expected_type == 'd')
 		{
-			ed->op[io] = op_cvt_i_v;
+			ed->op[io] = op_cvt_i_d;
 			ed->op[io+1] = rd[1+i];		// destinaton index
 		}
 		else
 		{
-			ed->op[io] = op_cvt_v_i;
+			ed->op[io] = op_cvt_d_i;
 			ed->op[io+1] = ri[1+i];
 		}
 
@@ -368,26 +368,26 @@ line_proc_start:
 				{
 					new_opcode = 0;
 
-					if (strcmp(s0, "sq")==0)		new_opcode = op_sq_v;
-					else if (strcmp(s0, "sqrt")==0)		new_opcode = op_sqrt_v;
-					else if (strcmp(s0, "add")==0)		new_opcode = op_add_vv;
+					if (strcmp(s0, "sq")==0)		new_opcode = op_sq_d;
+					else if (strcmp(s0, "sqrt")==0)		new_opcode = op_sqrt_d;
+					else if (strcmp(s0, "add")==0)		new_opcode = op_add_dd;
 					else if (strcmp(s0, "addi")==0)		new_opcode = op_add_ii;
-					else if (strcmp(s0, "sub")==0)		new_opcode = op_sub_vv;
+					else if (strcmp(s0, "sub")==0)		new_opcode = op_sub_dd;
 					else if (strcmp(s0, "subi")==0)		new_opcode = op_sub_ii;
-					else if (strcmp(s0, "mul")==0)		new_opcode = op_mul_vv;
+					else if (strcmp(s0, "mul")==0)		new_opcode = op_mul_dd;
 					else if (strcmp(s0, "muli")==0)		new_opcode = op_mul_ii;
-					else if (strcmp(s0, "div")==0)		new_opcode = op_div_vv;
+					else if (strcmp(s0, "div")==0)		new_opcode = op_div_dd;
 					else if (strcmp(s0, "divi")==0)		new_opcode = op_div_ii;
-					else if (strcmp(s0, "mod")==0)		new_opcode = op_mod_vv;
+					else if (strcmp(s0, "mod")==0)		new_opcode = op_mod_dd;
 					else if (strcmp(s0, "modi")==0)		new_opcode = op_mod_ii;
-					else if (strcmp(s0, "sqadd")==0)	new_opcode = op_sqadd_vv;
-					else if (strcmp(s0, "sqsub")==0)	new_opcode = op_sqsub_vv;
+					else if (strcmp(s0, "sqadd")==0)	new_opcode = op_sqadd_dd;
+					else if (strcmp(s0, "sqsub")==0)	new_opcode = op_sqsub_dd;
 					else if (strcmp(s0, "and")==0)		new_opcode = op_and_ii;
 					else if (strcmp(s0, "or")==0)		new_opcode = op_or_ii;
-					else if (strcmp(s0, "aad")==0)		new_opcode = op_aad_vvv;
-					else if (strcmp(s0, "mmul")==0)		new_opcode = op_mmul_vvv;
-					else if (strcmp(s0, "mad")==0)		new_opcode = op_mad_vvv;
-					else if (strcmp(s0, "adm")==0)		new_opcode = op_adm_vvv;
+					else if (strcmp(s0, "aad")==0)		new_opcode = op_aad_ddd;
+					else if (strcmp(s0, "mmul")==0)		new_opcode = op_mmul_ddd;
+					else if (strcmp(s0, "mad")==0)		new_opcode = op_mad_ddd;
+					else if (strcmp(s0, "adm")==0)		new_opcode = op_adm_ddd;
 add_command:
 					// Go through arguments to convert them and determine their types
 					for (i=0; i < cmd_arg_count; i++)
@@ -440,12 +440,12 @@ add_command:
 
 						if (cmd_arg_type[0] == 'd')
 						{
-							ed->op[io] = op_cvt_v_i;
+							ed->op[io] = op_cvt_d_i;
 							ed->op[io+2] = rd[0];		// source index
 						}
 						else
 						{
-							ed->op[io] = op_cvt_i_v;
+							ed->op[io] = op_cvt_i_d;
 							ed->op[io+2] = ri[0];
 						}
 					}
@@ -486,12 +486,12 @@ add_command:
 							io = alloc_opcode(ed, 4);
 
 							// Select correct opcode
-							if (strcmp(s2, "==")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_eq : op_cmp_ii_eq;
-							if (strcmp(s2, "!=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_ne : op_cmp_ii_ne;
-							if (strcmp(s2, "<")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_lt : op_cmp_ii_lt;
-							if (strcmp(s2, "<=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_le : op_cmp_ii_le;
-							if (strcmp(s2, ">")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_gt : op_cmp_ii_gt;
-							if (strcmp(s2, ">=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_vv_ge : op_cmp_ii_ge;
+							if (strcmp(s2, "==")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_eq : op_cmp_ii_eq;
+							if (strcmp(s2, "!=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_ne : op_cmp_ii_ne;
+							if (strcmp(s2, "<")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_lt : op_cmp_ii_lt;
+							if (strcmp(s2, "<=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_le : op_cmp_ii_le;
+							if (strcmp(s2, ">")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_gt : op_cmp_ii_gt;
+							if (strcmp(s2, ">=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_ge : op_cmp_ii_ge;
 
 							ed->op[io+1] = ed->reg[dest_ir].index;
 							ed->op[io+2] = ed->reg[arg_ir[0]].index;
@@ -505,7 +505,7 @@ add_command:
 
 								// Convert from generic register to destination
 								io = alloc_opcode(ed, 3);		// add conversion opcode
-								ed->op[io] = op_cvt_i_v;
+								ed->op[io] = op_cvt_i_d;
 								ed->op[io+1] = ed->reg[dest_ir].index;	// destination index
 								ed->op[io+2] = rd[0];			// source index
 							}
@@ -530,9 +530,9 @@ add_command:
 							io = alloc_opcode(ed, 3);
 
 							if (ed->reg[dest_ir].table == ed->reg[ir].table)
-								ed->op[io] = ed->reg[ir].type[0]=='d' ? op_set_v : op_set_i;
+								ed->op[io] = ed->reg[ir].type[0]=='d' ? op_set_d : op_set_i;
 							else
-								ed->op[io] = ed->reg[ir].type[0]=='d' ? op_cvt_v_i : op_cvt_i_v;
+								ed->op[io] = ed->reg[ir].type[0]=='d' ? op_cvt_d_i : op_cvt_i_d;
 
 							ed->op[io+1] = ed->reg[dest_ir].index;
 							ed->op[io+2] = ed->reg[ir].index;
@@ -551,14 +551,14 @@ add_command:
 							new_opcode = 0;
 							switch (cmd_arg_count)
 							{
-								case 1:	new_opcode = op_func0_v;	break;
-								case 2:	new_opcode = op_func1_vv;	break;
-								case 3:	new_opcode = op_func2_vvv;	break;
+								case 1:	new_opcode = op_func0_d;	break;
+								case 2:	new_opcode = op_func1_dd;	break;
+								case 3:	new_opcode = op_func2_ddd;	break;
 								case 4:
 									if (strcmp(ed->reg[ir].type, "fdddd")==0)
-										new_opcode = op_func3_vvvv;
+										new_opcode = op_func3_dddd;
 									else if (strcmp(ed->reg[ir].type, "fdddi")==0)
-										new_opcode = op_func3_vvvi;
+										new_opcode = op_func3_dddi;
 									break;
 							}
 
@@ -597,7 +597,7 @@ add_command:
 					{
 						// Add return opcode
 						io = alloc_opcode(ed, 2);
-						ed->op[io] = op_ret_v;
+						ed->op[io] = op_ret_d;
 						ed->op[io+1] = ed->reg[ir].index;
 						ret_cmd_done = 1;
 					}
@@ -605,13 +605,13 @@ add_command:
 					{
 						// Convert from integer to double
 						io = alloc_opcode(ed, 3);	// add conversion opcode
-						ed->op[io] = op_cvt_i_v;
+						ed->op[io] = op_cvt_i_d;
 						ed->op[io+1] = rd[0];			// convert to generic register
 						ed->op[io+2] = ed->reg[ir].index;
 
 						// Add return opcode
 						io = alloc_opcode(ed, 2);
-						ed->op[io] = op_ret_v;
+						ed->op[io] = op_ret_d;
 						ed->op[io+1] = rd[0];
 						ret_cmd_done = 1;
 					}
@@ -684,7 +684,7 @@ add_command:
 					if (strcmp(ed->reg[ir].type, "d")==0 || strcmp(ed->reg[ir].type, "i")==0)
 					{
 						io = alloc_opcode(ed, 2);
-						ed->op[io] = ed->reg[ir].type[0]=='d' ? op_set0_v : op_set0_i;
+						ed->op[io] = ed->reg[ir].type[0]=='d' ? op_set0_d : op_set0_i;
 						ed->op[io+1] = ed->reg[ir].index;
 					}
 					else
@@ -711,7 +711,7 @@ add_command:
 					if (strcmp(ed->reg[ir].type, "d")==0 || strcmp(ed->reg[ir].type, "i")==0)
 					{
 						io = alloc_opcode(ed, 2);
-						ed->op[io] = ed->reg[ir].type[0]=='d' ? op_inc1_v : op_inc1_i;
+						ed->op[io] = ed->reg[ir].type[0]=='d' ? op_inc1_d : op_inc1_i;
 						ed->op[io+1] = ed->reg[ir].index;
 					}
 					else
