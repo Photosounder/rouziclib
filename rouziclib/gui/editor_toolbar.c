@@ -21,7 +21,7 @@ void elem_te_val(gui_layout_t *layout, const int id, gui_layout_t *lp, int *val,
 		*val = atoi(te->string);
 }
 
-void gui_layout_edit_toolbar_core(rect_t parent_area, int *diag_on, int *toggle_edit_on)
+void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 {
 	static int pinned=0;
 	textedit_t *te;

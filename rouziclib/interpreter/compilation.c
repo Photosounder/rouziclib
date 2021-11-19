@@ -551,14 +551,12 @@ add_command:
 							new_opcode = 0;
 							switch (cmd_arg_count)
 							{
-								case 1:	new_opcode = op_func0_d;	break;
-								case 2:	new_opcode = op_func1_dd;	break;
-								case 3:	new_opcode = op_func2_ddd;	break;
+								case 1:	if (strcmp(ed->reg[ir].type, "fd")==0)		new_opcode = op_func0_d;	break;
+								case 2:	if (strcmp(ed->reg[ir].type, "fdd")==0)		new_opcode = op_func1_dd;	break;
+								case 3:	if (strcmp(ed->reg[ir].type, "fddd")==0)	new_opcode = op_func2_ddd;	break;
 								case 4:
-									if (strcmp(ed->reg[ir].type, "fdddd")==0)
-										new_opcode = op_func3_dddd;
-									else if (strcmp(ed->reg[ir].type, "fdddi")==0)
-										new_opcode = op_func3_dddi;
+									if (strcmp(ed->reg[ir].type, "fdddd")==0)	new_opcode = op_func3_dddd;
+									else if (strcmp(ed->reg[ir].type, "fdddi")==0)	new_opcode = op_func3_dddi;
 									break;
 							}
 
