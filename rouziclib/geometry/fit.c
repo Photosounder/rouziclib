@@ -191,7 +191,7 @@ rect_t fit_rect_in_area(xy_t r_dim0, rect_t area, xy_t off)
 	scale = min_of_xy(div_xy(area_dim, r_dim0));
 	r_dim1 = mul_xy(r_dim0, set_xy(scale));
 	dim_diff = sub_xy(area_dim, r_dim1);
-	return make_rect_off(add_xy(area.p0, mul_xy(dim_diff, off)), r_dim1, XY0);
+	return make_rect_off(mad_xy(dim_diff, off, area.p0), r_dim1, XY0);
 }
 
 rect_t fit_rect_containing_area(xy_t r_dim0, rect_t area, xy_t off)	// instead of rect fitting in area, area fits inside rect
@@ -204,7 +204,7 @@ rect_t fit_rect_containing_area(xy_t r_dim0, rect_t area, xy_t off)	// instead o
 	scale = max_of_xy(div_xy(area_dim, r_dim0));
 	r_dim1 = mul_xy(r_dim0, set_xy(scale));
 	dim_diff = sub_xy(area_dim, r_dim1);
-	return make_rect_off(add_xy(area.p0, mul_xy(dim_diff, off)), r_dim1, XY0);
+	return make_rect_off(mad_xy(dim_diff, off, area.p0), r_dim1, XY0);
 }
 
 rect_t get_subdiv_area(rect_t area, xy_t ratio, xy_t offset)
@@ -214,7 +214,7 @@ rect_t get_subdiv_area(rect_t area, xy_t ratio, xy_t offset)
 	area_dim = get_rect_dim(area);
 	subdiv_dim = mul_xy(area_dim, ratio);
 
-	pos = add_xy(sort_rect(area).p0, mul_xy(offset, sub_xy(area_dim, subdiv_dim)));
+	pos = mad_xy(offset, sub_xy(area_dim, subdiv_dim), sort_rect(area).p0);
 	return make_rect_off(pos, subdiv_dim, XY0);
 }
 

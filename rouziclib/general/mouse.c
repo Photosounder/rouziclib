@@ -128,7 +128,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 
 	if (mouse->zoom_flag && mouse->zoom_scroll_freeze==0)	// if we're scrolling the zoom
 	{
-		zc->offset_u = add_xy(zc->offset_u, mul_xy(du, set_xy(2.)));	// the factor of 2 is arbitrary, doesn't have to be integer
+		zc->offset_u = mad_xy(du, set_xy(2.), zc->offset_u);	// the factor of 2 is arbitrary, doesn't have to be integer
 		calc_screen_limits(zc);
 	}
 

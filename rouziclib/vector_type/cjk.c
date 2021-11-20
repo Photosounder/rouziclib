@@ -94,8 +94,8 @@ vobj_t *vobj_fitted_cat(vobj_t **o, int count, rect_t *fit_rect, rect_t *obj_rec
 		for (i=0; i<o[io]->count; i++)
 		{
 			ro->seg[i+seg_base] = o[io]->seg[i];
-			ro->seg[i+seg_base].p1 = xy_to_xyz(fma_xy(xyz_to_xy(o[io]->seg[i].p1), tmul, tadd));
-			ro->seg[i+seg_base].p2 = xy_to_xyz(fma_xy(xyz_to_xy(o[io]->seg[i].p2), tmul, tadd));
+			ro->seg[i+seg_base].p1 = xy_to_xyz(mad_xy(xyz_to_xy(o[io]->seg[i].p1), tmul, tadd));
+			ro->seg[i+seg_base].p2 = xy_to_xyz(mad_xy(xyz_to_xy(o[io]->seg[i].p2), tmul, tadd));
 		}
 
 		seg_base += o[io]->count;

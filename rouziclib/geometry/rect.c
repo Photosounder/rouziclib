@@ -135,19 +135,18 @@ recti_t get_recti_centred_coord(recti_t r)		// get a centre coord and width/heig
 
 rect_t make_rect_centred(const xy_t c, const xy_t wh)	// make rect from a centre coord and width/height
 {
-	return rect(sub_xy(c, mul_xy(set_xy(0.5), wh)), add_xy(c, mul_xy(set_xy(0.5), wh)));
+	return rect(sub_xy(c, mul_xy(set_xy(0.5), wh)), mad_xy(set_xy(0.5), wh, c));
 }
 
 rect_t make_rect_off(const xy_t pos, const xy_t dim, const xy_t off)
 {
-	return rect(sub_xy(pos, mul_xy(off, dim)), add_xy(pos, mul_xy(sub_xy(set_xy(1.), off), dim)));
+	return rect(sub_xy(pos, mul_xy(off, dim)), mad_xy(sub_xy(set_xy(1.), off), dim, pos));
 }
 
 void rect_to_pos_dim(rect_t r, xy_t *pos, xy_t *dim, xy_t off)
 {
-	//*dim = get_rect_dim(r);
 	*dim = sub_xy(r.p1, r.p0);
-	*pos = add_xy(r.p0, mul_xy(off, *dim));
+	*pos = mad_xy(off, *dim, r.p0);
 }
 
 rect_t rect_size_mul(rect_t r, xy_t scale)
@@ -160,7 +159,7 @@ rect_t rect_size_mul(rect_t r, xy_t scale)
 rect_t rect_add_margin(rect_t r, xy_t margin)
 {
 	r = get_rect_centred_coord(r);
-	r.p1 = add_xy(r.p1, mul_xy(set_xy(2.), margin));
+	r.p1 = mad_xy(set_xy(2.), margin, r.p1);
 	return make_rect_centred(r.p0, r.p1);
 }
 
@@ -265,7 +264,7 @@ int is0_rect(const rect_t r)
 
 xy_t pos_in_rect_by_ratio(rect_t r, xy_t ratio)
 {
-	return add_xy(r.p0, mul_xy(ratio, sub_xy(r.p1, r.p0)));
+	return mad_xy(ratio, sub_xy(r.p1, r.p0), r.p0);
 }
 
 xy_t pos_to_rect_ratio(xy_t pos, rect_t r)

@@ -569,9 +569,14 @@ int mul_x_by_y_xyi(xyi_t a)
 	return a.x * a.y;
 }
 
-xy_t fma_xy(xy_t pos, xy_t tmul, xy_t tadd)
+xy_t mad_xy(xy_t pos, xy_t tmul, xy_t tadd)
 {
-	return add_xy(tadd, mul_xy(pos, tmul));
+	return add_xy(mul_xy(pos, tmul), tadd);
+}
+
+xyz_t mad_xyz(xyz_t pos, xyz_t tmul, xyz_t tadd)
+{
+	return add_xyz(mul_xyz(pos, tmul), tadd);
 }
 
 double get_xyz_index(xyz_t v, const int index)

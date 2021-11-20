@@ -13,6 +13,10 @@
 	// Line
 		// pixel coordinates
 		draw_line_thin(sc_xy(p0), sc_xy(p1), drawing_thickness, white, blend_add, intensity);
+	
+	// Point
+		// pixel coordinates
+		draw_point(sc_xy(p), drawing_thickness, white, blend_add, intensity);
 
 	// Rectangles
 		// pixel coordinates

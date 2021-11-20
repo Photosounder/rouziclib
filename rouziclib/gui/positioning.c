@@ -1,6 +1,6 @@
 xy_t offset_scale2(xy_t pos, xy_t offset, xy_t sm2)
 {
-	return add_xy(offset, mul_xy(pos, sm2));
+	return mad_xy(pos, sm2, offset);
 }
 
 xy_t offset_scale(xy_t pos, xy_t offset, double sm)

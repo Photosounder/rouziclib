@@ -248,8 +248,8 @@ void draw_line_dashed(xy_t p1, xy_t p2, double dash_period, double dash_ratio, d
 		if (t1 >= d)
 			return ;
 
-		pt1 = add_xy(mul_xy(set_xy(t1c), pd), p1);
-		pt2 = add_xy(mul_xy(set_xy(t2c), pd), p1);
+		pt1 = mad_xy(set_xy(t1c), pd, p1);
+		pt2 = mad_xy(set_xy(t2c), pd, p1);
 
 		draw_line_thin(pt1, pt2, radius, colour, bf, intensity);
 

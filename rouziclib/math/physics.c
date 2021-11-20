@@ -32,17 +32,17 @@ void physical_integration_xy(xy_t *pos, xy_t *vel, xy_t acc, double dt)
 	if (method==meth_euler)
 	{
 		// Euler method: pn+1 = pn + dt * f(tn+1)
-		*vel = add_xy(*vel, mul_xy(set_xy(dt), acc));	// f(xn+1)
-		*pos = add_xy(*pos, mul_xy(set_xy(dt), *vel));	// xn+1 = xn + dt * (fxn+1)
+		*vel = mad_xy(set_xy(dt), acc, *vel);	// f(xn+1)
+		*pos = mad_xy(set_xy(dt), *vel, *pos);	// xn+1 = xn + dt * (fxn+1)
 	}
 
 	if (method==meth_rk2)
 	{
 		po = *pos;
-		hv = add_xy(*vel, mul_xy(acc, set_xy(0.5*dt)) );
-		*pos = add_xy(*pos, mul_xy(*vel, set_xy(0.5*dt)) );
-		*vel = add_xy(*vel, mul_xy(acc, set_xy(dt)) );
-		*pos = add_xy(po, mul_xy(hv, set_xy(dt)) );
+		hv = mad_xy(acc, set_xy(0.5*dt), *vel);
+		*pos = mad_xy(*vel, set_xy(0.5*dt), *pos);
+		*vel = mad_xy(acc, set_xy(dt), *vel);
+		*pos = mad_xy(hv, set_xy(dt), *pos);
 	}
 
 	if (method==meth_rk4)
@@ -71,16 +71,16 @@ void physical_integration_xyz(xyz_t *pos, xyz_t *vel, xyz_t acc, double dt)
 	if (method==meth_euler)
 	{
 		// Euler method: pn+1 = pn + dt * f(tn+1)
-		*vel = add_xyz(*vel, mul_xyz(set_xyz(dt), acc));	// f(xn+1)
-		*pos = add_xyz(*pos, mul_xyz(set_xyz(dt), *vel));	// xn+1 = xn + dt * (fxn+1)
+		*vel = mad_xyz(set_xyz(dt), acc, *vel);	// f(xn+1)
+		*pos = mad_xyz(set_xyz(dt), *vel, *pos);	// xn+1 = xn + dt * (fxn+1)
 	}
 
 	if (method==meth_rk2)
 	{
 		po = *pos;
-		hv = add_xyz(*vel, mul_xyz(acc, set_xyz(0.5*dt)) );
-		*pos = add_xyz(*pos, mul_xyz(*vel, set_xyz(0.5*dt)) );
-		*vel = add_xyz(*vel, mul_xyz(acc, set_xyz(dt)) );
-		*pos = add_xyz(po, mul_xyz(hv, set_xyz(dt)) );
+		hv = mad_xyz(acc, set_xyz(0.5*dt), *vel);
+		*pos = mad_xyz(*vel, set_xyz(0.5*dt), *pos);
+		*vel = mad_xyz(acc, set_xyz(dt), *vel);
+		*pos = mad_xyz(hv, set_xyz(dt), *pos);
 	}
 }

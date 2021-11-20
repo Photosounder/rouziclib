@@ -200,7 +200,7 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 							if (b0[i].a < mean_lum)
 							{
 								erfw = sq(erf((mean_lum-b0[i].a)/sd));
-								bary0 = add_xy(bary0, mul_xy(xyi_to_xy(ib), set_xy(block_coef[i] * erfw)));
+								bary0 = mad_xy(xyi_to_xy(ib), set_xy(block_coef[i] * erfw), bary0);
 								bary0w += block_coef[i] * erfw;
 								sum0 += b0[i].a * block_coef[i] * sq(erfw);
 								sum0w += block_coef[i] * sq(erfw);
@@ -209,7 +209,7 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 							else
 							{
 								erfw = sq(erf((b0[i].a-mean_lum)/sd));
-								bary1 = add_xy(bary1, mul_xy(xyi_to_xy(ib), set_xy(block_coef[i] * erfw)));
+								bary1 = mad_xy(xyi_to_xy(ib), set_xy(block_coef[i] * erfw), bary1);
 								bary1w += block_coef[i] * erfw;
 								sum1 += b0[i].a * block_coef[i] * sq(erfw);
 								sum1w += block_coef[i] * sq(erfw);

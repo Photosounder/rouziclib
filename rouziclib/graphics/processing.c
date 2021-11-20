@@ -185,8 +185,8 @@ void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const 
 	nsy = kr0.y * 2.;
 
 	// find start and stop indices
-	p0 = add_xy(pos, mul_xy(pscale, neg_xy(kr1)));
-	p1 = add_xy(pos, mul_xy(pscale, add_xy(kr1, xy(src_dim.x-1, src_dim.y-1))));
+	p0 = mad_xy(pscale, neg_xy(kr1), pos);
+	p1 = mad_xy(pscale, add_xy(kr1, xy(src_dim.x-1, src_dim.y-1)), pos);
 
 	start.x = MAXN(0, floor(MINN(p0.x, p1.x)));
 	start.y = MAXN(0, floor(MINN(p0.y, p1.y)));

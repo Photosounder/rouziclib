@@ -300,13 +300,13 @@ line_proc_start:
 			
 			if (dest_ir == -1)
 			{
-				bufprintf(log, "Undeclared variable '%s' used in line %d: '%s'\n", s0, il, line[il]);
+				bufprintf(log, "Undeclared variable '%s' used in line %d: '%s'", s0, il, line[il]);
 				goto invalid_prog;
 			}
 
 			if (ed->reg[dest_ir].type[0]!='d' && ed->reg[dest_ir].type[0]!='i')
 			{
-				bufprintf(log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'\n", s0, ed->reg[dest_ir].type, il, line[il]);
+				bufprintf(log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'", s0, ed->reg[dest_ir].type, il, line[il]);
 				goto invalid_prog;
 			}
 
@@ -402,7 +402,7 @@ add_command:
 
 							if (arg_ir[i] == -1)
 							{
-								bufprintf(log, "Argument '%s' unidentified in line %d: '%s'\n", s1, il, line[il]);
+								bufprintf(log, "Argument '%s' unidentified in line %d: '%s'", s1, il, line[il]);
 								goto invalid_prog;
 							}
 
@@ -412,7 +412,7 @@ add_command:
 						}
 						else
 						{
-							bufprintf(log, "Argument missing (%d arguments expected) in line %d: '%s'\n", cmd_arg_count, il, line[il]);
+							bufprintf(log, "Argument missing (%d arguments expected) in line %d: '%s'", cmd_arg_count, il, line[il]);
 							goto invalid_prog;
 						}
 					}
@@ -474,7 +474,7 @@ add_command:
 
 								if (arg_ir[i] == -1)
 								{
-									bufprintf(log, "Argument '%s' unidentified in line %d: '%s'\n", i==0 ? s1 : s3, il, line[il]);
+									bufprintf(log, "Argument '%s' unidentified in line %d: '%s'", i==0 ? s1 : s3, il, line[il]);
 									goto invalid_prog;
 								}
 
@@ -492,6 +492,12 @@ add_command:
 							if (strcmp(s2, "<=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_le : op_cmp_ii_le;
 							if (strcmp(s2, ">")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_gt : op_cmp_ii_gt;
 							if (strcmp(s2, ">=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_ge : op_cmp_ii_ge;
+
+							if (ed->op[io] == 0)	// if comparison hasn't been found
+							{
+								bufprintf(log, "Comparator invalid in line %d: '%s'", il, line[il]);
+								goto invalid_prog;
+							}
 
 							ed->op[io+1] = ed->reg[dest_ir].index;
 							ed->op[io+2] = ed->reg[arg_ir[0]].index;
@@ -512,7 +518,7 @@ add_command:
 						}
 						else
 						{
-							bufprintf(log, "Argument missing (2 arguments expected) in line %d: '%s'\n", il, line[il]);
+							bufprintf(log, "Argument missing (2 arguments expected) in line %d: '%s'", il, line[il]);
 							goto invalid_prog;
 						}
 					}
@@ -562,7 +568,7 @@ add_command:
 
 							if (new_opcode == 0)
 							{
-								bufprintf(log, "Function type '%s' not implemented in line %d: '%s'\n", ed->reg[ir].type, il, line[il]);
+								bufprintf(log, "Function type '%s' not implemented in line %d: '%s'", ed->reg[ir].type, il, line[il]);
 								goto invalid_prog;
 							}
 
@@ -574,7 +580,7 @@ add_command:
 
 				if (cmd_found == 0)
 				{
-					bufprintf(log, "Unidentified '%s' in line %d: '%s'\n", s0, il, line[il]);
+					bufprintf(log, "Unidentified '%s' in line %d: '%s'", s0, il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -616,7 +622,7 @@ add_command:
 				}
 				else
 				{
-					bufprintf(log, "Value not found for command 'return' in line %d: '%s'\n", il, line[il]);
+					bufprintf(log, "Value not found for command 'return' in line %d: '%s'", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -635,20 +641,20 @@ add_command:
 					{
 						if (arg_ir[i] == -1)
 						{
-							bufprintf(log, "Variable '%s' not found in line %d: '%s'\n", i==0 ? s1 : s2, il, line[il]);
+							bufprintf(log, "Variable '%s' not found in line %d: '%s'", i==0 ? s1 : s2, il, line[il]);
 							goto invalid_prog;
 						}
 					}
 
 					if (strcmp(ed->reg[arg_ir[0]].type, "i") != 0)	// s1 must be an integer variable
 					{
-						bufprintf(log, "Not an integer variable '%s' in line %d: '%s'\n", s1, il, line[il]);
+						bufprintf(log, "Not an integer variable '%s' in line %d: '%s'", s1, il, line[il]);
 						goto invalid_prog;
 					}
 
 					if (strcmp(ed->reg[arg_ir[1]].type, "l") != 0)	// s2 must be a location
 					{
-						bufprintf(log, "Not a location '%s' in line %d: '%s'\n", s2, il, line[il]);
+						bufprintf(log, "Not a location '%s' in line %d: '%s'", s2, il, line[il]);
 						goto invalid_prog;
 					}
 
@@ -666,7 +672,7 @@ add_command:
 				}
 				else
 				{
-					bufprintf(log, "Incorrect 'if <integer variable> goto <loc>' command in line %d: '%s'\n", il, line[il]);
+					bufprintf(log, "Incorrect 'if <integer variable> goto <loc>' command in line %d: '%s'", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -687,13 +693,13 @@ add_command:
 					}
 					else
 					{
-						bufprintf(log, "Command 'set0' can't use type '%s' in line %d: '%s'\n", ed->reg[ir].type, il, line[il]);
+						bufprintf(log, "Command 'set0' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
 						goto invalid_prog;
 					}
 				}
 				else
 				{
-					bufprintf(log, "Value not found for command 'set0' in line %d: '%s'\n", il, line[il]);
+					bufprintf(log, "Value not found for command 'set0' in line %d: '%s'", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -714,13 +720,13 @@ add_command:
 					}
 					else
 					{
-						bufprintf(log, "Command 'inc1' can't use type '%s' in line %d: '%s'\n", ed->reg[ir].type, il, line[il]);
+						bufprintf(log, "Command 'inc1' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
 						goto invalid_prog;
 					}
 				}
 				else
 				{
-					bufprintf(log, "Value not found for command 'inc1' in line %d: '%s'\n", il, line[il]);
+					bufprintf(log, "Value not found for command 'inc1' in line %d: '%s'", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -732,14 +738,14 @@ add_command:
 	// If not all forward jumps were resolved
 	if (fwd_jumps != 0)
 	{
-		bufprintf(log, "There are %d unresolved forward jumps\n", fwd_jumps);
+		bufprintf(log, "There are %d unresolved forward jumps", fwd_jumps);
 		data.valid_prog = 0;
 	}
 
 	// If the return command is missing
 	if (ret_cmd_done==0)
 	{
-		bufprintf(log, "The 'return' command is missing or invalid\n");
+		bufprintf(log, "The 'return' command is missing or invalid");
 invalid_prog:
 		data.valid_prog = 0;
 	}

@@ -42,5 +42,5 @@ double hypot_xyz(xyz_t a, xyz_t b)
 
 xy_t set_new_distance_from_point(xy_t p0, xy_t pc, double dist_mul)
 {
-	return add_xy(pc, mul_xy(sub_xy(p0, pc), set_xy(dist_mul)));
+	return mad_xy(sub_xy(p0, pc), set_xy(dist_mul), pc);
 }

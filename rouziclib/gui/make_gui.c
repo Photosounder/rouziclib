@@ -545,7 +545,7 @@ void gui_layout_init_pos_scale(gui_layout_t *layout, xy_t pos, double scale, xy_
 	if (layout->init==0 || force)
 	{
 		layout->sm = scale;
-		layout->offset = add_xy(pos, mul_xy(offset, set_xy(scale)));
+		layout->offset = mad_xy(offset, set_xy(scale), pos);
 	}
 }
 

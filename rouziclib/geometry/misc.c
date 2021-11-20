@@ -1,6 +1,6 @@
 xy_t interpolate_xy(xy_t a, xy_t b, double t)
 {
-	return add_xy(a, mul_xy(set_xy(t), sub_xy(b, a)));
+	return mad_xy(set_xy(t), sub_xy(b, a), a);
 }
 
 xy_t triangle_find_incentre(triangle_t tr)

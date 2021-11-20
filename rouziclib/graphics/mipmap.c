@@ -780,11 +780,11 @@ void blit_mipmap_rotated(mipmap_t m, xy_t pscale, xy_t pos, double angle, xy_t r
 				break;
 
 	ml_scale = mul_xy(ml->scale, pscale);
-	pos = sub_xy( add_xy( pos, mul_xy(ml_scale, set_xy(0.5)) ) , mul_xy(pscale, set_xy(0.5)) );	// add an offset necessary for higher mipmap levels
+	pos = sub_xy( mad_xy(ml_scale, set_xy(0.5), pos) , mul_xy(pscale, set_xy(0.5)) );	// add an offset necessary for higher mipmap levels
 
 	for (it.y=0; it.y < ml->tilecount.y; it.y++)
 		for (it.x=0; it.x < ml->tilecount.x; it.x++)
-			blit_scale_rotated(&ml->r[it.y*ml->tilecount.x + it.x], ml_scale, add_xy(pos, mul_xy(ml_scale, xyi_to_xy(mul_xyi(it, ml->tiledim)))), angle, rot_centre, interp);
+			blit_scale_rotated(&ml->r[it.y*ml->tilecount.x + it.x], ml_scale, mad_xy(ml_scale, xyi_to_xy(mul_xyi(it, ml->tiledim)), pos), angle, rot_centre, interp);
 }
 
 rect_t blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
@@ -799,7 +799,7 @@ rect_t blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, 
 		image_frame = fit_rect_in_area( xyi_to_xy(m.fulldim), image_frame, xy(0.5, 0.5) );
 
 	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(m.fulldim));
-	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
+	pos = mad_xy(pscale, set_xy(0.5), keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame));
 
 	blit_mipmap_rotated(m, pscale, pos, angle, rot_centre, interp);
 

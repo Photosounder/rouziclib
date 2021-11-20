@@ -119,7 +119,8 @@ extern double div_x_by_y_xy(xy_t a);
 extern double div_y_by_x_xy(xy_t a);
 extern int mul_x_by_y_xyi(xyi_t a);
 
-extern xy_t fma_xy(xy_t pos, xy_t tmul, xy_t tadd);
+extern xy_t mad_xy(xy_t pos, xy_t tmul, xy_t tadd);
+extern xyz_t mad_xyz(xyz_t pos, xyz_t tmul, xyz_t tadd);
 extern double get_xyz_index(xyz_t v, const int index);
 extern xy_t swap_xy(xy_t v);
 

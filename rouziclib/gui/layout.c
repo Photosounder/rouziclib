@@ -24,14 +24,14 @@ xy_t get_grid_position(xy_t orig, int index, xyi_t grid_count, xy_t step, int ho
 		if (grid_count.x==0)
 			grid_count.x = 1;
 
-		return add_xy( orig, mul_xy(step, xy( index % grid_count.x, index / grid_count.x )) );
+		return mad_xy(step, xy( index % grid_count.x, index / grid_count.x ), orig);
 	}
 	else
 	{
 		if (grid_count.y==0)
 			grid_count.y = 1;
 
-		return add_xy( orig, mul_xy(step, xy( index / grid_count.y, index % grid_count.y )) );
+		return mad_xy(step, xy( index / grid_count.y, index % grid_count.y ), orig);
 	}
 }
 
@@ -39,7 +39,7 @@ rect_t get_grid_cell_rect(xyi_t ip, xy_t origin, xy_t cell_dim)
 {
 	rect_t r;
 
-	r.p0 = add_xy( mul_xy(xyi_to_xy(ip), cell_dim) , origin );
+	r.p0 = mad_xy(xyi_to_xy(ip), cell_dim, origin);
 	r.p1 = add_xy(r.p0, cell_dim);
 
 	return r;

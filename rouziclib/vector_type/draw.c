@@ -238,13 +238,13 @@ void cursor_processing(vector_font_t *font, const char *string, uint32_t c, xy_t
 		check_closest_cursor(off, scale, expected_pos, &closest_deltapos[0], isa, &cur_textedit->curpos);
 
 	// find the position in the line above and below
-	expected_pos = add_xy( mul_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale)) , xy(0., LINEVSPACING * -scale) );
-	expected_pos = add_xy( mul_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale)) , expected_pos );
+	expected_pos = mad_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale), xy(0., LINEVSPACING * -scale));
+	expected_pos = mad_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), expected_pos);
 	//expected_pos.y = MAXN(0., expected_pos.y);
 	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[1], isa, &cur_textedit->curpos_up);
 
-	expected_pos = add_xy( mul_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale)) , xy(0., LINEVSPACING * scale) );
-	expected_pos = add_xy( mul_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale)) , expected_pos );
+	expected_pos = mad_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale), xy(0., LINEVSPACING * scale));
+	expected_pos = mad_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), expected_pos);
 	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[2], isa, &cur_textedit->curpos_down);
 }
 
@@ -323,7 +323,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 
 				if (cur_textedit->click_on)
 				{
-					expected_pos = add_xy( mul_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale)) , sub_xy(cur_textedit->click, p) );
+					expected_pos = mad_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), sub_xy(cur_textedit->click, p));
 					expected_pos.y = MAXN(0., expected_pos.y);
 					if (recur==0)
 						cur_textedit->curpos = strlen(cur_textedit->string);

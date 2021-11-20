@@ -166,7 +166,7 @@ rect_t selectmenu_rect(rect_t box, const int id)
 	if (id < 0)
 		return make_rect_off( start, mul_xy(get_rect_dim(box), xy(1., -id)), xy(0., 1.) );
 	else
-		return make_rect_off( add_xy(start , mul_xy(get_rect_dim(box), xy(0., -id))) , get_rect_dim(box), xy(0., 1.) );
+		return make_rect_off( mad_xy(get_rect_dim(box), xy(0., -id), start) , get_rect_dim(box), xy(0., 1.) );
 }
 
 int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)

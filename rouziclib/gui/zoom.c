@@ -57,7 +57,7 @@ rect_t to_world_coord_rect(zoom_t zc, rect_t r)
 void pinned_os_to_world_os(xy_t pinned_offset, double pinned_sm, xy_t *world_offset, double *world_sm)
 {
 	*world_sm = pinned_sm / zc.zoomscale;
-	*world_offset = add_xy(zc.offset_u, mul_xy(set_xy(*world_sm), pinned_offset));
+	*world_offset = mad_xy(set_xy(*world_sm), pinned_offset, zc.offset_u);
 }
 
 void world_os_to_pinned_os(xy_t world_offset, double world_sm, xy_t *pinned_offset, double *pinned_sm)
@@ -145,8 +145,9 @@ void calc_screen_limits(zoom_t *zc)
 
 	zc->drawlim_u = set_xy(zc->iscrscale * GAUSSRAD_HQ * zc->drawing_thickness);
 
-	zc->corners.p0 = sub_xy(zc->offset_u, mul_xy(xy(fb.w, fb.h), set_xy(0.5*zc->iscrscale)));
-	zc->corners.p1 = add_xy(zc->offset_u, mul_xy(xy(fb.w, fb.h), set_xy(0.5*zc->iscrscale)));
+	xy_t dim = mul_xy(xy(fb.w, fb.h), set_xy(0.5*zc->iscrscale));
+	zc->corners.p0 = sub_xy(zc->offset_u, dim);
+	zc->corners.p1 = add_xy(zc->offset_u, dim);
 	zc->corners_dl.p0 = sub_xy(zc->corners.p0, zc->drawlim_u);
 	zc->corners_dl.p1 = add_xy(zc->corners.p1, zc->drawlim_u);
 	fb.window_dl.p0 = set_xy(-GAUSSRAD_HQ * zc->drawing_thickness);			// drawing limit in pixels

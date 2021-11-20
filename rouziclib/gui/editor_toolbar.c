@@ -98,7 +98,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 
 	if (pinned)
 	{
-		layout.offset = add_xy( rect_p01(zc.corners) , mul_xy(set_xy(1.3/zc.zoomscale), xy(1.25, -0.25)) );
+		layout.offset = mad_xy(set_xy(1.3/zc.zoomscale), xy(1.25, -0.25), rect_p01(zc.corners));
 		layout.sm = 1.3 * 1. / zc.zoomscale;
 	}
 
@@ -273,7 +273,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 			lp->elem[sel_id].pos_off = po1;
 
 			if (keep_screen_pos)
-				lp->elem[sel_id].pos = add_xy(lp->elem[sel_id].pos, mul_xy(get_elem_dim(lp, sel_id), sub_xy(po1, po0)));
+				lp->elem[sel_id].pos = mad_xy(get_elem_dim(lp, sel_id), sub_xy(po1, po0), lp->elem[sel_id].pos);
 		}
 
 	// Markup

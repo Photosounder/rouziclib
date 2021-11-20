@@ -237,8 +237,8 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 	nsy = kr0.y * 2.;
 
 	// find start and stop indices
-	p0 = add_xy(pos, mul_xy(pscale, neg_xy(kr1)));
-	p1 = add_xy(pos, mul_xy(pscale, add_xy(kr1, xy(r.dim.x-1, r.dim.y-1))));
+	p0 = mad_xy(pscale, neg_xy(kr1), pos);
+	p1 = mad_xy(pscale, add_xy(kr1, xy(r.dim.x-1, r.dim.y-1)), pos);
 
 	start.x = MAXN(0, floor(MINN(p0.x, p1.x)));
 	start.y = MAXN(0, floor(MINN(p0.y, p1.y)));
@@ -485,7 +485,7 @@ rect_t blit_in_rect_rotated(raster_t *raster, rect_t r, int keep_aspect_ratio, d
 		image_frame = fit_rect_in_area( xyi_to_xy(raster->dim), image_frame, xy(0.5, 0.5) );
 
 	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(raster->dim));
-	pos = add_xy(keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame), mul_xy(pscale, set_xy(0.5)));
+	pos = mad_xy(pscale, set_xy(0.5), keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame));
 
 	blit_scale_rotated(raster, pscale, pos, angle, rot_centre, interp);
 
