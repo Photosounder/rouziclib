@@ -333,7 +333,8 @@ line_proc_start:
 					strcmp(s0, "div")==0 ||
 					strcmp(s0, "mod")==0 ||
 					strcmp(s0, "sqadd")==0 ||
-					strcmp(s0, "sqsub")==0 )
+					strcmp(s0, "sqsub")==0 ||
+					strcmp(s0, "diff")==0 )
 				{
 					cmd_arg_count = 2;
 					sprintf(cmd_arg_type, "ddd");
@@ -382,6 +383,7 @@ line_proc_start:
 					else if (strcmp(s0, "modi")==0)		new_opcode = op_mod_ii;
 					else if (strcmp(s0, "sqadd")==0)	new_opcode = op_sqadd_dd;
 					else if (strcmp(s0, "sqsub")==0)	new_opcode = op_sqsub_dd;
+					else if (strcmp(s0, "diff")==0)		new_opcode = op_diff_dd;
 					else if (strcmp(s0, "and")==0)		new_opcode = op_and_ii;
 					else if (strcmp(s0, "or")==0)		new_opcode = op_or_ii;
 					else if (strcmp(s0, "aad")==0)		new_opcode = op_aad_ddd;

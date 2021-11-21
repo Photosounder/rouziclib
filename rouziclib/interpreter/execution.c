@@ -56,6 +56,7 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_mod_dd:		vd[op[1]] = fmod(vd[op[2]], vd[op[3]]);				// mod
 			break;	case op_sqadd_dd:	vd[op[1]] = sq(vd[op[2]]) + sq(vd[op[3]]);			// sqadd (the sum of squares)
 			break;	case op_sqsub_dd:	vd[op[1]] = sq(vd[op[2]]) - sq(vd[op[3]]);			// sqsub (the difference of squares)
+			break;	case op_diff_dd:	vd[op[1]] = fabs(vd[op[2]] - vd[op[3]]);			// diff (abs of sub)
 			
 			break;	case op_and_ii:		vi[op[1]] = vi[op[2]] & vi[op[3]];				// and (binary &)
 			break;	case op_or_ii:		vi[op[1]] = vi[op[2]] | vi[op[3]];				// or (binary &)

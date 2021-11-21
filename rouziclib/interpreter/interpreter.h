@@ -39,6 +39,7 @@ enum opcode
 	op_mod_dd,
 	op_sqadd_dd,
 	op_sqsub_dd,
+	op_diff_dd,
 
 	op_and_ii,
 	op_or_ii,

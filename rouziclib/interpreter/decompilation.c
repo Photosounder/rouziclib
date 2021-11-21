@@ -43,6 +43,7 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_mod_dd:    	return "op_mod_dd";
 		case op_sqadd_dd:    	return "op_sqadd_dd";
 		case op_sqsub_dd:    	return "op_sqsub_dd";
+		case op_diff_dd:    	return "op_diff_dd";
 
 		case op_and_ii:    	return "op_and_ii";
 		case op_or_ii:    	return "op_or_ii";
