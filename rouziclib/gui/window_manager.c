@@ -33,6 +33,8 @@ void window_run(window_manager_entry_t *w)
 		break;	case 4:	((void (*)(void*,void*,void*,void*))f)(p[0], p[1], p[2], p[3]);
 		break;	case 5:	((void (*)(void*,void*,void*,void*,void*))f)(p[0], p[1], p[2], p[3], p[4]);
 		break;	case 6:	((void (*)(void*,void*,void*,void*,void*,void*))f)(p[0], p[1], p[2], p[3], p[4], p[5]);
+		break;	case 7:	((void (*)(void*,void*,void*,void*,void*,void*,void*))f)(p[0], p[1], p[2], p[3], p[4], p[5], p[6]);
+		break;	case 8:	((void (*)(void*,void*,void*,void*,void*,void*,void*,void*))f)(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
 		break;	default: fprintf_rl(stderr, "In window_run(): Unsupported number of pointers (%d)\n", w->ptr_count);
 	}
 

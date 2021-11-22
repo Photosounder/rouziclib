@@ -35,7 +35,7 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_set_d:		vd[op[1]] = vd[op[2]];						// <var> = <var/ptr/expr>
 			break;	case op_set_i:		vi[op[1]] = vi[op[2]];
 			break;	case op_cvt_i_d:	vd[op[1]] = (double) vi[op[2]];					// <var> = <var/ptr/expr>
-			break;	case op_cvt_d_i:	vi[op[1]] = (int64_t) nearbyint(vd[op[2]]);
+			break;	case op_cvt_d_i:	vi[op[1]] = (int64_t) vd[op[2]];
 
 			break;	case op_sq_d:		vd[op[1]] = sq(vd[op[2]]);					// <var> = sq <var/ptr/expr>
 			break;	case op_sqrt_d:		vd[op[1]] = sqrt(vd[op[2]]);					// <var> = sqrt <var/ptr/expr>
