@@ -707,7 +707,7 @@ Let's first look at how to run a basic example:
 
 	// Compilation
 	buffer_t comp_log={0};
-	rlip_t prog = rlip_compile(source, inputs, sizeof(inputs)/sizeof(*inputs), &comp_log);
+	rlip_t prog = rlip_compile(source, inputs, sizeof(inputs)/sizeof(*inputs), 1, &comp_log);
 	if (comp_log.len)
 		fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
 
@@ -722,7 +722,7 @@ Let's first look at how to run a basic example:
 	volatile int exec_on = 1;
 	prog.exec_on = &exec_on;
 	rlip_execute_opcode(&prog);
-	fprintf_rl(stdout, "Program returned %.16lg\n", prog.return_value);
+	fprintf_rl(stdout, "Program returned %.16lg\n", prog.return_value[0]);
 	free_rlip(&prog);
 ```
 
@@ -733,18 +733,18 @@ d v1 = cos x
 return v1
 ```
 
-We declare a variable named `v1` as a type `d` (a `double`) which will receive the result of `cos(x)`. Here `cos` comes from a function pointer provided in `RLIP_FUNC`, it's not a builtin operation. Then `v1` is defined as a return value. Every such program must have a return value.
+We declare a variable named `v1` as a type `d` (a `double`) which will receive the result of `cos(x)`. Here `cos` comes from a function pointer provided in `RLIP_FUNC`, it's not a builtin operation. Then `v1` is defined as a return value. Every such program must have return values, the number of which is defined by the fourth argument of `rlip_compile()`.
 
 Then the source and inputs are compiled, which as always is a bit complicated, though I tried to keep it simple. Essentially my compiler relies on a registry to keep track of everything, and the argument to each compiled instruction is an index to one of the 3 arrays (besides the array of opcodes), namely an array of `double`, of `int64_t` and of pointers. Each opcode has specific types so it knows in which array to look for its arguments. Looking at the decompilation will make it clear:
 
 ```
-op_load_d            9      38
+op_load_d            9      39
 op_func1_dd          8       6       9
 op_ret_d             8
 op_end
 ```
 
-The first operation loads the value of `x` in the `double` array. `x` was provided as a pointer which ended up at index 38 in the pointer array, and it will be copied to index 9 in the `double` array. After this `x` won't be loaded anew (this is ensured by keeping all the load commands at the very beginning of the program so they can't be looped) and will be treated as a normal `double` variable, not a pointer to a value anymore. After this we can call `cos`, which was also provided as a pointer and is at index 6 in the pointer array. So `op_func1_dd` calls the function at the address at index 6 in the pointer array, with one argument which is from index 9 in the `double` array. It then stores the result at index 8 in the `double` array. Then this result is copied from the array to `prog.return_value`, which is how we access it.
+The first operation loads the value of `x` in the `double` array. `x` was provided as a pointer which ended up at index 39 in the pointer array, and it will be copied to index 9 in the `double` array. After this `x` won't be loaded anew (this is ensured by keeping all the load commands at the very beginning of the program so they can't be looped) and will be treated as a normal `double` variable, not a pointer to a value anymore. After this we can call `cos`, which was also provided as a pointer and is at index 6 in the pointer array. So `op_func1_dd` calls the function at the address at index 6 in the pointer array, with one argument which is from index 9 in the `double` array. It then stores the result at index 8 in the `double` array. Then this result is copied from the array to `prog.return_value`, which is how we access it.
 
 Given that we set `x` to 4.0 before executing the compiled program we obtain the expected result:
 ```
@@ -780,7 +780,7 @@ cond1 = and cond1 cond2
 if cond1 goto loop_start
 ```
 
-- Other commands start directly with the command name, like the statement `if <condition integer variable> goto <location>`, or the mandatory `return <variable>` command as well as the commands of convenience `set0 <variable>` or `inc1 <variable>`, both of which have the distinction of having the operand type depend on the type of the variable, since there is only one variable that is both the source and the destination.
+- Other commands start directly with the command name, like the statement `if <condition integer variable> goto <location>`, or the mandatory `return <variables>` command as well as the commands of convenience `set0 <variable>` or `inc1 <variable>`, both of which have the distinction of having the operand type depend on the type of the variable, since there is only one variable that is both the source and the destination.
 
 - Unrecognised lines are just ignored, as are things that follow the expected number of arguments, so we can have comment lines or comments appended to regular lines.
 
@@ -788,13 +788,12 @@ The link:rouziclib/interpreter/execution.c[execution code] makes it fairly clear
 
 === RLIP fractal example
 
-Here's a good example of what can be done with RLIP. This only takes pointers to `double` variables `x` and `y` as input, and the output is a pixel value for those input coordinates.
+Here's a good example of what can be done with RLIP. This only takes pointers to `double` variables `x` and `y` as input, and the output is 3 values that define the pixel colour for these input coordinates.
 
 ```
 // Parameters
 d threshold = 4
 i max_iter = 400
-d pix_modulo = 40
 
 d x1 = 0
 d y1 = 0
@@ -802,26 +801,36 @@ i ni = 0
 
 // Fractal loop
 loop:
-d x2 = sqsub x1 y1
-x2 = add x2 x
+    d x2 = sqsub x1 y1
+    x2 = add x2 x
+    y1 = mmul y1 x1 2
+    y1 = add y1 y
+    x1 = x2
 
-y1 = mmul y1 x1 2
-y1 = add y1 y
+    inc1 ni
+    i cond1 = cmpi ni < max_iter
 
-x1 = x2
-
-inc1 ni
-i cond1 = cmpi ni < max_iter
-
-x2 = sqadd x1 y1
-i cond2 = cmp x2 < threshold
-cond1 = and cond1 cond2
+    x2 = sqadd x1 y1
+    i cond2 = cmp x2 < threshold
+    cond1 = and cond1 cond2
 if cond1 goto loop
 // Loop end
 
-d v = mod ni pix_modulo
-v = div v pix_modulo
-return v
+// Calculate colours based on iteration count
+d v = log ni
+v = mad v 80 1600
+
+d red = mad v 0.036 0.2
+d grn = mad v 0.0187 0.2
+d blu = mad v 0.013 0.2
+red = sin red
+grn = sin grn
+blu = sin blu
+red = mad red 0.5 0.5
+grn = mad grn 0.5 0.5
+blu = mad blu 0.5 0.5
+end:
+return red grn blu
 ```
 
 ++++
@@ -834,29 +843,37 @@ return v
 In case you're curious to see what it decompiles to:
 
 ```
-op_load_d           19      39
-op_load_d           17      38
+op_load_d           17      40
+op_load_d           15      39
 op_set_d             8       9
 op_cvt_d_i           8      10
 op_set_d            11      12
-op_set_d            13      14
-op_set_d            15      14
-op_cvt_d_i           9      14
-op_sqsub_dd         16      13      15
-op_add_dd           16      16      17
-op_mmul_ddd         15      15      13      18
-op_add_dd           15      15      19
-op_set_d            13      16
+op_set_d            13      12
+op_cvt_d_i           9      12
+op_sqsub_dd         14      11      13
+op_add_dd           14      14      15
+op_mmul_ddd         13      13      11      16
+op_add_dd           13      13      17
+op_set_d            11      14
 op_inc1_i            9
 op_cmp_ii_lt        10       9       8
-op_sqadd_dd         16      13      15
-op_cmp_dd_lt        11      16       8
+op_sqadd_dd         14      11      13
+op_cmp_dd_lt        11      14       8
 op_and_ii           10      10      11
 op_jmp_cond         10     -38
-op_cvt_i_d           1       9
-op_mod_dd           20       1      11
-op_div_dd           20      20      11
-op_ret_d            20
+op_cvt_i_d           2       9
+op_func1_dd         18      10       2
+op_mad_ddd          18      18      19      20
+op_mad_ddd          21      18      22      23
+op_mad_ddd          24      18      25      23
+op_mad_ddd          26      18      27      23
+op_func1_dd         21      14      21
+op_func1_dd         24      14      24
+op_func1_dd         26      14      26
+op_mad_ddd          21      21      28      28
+op_mad_ddd          24      24      28      28
+op_mad_ddd          26      26      28      28
+op_ret_ddd          21      24      26
 op_end
 ```
 
