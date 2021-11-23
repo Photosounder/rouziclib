@@ -101,7 +101,7 @@ Have a look at a minimal https://github.com/Photosounder/rouziclib-picture-viewe
 == Files
 
 * link:rouziclib/rouziclib.c[rouziclib.c] / link:rouziclib/rouziclib.h[rouziclib.h] / link:rouziclib/rouziclib.m[rouziclib.m] +
-Every piece of code in this library is ultimately included into one of those three files, so it's as if this whole library was only made of 2 (or 3 on macOS) files. Basically rouziclib is just like a two-file library broken down into over 360 files due to size.
+Every piece of code in this library is ultimately included into one of those three files, so it's as if this whole library was only made of 2 (or 3 on macOS) files. Basically rouziclib is just like a two-file library broken down into over 380 files due to size.
 
 * link:rouziclib/general[general/]
 
