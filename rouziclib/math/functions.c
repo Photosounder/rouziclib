@@ -28,7 +28,7 @@ double integral_of_erfr(double x)
 	return (x*erf(x) + gaussian(x)*(1./sqrt(pi)) + x) * 0.5;
 }
 
-double erfinv(double x)		// inverse of erf(x), precise to 7.8e-16
+double erfinv(double x)		// inverse of erf(x), erf(erfinv(x)) has a max deviation of 7.8e-16
 {
 	double x2, xm, xm2, y;
 

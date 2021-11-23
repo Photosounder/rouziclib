@@ -10,7 +10,7 @@ It includes some of the following:
 
 * Fast lookup table-based fixed-point arithmetic approximations for sqrt, hypot, log2, exp2, pow, cos, atan2 (both noting angles in http://en.wikipedia.org/wiki/Turn_(geometry)[turns], not radians), the Gaussian function (http://www.wolframalpha.com/input/?i=e%5E-x%C2%B2[e^-x²^]) and the raised error function (https://www.wolframalpha.com/input/?i=0.5%2B0.5erf(x)[0.5+0.5erf(x)]). Some are implemented using linear interpolation, segmented quadratic polynomial approximation or simple lookup, which offers different levels of speed/precision/memory usage tradeoffs.
 * Fast polynomial lookup table-based floating-point approximations for cos, log2, exp2, pow and others.
-* Original math functions such as a short Gaussian function and its integral, the short error function which I now use for filter design. I also created an approximation of the inverse of the error function accurate to 7.8e-16.
+* Original math functions such as a short Gaussian function and its integral, the short error function which I now use for filter design. I also implemented the inverse of the error function.
 * Functions to draw lines, points, circles, roundrects and gradients, all antialiased with Gaussian filtering
 * Functions to convert from sRGB to linear RGB for loading images and to convert from linear RGB to sRGB with optional Gaussian dithering for displaying
 * Geometric functions used for computing intersections between lines, shortest the distance of a point to a line or to limit a line to a bounding box
