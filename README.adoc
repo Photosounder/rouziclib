@@ -710,11 +710,11 @@ Let's first look at how to run a basic example:
 	rlip_t prog = rlip_compile(source, inputs, sizeof(inputs)/sizeof(*inputs), 1, &comp_log);
 	if (comp_log.len)
 		fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
+	free_buf(&comp_log);
 
 	// Decompilation
 	buffer_t decomp = rlip_decompile(&prog);
 	fprintf_rl(stdout, "Decompilation:\n%s\n", decomp.buf);
-	free_buf(&comp_log);
 	free_buf(&decomp);
 
 	// Execution
