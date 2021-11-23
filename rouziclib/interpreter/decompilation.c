@@ -17,6 +17,7 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_inc1_i:    	return "op_inc1_i";
 
 		case op_3word_ops:    	return "op_3word_ops";
+		case op_ret_dd:    	return "op_ret_dd";
 		case op_load_d:    	return "op_load_d";
 		case op_load_i:    	return "op_load_i";
 		case op_set_d:    	return "op_set_d";
@@ -31,6 +32,7 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_func0_d:    	return "op_func0_d";
 
 		case op_4word_ops:    	return "op_4word_ops";
+		case op_ret_ddd:    	return "op_ret_ddd";
 		case op_add_dd:    	return "op_add_dd";
 		case op_add_ii:    	return "op_add_ii";
 		case op_sub_dd:    	return "op_sub_dd";
@@ -63,6 +65,7 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_func1_dd:    	return "op_func1_dd";
 
 		case op_5word_ops:    	return "op_5word_ops";
+		case op_ret_dddd:    	return "op_ret_dddd";
 		case op_aad_ddd:    	return "op_aad_ddd";
 		case op_mmul_ddd:    	return "op_mmul_ddd";
 		case op_mad_ddd:    	return "op_mad_ddd";

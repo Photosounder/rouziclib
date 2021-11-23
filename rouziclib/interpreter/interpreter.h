@@ -13,6 +13,7 @@ enum opcode
 	op_inc1_i,
 
 	op_3word_ops = 3072,
+	op_ret_dd,
 	op_load_d,
 	op_load_i,
 	op_set_d,
@@ -27,6 +28,7 @@ enum opcode
 	op_func0_d,
 
 	op_4word_ops = 4096,
+	op_ret_ddd,
 	op_add_dd,
 	op_add_ii,
 	op_sub_dd,
@@ -59,6 +61,7 @@ enum opcode
 	op_func1_dd,
 
 	op_5word_ops = 5120,
+	op_ret_dddd,
 	op_aad_ddd,
 	op_mmul_ddd,
 	op_mad_ddd,
@@ -83,7 +86,7 @@ typedef struct
 	double *vd;
 	int64_t *vi;
 	void **ptr;
-	double return_value;
+	double *return_value;
 } rlip_t;
 
 typedef struct

@@ -6,7 +6,8 @@ int rlip_execute_opcode(rlip_t *d)
 
 	if (d->valid_prog == 0)
 	{
-		d->return_value = NAN;
+		if (d->return_value)
+			d->return_value[0] = NAN;
 		return -1;
 	}
 
@@ -22,7 +23,7 @@ int rlip_execute_opcode(rlip_t *d)
 			case op_end:	return 1;
 
 			// 2 word ops
-			break;	case op_ret_d:		d->return_value = vd[op[1]];					// return <var/ptr/expr>
+			break;	case op_ret_d:		d->return_value[0] = vd[op[1]];					// return <var/ptr/expr>
 			break;	case op_jmp:		op_next = &op[(ptrdiff_t) op[1]];				// unused for now
 			break;	case op_set0_d:		vd[op[1]] = 0.;							// set0 <var>
 			break;	case op_set0_i:		vi[op[1]] = 0;
@@ -30,6 +31,8 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_inc1_i:		vi[op[1]] += 1;
 
 			// 3 word ops
+			break;	case op_ret_dd:		d->return_value[0] = vd[op[1]];					// return <var/ptr/expr> <var/ptr/expr>
+							d->return_value[1] = vd[op[2]];
 			break;	case op_load_d:		vd[op[1]] = *(double *) d->ptr[op[2]];				// compiler-only
 			break;	case op_load_i:		vi[op[1]] = *(int64_t *) d->ptr[op[2]];				// compiler-only
 			break;	case op_set_d:		vd[op[1]] = vd[op[2]];						// <var> = <var/ptr/expr>
@@ -44,6 +47,9 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_func0_d:	vd[op[1]] = ((double (*)(void)) d->ptr[op[2]])();
 
 			// 4 word ops
+			break;	case op_ret_ddd:	d->return_value[0] = vd[op[1]];					// return <var/ptr/expr> x3
+							d->return_value[1] = vd[op[2]];
+							d->return_value[2] = vd[op[3]];
 			break;	case op_add_dd:		vd[op[1]] = vd[op[2]] + vd[op[3]];				// <var> = add <var/ptr/expr> <var/ptr/expr>
 			break;	case op_add_ii:		vi[op[1]] = vi[op[2]] + vi[op[3]];				// <var> = addi <var/ptr/expr> <var/ptr/expr>
 			break;	case op_sub_dd:		vd[op[1]] = vd[op[2]] - vd[op[3]];				// sub
@@ -76,6 +82,10 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_func1_dd:	vd[op[1]] = ((double (*)(double)) d->ptr[op[2]])(vd[op[3]]);	// <var> = <func> <var/ptr/expr>
 
 			// 5 word ops
+			break;	case op_ret_dddd:	d->return_value[0] = vd[op[1]];					// return <var/ptr/expr> x4
+							d->return_value[1] = vd[op[2]];
+							d->return_value[2] = vd[op[3]];
+							d->return_value[3] = vd[op[4]];
 			break;	case op_aad_ddd:	vd[op[1]] = vd[op[2]] + vd[op[3]] + vd[op[4]];			// <var> = aad <var/ptr/expr> <var/ptr/expr> <var/ptr/expr>
 			break;	case op_mmul_ddd:	vd[op[1]] = vd[op[2]] * vd[op[3]] * vd[op[4]];			// mmul (two multiplications)
 			break;	case op_mad_ddd:	vd[op[1]] = vd[op[2]] * vd[op[3]] + vd[op[4]];			// mad (multiply-add)

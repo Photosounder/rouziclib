@@ -23,6 +23,7 @@ typedef struct
 	rlip_reg_t *reg;
 	int *loc;
 	size_t op_count, op_as, vd_count, vd_as, vi_count, vi_as, ptr_count, ptr_as, loc_count, loc_as, reg_count, reg_as;
+	int rd[8], ri[8];	// generic registers
 } rlip_data_t;
 
 int rlip_find_value(const char *name, rlip_data_t *ed)
@@ -167,7 +168,7 @@ int rlip_find_convert_value(const char *name, rlip_data_t *ed)
 	return ir;
 }
 
-void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int *rd, int *ri, int i, rlip_data_t *ed)
+void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int i, rlip_data_t *ed)
 {
 	int io;
 
@@ -180,22 +181,56 @@ void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int *r
 		if (expected_type == 'd')
 		{
 			ed->op[io] = op_cvt_i_d;
-			ed->op[io+1] = rd[1+i];		// destinaton index
+			ed->op[io+1] = ed->rd[1+i];		// destinaton index
 		}
 		else
 		{
 			ed->op[io] = op_cvt_d_i;
-			ed->op[io+1] = ri[1+i];
+			ed->op[io+1] = ed->ri[1+i];
 		}
 
 		*ir = ed->op[io+1];	// the ir for this argument is now the generic register
 	}
 }
 
-rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, buffer_t *log)
+int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed, int il, char **line, buffer_t *comp_log)
+{
+	int i, n=0, ret;
+	char s1[32];
+
+	for (i=0; cmd_arg_type[i]; i++)
+	{
+		p = &p[n];
+		n = 0;
+		ret = sscanf(p, "%30s %n", s1, &n);
+
+		if (ret == 1)
+		{
+			arg_ir[i] = rlip_find_convert_value(s1, ed);
+
+			if (arg_ir[i] == -1)
+			{
+				bufprintf(comp_log, "Argument '%s' unidentified in line %d: '%s'", s1, il, line[il]);
+				return -1;
+			}
+
+			// Convert the variable to a generic register if the type doesn't match the one expected
+			if (cmd_arg_type[i] != 'f')
+				rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[i], i, ed);
+		}
+		else
+		{
+			bufprintf(comp_log, "Argument missing (%d arguments expected) in line %d: '%s'", strlen(cmd_arg_type), il, line[il]);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, int ret_count, buffer_t *comp_log)
 {
 	int i, io, ir, il, ret, linecount, n, add_var_type, dest_ir, ret_cmd_done=0, cmd_found, fwd_jumps=0;
-	int rd[8], ri[8];	// generic registers
 	char **line = arrayise_text(make_string_copy(source), &linecount);
 	rlip_t data={0};
 	rlip_data_t extra_data={0}, *ed=&extra_data;
@@ -206,12 +241,15 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 
 	ed->d = &data;
 
-	// Add generic registers
-	for (i=0; i < sizeof(rd)/sizeof(*rd); i++)
-		rd[i] = ed->reg[rlip_add_value(sprintf_ret(s0, "rd%d", i), NULL, "d", ed)].index;
+	// Alloc return value array
+	ed->d->return_value = calloc(ret_count, sizeof(double));
 
-	for (i=0; i < sizeof(ri)/sizeof(*ri); i++)
-		ri[i] = ed->reg[rlip_add_value(sprintf_ret(s0, "ri%d", i), NULL, "i", ed)].index;
+	// Add generic registers
+	for (i=0; i < sizeof(ed->rd)/sizeof(*ed->rd); i++)
+		ed->rd[i] = ed->reg[rlip_add_value(sprintf_ret(s0, "rd%d", i), NULL, "d", ed)].index;
+
+	for (i=0; i < sizeof(ed->ri)/sizeof(*ed->ri); i++)
+		ed->ri[i] = ed->reg[rlip_add_value(sprintf_ret(s0, "ri%d", i), NULL, "i", ed)].index;
 
 	// Add inputs to structure
 	for (i=0; i < input_count; i++)
@@ -300,17 +338,18 @@ line_proc_start:
 			
 			if (dest_ir == -1)
 			{
-				bufprintf(log, "Undeclared variable '%s' used in line %d: '%s'", s0, il, line[il]);
+				bufprintf(comp_log, "Undeclared variable '%s' used in line %d: '%s'", s0, il, line[il]);
 				goto invalid_prog;
 			}
 
 			if (ed->reg[dest_ir].type[0]!='d' && ed->reg[dest_ir].type[0]!='i')
 			{
-				bufprintf(log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'", s0, ed->reg[dest_ir].type, il, line[il]);
+				bufprintf(comp_log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'", s0, ed->reg[dest_ir].type, il, line[il]);
 				goto invalid_prog;
 			}
 
 			// Read command
+			n = 0;
 			ret = sscanf(p, "%30s %n", s0, &n);
 			cmd_found = 0;
 
@@ -392,32 +431,8 @@ line_proc_start:
 					else if (strcmp(s0, "adm")==0)		new_opcode = op_adm_ddd;
 add_command:
 					// Go through arguments to convert them and determine their types
-					for (i=0; i < cmd_arg_count; i++)
-					{
-						p = &p[n];
-						n = 0;
-						ret = sscanf(p, "%30s %n", s1, &n);
-
-						if (ret)
-						{
-							arg_ir[i] = rlip_find_convert_value(s1, ed);
-
-							if (arg_ir[i] == -1)
-							{
-								bufprintf(log, "Argument '%s' unidentified in line %d: '%s'", s1, il, line[il]);
-								goto invalid_prog;
-							}
-
-							// Convert the variable to a generic register if the type doesn't match the one expected
-							if (cmd_arg_type[1+i] != 'f')
-								rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[1+i], rd, ri, i, ed);
-						}
-						else
-						{
-							bufprintf(log, "Argument missing (%d arguments expected) in line %d: '%s'", cmd_arg_count, il, line[il]);
-							goto invalid_prog;
-						}
-					}
+					if (rlip_get_arguments(&p[n], &cmd_arg_type[1], arg_ir, ed, il, line, comp_log))
+						goto invalid_prog;
 
 					// Add opcode
 					io = alloc_opcode(ed, 2+cmd_arg_count);
@@ -434,7 +449,7 @@ add_command:
 					if (ed->reg[dest_ir].type[0] != cmd_arg_type[0])
 					{
 						// Output to generic register
-						ed->op[io+1] = cmd_arg_type[0]=='d' ? rd[0] : ri[0];
+						ed->op[io+1] = cmd_arg_type[0]=='d' ? ed->rd[0] : ed->ri[0];
 
 						// Convert from generic register to destination
 						io = alloc_opcode(ed, 3);	// add conversion opcode
@@ -443,12 +458,12 @@ add_command:
 						if (cmd_arg_type[0] == 'd')
 						{
 							ed->op[io] = op_cvt_d_i;
-							ed->op[io+2] = rd[0];		// source index
+							ed->op[io+2] = ed->rd[0];		// source index
 						}
 						else
 						{
 							ed->op[io] = op_cvt_i_d;
-							ed->op[io+2] = ri[0];
+							ed->op[io+2] = ed->ri[0];
 						}
 					}
 				}
@@ -476,12 +491,12 @@ add_command:
 
 								if (arg_ir[i] == -1)
 								{
-									bufprintf(log, "Argument '%s' unidentified in line %d: '%s'", i==0 ? s1 : s3, il, line[il]);
+									bufprintf(comp_log, "Argument '%s' unidentified in line %d: '%s'", i==0 ? s1 : s3, il, line[il]);
 									goto invalid_prog;
 								}
 
 								// Convert the variable to a generic register if the type doesn't match the one expected
-								rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[1+i], rd, ri, i, ed);
+								rlip_convert_mismatched_var_to_register(&arg_ir[i], cmd_arg_type[1+i], i, ed);
 							}
 
 							// Add cmp opcode
@@ -497,7 +512,7 @@ add_command:
 
 							if (ed->op[io] == 0)	// if comparison hasn't been found
 							{
-								bufprintf(log, "Comparator invalid in line %d: '%s'", il, line[il]);
+								bufprintf(comp_log, "Comparator invalid in line %d: '%s'", il, line[il]);
 								goto invalid_prog;
 							}
 
@@ -509,18 +524,18 @@ add_command:
 							if (ed->reg[dest_ir].type[0] == 'd')
 							{
 								// Output to generic register
-								ed->op[io+1] = ri[0];
+								ed->op[io+1] = ed->ri[0];
 
 								// Convert from generic register to destination
 								io = alloc_opcode(ed, 3);		// add conversion opcode
 								ed->op[io] = op_cvt_i_d;
 								ed->op[io+1] = ed->reg[dest_ir].index;	// destination index
-								ed->op[io+2] = rd[0];			// source index
+								ed->op[io+2] = ed->rd[0];		// source index
 							}
 						}
 						else
 						{
-							bufprintf(log, "Argument missing (2 arguments expected) in line %d: '%s'", il, line[il]);
+							bufprintf(comp_log, "Argument missing (2 arguments expected) in line %d: '%s'", il, line[il]);
 							goto invalid_prog;
 						}
 					}
@@ -570,7 +585,7 @@ add_command:
 
 							if (new_opcode == 0)
 							{
-								bufprintf(log, "Function type '%s' not implemented in line %d: '%s'", ed->reg[ir].type, il, line[il]);
+								bufprintf(comp_log, "Function type '%s' not implemented in line %d: '%s'", ed->reg[ir].type, il, line[il]);
 								goto invalid_prog;
 							}
 
@@ -582,7 +597,7 @@ add_command:
 
 				if (cmd_found == 0)
 				{
-					bufprintf(log, "Unidentified '%s' in line %d: '%s'", s0, il, line[il]);
+					bufprintf(comp_log, "Unidentified '%s' in line %d: '%s'", s0, il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -593,40 +608,25 @@ add_command:
 		{
 			if (strcmp(s0, "return")==0)
 			{
-				sscanf(p, "%*s %30s", s1);
-				ir = rlip_find_convert_value(s1, ed);
+				enum opcode ret_op[] = { 0, op_ret_d, op_ret_dd, op_ret_ddd, op_ret_dddd };
+				char *ret_arg_type[] = { "", "d", "dd", "ddd", "dddd" };
+
+				n = 0;
+				sscanf(p, "%*s %n", &n);
+
+				// Get/convert arguments
+				if (rlip_get_arguments(&p[n], ret_arg_type[ret_count], arg_ir, ed, il, line, comp_log))
+					goto invalid_prog;
 
 				// Add return opcode
-				if (ir > -1)
-				{
-					if (strcmp(ed->reg[ir].type, "d")==0)
-					{
-						// Add return opcode
-						io = alloc_opcode(ed, 2);
-						ed->op[io] = op_ret_d;
-						ed->op[io+1] = ed->reg[ir].index;
-						ret_cmd_done = 1;
-					}
-					else
-					{
-						// Convert from integer to double
-						io = alloc_opcode(ed, 3);	// add conversion opcode
-						ed->op[io] = op_cvt_i_d;
-						ed->op[io+1] = rd[0];			// convert to generic register
-						ed->op[io+2] = ed->reg[ir].index;
+				io = alloc_opcode(ed, 1 + ret_count);
+				ed->op[io] = ret_op[ret_count];
 
-						// Add return opcode
-						io = alloc_opcode(ed, 2);
-						ed->op[io] = op_ret_d;
-						ed->op[io+1] = rd[0];
-						ret_cmd_done = 1;
-					}
-				}
-				else
-				{
-					bufprintf(log, "Value not found for command 'return' in line %d: '%s'", il, line[il]);
-					goto invalid_prog;
-				}
+				// Add arguments
+				for (i=0; i < ret_count; i++)
+					ed->op[io+1+i] = ed->reg[arg_ir[i]].index;
+
+				ret_cmd_done = 1;
 			}
 
 			if (strcmp(s0, "if")==0)
@@ -643,20 +643,20 @@ add_command:
 					{
 						if (arg_ir[i] == -1)
 						{
-							bufprintf(log, "Variable '%s' not found in line %d: '%s'", i==0 ? s1 : s2, il, line[il]);
+							bufprintf(comp_log, "Variable '%s' not found in line %d: '%s'", i==0 ? s1 : s2, il, line[il]);
 							goto invalid_prog;
 						}
 					}
 
 					if (strcmp(ed->reg[arg_ir[0]].type, "i") != 0)	// s1 must be an integer variable
 					{
-						bufprintf(log, "Not an integer variable '%s' in line %d: '%s'", s1, il, line[il]);
+						bufprintf(comp_log, "Not an integer variable '%s' in line %d: '%s'", s1, il, line[il]);
 						goto invalid_prog;
 					}
 
 					if (strcmp(ed->reg[arg_ir[1]].type, "l") != 0)	// s2 must be a location
 					{
-						bufprintf(log, "Not a location '%s' in line %d: '%s'", s2, il, line[il]);
+						bufprintf(comp_log, "Not a location '%s' in line %d: '%s'", s2, il, line[il]);
 						goto invalid_prog;
 					}
 
@@ -674,7 +674,7 @@ add_command:
 				}
 				else
 				{
-					bufprintf(log, "Incorrect 'if <integer variable> goto <loc>' command in line %d: '%s'", il, line[il]);
+					bufprintf(comp_log, "Incorrect 'if <integer variable> goto <loc>' command in line %d: '%s'", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -695,13 +695,13 @@ add_command:
 					}
 					else
 					{
-						bufprintf(log, "Command 'set0' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
+						bufprintf(comp_log, "Command 'set0' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
 						goto invalid_prog;
 					}
 				}
 				else
 				{
-					bufprintf(log, "Value not found for command 'set0' in line %d: '%s'", il, line[il]);
+					bufprintf(comp_log, "Value not found for command 'set0' in line %d: '%s'", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -722,13 +722,13 @@ add_command:
 					}
 					else
 					{
-						bufprintf(log, "Command 'inc1' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
+						bufprintf(comp_log, "Command 'inc1' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
 						goto invalid_prog;
 					}
 				}
 				else
 				{
-					bufprintf(log, "Value not found for command 'inc1' in line %d: '%s'", il, line[il]);
+					bufprintf(comp_log, "Value not found for command 'inc1' in line %d: '%s'", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -740,14 +740,14 @@ add_command:
 	// If not all forward jumps were resolved
 	if (fwd_jumps != 0)
 	{
-		bufprintf(log, "There are %d unresolved forward jumps", fwd_jumps);
+		bufprintf(comp_log, "There are %d unresolved forward jumps", fwd_jumps);
 		data.valid_prog = 0;
 	}
 
 	// If the return command is missing
 	if (ret_cmd_done==0)
 	{
-		bufprintf(log, "The 'return' command is missing or invalid");
+		bufprintf(comp_log, "The 'return' command is missing or invalid");
 invalid_prog:
 		data.valid_prog = 0;
 	}
