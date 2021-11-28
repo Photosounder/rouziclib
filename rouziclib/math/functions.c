@@ -13,6 +13,16 @@ float sqf(float x)
 	return x*x;
 }
 
+double cos_tr(double x)
+{
+	return cos(x * 2.*pi);
+}
+
+double sin_tr(double x)
+{
+	return sin(x * 2.*pi);
+}
+
 double gaussian(double x)	// gaussian(x) = e^-x²
 {
 	return exp(-x*x);
@@ -28,7 +38,7 @@ double integral_of_erfr(double x)
 	return (x*erf(x) + gaussian(x)*(1./sqrt(pi)) + x) * 0.5;
 }
 
-double erfinv(double x)		// inverse of erf(x), erf(erfinv(x)) has a max deviation of 7.8e-16
+double erfinv(double x)		// inverse of erf(x), erf(erfinv(x)) has a max deviation of 8.9e-16
 {
 	double x2, xm, xm2, y;
 

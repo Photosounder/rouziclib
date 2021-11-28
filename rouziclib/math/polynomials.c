@@ -244,7 +244,7 @@ void polynomial_subtraction(double *a, int adeg, double *b, int bdeg, double *c)
 	}
 }
 
-void polynomial_scalar_mul(double *a, int adeg, double m, double *c)
+void polynomial_scalar_mul(const double *a, int adeg, double m, double *c)
 {
 	int i;
 
@@ -252,7 +252,7 @@ void polynomial_scalar_mul(double *a, int adeg, double m, double *c)
 		c[i] = a[i] * m;
 }
 
-void polynomial_scalar_mul_2d(double **a, xyi_t adeg, double m, double **c)
+void polynomial_scalar_mul_2d(const double **a, xyi_t adeg, double m, double **c)
 {
 	xyi_t id;
 
@@ -261,7 +261,7 @@ void polynomial_scalar_mul_2d(double **a, xyi_t adeg, double m, double **c)
 			c[id.y][id.x] = a[id.y][id.x] * m;
 }
 
-void polynomial_scalar_muladd_2d(double **a, xyi_t adeg, double m, double **c)
+void polynomial_scalar_muladd_2d(const double **a, xyi_t adeg, double m, double **c)
 {
 	xyi_t id;
 
@@ -397,6 +397,13 @@ void polynomial_x_substitution(double *a, int adeg, double *xs, int xsdeg, doubl
 {
 	int i, id, maxdeg;
 	double *exs;
+
+	if (xs[0]==0. && xs[1]==1.)		// if substitution isn't needed
+	{
+		for (id=0; id <= adeg; id++)
+			c[id] += a[id];		// simply add the coefs as they are
+		return;
+	}
 
 	for (id=0; id <= adeg; id++)
 	{
@@ -593,6 +600,40 @@ double *chebyshev_coefs(int degree)
 	return t1;
 }
 
+const double *chebyshev_coefs_cached(int degree)
+{
+	int id;
+	double *cc;
+	static _Thread_local int cache_degree = -1, *index=NULL;
+	static _Thread_local double *cache=NULL;
+	static _Thread_local size_t cache_count=0, cache_as=0, index_as=0;
+
+	// Update cache to include requested degree
+	if (degree > cache_degree)
+	{
+		alloc_enough(&index, degree+1, &index_as, sizeof(int), 1.5);
+
+		for (id=cache_degree+1; id <= degree; id++)
+		{
+			int pos = cache_count;
+			cache_count += id+1;
+			alloc_enough(&cache, cache_count, &cache_as, sizeof(double), 1.5);
+
+			// Add coefs for degree id into cache
+			cc = chebyshev_coefs(id);
+			memcpy(&cache[pos], cc, (id+1) * sizeof(double));
+			free(cc);
+
+			// Index to beginning of cache
+			index[id] = pos;
+		}
+
+		cache_degree = degree;
+	}
+
+	return &cache[index[degree]];
+}
+
 #ifdef RL_MPFR
 real_t *chebyshev_coefs_mpfr(int degree)
 {
@@ -640,10 +681,11 @@ real_t *chebyshev_coefs_mpfr(int degree)
 double **chebyshev_coefs_2d(xyi_t degree)
 {
 	xyi_t id;
-	double *tx, *ty, **t;
+	const double *tx, *ty;
+	double **t;
 
-	tx = chebyshev_coefs(degree.x);
-	ty = chebyshev_coefs(degree.y);
+	tx = chebyshev_coefs_cached(degree.x);
+	ty = chebyshev_coefs_cached(degree.y);
 
 	t = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
 
@@ -651,8 +693,6 @@ double **chebyshev_coefs_2d(xyi_t degree)
 		for (id.x=0; id.x <= degree.x; id.x++)
 			t[id.y][id.x] = ty[id.y] * tx[id.x];
 
-	free(tx);
-	free(ty);
 	return t;
 }
 
@@ -832,14 +872,14 @@ void polynomial_fit_on_function_mpfr(void (*f)(real_t,real_t), real_t start, rea
 }
 #endif
 
-double chebyshev_multiplier_by_dct(double *y, int p_count, int id)	// look for the Chebyshev multiplier of degree id
+double chebyshev_multiplier_by_dct(double *y, int p_count, int id, double (*cos_func)(double))	// look for the Chebyshev multiplier of degree id
 {
 	int i;
-	double x, sum=0., freq = pi * (double) id / (double) p_count;
+	double x, sum=0., freq = (double) id * 0.5 / (double) p_count;
 
 	// DCT
 	for (x=0.5, i=0; i < p_count; i++, x+=1.)
-		sum += y[i] * cos(x * freq);
+		sum += y[i] * cos_func(x * freq);
 
 	// Sum division
 	sum *= 2. / (double) p_count;
@@ -871,12 +911,16 @@ double chebyshev_multiplier_by_dct_2d(double **z, int p_count, xyi_t id)	// look
 	return sum;
 }
 
-void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, double end, double *c, int degree)
+void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, double end, double *c, int degree, double (*cos_func)(double))
 {
 	int id;
-	double cm, *cc, xs[2];
+	double cm, xs[2];
+	const double *cc;
+	static _Thread_local double *ccm=NULL;
+	static _Thread_local size_t ccm_as=0;
 
 	memset(c, 0, (degree+1)*sizeof(double));
+	alloc_enough(&ccm, degree+1, &ccm_as, sizeof(double), 1.5);
 
 	// x substitution for the shifting
 	xs[0] = -2.*start/(end-start) - 1.;
@@ -885,15 +929,14 @@ void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, doubl
 	// Compute the coefficients
 	for (id=0; id <= degree; id++)
 	{
-		cm = chebyshev_multiplier_by_dct(y, p_count, id);	// get the Chebyshev multiplier for degree id
-		cc = chebyshev_coefs(id);				// get the default polynomial coeficients
-		polynomial_scalar_mul(cc, id, cm, cc);			// apply the multiplier
-		polynomial_x_substitution(cc, id, xs, 1, c);		// shift the polynomial and add to c
-		free(cc);
+		cm = chebyshev_multiplier_by_dct(y, p_count, id, cos_func);	// get the Chebyshev multiplier for degree id
+		cc = chebyshev_coefs_cached(id);				// get the default polynomial coeficients
+		polynomial_scalar_mul(cc, id, cm, ccm);				// apply the multiplier
+		polynomial_x_substitution(ccm, id, xs, 1, c);			// shift the polynomial and add to c
 	}
 }
 
-void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree)
+void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree, double (*cos_func)(double))
 {
 	int i, p_count = 1000;
 	double *y = calloc(p_count, sizeof(double));
@@ -903,7 +946,7 @@ void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double
 		y[i] = f((end-start) * (0.5+0.5*chebyshev_node(p_count, i)) + start);
 
 	// Fit
-	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree);
+	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree, cos_func);
 	free(y);
 }
 
@@ -1109,7 +1152,7 @@ double minmax_find_k(int p_count, double *y, double *a, double *b, double *an, d
 		for (int id=0; id < degree+1; id++)
 		{
 			double xi, freq = pi * (double) id / (double) p_count;
-			double cm = chebyshev_multiplier_by_dct(an, p_count, id);
+			double cm = chebyshev_multiplier_by_dct(an, p_count, id, cos_tr);
 
 			for (xi=0.5, i=0; i < p_count; i++, xi+=1.)
 				ye[i] += cos(xi * freq) * cm;
@@ -1164,7 +1207,7 @@ void error_curve_transform(double (*f)(double), int p_count, double start, doubl
 	for (int id=0; id < MINN(p_count, (degree+1)*8); id++)
 	{
 		double xi, freq = pi * (double) id / (double) p_count;
-		double cm = chebyshev_multiplier_by_dct(ye, p_count, id);
+		double cm = chebyshev_multiplier_by_dct(ye, p_count, id, cos_tr);
 
 		if (fabs(cm) > 1e-4)
 			fprintf_rl(stdout, "cos(acos(x)*%3d)*%g+\n", id, cm);
@@ -1234,7 +1277,7 @@ void polynomial_fit_on_function_by_dct_minmax(double (*f)(double), double start,
 //	math_graph_add(x, y, p_count, sprintf_ret(name, ""));
 
 	// Fit
-	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree);
+	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree, cos_tr);
 	fprintf_rl(stdout, "c = %s\n", str=print_polynomial(c, degree, x_str));
 	free(str);
 	math_graph_add_y(c, degree+1, sprintf_ret(name, "Original polynomial coefs"));
@@ -1273,7 +1316,7 @@ void polynomial_fit_on_function_by_dct_minmax(double (*f)(double), double start,
 		math_graph_add(x, a, p_count, sprintf_ret(name, "a' = a + %.4g*b curve #%d", k, it));
 
 		// Fit the curve
-		polynomial_fit_on_points_by_dct(a, p_count, start, end, c, degree);
+		polynomial_fit_on_points_by_dct(a, p_count, start, end, c, degree, cos_tr);
 		fprintf_rl(stdout, "	c = %s\n", str=print_polynomial(c, degree, x_str));
 		free(str);
 	}

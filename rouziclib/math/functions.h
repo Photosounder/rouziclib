@@ -7,12 +7,11 @@
 #define MAXN(x, y)	(((x) > (y)) ? (x) : (y))
 #define MINN(x, y)	(((x) < (y)) ? (x) : (y))
 
-#define cos_tr(x)	cos((x)*2.*pi)
-#define sin_tr(x)	sin((x)*2.*pi)
-
 extern int32_t fphypot(int32_t x, int32_t y);
 extern double sq(double x);
 extern float sqf(float x);
+extern double cos_tr(double x);
+extern double sin_tr(double x);
 extern double gaussian(double x);
 extern double erfr(double x);
 extern double integral_of_erfr(double x);

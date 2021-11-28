@@ -601,12 +601,6 @@ void my_window_function(double *arg1, double *arg2)
 		change_zoom_and_turn_off_zoom_mode(pos, 4.);
 
 	// Timing
-		uint32_t ts=0;
-		get_time_diff(&ts);
-		//< things to time >
-		fprintf_rl(stdout, "Things took %d ms\n\n", get_time_diff(&ts));
-
-		// or in high precision
 		double ts=0.;
 		get_time_diff_hr(&ts);
 		//< things to time >
@@ -708,10 +702,15 @@ void my_window_function(double *arg1, double *arg2)
 		cfft_1D_r2c_padded_fft(&plan, in, sizeof(*in), &out, sizeof(*out), &out_as, in_size, out_size);
 
 		// Access positive frequency complex pairs this way, the negative frequencies are beyond out[out_size]
-		for (i=0; i <= out_size; i+=2)
+		// This includes the Nyquist frequency for even counts and ends properly for odd counts
+		for (i=0; i <= out_size>>1; i++)
 		{
-			real = out[i];
-			imag = out[i+1];
+			real = out[i<<1];
+			imag = out[(i<<1)+1];
+			// or out[i] if out is xy_t
+			// negative frequency mirroring is done like this (using xy_t):
+			if (i > 0)
+				out[out_size-i] = neg_y(out[i]);
 		}
 
 	// Loading the vector typeface
@@ -792,6 +791,9 @@ void my_window_function(double *arg1, double *arg2)
 
 	// A volatile pointer to non-volatile data is declared like this:
 		int *volatile ptr;
+
+	// Thread-local static variable inside a function
+		static _Thread_local int var=0;
 
 	// How to get one line from a string
 		n=0;
