@@ -882,9 +882,9 @@ double chebyshev_multiplier_by_dct(double *y, int p_count, int id, double (*cos_
 		sum += y[i] * cos_func(x * freq);
 
 	// Sum division
-	sum *= 2. / (double) p_count;
-	if (id==0)
-		sum *= 0.5;	// frequency 0 gets its sum halved
+	sum *= 1. / (double) p_count;
+	if (id > 0)			// non-DC components need doubling
+	    sum *= 2.;
 
 	return sum;
 }
