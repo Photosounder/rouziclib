@@ -1,11 +1,40 @@
 double eval_polynomial(double x, double *c, int degree)
 {
 	int i;
-	double y = 0.;
+	double y = c[degree];
 
-	for (i=degree; i > 0; i--)
-		y = (y + c[i]) * x;
-	y += c[0];
+	for (i=degree-1; i >= 0; i--)
+		y = y * x + c[i];
+
+	return y;
+}
+
+double eval_polynomial_unrolled(double x, double *c, int degree)
+{
+	double y = c[degree];
+
+	switch (degree)
+	{
+		case 19: y = y * x + c[18];
+		case 18: y = y * x + c[17];
+		case 17: y = y * x + c[16];
+		case 16: y = y * x + c[15];
+		case 15: y = y * x + c[14];
+		case 14: y = y * x + c[13];
+		case 13: y = y * x + c[12];
+		case 12: y = y * x + c[11];
+		case 11: y = y * x + c[10];
+		case 10: y = y * x + c[9];
+		case 9: y = y * x + c[8];
+		case 8: y = y * x + c[7];
+		case 7: y = y * x + c[6];
+		case 6: y = y * x + c[5];
+		case 5: y = y * x + c[4];
+		case 4: y = y * x + c[3];
+		case 3: y = y * x + c[2];
+		case 2: y = y * x + c[1];
+		case 1: y = y * x + c[0];
+	}
 
 	return y;
 }

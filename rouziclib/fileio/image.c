@@ -46,7 +46,7 @@ void convert_image_srgb8_fullarg(raster_t *im, const uint8_t *data, const int mo
 	}
 
 	if (free_srgb)
-		if (mode & IMAGE_USE_SRGB == 0)		// free srgb in case it's there but isn't needed
+		if ((mode & IMAGE_USE_SRGB) == 0)		// free srgb in case it's there but isn't needed
 			free_null(&im->srgb);
 }
 
@@ -138,7 +138,7 @@ void convert_image_frgb(raster_t *im, const float *data, const int mode)
 		#endif
 	}
 
-	if (mode & IMAGE_USE_FRGB == 0)		// free f in case it's there but isn't needed
+	if ((mode & IMAGE_USE_FRGB) == 0)		// free f in case it's there but isn't needed
 		free_null(&im->f);
 }
 
