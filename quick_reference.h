@@ -229,6 +229,10 @@
 		print_to_layout_textedit_append(&layout, id, 1, "");
 		ctrl_textedit_fromlayout(&layout, id);
 
+		// Scrollable textedit
+		get_textedit_fromlayout(&layout, id)->scroll_mode = 1;
+		get_textedit_fromlayout(&layout, id)->scroll_mode_scale_def = 40. * 4.5;
+
 	// Selection menu
 		const char *menu_opts[] = { "Opt 1", "Opt 2" };
 		int menu_count = sizeof(menu_opts)/sizeof(char*);
