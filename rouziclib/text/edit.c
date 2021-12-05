@@ -574,21 +574,29 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 		drawq_bracket_open();	// FIXME brackets are not portable
 		draw_string(font, te->string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
-		draw_black_rect_inverted(sc_rect(text_area), drawing_thickness, 1.);	// FIXME implementation
+		draw_black_rect_inverted(sc_rect(text_area), drawing_thickness, 1.);
 		drawq_bracket_close(DQB_ADD);
 
 		// Cursor movement processing to move the view
 		if (equal_ulp_xy(te->cur_screen_pos, te->cur_screen_pos_prev, 1000) == 0)
 		{
+			const double sideways_thresh = 16.;
+
 			// If the cursor is above what is seen
 			if (te->cur_screen_pos.y < -te->scroll_pos.y)
 				te->scroll_pos.y = -te->cur_screen_pos.y;
+
+			// If the cursor is left of what is seen
+			if (te->cur_screen_pos.x - sideways_thresh < -te->scroll_pos.x)
+				te->scroll_pos.x = -te->cur_screen_pos.x + sideways_thresh;
 
 			// If the cursor is below what is seen
 			if (te->cur_screen_pos.y+LINEVSPACING > vis_span.y - te->scroll_pos.y)
 				te->scroll_pos.y = vis_span.y - te->cur_screen_pos.y - LINEVSPACING;
 
-			// TODO left-right
+			// If the cursor is right of what is seen
+			if (te->cur_screen_pos.x + sideways_thresh > vis_span.x - te->scroll_pos.x)
+				te->scroll_pos.x = vis_span.x - te->cur_screen_pos.x - sideways_thresh;
 		}
 	}
 	else
