@@ -137,6 +137,17 @@ int equal_xyi(const xyi_t a, const xyi_t b)
 	return (a.x==b.x) && (a.y==b.y);
 }
 
+int equal_ulp_xy(const xy_t a, const xy_t b, const int64_t ulp_tolerance)
+{
+	int64_t ulp_x, ulp_y;
+
+	// Measure the differences in ULP
+	ulp_x = llabs(double_diff_ulp(a.x, b.x));
+	ulp_y = llabs(double_diff_ulp(a.y, b.y));
+
+	return ulp_tolerance > MAXN(ulp_x, ulp_y);
+}
+
 xy_t add_xy(xy_t a, xy_t b)
 {
 	a.x += b.x;

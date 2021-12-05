@@ -77,6 +77,9 @@
 			value_knob = make_knob("Knob name", default_value, knobf_linear, min_value, max_value, VALFMT_DEFAULT);
 		ctrl_knob(&value, &value_knob, box, colour);
 
+		// free with this
+		textedit_free(&value_knob.edit);
+
 	// Text editor
 		static textedit_t te={0};
 

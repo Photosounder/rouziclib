@@ -222,6 +222,7 @@ int32_t drawq_entry_size(const enum dq_type type)
 		case DQT_POINT_ADD:		return 6;
 		case DQT_RECT_FULL:		return 8;
 		case DQT_RECT_BLACK:		return 6;
+		case DQT_RECT_BLACK_INV:	return 6;
 		case DQT_PLAIN_FILL:		return 3;
 		case DQT_GAIN:			return 1;
 		case DQT_GAIN_PARAB:		return 1;
@@ -398,9 +399,29 @@ int drawq_get_bounding_box(rect_t box, xy_t rad, recti_t *bbi)
 
 	box = sort_rect(box);
 
-	// calculate the bounding box
+	// Calculate the bounding box
 	bb.p0 = ceil_xy(sub_xy(box.p0, rad));
 	bb.p1 = floor_xy(add_xy(box.p1, rad));
+
+	if (check_box_box_intersection(bb, screen_box)==0)
+		return 0;
+
+	bbi->p0 = xy_to_xyi(max_xy(bb.p0, screen_box.p0));
+	bbi->p1 = xy_to_xyi(min_xy(bb.p1, screen_box.p1));
+	*bbi = rshift_recti(*bbi, fb.sector_size);
+
+	return 1;
+}
+
+int drawq_get_inner_box(rect_t box, xy_t rad, recti_t *bbi)
+{
+	rect_t bb, screen_box = rect(XY0, xy(fb.w-1, fb.h-1));
+
+	box = sort_rect(box);
+
+	// Calculate the inner box
+	bb.p0 = floor_xy(add_xy(box.p0, rad));
+	bb.p1 = ceil_xy(sub_xy(box.p1, rad));
 
 	if (check_box_box_intersection(bb, screen_box)==0)
 		return 0;
@@ -517,9 +538,10 @@ void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are list
 		{
 			sector_id = ip.y*fb.sector_w + ip.x;
 
-			if (fb.pending_bracket[sector_id])				// if there's a pending open bracket
+			// entry removal turned off due to high CPU usage
+			/*if (fb.pending_bracket[sector_id])				// if there's a pending open bracket
 				drawq_remove_prev_entry_for_sector(sector_id, 1, ip);	// remove the DQT_BRACKET_OPEN entry for this sector
-			else
+			else*/
 				drawq_add_sector_id_nopending(sector_id);		// add sector reference
 
 			fb.pending_bracket[sector_id]--;		// decrement the pending open bracket count

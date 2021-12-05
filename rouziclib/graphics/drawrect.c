@@ -285,3 +285,50 @@ void draw_black_rect(rect_t box, double radius, double intensity)
 	else
 		draw_rect_full_lrgb(box, radius, col_to_lrgb(make_grey(0.)), blend_alphablendfg, intensity);
 }
+
+void draw_black_rect_inverted_dq(rect_t box, double radius, double intensity)
+{
+	float *df;
+	double grad;
+	xyi_t ip;
+	recti_t bbi;
+
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+
+	if (drawq_get_inner_box(box, set_xy(grad), &bbi)==0)
+			return ;
+
+	box = sort_rect(box);
+
+	// Store the drawing parameters in the main drawing queue
+	df = drawq_add_to_main_queue(DQT_RECT_BLACK_INV);
+	df[0] = box.p0.x;
+	df[1] = box.p0.y;
+	df[2] = box.p1.x;
+	df[3] = box.p1.y;
+	df[4] = 1./radius;
+	df[5] = intensity;
+
+	// Find the affected sectors (all sectors outside the inner box)
+	rect_t screen_box = rect(XY0, xy(fb.w-1, fb.h-1));
+	for (ip.y=0; ip.y <= fb.h-1 >> fb.sector_size; ip.y++)
+		for (ip.x=0; ip.x <= fb.w-1 >> fb.sector_size; ip.x++)
+			if (ip.x <= bbi.p0.x || ip.y <= bbi.p0.y || ip.x >= bbi.p1.x || ip.y >= bbi.p1.y)
+			{
+				int32_t sector_id = ip.y*fb.sector_w + ip.x;
+				if (fb.sector_count[sector_id] > 0 && fb.pending_bracket[sector_id] == 0)	// if the sector contains something at the current bracket level
+					drawq_add_sector_id(sector_id);	// add sector reference
+			}
+}
+
+void draw_black_rect_inverted(rect_t box, double radius, double intensity)
+{
+	if (fb.discard)
+		return;
+
+	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
+
+	if (fb.use_drawq)
+		draw_black_rect_inverted_dq(box, radius, intensity);
+	// TODO lrgb version
+}

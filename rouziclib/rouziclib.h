@@ -59,9 +59,9 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "general/structs.h"
 #include "general/xyz_struct.h"
 #include "geometry/rect_struct.h"		// needs xyz
-#include "general/textedit_struct.h"		// needs xyz
+#include "gui/inputprocessing_struct.h"		// needs xyz, rect
+#include "general/textedit_struct.h"		// needs xyz, inputprocessing
 #include "fileio/dir_struct.h"
-#include "gui/inputprocessing_struct.h"
 #include "gui/focus_struct.h"
 #include "libraries/opencl_struct.h"		// used if RL_OPENCL is defined
 #include "libraries/vulkan_struct.h"		// used if RL_VULKAN is defined

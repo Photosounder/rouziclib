@@ -30,6 +30,7 @@ extern int is0_xyi(const xyi_t v);
 extern int equal_xy(const xy_t a, const xy_t b);
 extern int equal_xyz(const xyz_t a, const xyz_t b);
 extern int equal_xyi(const xyi_t a, const xyi_t b);
+extern int equal_ulp_xy(const xy_t a, const xy_t b, const int64_t ulp_tolerance);
 extern xy_t add_xy(xy_t a, xy_t b);
 extern xyz_t add_xyz(xyz_t a, xyz_t b);
 extern xyi_t add_xyi(xyi_t a, xyi_t b);

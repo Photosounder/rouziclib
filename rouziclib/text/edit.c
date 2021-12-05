@@ -12,6 +12,12 @@ void textedit_init(textedit_t *te, const int alloc)
 
 void textedit_free(textedit_t *te)
 {
+	if (te->scaling_knob)
+	{
+		textedit_free(&((knob_t *) te->scaling_knob)->edit);
+		free_null(&te->scaling_knob);
+	}
+
 	textundo_free(te);
 	free(te->string);
 	memset(te, 0, sizeof(textedit_t));
@@ -469,7 +475,124 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	//**** Draw ****
 	intensity *= intensity_scaling(total_scale, 24.);
 
-	draw_string_bestfit_asis(font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
+	if (te->scroll_mode)
+	{
+		double margin = rect_min_side(box) * 1./12.;
+		rect_t text_area = rect_add_margin(box, set_xy(-margin));
+
+		// Scaling knob
+		rect_t knob_area = make_rect_off(rect_p10(box), set_xy(margin), xy(1., 0.));
+		knob_area = rect_size_mul(knob_area, set_xy(9./12.));
+
+		if (te->scaling_knob == NULL)
+		{
+			te->scaling_knob = calloc(1, sizeof(knob_t));
+
+			te->scroll_mode_scale = te->scroll_mode_scale_def;
+			*((knob_t *) te->scaling_knob) = make_knob("Scale", te->scroll_mode_scale_def, knobf_log, 24.*4.5, 120.*4.5, VALFMT_DEFAULT);
+		}
+		ctrl_knob(&te->scroll_mode_scale, (knob_t *) te->scaling_knob, knob_area, colour);
+
+		// Text stats
+		int nlines = 0;
+		double maxwidth = find_string_maxwidth_and_nlines(font, te->string, ALIG_LEFT, &nlines, 1) + 4.;
+		xy_t scroll_limit = xy(maxwidth, (double) nlines * LINEVSPACING);
+
+		// Calc scale and span
+		scale = get_rect_dim(text_area).x / te->scroll_mode_scale;
+		xy_t vis_span = div_xy(get_rect_dim(text_area), set_xy(scale));
+
+		// TODO mouse wheel scrolling up and down
+
+		// Vertical scroll bar
+		if (vis_span.y < scroll_limit.y)
+		{
+			// Calc full scrolling area
+			rect_t scroll_area = fit_rect_in_area(xy(margin, get_rect_dim(box).y), box, xy(1., 0.5));
+			scroll_area = rect_add_margin(scroll_area, set_xy(margin * -2./12.));
+			scroll_area.p0.y += margin * 10./12.;		// room for the other scroll bar and scaling knob
+
+			// Set up draggable bar
+			te->vert_scroll.freedom = xy(0., 1.);
+			te->vert_scroll.pos.x = get_rect_centre(scroll_area).x;
+			te->vert_scroll.dim.x = get_rect_dim(scroll_area).x;
+			te->vert_scroll.dim.y = get_rect_dim(scroll_area).y * vis_span.y / scroll_limit.y;
+			te->vert_scroll.pos.y = scroll_area.p1.y - te->vert_scroll.dim.y*0.5 - (get_rect_dim(scroll_area).y-te->vert_scroll.dim.y) * (-te->scroll_pos.y / (scroll_limit.y - vis_span.y));
+
+			// Process draggable bar
+			double prev_pos = te->vert_scroll.pos.y;
+			ctrl_draggable(&te->vert_scroll);
+			te->vert_scroll.pos.y = rangelimit(te->vert_scroll.pos.y, scroll_area.p0.y + te->vert_scroll.dim.y*0.5, scroll_area.p1.y - te->vert_scroll.dim.y*0.5);
+			if (te->vert_scroll.pos.y != prev_pos)		// condition prevents drift
+				te->scroll_pos.y = -(scroll_area.p1.y - te->vert_scroll.pos.y - te->vert_scroll.dim.y*0.5) * (scroll_limit.y - vis_span.y) / (get_rect_dim(scroll_area).y-te->vert_scroll.dim.y);
+			
+			if (te->vert_scroll.down)		// set cur_textedit to te to avoid losing focus or conveniently regain it
+				cur_textedit = te;
+
+			// Draw bar
+			rect_t bar_rect = make_rect_off(te->vert_scroll.pos, te->vert_scroll.dim, xy(0.5, 0.5));
+			draw_rect(sc_rect(bar_rect), drawing_thickness, colour, cur_blend, intensity);
+		}
+		else
+			te->scroll_pos.y = 0.;
+
+		// Horizontal scroll bar
+		if (vis_span.x < scroll_limit.x)
+		{
+			// Calc full scrolling area
+			rect_t scroll_area = fit_rect_in_area(xy(get_rect_dim(box).x, margin), box, xy(0.5, 0.));
+			scroll_area = rect_add_margin(scroll_area, set_xy(margin * -2./12.));
+			scroll_area.p1.x -= margin * 10./12.;		// room for the other scroll bar and scaling knob
+
+			// Set up draggable bar
+			te->horiz_scroll.freedom = xy(1., 0.);
+			te->horiz_scroll.pos.y = get_rect_centre(scroll_area).y;
+			te->horiz_scroll.dim.y = get_rect_dim(scroll_area).y;
+			te->horiz_scroll.dim.x = get_rect_dim(scroll_area).x * vis_span.x / scroll_limit.x;
+			te->horiz_scroll.pos.x = scroll_area.p0.x + te->horiz_scroll.dim.x*0.5 + (get_rect_dim(scroll_area).x-te->horiz_scroll.dim.x) * (-te->scroll_pos.x / (scroll_limit.x - vis_span.x));
+
+			// Process draggable bar
+			double prev_pos = te->horiz_scroll.pos.x;
+			ctrl_draggable(&te->horiz_scroll);
+			te->horiz_scroll.pos.x = rangelimit(te->horiz_scroll.pos.x, scroll_area.p0.x + te->horiz_scroll.dim.x*0.5, scroll_area.p1.x - te->horiz_scroll.dim.x*0.5);
+			if (te->horiz_scroll.pos.x != prev_pos)
+				te->scroll_pos.x = -(te->horiz_scroll.pos.x - scroll_area.p0.x - te->horiz_scroll.dim.x*0.5) * (scroll_limit.x - vis_span.x) / (get_rect_dim(scroll_area).x-te->horiz_scroll.dim.x);
+			
+			if (te->horiz_scroll.down)		// set cur_textedit to te to avoid losing focus or conveniently regain it
+				cur_textedit = te;
+
+			// Draw bar
+			rect_t bar_rect = make_rect_off(te->horiz_scroll.pos, te->horiz_scroll.dim, xy(0.5, 0.5));
+			draw_rect(sc_rect(bar_rect), drawing_thickness, colour, cur_blend, intensity);
+		}
+		else
+			te->scroll_pos.x = 0.;
+
+		// Draw string
+		xy_t pos = rect_p01(text_area);
+		pos = mad_xy(add_xy(neg_y(te->scroll_pos), xy(2., -8.)), set_xy(scale), pos);
+
+		drawq_bracket_open();	// FIXME brackets are not portable
+		draw_string(font, te->string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_black_rect_inverted(sc_rect(text_area), drawing_thickness, 1.);	// FIXME implementation
+		drawq_bracket_close(DQB_ADD);
+
+		// Cursor movement processing to move the view
+		if (equal_ulp_xy(te->cur_screen_pos, te->cur_screen_pos_prev, 1000) == 0)
+		{
+			// If the cursor is above what is seen
+			if (te->cur_screen_pos.y < -te->scroll_pos.y)
+				te->scroll_pos.y = -te->cur_screen_pos.y;
+
+			// If the cursor is below what is seen
+			if (te->cur_screen_pos.y+LINEVSPACING > vis_span.y - te->scroll_pos.y)
+				te->scroll_pos.y = vis_span.y - te->cur_screen_pos.y - LINEVSPACING;
+
+			// TODO left-right
+		}
+	}
+	else
+		draw_string_bestfit_asis(font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
 	//draw_string_bestfit(font, te->string, sc_rect(box), 0., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
 	//draw_string_fixed_thresh(font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
 

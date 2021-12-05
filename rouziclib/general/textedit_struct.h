@@ -27,8 +27,11 @@ typedef struct
 	xy_t click;
 	xy_t cur_screen_pos, cur_screen_pos_prev;
 	int click_on;
-	double max_scale, rect_brightness;
+	double max_scale, rect_brightness, scroll_mode_scale, scroll_mode_scale_def;
 	textundo_t undo;
 	enum te_mode edit_mode;
-	int read_only, first_click_no_sel, return_flag, draw_string_mode, was_cur_te, tab_switch, sel_all;
+	int read_only, first_click_no_sel, return_flag, draw_string_mode, was_cur_te, tab_switch, sel_all, scroll_mode;
+	xy_t scroll_pos;
+	ctrl_drag_state_t vert_scroll, horiz_scroll;
+	void *scaling_knob;
 } textedit_t;

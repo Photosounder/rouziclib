@@ -61,6 +61,7 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			break;	case DQT_POINT_ADD:		pv = draw_point_add(&df[qi+1], pv);
 			break;	case DQT_RECT_FULL:		pv = draw_rect_full_add(&df[qi+1], pv);
 			break;	case DQT_RECT_BLACK:		pv = draw_black_rect(&df[qi+1], pv);
+			break;	case DQT_RECT_BLACK_INV:	pv = draw_black_rect_inv(&df[qi+1], pv);
 			break;	case DQT_PLAIN_FILL:		pv = draw_plain_fill_add(&df[qi+1], pv);
 			break;	case DQT_GAIN:			pv = pv * df[qi+1];
 			break;	case DQT_GAIN_PARAB:		pv = gain_parabolic(pv, df[qi+1]);
