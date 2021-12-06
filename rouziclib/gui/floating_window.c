@@ -3,8 +3,8 @@ void flwindow_init_defaults(flwindow_t *w)
 	if (w->init == 0)
 	{
 		w->bg_col = make_grey(0.);
-		w->bar_col = make_grey(0.0054);
-		w->border_col = make_grey(0.006);
+		w->bar_col = make_grey(0.0072);		// was 0.0054
+		w->border_col = make_grey(0.008);	// was 0.006
 		w->bar_height = 0.5;
 		w->close_hover_col = make_grey(0.06);
 		w->close_down_col = make_grey(0.12);

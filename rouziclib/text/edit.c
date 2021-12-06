@@ -508,9 +508,21 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		if (vis_span.y < scroll_limit.y)
 		{
 			// Calc full scrolling area
-			rect_t scroll_area = fit_rect_in_area(xy(margin, get_rect_dim(box).y), box, xy(1., 0.5));
-			scroll_area = rect_add_margin(scroll_area, set_xy(margin * -2./12.));
+			rect_t scroll_full_area = fit_rect_in_area(xy(margin, get_rect_dim(box).y), box, xy(1., 0.5));
+			rect_t scroll_area = rect_add_margin(scroll_full_area, set_xy(margin * -2./12.));
 			scroll_area.p0.y += margin * 10./12.;		// room for the other scroll bar and scaling knob
+
+			// Handle click on scrolling area (but not the bar)
+			ctrl_button_state_t scroll_area_butt={0};
+			ctrl_button_invis(scroll_area, &scroll_area_butt);
+
+			if (scroll_area_butt.once)
+			{
+				if (mouse.u.y > te->vert_scroll.pos.y)
+					te->scroll_pos.y += vis_span.y;
+				else
+					te->scroll_pos.y -= vis_span.y;
+			}
 
 			// Set up draggable bar
 			te->vert_scroll.freedom = xy(0., 1.);
@@ -532,6 +544,12 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 			// Draw bar
 			rect_t bar_rect = make_rect_off(te->vert_scroll.pos, te->vert_scroll.dim, xy(0.5, 0.5));
 			draw_rect(sc_rect(bar_rect), drawing_thickness, colour, cur_blend, intensity);
+
+			// Bar decoration
+			rect_t deco_rect = fit_rect_in_area(XY1, bar_rect, xy(0.5, 0.5));
+			deco_rect = rect_size_mul(deco_rect, mul_xy(set_xy(6.5/12.), xy(1., 0.75)));
+			draw_line_thin(sc_xy(rect_p01(deco_rect)), sc_xy(deco_rect.p1), drawing_thickness, colour, blend_add, intensity*0.75);
+			draw_line_thin(sc_xy(deco_rect.p0), sc_xy(rect_p10(deco_rect)), drawing_thickness, colour, blend_add, intensity*0.75);
 		}
 		else
 			te->scroll_pos.y = 0.;
@@ -540,9 +558,21 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		if (vis_span.x < scroll_limit.x)
 		{
 			// Calc full scrolling area
-			rect_t scroll_area = fit_rect_in_area(xy(get_rect_dim(box).x, margin), box, xy(0.5, 0.));
-			scroll_area = rect_add_margin(scroll_area, set_xy(margin * -2./12.));
+			rect_t scroll_full_area = fit_rect_in_area(xy(get_rect_dim(box).x, margin), box, xy(0.5, 0.));
+			rect_t scroll_area = rect_add_margin(scroll_full_area, set_xy(margin * -2./12.));
 			scroll_area.p1.x -= margin * 10./12.;		// room for the other scroll bar and scaling knob
+
+			// Handle click on scrolling area (but not the bar)
+			ctrl_button_state_t scroll_area_butt={0};
+			ctrl_button_invis(scroll_area, &scroll_area_butt);
+
+			if (scroll_area_butt.once)
+			{
+				if (mouse.u.x > te->horiz_scroll.pos.x)
+					te->scroll_pos.x -= vis_span.x;
+				else
+					te->scroll_pos.x += vis_span.x;
+			}
 
 			// Set up draggable bar
 			te->horiz_scroll.freedom = xy(1., 0.);
@@ -564,6 +594,12 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 			// Draw bar
 			rect_t bar_rect = make_rect_off(te->horiz_scroll.pos, te->horiz_scroll.dim, xy(0.5, 0.5));
 			draw_rect(sc_rect(bar_rect), drawing_thickness, colour, cur_blend, intensity);
+
+			// Bar decoration
+			rect_t deco_rect = fit_rect_in_area(XY1, bar_rect, xy(0.5, 0.5));
+			deco_rect = rect_size_mul(deco_rect, mul_xy(set_xy(6.5/12.), xy(0.75, 1.)));
+			draw_line_thin(sc_xy(deco_rect.p0), sc_xy(rect_p01(deco_rect)), drawing_thickness, colour, blend_add, intensity*0.75);
+			draw_line_thin(sc_xy(rect_p10(deco_rect)), sc_xy(deco_rect.p1), drawing_thickness, colour, blend_add, intensity*0.75);
 		}
 		else
 			te->scroll_pos.x = 0.;
