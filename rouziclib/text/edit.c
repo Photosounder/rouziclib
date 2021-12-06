@@ -502,7 +502,9 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		scale = get_rect_dim(text_area).x / te->scroll_mode_scale;
 		xy_t vis_span = div_xy(get_rect_dim(text_area), set_xy(scale));
 
-		// TODO mouse wheel scrolling up and down
+		// Mouse wheel scrolling up and down
+		if (check_point_within_box(mouse.u, box) && mouse.zoom_flag==0 && mouse.b.wheel)
+			te->scroll_pos.y += 3. * (double) mouse.b.wheel * LINEVSPACING;		// scroll 3 lines
 
 		// Vertical scroll bar
 		if (vis_span.y < scroll_limit.y)
