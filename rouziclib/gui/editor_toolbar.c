@@ -281,6 +281,8 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 	te = layout.elem[80].data;
 	te->max_scale = 1./6.;
 	te->edit_mode = te_mode_full;
+	te->scroll_mode = 1;
+	te->scroll_mode_scale_def = 40. * 4.5;
 	ret = ctrl_textedit_fromlayout(&layout, 80);
 
 	static int cont_gen_markup = 1;

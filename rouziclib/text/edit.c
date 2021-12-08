@@ -12,6 +12,9 @@ void textedit_init(textedit_t *te, const int alloc)
 
 void textedit_free(textedit_t *te)
 {
+	if (cur_textedit == te)
+		cur_textedit = NULL;
+
 	if (te->scaling_knob)
 	{
 		textedit_free(&((knob_t *) te->scaling_knob)->edit);
@@ -474,6 +477,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 	//**** Draw ****
 	intensity *= intensity_scaling(total_scale, 24.);
+	// TODO maybe don't draw anything if off screen
 
 	if (te->scroll_mode)
 	{

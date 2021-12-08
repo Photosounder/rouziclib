@@ -295,8 +295,7 @@ void draw_black_rect_inverted_dq(rect_t box, double radius, double intensity)
 
 	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 
-	if (drawq_get_inner_box(box, set_xy(grad), &bbi)==0)
-			return ;
+	drawq_get_inner_box(box, set_xy(grad), &bbi);
 
 	box = sort_rect(box);
 

@@ -413,7 +413,7 @@ int drawq_get_bounding_box(rect_t box, xy_t rad, recti_t *bbi)
 	return 1;
 }
 
-int drawq_get_inner_box(rect_t box, xy_t rad, recti_t *bbi)
+void drawq_get_inner_box(rect_t box, xy_t rad, recti_t *bbi)
 {
 	rect_t bb, screen_box = rect(XY0, xy(fb.w-1, fb.h-1));
 
@@ -423,14 +423,9 @@ int drawq_get_inner_box(rect_t box, xy_t rad, recti_t *bbi)
 	bb.p0 = floor_xy(add_xy(box.p0, rad));
 	bb.p1 = ceil_xy(sub_xy(box.p1, rad));
 
-	if (check_box_box_intersection(bb, screen_box)==0)
-		return 0;
-
 	bbi->p0 = xy_to_xyi(max_xy(bb.p0, screen_box.p0));
 	bbi->p1 = xy_to_xyi(min_xy(bb.p1, screen_box.p1));
 	*bbi = rshift_recti(*bbi, fb.sector_size);
-
-	return 1;
 }
 
 void drawq_remove_prev_entry_for_sector(int32_t sector_id, int bracket_search, xyi_t pix_coord)
