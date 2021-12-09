@@ -63,6 +63,8 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_cmp_dd_ge:    	return "op_cmp_dd_ge";
 		case op_cmp_ii_ge:    	return "op_cmp_ii_ge";
 		case op_func1_dd:    	return "op_func1_dd";
+		case op_func1_di:    	return "op_func1_di";
+		case op_func1_ii:    	return "op_func1_ii";
 
 		case op_5word_ops:    	return "op_5word_ops";
 		case op_ret_dddd:    	return "op_ret_dddd";

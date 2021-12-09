@@ -59,6 +59,8 @@ enum opcode
 	op_cmp_dd_ge,
 	op_cmp_ii_ge,
 	op_func1_dd,
+	op_func1_di,
+	op_func1_ii,
 
 	op_5word_ops = 5120,
 	op_ret_dddd,
@@ -97,6 +99,7 @@ typedef struct
 } rlip_inputs_t;
 
 extern void free_rlip(rlip_t *prog);
+extern double rlip_builtin_rand01(int64_t pos);
 
 // Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"}, ... };
 #define RLIP_FUNC					\
@@ -138,4 +141,5 @@ extern void free_rlip(rlip_t *prog);
 	{"rangelimit", rangelimit, "fdddd"},		\
 	{"mix", mix, "fdddd"},				\
 	{"sign", sign_tefunc, "fdd"},			\
-	{"trunc", trunc, "fdd"}
+	{"trunc", trunc, "fdd"},			\
+	{"rand01", rlip_builtin_rand01, "fdi"}

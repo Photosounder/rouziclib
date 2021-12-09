@@ -80,6 +80,8 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_cmp_dd_ge:	vi[op[1]] = (vd[op[2]] >= vd[op[3]]);
 			break;	case op_cmp_ii_ge:	vi[op[1]] = (vi[op[2]] >= vi[op[3]]);
 			break;	case op_func1_dd:	vd[op[1]] = ((double (*)(double)) d->ptr[op[2]])(vd[op[3]]);	// <var> = <func> <var/ptr/expr>
+			break;	case op_func1_di:	vd[op[1]] = ((double (*)(int64_t)) d->ptr[op[2]])(vi[op[3]]);
+			break;	case op_func1_ii:	vi[op[1]] = ((int64_t (*)(int64_t)) d->ptr[op[2]])(vi[op[3]]);
 
 			// 5 word ops
 			break;	case op_ret_dddd:	d->return_value[0] = vd[op[1]];					// return <var/ptr/expr> x4

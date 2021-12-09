@@ -493,7 +493,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 			te->scaling_knob = calloc(1, sizeof(knob_t));
 
 			te->scroll_mode_scale = te->scroll_mode_scale_def;
-			*((knob_t *) te->scaling_knob) = make_knob("Scale", te->scroll_mode_scale_def, knobf_log, 24.*4.5, 120.*4.5, VALFMT_DEFAULT);
+			*((knob_t *) te->scaling_knob) = make_knob("Scale", te->scroll_mode_scale_def, knobf_log, 16.*4.5, 160.*4.5, VALFMT_DEFAULT);
 		}
 		ctrl_knob(&te->scroll_mode_scale, (knob_t *) te->scaling_knob, knob_area, colour);
 
