@@ -1,7 +1,8 @@
-#ifndef RL_EXCL_APPROX
-
 extern float polynomial_from_lutf(const float *lut, const int lutind, const int order, const float x);
 extern double polynomial_from_lut(const double *lut, const int lutind, const int order, const double x);
+
+#ifndef RL_EXCL_APPROX
+
 extern double fastlog2(double x);
 #define fastlog(x)	(fastlog2(x) * 0.69314718055994531)
 extern double fastexp2(double x);
@@ -20,6 +21,7 @@ extern double fastexp_limited(double x);
 #else
 
 #define fastlog2	log2
+#define fastlog		log
 #define fastexp2	exp2
 #define fastpow		pow
 #define fastsqrt	sqrt
@@ -32,3 +34,5 @@ extern double fastexp_limited(double x);
 #define fasterfrf_d1		erfr
 
 #endif
+
+extern double fastshort_erf(double x, double w);

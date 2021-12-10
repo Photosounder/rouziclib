@@ -26,6 +26,21 @@ extern double fastcos_tr_d5(double x);
 
 #else
 
+#define fastcos_d2	cos
 #define fastcos_d3	cos
+#define fastcos_d4	cos
+#define fastcos_d5	cos
+#define fastsin_d2	sin
+#define fastsin_d3	sin
+#define fastsin_d4	sin
+#define fastsin_d5	sin
+#define fastcos_tr_d2	cos_tr
+#define fastcos_tr_d3	cos_tr
+#define fastcos_tr_d4	cos_tr
+#define fastcos_tr_d5	cos_tr
+#define fastsin_tr_d2	sin_tr
+#define fastsin_tr_d3	sin_tr
+#define fastsin_tr_d4	sin_tr
+#define fastsin_tr_d5	sin_tr
 
 #endif

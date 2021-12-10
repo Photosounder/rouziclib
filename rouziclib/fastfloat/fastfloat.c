@@ -1,5 +1,3 @@
-#ifndef RL_EXCL_APPROX
-
 /*
 	Summary of the main trigonometry functions:
 
@@ -85,6 +83,8 @@ double polynomial_from_lut(const double *lut, const int lutind, const int order,
 
 	return NAN;
 }
+
+#ifndef RL_EXCL_APPROX
 
 // log2 approximation, returns slightly bogus values for 0, subnormals, inf and NaNs, returns the real value only for negative x
 // max error of 7.098e-09 for lutsp of 7, lut takes 3 kB
@@ -359,3 +359,75 @@ double fastexp_limited(double x)	// max error of 1/11039 for x <= 0
 }
 
 #endif
+
+double short_erf_fit_w;
+
+double short_erf_fit_func(double x)
+{
+	return short_erf(x, short_erf_fit_w);
+}
+
+double fastshort_erf(double x, double w)	// max error < 1.9e-9 for w >= 2
+{
+	double xa;
+	static int degree = 3;
+	static _Thread_local double *lut=NULL, cached_w = -1., index_mul=0.;
+
+	xa = fabs(x);
+
+	if (xa >= w)
+		return copysign(1., x);
+
+	// Update cached LUT
+	if (w != cached_w)
+	{
+		short_erf_fit_w = cached_w = w;
+
+		int is, segcount=0;
+		double err, max_err=0., segstart, segend, segstep = 1./32.;
+		degree = 3;
+
+		// Calc LUT size and adjust parameters
+calc_segcount:
+		segcount = ceil(w / segstep);
+
+		// Make sure the LUT takes up no more than 3.5 kB
+		if (segcount * (degree+1) * sizeof(double) > 3500)
+		{
+			degree++;
+			segstep *= 2.;
+			goto calc_segcount;
+		}
+
+		// Make sure it's not too small either
+		if (segcount < 48 && w > 0.001 && w < 1.5)
+		{
+			segstep *= 0.5;
+			goto calc_segcount;
+		}
+
+		index_mul = 1. / segstep;
+
+		// Alloc LUT
+		free(lut);
+		lut = calloc(segcount * (degree+1), sizeof(double));
+
+		// Generate LUT
+		for (is=0; is < segcount; is++)
+		{
+			segstart = (double) is * segstep;
+			segend = MINN(w, segstart + segstep);
+
+			polynomial_fit_on_function_by_dct_count(short_erf_fit_func, segstart, segend, &lut[is*(degree+1)], degree, (degree+1)+3, fastcos_tr_d5);
+			//err = get_polynomial_error(short_erf_fit_func, segstart, segend, &lut[is*(degree+1)], degree, NEGMODE);
+			//max_err = MAXN(max_err, err);
+		}
+
+		//fprintf_rl(stdout, "short_erf(x, %g) LUT max error %g\n", w, max_err);
+	}
+
+	// Evaluation
+	int lutind = xa * index_mul;
+
+	return copysign(polynomial_from_lut(lut, lutind, degree, xa), x);
+}

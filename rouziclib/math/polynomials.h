@@ -38,6 +38,7 @@ extern void polynomial_fit_on_function_mpfr(void (*f)(real_t,real_t), real_t sta
 extern double chebyshev_multiplier_by_dct(double *y, int p_count, int id, double (*cos_func)(double));
 extern double chebyshev_multiplier_by_dct_2d(double **z, int p_count, xyi_t id);
 extern void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, double end, double *c, int degree, double (*cos_func)(double));
+extern void polynomial_fit_on_function_by_dct_count(double (*f)(double), double start, double end, double *c, int degree, int p_count, double (*cos_func)(double));
 extern void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree, double (*cos_func)(double));
 extern void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_t end, double **c);
 extern double **chebyshev_fit_on_points_by_dct_2d(double **z, int p_count, xyi_t degree);

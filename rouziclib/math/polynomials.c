@@ -965,9 +965,9 @@ void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, doubl
 	}
 }
 
-void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree, double (*cos_func)(double))
+void polynomial_fit_on_function_by_dct_count(double (*f)(double), double start, double end, double *c, int degree, int p_count, double (*cos_func)(double))
 {
-	int i, p_count = 1000;
+	int i;
 	double *y = calloc(p_count, sizeof(double));
 
 	// Compute the points
@@ -977,6 +977,11 @@ void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double
 	// Fit
 	polynomial_fit_on_points_by_dct(y, p_count, start, end, c, degree, cos_func);
 	free(y);
+}
+
+void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree, double (*cos_func)(double))
+{
+	polynomial_fit_on_function_by_dct_count(f, start, end, c, degree, 1000, cos_func);
 }
 
 void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_t end, double **c)

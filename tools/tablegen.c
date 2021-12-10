@@ -443,17 +443,17 @@ double cb(double x) { return x*x*x; }
 
 void find_polynomial_fit(double (*f)(double), double start, double end, double *c, int order)
 {
-	return polynomial_fit_on_function_by_dct(f, start, end, c, order);
+	polynomial_fit_on_function_by_dct(f, start, end, c, order, cos_tr);
 }
 
 void find_quadratic_fit(double (*f)(double), double start, double end, double *c)
 {
-	return polynomial_fit_on_function_by_dct(f, start, end, c, 2);
+	polynomial_fit_on_function_by_dct(f, start, end, c, 2, cos_tr);
 }
 
 void find_linear_fit(double (*f)(double), double start, double end, double *c, int errmode)
 {
-	return polynomial_fit_on_function_by_dct(f, start, end, c, 1);
+	polynomial_fit_on_function_by_dct(f, start, end, c, 1, cos_tr);
 }
 
 double f_reciprocal(double x)
@@ -976,7 +976,7 @@ void write_fastexp_limited_lut()
 			segstart = -0.0177488586;
 			//segstart = segend - (segend-segstart) / (0.5+0.5*cos(pi * 0.5 / ((double) order+1.)));	// extend the range so that 0 is at a node
 
-		polynomial_fit_on_function_by_dct(f_exp, segstart, segend, c, order);
+		polynomial_fit_on_function_by_dct(f_exp, segstart, segend, c, order, cos_tr);
 		err = get_polynomial_error(f_exp, segstart, segend, c, order, NEGMODE);
 		err = reduce_digits(f_exp, segstart, segend, c, order, NEGMODE, 1.00003, 20.);
 
