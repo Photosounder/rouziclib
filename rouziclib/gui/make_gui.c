@@ -400,7 +400,7 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 				knob_data->unit_label = make_string_copy(b);
 		}
 
-		if (strcmp(a, "knob_arg")==0)	// arguments for knob functions like knobf_logoff
+		if (strcmp(a, "knob_arg")==0)	// arguments for knob functions like knobf_logoff or knobf_tan
 		{
 			if (cur_elem->data==NULL || cur_elem->type != gui_type_knob)
 			{

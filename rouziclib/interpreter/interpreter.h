@@ -127,6 +127,7 @@ extern double rlip_builtin_rand01(int64_t pos);
 	{"erfinv", erfinv, "fdd"},			\
 	{"integral_erfr", integral_of_erfr, "fdd"},	\
 	{"short_erf", short_erf, "fddd"},		\
+	{"sinc", sinc, "fddd"},				\
 	{"lab_to_linear", Lab_L_to_linear, "fdd"},	\
 	{"linear_to_lab", linear_to_Lab_L, "fdd"},	\
 	{"lab_invert", Lab_L_invert, "fdd"},		\

@@ -307,7 +307,8 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (v_orig)
 		v = *v_orig;
 
-	if (isnan(v))	// initialise the value
+	// Initialise the value
+	if (isnan(v))
 	{
 		v = knob->default_value;
 		if (v_orig)
@@ -328,10 +329,10 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (total_scale < 1.)
 		return 0;
 
-	if (check_box_on_screen(box)==0)	// TODO extend box so that it covers the whole label
+	if (check_box_on_screen(rect_size_mul(box, set_xy(1.2)))==0)	// box is extended so that it covers the whole label
 		return 0;
 
-	// process input
+	// Process input
 	if (mouse.window_focus_flag > 0)
 	{
 		knob_state = proc_mouse_knob_ctrl(box, mouse);
@@ -356,6 +357,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			textedit_set_new_text(&knob->edit, str);
 			knob->edit.rect_brightness = 0.125;
 			cur_textedit = &knob->edit;
+			// TODO add pop up window if field is too small
 		}
 	}
 	else	// release the mouse if the window focus is lost
@@ -376,18 +378,20 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		mouse.zoom_scroll_freeze = 0;
 	}
 
-	// reset on doubleclick
+	// Reset on doubleclick
 	if (knob_state.doubleclick)
 		v = knob->default_value;
 
-	// calculate new position and value
+	// Calculate new position and value
 	t = knob->func(v, knob->min, knob->max, knob->arg, 1);
 
 	if (knob->circular)
 		t = rangewrap(t+t_off, 0., 1.);
 	else
 		t = rangelimit(t+t_off, 0., 1.);
-	v = knob->func(t, knob->min, knob->max, knob->arg, 0);
+
+	if (t_off)
+		v = knob->func(t, knob->min, knob->max, knob->arg, 0);
 
 	// Draw knob
 	intensity *= intensity_scaling(total_scale, 24.);

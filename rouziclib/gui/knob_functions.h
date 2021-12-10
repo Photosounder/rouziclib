@@ -6,6 +6,7 @@ extern double knobf_log(double v, double min, double max, double *arg, const int
 extern double knobf_recip(double v, double min, double max, double *arg, const int mode);
 extern double knobf_dboff(double v, double min, double max, double *arg, const int mode);
 extern double knobf_logoff(double v, double min, double max, double *arg, const int mode);
+extern double knobf_tan(double v, double min, double max, double *arg, const int mode);
 
 extern const char *knob_func_name[];
 extern const knob_func_t knob_func_array[];

@@ -42,6 +42,16 @@ double knobf_logoff(double v, double min, double max, double *arg, const int mod
 		return knobf_linear(log(v+off), log(min+off), log(max+off), NULL, mode);
 }
 
+double knobf_tan(double v, double min, double max, double *arg, const int mode)
+{
+	double inv_scale = arg[0], scale = 1./inv_scale;
+
+	if (mode==0)
+		return rangelimit(tan(knobf_linear(v, atan(min*scale), atan(max*scale), NULL, mode)) * inv_scale, min, max);
+	else
+		return knobf_linear(atan(v*scale), atan(min*scale), atan(max*scale), NULL, mode);
+}
+
 const char *knob_func_name[] =
 {
 	"linear",
@@ -49,6 +59,7 @@ const char *knob_func_name[] =
 	"recip",
 	"dboff",
 	"logoff",
+	"tan",
 };
 
 const knob_func_t knob_func_array[] =
@@ -58,6 +69,7 @@ const knob_func_t knob_func_array[] =
 	knobf_recip,
 	knobf_dboff,
 	knobf_logoff,
+	knobf_tan,
 };
 
 const int knob_func_count = sizeof(knob_func_name)/sizeof(*knob_func_name);

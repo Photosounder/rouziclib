@@ -421,7 +421,7 @@ Draw a bar graph.
 The core of the GUI system, this is how controls are identified when hovered or clicked and how each type of control processes mouse inputs.
 
 ** link:rouziclib/gui/knob_functions.c[knob_functions.c] / link:rouziclib/gui/knob_functions.h[knob_functions.h] +
-Knobs can use a few different functions so that they don't have to always be linear.
+Knobs can use a few different functions so that they don't have to always be linear. This includes the logarithmic scale, the reciprocal scale, the offset decibel scale (a scale that goes to -infinite dB, perfect for decibel volume knobs), the offset logarithmic scale (which can be nearly linear at 0 and nearly logarithmic at the other end), and the very convenient tangential scale which is linear around 0, handles negatives as well as positives and increases to any limit needed at the ends, meaning you can have a knob with a range that mainly covers small numbers but still can have an extreme range of possible values.
 
 ** link:rouziclib/gui/controls.c[controls.c] / link:rouziclib/gui/controls.h[controls.h] and link:rouziclib/gui/controls_struct.h[controls_struct.h] +
 How the basic GUI controls are created.
