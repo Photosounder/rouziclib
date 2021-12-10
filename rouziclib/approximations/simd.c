@@ -44,7 +44,7 @@ __m128 _mm_eval_poly_d2_lut_ps(__m128 x, const float *lut, __m128i index)
 
 __m128 _mm_gaussian_d1_ps(__m128 x) 	// runs in 8 cycles
 {
-	#include "fastgauss_d1.h"	// contains the LUT, offset and limit
+	#include "tables/fastgauss_d1.h"	// contains the LUT, offset and limit
 	__m128i index;
 
 	x = _mm_abs_ps(x);						// x = |x|
@@ -56,7 +56,7 @@ __m128 _mm_gaussian_d1_ps(__m128 x) 	// runs in 8 cycles
 
 __m128 _mm_erfr_d1_ps(__m128 x)
 {
-	#include "fasterfr_d1.h"	// contains the LUT, offset and limit
+	#include "tables/fasterfr_d1.h"	// contains the LUT, offset and limit
 	__m128i index;
 
 	x = _mm_max_ps(x, _mm_set_ps1(-limit));				// x < -4 becomes -4
@@ -72,7 +72,7 @@ __attribute__((__target__("sse4.1")))
 __m128 _mm_frgb_to_srgb(__m128 x)	// output is [0.f , 1.f]
 {
 	static const float lut[] = 
-	#include "fastlsrgb.h"		// 34 x 3 floats, 408 bytes, contains order (2), ish
+	#include "tables/fastlsrgb.h"		// 34 x 3 floats, 408 bytes, contains order (2), ish
 	__m128 r;
 	__m128i index, offset = _mm_set1_epi32(0x3B4D2E1C);	// 0.0031308f
 

@@ -50,7 +50,7 @@ uint32_t fastcosf_get_param(float *xp)
 float fastcosf_tr_d2(float x)	// max error: 2.82e-006 (compare with 1.52017e-007 for cosf())
 {
 	static const float lut[] = 
-	#include "fastcos_d2.h"		// 1 kB
+	#include "tables/fastcos_d2.h"		// 1 kB
 	const uint32_t ish=20-lutsp;
 	const float *c;
 	uint32_t lutind;
@@ -64,7 +64,7 @@ float fastcosf_tr_d2(float x)	// max error: 2.82e-006 (compare with 1.52017e-007
 double fastcos_tr_d2(double x)	// max error: 6.159e-007
 {
 	static const double lut[] = 
-	#include "fastcos_d2.h"		// 2 kB
+	#include "tables/fastcos_d2.h"		// 2 kB
 	const uint32_t ish=17-lutsp;
 	const double *c;
 	uint32_t lutind;
@@ -78,7 +78,7 @@ double fastcos_tr_d2(double x)	// max error: 6.159e-007
 double fastcos_tr_d3(double x)	// max error: 1.88958e-009
 {
 	static const double lut[] = 
-	#include "fastcos_d3.h"		// 3 kB
+	#include "tables/fastcos_d3.h"		// 3 kB
 	const uint32_t ish=17-lutsp;
 	const double *c;
 	uint32_t lutind;
@@ -92,7 +92,7 @@ double fastcos_tr_d3(double x)	// max error: 1.88958e-009
 double fastcos_tr_d4(double x)	// max error: 4.63742e-012
 {
 	static const double lut[] = 
-	#include "fastcos_d4.h"		// 2 kB
+	#include "tables/fastcos_d4.h"		// 2 kB
 	const uint32_t ish=17-lutsp;
 	const double *c;
 	uint32_t lutind;
@@ -106,7 +106,7 @@ double fastcos_tr_d4(double x)	// max error: 4.63742e-012
 double fastcos_tr_d5(double x)	// max error: ~9e-016 (compare with 3.41596e-016 for cos())
 {
 	static const double lut[] = 
-	#include "fastcos_d5.h"		// 2.5 kB
+	#include "tables/fastcos_d5.h"		// 2.5 kB
 	const uint32_t ish=17-lutsp;
 	const double *c;
 	double endsign = 1.;

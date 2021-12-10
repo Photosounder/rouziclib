@@ -91,7 +91,7 @@ double polynomial_from_lut(const double *lut, const int lutind, const int order,
 double fastlog2(double x)
 {
 	static const double lut[] = 
-	#include "fastlog2.h"
+	#include "tables/fastlog2.h"
 	uint64_t xint, m, m1int;
 	double m1, mlog;
 	int32_t exp, lutind;
@@ -124,7 +124,7 @@ __attribute__((__target__("sse4.1")))
 double fastexp2(double x)
 {
 	static const double lut[] = 
-	#include "fastexp2.h"
+	#include "tables/fastexp2.h"
 	double xr, xf, xf1, y, xfe;
 	int32_t exp, lutind;
 	const int64_t ish = 52-lutsp;		// index shift
@@ -165,7 +165,7 @@ double fastpow(double x, double y)
 double fastsqrt(double x)
 {
 	static const double lut[] = 
-	#include "fastsqrt.h"
+	#include "tables/fastsqrt.h"
 	uint64_t xint, m, m1int, explsbint;
 	double m1, ms, expmul, es;
 	int32_t lutind;
@@ -200,42 +200,10 @@ double fastsqrt(double x)
 	return es * expmul * ms;
 }
 
-float fastwsincf(float x)		// max error: 1.32633e-006 (order 2, lutsp 5), 1.06102e-005 (order 2, lutsp 4), 1.22179e-007 (order 3, lutsp 4)
-{
-	static const float lut[] = 
-	#include "fastwsinc.h"		// 1272 bytes, contains order, lutsp, ish, wsinc_range and ind_off
-	const float *c;
-	uint32_t lutind;
-
-	ffabsf(&x);						// x = |x|
-	if (x >= wsinc_range)
-		return 0.;
-
-	lutind = float_get_mantissa(x + ind_off) >> (ish-29);	// x + index offset (8.0) so that we can use the top 7 bits of xoff's mantissa as LUT index
-
-	return polynomial_from_lutf(lut, lutind, order, x);
-}
-
-double fastwsinc(double x)	// use fastwsincf instead, takes less memory and gives about the same precision
-{
-	static const double lut[] = 
-	#include "fastwsinc.h"		// 5088 bytes, contains order, lutsp, ish, wsinc_range and ind_off
-	const double *c;
-	uint32_t lutind;
-
-	ffabs(&x);						// x = |x|
-	if (x >= wsinc_range)
-		return 0.;
-
-	lutind = double_get_mantissa(x + ind_off) >> ish;	// x + index offset (8.0) so that we can use the top 7 bits of xoff's mantissa as LUT index
-
-	return polynomial_from_lut(lut, lutind, order, x);
-}
-
 float fast_lsrgbf(float x)
 {
 	static const float lut[] = 
-	#include "fastlsrgb.h"		// 396 bytes, contains order, ish
+	#include "tables/fastlsrgb.h"		// 396 bytes, contains order, ish
 	const float offset = 0.0031308f;
 	uint32_t lutind;
 
@@ -248,7 +216,7 @@ float fast_lsrgbf(float x)
 
 float fastgaussianf_d0(float x)
 {
-	#include "fastgauss_d0.h"	// contains the LUT, offset and limit
+	#include "tables/fastgauss_d0.h"	// contains the LUT, offset and limit
 	uint32_t index, *xint = (uint32_t *) &x;
 
 	*xint &= 0x7FFFFFFF;		// x = |x|
@@ -263,7 +231,7 @@ float fastgaussianf_d0(float x)
 
 float fastgaussianf_d1(float x)
 {
-	#include "fastgauss_d1.h"	// contains the LUT, offset and limit
+	#include "tables/fastgauss_d1.h"	// contains the LUT, offset and limit
 	uint32_t index, *xint = (uint32_t *) &x;
 	float xa;
 	const float *c;
@@ -282,7 +250,7 @@ float fastgaussianf_d1(float x)
 
 float fasterfrf_d0(float x)
 {
-	#include "fasterfr_d0.h"	// contains the LUT, offset and limit
+	#include "tables/fasterfr_d0.h"	// contains the LUT, offset and limit
 	uint32_t index, *xint = (uint32_t *) &x;
 
 	if (x > limit)			// if x isn't represented in the LUT
@@ -297,7 +265,7 @@ float fasterfrf_d0(float x)
 
 float fasterfrf_d1(float x)
 {
-	#include "fasterfr_d1.h"	// contains the LUT, offset and limit
+	#include "tables/fasterfr_d1.h"	// contains the LUT, offset and limit
 	uint32_t index, *xint = (uint32_t *) &x;
 	float xa;
 	const float *c;
@@ -334,7 +302,7 @@ double fastatan2(double y, double x)	// as it is the caller must provide numbers
 double fastexp_limited(double x)	// max error of 1/11039 for x <= 0
 {
 	static const double lut[] = 
-	#include "fastexp_limited.h"		// 552 bytes, contains order, ish, offset, end
+	#include "tables/fastexp_limited.h"		// 552 bytes, contains order, ish, offset, end
 	uint32_t lutind;
 
 	if (x > 0.)
@@ -360,7 +328,7 @@ double fastexp_limited(double x)	// max error of 1/11039 for x <= 0
 
 #endif
 
-double short_erf_fit_w;
+_Thread_local double short_erf_fit_w;
 
 double short_erf_fit_func(double x)
 {
@@ -370,7 +338,7 @@ double short_erf_fit_func(double x)
 double fastshort_erf(double x, double w)	// max error < 1.9e-9 for w >= 2
 {
 	double xa;
-	static int degree = 3;
+	static int degree=0;
 	static _Thread_local double *lut=NULL, cached_w = -1., index_mul=0.;
 
 	xa = fabs(x);

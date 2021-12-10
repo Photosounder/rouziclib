@@ -8,8 +8,6 @@ extern double fastlog2(double x);
 extern double fastexp2(double x);
 extern double fastpow(double x, double y);
 extern double fastsqrt(double x);
-extern float fastwsincf(float x);
-extern double fastwsinc(double x);
 extern float fast_lsrgbf(float x);
 extern float fastgaussianf_d0(float x);
 extern float fastgaussianf_d1(float x);

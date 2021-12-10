@@ -219,18 +219,18 @@ Polynomial evaluation (1D and 2D), error calculation for approximations, coeffic
 ** link:rouziclib/math/erf_radlim.c[erf_radlim.c] / link:rouziclib/math/erf_radlim.h[erf_radlim.h] +
 Part of my attempts at directly computing Gaussian-antialiased triangles.
 
-* link:rouziclib/fixedpoint[fixedpoint/] and link:rouziclib/fastfloat[fastfloat/]
+* link:rouziclib/approximations[approximations/]
 
-** link:rouziclib/fixedpoint/fp.c[fp.c] / link:rouziclib/fixedpoint/fp.h[fp.h] +
+** link:rouziclib/approximations/fixed_point.c[fixed_point.c] / link:rouziclib/approximations/fixed_point.h[fixed_point.h] +
 Fixed point approximations for the square root, division, log2m exp2, cosine, atan2, the Gaussian function and the error function.
 
-** link:rouziclib/fastfloat/fastfloat.c[fastfloat.c] / link:rouziclib/fastfloat/fastfloat.h[fastfloat.h] +
+** link:rouziclib/approximations/fast_float.c[fast_float.c] / link:rouziclib/approximations/fast_float.h[fast_float.h] +
 Floating point approximations for log2, exp2, pow, the square root (which tends to be slower than just using `sqrt()`), linear to sRGB gamma conversion and exp over a small range.
 
-** link:rouziclib/fastfloat/fastcos.c[fastcos.c] / link:rouziclib/fastfloat/fastcos.h[fastcos.h] +
+** link:rouziclib/approximations/fast_cos.c[fast_cos.c] / link:rouziclib/approximations/fastcos.h[fast_cos.h] +
 Floating point approximations for the cosine at different levels of precision, in turns or radians.
 
-** link:rouziclib/fastfloat/simd.c[simd.c] / link:rouziclib/fastfloat/simd.h[simd.h] +
+** link:rouziclib/approximations/simd.c[simd.c] / link:rouziclib/approximations/simd.h[simd.h] +
 Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversion approximations.
 
 * link:rouziclib/graphics[graphics/]
