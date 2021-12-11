@@ -106,4 +106,22 @@ __m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex)	// faster than 
 	return r;
 }
 
+__m128d _mm_i32sgather_pd(double const *base_addr, __m128i vindex)	// like _mm_i32gather_pd without AVX2
+{
+	uint32_t index[4];
+	__m128d r;
+	_mm_store_si128((__m128i *) &index, vindex);
+	r = _mm_set_pd(base_addr[index[1]], base_addr[index[0]]);
+	return r;
+}
+
+__m128d _mm_i64sgather_pd(double const *base_addr, __m128i vindex)	// like _mm_i64gather_pd without AVX2
+{
+	uint64_t index[2];
+	__m128d r;
+	_mm_store_si128((__m128i *) &index, vindex);
+	r = _mm_set_pd(base_addr[index[1]], base_addr[index[0]]);
+	return r;
+}
+
 #endif

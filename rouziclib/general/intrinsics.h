@@ -66,7 +66,9 @@ extern uint64_t rl_xgetbv(uint32_t index);
 extern void _mm_storeu_si32(void *mem_addr, __m128i a);  // SSE2
 #endif
 
-extern __m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex);  // SSE2
+extern __m128 _mm_i32sgather_ps(float const *base_addr, __m128i vindex);   // SSE2
+extern __m128d _mm_i32sgather_pd(double const *base_addr, __m128i vindex); // SSE2
+extern __m128d _mm_i64sgather_pd(double const *base_addr, __m128i vindex); // SSE2
 
 // SSE
 #define _mm_abs_ps(v)		_mm_andnot_ps(_mm_set_ps1(-0.f), v)

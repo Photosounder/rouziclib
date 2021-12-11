@@ -9,6 +9,17 @@ double eval_polynomial(double x, double *c, int degree)
 	return y;
 }
 
+xy_t eval_polynomial_xy(xy_t p, xy_t *c, int degree)
+{
+	int i;
+	xy_t r = c[degree];
+
+	for (i=degree-1; i >= 0; i--)
+		r = mad_xy(r, p, c[i]);
+
+	return r;
+}
+
 double eval_polynomial_unrolled(double x, double *c, int degree)
 {
 	double y = c[degree];
@@ -37,6 +48,36 @@ double eval_polynomial_unrolled(double x, double *c, int degree)
 	}
 
 	return y;
+}
+
+xy_t eval_polynomial_unrolled_xy(xy_t p, xy_t *c, int degree)
+{
+	xy_t r = c[degree];
+
+	switch (degree)
+	{
+		case 19: mad_xy(r, p, c[18]);
+		case 18: mad_xy(r, p, c[17]);
+		case 17: mad_xy(r, p, c[16]);
+		case 16: mad_xy(r, p, c[15]);
+		case 15: mad_xy(r, p, c[14]);
+		case 14: mad_xy(r, p, c[13]);
+		case 13: mad_xy(r, p, c[12]);
+		case 12: mad_xy(r, p, c[11]);
+		case 11: mad_xy(r, p, c[10]);
+		case 10: mad_xy(r, p, c[9]);
+		case 9: mad_xy(r, p, c[8]);
+		case 8: mad_xy(r, p, c[7]);
+		case 7: mad_xy(r, p, c[6]);
+		case 6: mad_xy(r, p, c[5]);
+		case 5: mad_xy(r, p, c[4]);
+		case 4: mad_xy(r, p, c[3]);
+		case 3: mad_xy(r, p, c[2]);
+		case 2: mad_xy(r, p, c[1]);
+		case 1: mad_xy(r, p, c[0]);
+	}
+
+	return r;
 }
 
 double eval_polynomial_2d(xy_t p, double **c, xyi_t degree)

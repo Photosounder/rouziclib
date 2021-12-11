@@ -14,6 +14,10 @@ extern float get_fractional_part_signedf(float f);
 extern double get_fractional_part_signed(double f);
 extern float get_fractional_part_positivef(float f);
 extern double get_fractional_part_positive(double f);
+#ifdef RL_INTEL_INTR
+extern __m128d _mm_get_fractional_part_positive(__m128d md);
+#endif
+extern xy_t get_fractional_part_positive_xy(xy_t f);
 
 extern double double_add_ulp(double x, int ulp);
 extern int64_t double_diff_ulp(double a, double b);

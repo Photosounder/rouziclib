@@ -118,4 +118,18 @@ double fastcos_tr_d5(double x)	// max error: ~9e-016 (compare with 3.41596e-016 
 	//return endsign * (((((c[5]*x + c[4])*x + c[3])*x + c[2])*x + c[1])*x + c[0]);
 }
 
+xy_t fastcos_tr_d3_xy(xy_t v)
+{
+	#ifdef RL_INTEL_INTR
+
+	__m128d md = _mm_load_pd((double *) &v);
+	md = _mm_fastcos_tr_d3(md);
+	_mm_storeu_pd((double *) &v, md);
+	return v;
+
+	#endif
+
+	return func1_xy(v, fastcos_tr_d3);
+}
+
 #endif

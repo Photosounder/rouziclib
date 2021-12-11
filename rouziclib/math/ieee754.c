@@ -88,11 +88,11 @@ __attribute__((__target__("sse4.1")))
 #endif
 double get_fractional_part_positive(double f)
 {
-	//return f - floor(f);			// too slow
+	//return f - floor(f);			// too slow if compiler doesn't use roundsd
 
 	#ifdef RL_INTEL_INTR
 
-	// Not checking for SSE4.1 because it impacts performance by a lot
+	// Produces same opcodes as f - floor(f) with roundsd. Not checking for SSE4.1 because it impacts performance by a lot
 	__m128d md, mt;
 	md = _mm_set_sd(f);
 	mt = _mm_round_sd(md, md, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC);	// SSE4.1 floor(f)
@@ -105,6 +105,31 @@ double get_fractional_part_positive(double f)
 	i &= 0xFFFFFFFF;
 	f = i * 2.3283064365386963e-10;
 	return f;
+}
+
+#ifdef RL_INTEL_INTR
+#ifdef __GNUC__
+__attribute__((__target__("sse4.1")))
+#endif
+__m128d _mm_get_fractional_part_positive(__m128d md)
+{
+	__m128d mt = _mm_round_pd(md, _MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC);	// SSE4.1 floor(f)
+	return _mm_sub_pd(md, mt);
+}
+#endif
+
+xy_t get_fractional_part_positive_xy(xy_t f)
+{
+	#ifdef RL_INTEL_INTR
+
+	__m128d md = _mm_load_pd((double *) &f);
+	md = _mm_get_fractional_part_positive(md);
+	_mm_storeu_pd((double *) &f, md);
+	return f;
+
+	#endif
+
+	return func1_xy(f, get_fractional_part_positive);
 }
 
 double double_add_ulp(double x, int ulp)	// add an integer to the mantissa of a double
