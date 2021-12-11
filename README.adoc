@@ -227,7 +227,7 @@ Fixed point approximations for the square root, division, log2m exp2, cosine, at
 ** link:rouziclib/approximations/fast_float.c[fast_float.c] / link:rouziclib/approximations/fast_float.h[fast_float.h] +
 Floating point approximations for log2, exp2, pow, the square root (which tends to be slower than just using `sqrt()`), linear to sRGB gamma conversion and exp over a small range.
 
-** link:rouziclib/approximations/fast_cos.c[fast_cos.c] / link:rouziclib/approximations/fastcos.h[fast_cos.h] +
+** link:rouziclib/approximations/fast_cos.c[fast_cos.c] / link:rouziclib/approximations/fast_cos.h[fast_cos.h] +
 Floating point approximations for the cosine at different levels of precision, in turns or radians.
 
 ** link:rouziclib/approximations/simd.c[simd.c] / link:rouziclib/approximations/simd.h[simd.h] +
