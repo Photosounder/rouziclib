@@ -231,7 +231,7 @@ Floating point approximations for log2, exp2, pow, the square root (which tends 
 Floating point approximations for the cosine at different levels of precision, in turns or radians.
 
 ** link:rouziclib/approximations/simd.c[simd.c] / link:rouziclib/approximations/simd.h[simd.h] +
-Intel x86 SIMD versions of Gaussian, error function and linear to sRGB conversion approximations.
+Intel x86 SIMD versions of cosine, Gaussian, error function and linear to sRGB conversion approximations.
 
 * link:rouziclib/graphics[graphics/]
 
