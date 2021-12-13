@@ -481,7 +481,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 	if (te->scroll_mode)
 	{
-		double margin = rect_min_side(box) * 1./12.;
+		double margin = rect_max_side(box) * 1./24.;
 		rect_t text_area = rect_add_margin(box, set_xy(-margin));
 
 		// Scaling knob
