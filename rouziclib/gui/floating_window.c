@@ -77,6 +77,14 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 			layout->offset = add_xy(layout->offset, offset);
 		}
 
+		// Adjust the scaling too if the bar is larger than the screen
+		double bao_scaling = min_of_xy(div_xy(get_rect_dim(zc.corners), get_rect_dim(bao_moved)));
+		layout->sm *= MINN(1., bao_scaling);
+
+		// Adjust scaling if the bar is smaller than 12 px
+		bao_scaling = 12. / (get_rect_dim(bao_moved).y * zc.scrscale);
+		layout->sm *= MAXN(1., bao_scaling);
+
 		if (parent_area)
 			*diag_on = 1;		// this means the dialog is detached
 	}
