@@ -307,16 +307,50 @@ frgb_t get_raster_pixel_bilinear_frgb(raster_t r, xy_t p)
 	recti_t pri;
 	frgb_t pv={0};
 
+	// Calc position
 	p_rect = rect(floor_xy(p), ceil_xy(p));
 	pri = rect_to_recti(p_rect);
 	t = sub_xy(p, p_rect.p0);
 
+	// Interpolate
 	pv =               mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, pri.p0), (1.-t.x) * (1.-t.y));
 	pv = add_frgba(pv, mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, recti_p01(pri)), (1.-t.x) * t.y));
 	pv = add_frgba(pv, mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, recti_p10(pri)), t.x * (1.-t.y)));
 	pv = add_frgba(pv, mul_scalar_frgba(get_raster_pixel_in_frgb_xyi(r, pri.p1), t.x * t.y));
 
 	return pv;
+}
+
+void get_pixel_bilinear_double(double *pix, double *im, xyi_t im_dim, xy_t p, int chan_stride, int chan_count)
+{
+	int i, ic;
+	xy_t t;
+	rect_t p_rect;
+	recti_t pri;
+	xyi_t ind[4];
+	double t_mul[4];
+
+	memset(pix, 0, chan_count * sizeof(double));
+
+	// Calc position
+	p_rect = rect(floor_xy(p), ceil_xy(p));
+	pri = rect_to_recti(p_rect);
+	t = sub_xy(p, p_rect.p0);
+	ind[0] = pri.p0;
+	ind[1] = recti_p01(pri);
+	ind[2] = recti_p10(pri);
+	ind[3] = pri.p1;
+
+	t_mul[0] = (1.-t.x) * (1.-t.y);
+	t_mul[1] = (1.-t.x) * t.y;
+	t_mul[2] = t.x * (1.-t.y);
+	t_mul[3] = t.x * t.y;
+
+	// Interpolate
+	for (i=0; i < 4; i++)
+		for (ic=0; ic < chan_count; ic++)
+			if (ind[i].y >= 0 && ind[i].y < im_dim.y && ind[i].x >= 0 && ind[i].x < im_dim.x)
+				pix[ic] += im[(ind[i].y * im_dim.x + ind[i].x)*chan_stride + ic] * t_mul[i];
 }
 
 // Functions that process a whole image using a pointer to a per-pixel processing function

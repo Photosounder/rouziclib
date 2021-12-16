@@ -5,6 +5,7 @@ extern void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim,
 extern void blit_scale_float_autoscale(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const int channels, float * (*get_pix_f)(void*,xyi_t,xyi_t,int));
 extern void image_downscale_fast_box(raster_t r0, raster_t *r1, const xyi_t ratio, const int mode);
 extern frgb_t get_raster_pixel_bilinear_frgb(raster_t r, xy_t p);
+extern void get_pixel_bilinear_double(double *pix, double *im, xyi_t im_dim, xy_t p, int chan_stride, int chan_count);
 extern void image_pixel_process_arg0(raster_t r, const int mode, void (*func)(void));
 extern void image_pixel_process_arg1f(raster_t r, const int mode, void (*func)(void), float arg1);
 extern void pixel_invert_linear(float *p0, float *p1);
