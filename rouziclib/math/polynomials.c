@@ -117,6 +117,28 @@ void eval_polynomial_mpfr(real_t y, real_t x, real_t *c, int degree)
 }
 #endif
 
+double eval_chebyshev_polynomial(double x, double *cm, int degree)
+{
+	int id;
+	double b1=0., b2, y;
+
+	if (degree == 0)
+		return cm[0];
+
+	// Clenshaw evaluation
+	y = cm[degree];
+	for (id = degree-1; id >= 1; id--)
+	{
+		b2 = b1;
+		b1 = y;
+		y = cm[id] + 2.*x*b1 - b2;
+	}
+
+	y = cm[0] + x*y - b1;
+
+	return y;
+}
+
 double get_polynomial_error(double (*f)(double), double start, double end, double *c, int degree, int errmode)
 {
 	int i;

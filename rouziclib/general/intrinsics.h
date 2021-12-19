@@ -6,6 +6,7 @@ enum cpu_feat_n
 	CPU_HAS_SSE4_1,
 	CPU_HAS_SSE4_2,
 	CPU_HAS_FMA,
+	CPU_HAS_F16C,
 	CPU_HAS_BMI1,
 	CPU_HAS_BMI2,
 	CPU_HAS_AVX,
@@ -26,6 +27,7 @@ static int check_ssse3() { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_S
 static int check_sse41() { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_SSE4_1);	return v; }
 static int check_sse42() { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_SSE4_2);	return v; }
 static int check_fma()   { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_FMA);	return v; }
+static int check_f16c()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_F16C);	return v; }
 static int check_avx()   { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_AVX);	return v; }
 static int check_avx2()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_AVX2);	return v; }
 
@@ -42,7 +44,6 @@ static int check_avx2()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_A
 
 #ifdef __EMSCRIPTEN__
 #include <xmmintrin.h>
-#include <wasm_simd128.h>
 #endif
 
 #ifndef RL_EXCL_INTEL_INTR

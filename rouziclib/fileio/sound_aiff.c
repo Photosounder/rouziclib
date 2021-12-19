@@ -39,7 +39,7 @@ float *load_sound_aiff_mem(const uint8_t *data, size_t data_len, size_t *sample_
 	int32_t (*func_read)(const uint8_t *, size_t *) = read_byte8s;
 
 	// Common chunk
-	p = memmem(data, data_len, "COMM", 4);
+	p = memmem_rl(data, data_len, "COMM", 4);
 	if (p==NULL)
 	{
 		fprintf_rl(stderr, "In load_sound_aiff_mem(): No COMM tag found, not a valid AIFF file.\n");
@@ -72,7 +72,7 @@ float *load_sound_aiff_mem(const uint8_t *data, size_t data_len, size_t *sample_
 	}
 
 	// Sound data
-	p = memmem(data, data_len, "SSND", 4);
+	p = memmem_rl(data, data_len, "SSND", 4);
 	if (p==NULL)
 	{
 		fprintf_rl(stderr, "In load_sound_aiff_mem(): No SSND tag found, not a valid AIFF file.\n");

@@ -23,9 +23,9 @@ size_t http_request(char *domain, char *port, char *request, int timeout, int re
 			defli = 0;
 			while (pe != &tcpdata[datasize])
 			{
-				p = memmem(p, &tcpdata[datasize]-p, "\r\n\r\n", 4);
+				p = memmem_rl(p, &tcpdata[datasize]-p, "\r\n\r\n", 4);
 				p = &p[4];									// point to the start of the current gzip packet
-				pe = memmem(&p[1], &tcpdata[datasize]-&p[1], "HTTP/1.", strlen("HTTP/1."));	// point to the end of that packet
+				pe = memmem_rl(&p[1], &tcpdata[datasize]-&p[1], "HTTP/1.", strlen("HTTP/1."));	// point to the end of that packet
 				if (pe==NULL)									// when we do the last packet
 					pe = &tcpdata[datasize];
 

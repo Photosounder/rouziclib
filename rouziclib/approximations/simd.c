@@ -121,7 +121,7 @@ __m128d _mm_fastcos_tr_d3(__m128d x)	// max error: 1.88958e-009
 	x = _mm_get_fractional_part_positive(x);
 
 	// Add offset and mask mantissa
-	lutind = _mm_castpd_si128(_mm_and_pd(_mm_add_pd(x, _mm_set_pd1(2.)), _mm_castsi128_pd(_mm_set1_epi64x(0x000FF00000000000ULL))));
+	lutind = _mm_castpd_si128(_mm_and_pd(_mm_add_pd(x, _mm_set1_pd(2.)), _mm_castsi128_pd(_mm_set1_epi64x(0x000FF00000000000ULL))));
 
 	// Shift mantissa to make index (premultiplied by 4)
 	lutind = _mm_srli_epi64(lutind, ish);

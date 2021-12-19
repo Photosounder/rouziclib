@@ -20,6 +20,7 @@ int check_cpuinfo(const enum cpu_feat_n fid)
 		break;	case CPU_HAS_SSE4_1:	ret = info1[2] & (1 << 19);
 		break;	case CPU_HAS_SSE4_2:	ret = info1[2] & (1 << 20);
 		break;	case CPU_HAS_FMA:	ret = info1[2] & (1 << 12);
+		break;	case CPU_HAS_F16C:	ret = info1[2] & (1 << 29);
 		break;	case CPU_HAS_BMI1:	ret = info7[1] & (1 << 3);
 		break;	case CPU_HAS_BMI2:	ret = info7[1] & (1 << 8);
 		break;	case CPU_HAS_AVX512F:	ret = info7[1] & (1 << 16);

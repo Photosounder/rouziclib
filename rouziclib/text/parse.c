@@ -288,8 +288,7 @@ const char *strstr_after(const char *fullstr, const char *substr)		// points to 
 	return NULL;
 }
 
-#if defined( _WIN32 ) || defined( __EMSCRIPTEN__ )
-void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// like strstr but binary
+void *memmem_rl(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// like strstr but binary
 {
 	int i;
 
@@ -306,7 +305,6 @@ void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// 
 
 	return NULL;
 }
-#endif
 
 int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix)		// returns 1 if the words are equal
 {

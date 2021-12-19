@@ -6,6 +6,7 @@ extern double randrange(double low, double high);
 extern double gaussian_rand();
 extern xy_t gaussian_rand_xy();
 extern double gaussian_rand_approx();
+extern double gaussian_rand_approx_pos(uint32_t pos);
 extern xy_t gaussian_rand_approx_xy();
 
 /*extern int pow_mod(int base, uint32_t expon, uint32_t mod);

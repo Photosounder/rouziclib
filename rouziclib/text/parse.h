@@ -19,9 +19,7 @@ extern int string_find_start_nth_line(const char *text, int len, int n);
 extern char **arrayise_text(char *text, int *linecount);
 extern const char *strstr_i(const char *fullstr, const char *substr);
 extern const char *strstr_after(const char *fullstr, const char *substr);
-#if defined( _MSC_VER ) || defined( __EMSCRIPTEN__ )
-extern void *memmem(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len);
-#endif
+extern void *memmem_rl(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len);
 extern int compare_varlen_word_to_fixlen_word(const char *var, size_t varlen, const char *fix);
 extern int strcmp_len2(const char *str1, const char *str2);
 extern const char *find_pattern_in_string(const char *str, const char *pat);
