@@ -63,7 +63,7 @@ function em_sync_by_mutex_js(lock)
 }
 
 // Audio worklet
-var AudioContext = window.AudioContext;
+/*var AudioContext = window.AudioContext;
 var ac = new AudioContext();
 var text = "registerProcessor('test-param', class param extends AudioWorkletProcessor { constructor() { super(); } process(input, output, parameters) { return true; } });";
 const blob = new Blob([text], {type: "application/javascript"});
@@ -71,4 +71,4 @@ const blob = new Blob([text], {type: "application/javascript"});
 var url = URL.createObjectURL(blob);
 ac.audioWorklet.addModule(url).then(() => {
   var node = new AudioWorkletNode(ac, 'test-param');
-});
+});*/

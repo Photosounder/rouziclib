@@ -139,6 +139,52 @@ double eval_chebyshev_polynomial(double x, double *cm, int degree)
 	return y;
 }
 
+xy_t eval_chebyshev_polynomial_xy(xy_t x, xy_t *cm, int degree)
+{
+	int id;
+	xy_t b1=XY0, b2, y;
+
+	if (degree == 0)
+		return cm[0];
+
+	// Clenshaw evaluation
+	y = cm[degree];
+	for (id = degree-1; id >= 1; id--)
+	{
+		b2 = b1;
+		b1 = y;
+		y = mad_xy(mul_xy(set_xy(2.), x), b1, cm[id]);
+		y = sub_xy(y, b2);
+	}
+
+	y = mad_xy(x, y, cm[0]);
+	y = sub_xy(y, b1);
+
+	return y;
+}
+
+void integrate_chebyshev_coefs(double *cm, int degree, double *cmi)	// cmi is assumed to be allocated to degree+2, cmi[0] unset
+{									// cmi should be multiplied by the scaling ratio (end-start)*0.5
+	int id;
+
+	// Degree 0
+	cmi[1] = cm[0];
+	if (degree <= 0)
+		return;
+
+	// Degree 1
+	cmi[2] = 0.25 * cm[1];
+	if (degree <= 1)
+		return;
+
+	// Degrees 2 and above
+	for (id=2; id <= degree; id++)
+	{
+		cmi[id-1] -= cm[id] / (2. * (double) (id-1));
+		cmi[id+1] = cm[id] / (2. * (double) (id+1));
+	}
+}
+
 double get_polynomial_error(double (*f)(double), double start, double end, double *c, int degree, int errmode)
 {
 	int i;
@@ -1045,6 +1091,22 @@ void polynomial_fit_on_function_by_dct_count(double (*f)(double), double start, 
 void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree, double (*cos_func)(double))
 {
 	polynomial_fit_on_function_by_dct_count(f, start, end, c, degree, 1000, cos_func);
+}
+
+void chebyshev_analysis_on_function(double (*f)(double), double start, double end, double *cm, int degree, int p_count, double (*cos_func)(double))
+{
+	int i, id;
+	double *y = calloc(p_count, sizeof(double));
+
+	// Compute the points
+	for (i=0; i < p_count; i++)
+		y[i] = f((end-start) * (0.5+0.5*chebyshev_node(p_count, i)) + start);
+
+	// Compute the coefficients
+	for (id=0; id <= degree; id++)
+		cm[id] = chebyshev_multiplier_by_dct(y, p_count, id, cos_func);	// get the Chebyshev multiplier for degree id
+
+	free(y);
 }
 
 void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_t end, double **c)
