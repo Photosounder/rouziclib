@@ -334,6 +334,9 @@ void my_window_function(double *arg1, double *arg2)
 			draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
 		}
 
+		// A child window can be made to not always be above its parents by using a condition to setting its parent
+		window_set_parent(child1_func, NULL, child1_detach ? NULL : parent_window_function, NULL);
+
 //**** Keyboard input ****
 
 	// Get state by scancode
@@ -838,4 +841,5 @@ void my_window_function(double *arg1, double *arg2)
 	// add NULL as 2nd and 4th arguments of window_set_parent()
 
 	// 211116 transition of removing rect_t parent_area and int *wind_on in window functions
-	// remove the two first arguments and replace every instance with cur_parent_area (rect_t) and cur_wind_on (int *)
+	// remove the two first arguments and replace every instance with &cur_parent_area (rect_t) and cur_wind_on (int *) typically resulting in:
+		draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);

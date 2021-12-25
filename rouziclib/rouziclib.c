@@ -37,6 +37,7 @@
 #include "geometry/misc.c"
 #include "math/functions.c"
 #include "math/ieee754.c"
+#include "math/double_double_arithmetic.c"
 #include "math/rand.c"
 #include "math/dsp.c"
 #include "math/dct.c"

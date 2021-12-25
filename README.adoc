@@ -195,6 +195,9 @@ Basic math functions, the inverse error function, the integral of the error func
 ** link:rouziclib/math/ieee754.c[ieee754.c] / link:rouziclib/math/ieee754.h[ieee754.h] +
 IEEE-754 floating point manipulation, fractional part calculation and dealing with numbers at the level of https://en.wikipedia.org/wiki/Unit_in_the_last_place[units of least precision] to guarantee incrementation or make floating point comparisons that take a degree of error into account.
 
+** link:rouziclib/math/double_double_arithmetic.c[double_double_arithmetic.c] / link:rouziclib/math/double_double_arithmetic.h[double_double_arithmetic.h] +
+https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#Double-double_arithmetic[Double-double arithmetic] for higher precision calculations. Mainly based on code from https://github.com/tuwien-cms/xprec/blob/mainline/csrc/[there] which is itself based on the https://github.com/scibuilder/QD/[QD library].
+
 ** link:rouziclib/math/rand.c[rand.c] / link:rouziclib/math/rand.h[rand.h] +
 Functions to generate uniform pseudo-random numbers in a given range, nmumbers with a normal (Gaussian) distribution and a PRNG based on https://github.com/skeeto/hash-prospector[xorshift-multiply hashing].
 
@@ -214,7 +217,7 @@ Euler physical integration.
 Something used by my graphing calculator.
 
 ** link:rouziclib/math/polynomials.c[polynomials.c] / link:rouziclib/math/polynomials.h[polynomials.h] +
-Polynomial evaluation (1D and 2D), error calculation for approximations, coefficient operations, Chebyshev fitting by discrete cosine transform, conversion of Chebyshev coefficients to polynomial coefficients, digit reduction to make coefficients take up less digits and an attempt at optimising fits to reduce the maximum error.
+Polynomial evaluation (1D and 2D), error calculation for approximations, coefficient operations, Chebyshev fitting by discrete cosine transform, conversion of Chebyshev coefficients to polynomial coefficients, digit reduction to make coefficients take up less digits and an attempt at optimising fits to reduce the maximum error, evaluation of Chebyshev coefficients by the Clenshaw method, integration of Chebyshev polynomials.
 
 ** link:rouziclib/math/erf_radlim.c[erf_radlim.c] / link:rouziclib/math/erf_radlim.h[erf_radlim.h] +
 Part of my attempts at directly computing Gaussian-antialiased triangles.
