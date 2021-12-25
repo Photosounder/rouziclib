@@ -377,7 +377,7 @@ lvl0_start:
 	}
 
 	// Level 3 average and write pixel to mipmap
-	pix[3][i3] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[1][0], pix[1][1]) , _mm_add_ps(pix[1][2], pix[1][3])));
+	pix[3][i3] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[2][0], pix[2][1]) , _mm_add_ps(pix[2][2], pix[2][3])));
 	m->set_pixel_ps(rp[3], posy[3] + ip[3].x, pix[3][i3]);
 
 	switch (i3)
@@ -418,7 +418,7 @@ lvl0_start:
 	}
 
 	// Level 4 average and write pixel to mipmap
-	pix[4][i4] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[1][0], pix[1][1]) , _mm_add_ps(pix[1][2], pix[1][3])));
+	pix[4][i4] = _mm_mul_ps(_mm_set_ps1(0.25f), _mm_add_ps(_mm_add_ps(pix[3][0], pix[3][1]) , _mm_add_ps(pix[3][2], pix[3][3])));
 	m->set_pixel_ps(rp[4], posy[4] + ip[4].x, pix[4][i4]);
 
 	return pix[4][0];
