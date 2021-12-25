@@ -100,7 +100,7 @@ int rlip_execute_opcode(rlip_t *d)
 			break;
 
 			default:
-				fprintf_rl(stderr, "Invalid opcode '%d' at op[%d]\n", op[0], (op - d->op) / sizeof(opint_t));
+				fprintf_rl(stderr, "Invalid opcode '%d' at op[%zu]\n", op[0], (op - d->op) / sizeof(opint_t));
 				return -2;
 		}
 
