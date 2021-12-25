@@ -163,25 +163,26 @@ xy_t eval_chebyshev_polynomial_xy(xy_t x, xy_t *cm, int degree)
 	return y;
 }
 
-void integrate_chebyshev_coefs(double *cm, int degree, double *cmi)	// cmi is assumed to be allocated to degree+2, cmi[0] unset
-{									// cmi should be multiplied by the scaling ratio (end-start)*0.5
+void integrate_chebyshev_coefs(double *cm, int degree, double *cmi, double span)	// cmi is assumed to be allocated to degree+2, cmi[0] unset
+{
 	int id;
+	double scale = span * 0.5;
 
 	// Degree 0
-	cmi[1] = cm[0];
+	cmi[1] = scale * cm[0];
 	if (degree <= 0)
 		return;
 
 	// Degree 1
-	cmi[2] = 0.25 * cm[1];
+	cmi[2] = scale * 0.25 * cm[1];
 	if (degree <= 1)
 		return;
 
 	// Degrees 2 and above
 	for (id=2; id <= degree; id++)
 	{
-		cmi[id-1] -= cm[id] / (2. * (double) (id-1));
-		cmi[id+1] = cm[id] / (2. * (double) (id+1));
+		cmi[id-1] -= scale * cm[id] / (2. * (double) (id-1));
+		cmi[id+1] = scale * cm[id] / (2. * (double) (id+1));
 	}
 }
 
