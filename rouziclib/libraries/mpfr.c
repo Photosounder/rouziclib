@@ -72,4 +72,10 @@ ddouble_t mpfr_to_ddouble(real_t v)
 	return r;
 }
 
+void ddouble_to_mpfr(real_t r, ddouble_t v)
+{
+	r_setd(r, v.hi);
+	r_addd(r, v.lo);
+}
+
 #endif

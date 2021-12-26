@@ -352,6 +352,36 @@ void make_cos_double_double_approx()
 	r_free(v);
 }
 
+void test_cos_ddouble()
+{
+	int i;
+	real_t x, ym, yq;
+	ddouble_t r;
+	double err, maxerr=0.;
+
+	r_init(x);
+	r_init(ym);
+	r_init(yq);
+
+	r_setd(x, -0.2);
+	for (; mpfr_cmp_d(x, 1.4) < 0; r_addd(x, 0.0098431537))
+	{
+		f_cos(ym, x);
+		r = cos_tr_q(mpfr_to_ddouble(x));
+		ddouble_to_mpfr(yq, r);
+		r_sub(yq, ym);
+		r_abs(yq);
+		err = r_todouble(yq);
+		maxerr = MAXN(err, maxerr);
+	}
+
+	fprintf(stdout, "Max error of cos_tr_q(): %.5e\n", maxerr);
+
+	r_free(x);
+	r_free(ym);
+	r_free(yq);
+}
+
 // Sinc windowed with squared gaussian window
 
 void r_squared_gaussian_window(real_t y, real_t x, real_t w)
@@ -970,6 +1000,7 @@ int main(int argc, char **argv)
 	//make_erf_radlim_mid_table(3, 1./4.);		// causes SIGSEGV for some reason
 
 	make_cos_double_double_approx();
+	test_cos_ddouble();
 /*	make_cos_table_human(atoi(argv[1]), 0.01);
 	make_cos_table(2, 5, 4);	// 1/2 kB, float err 4.2e-006, double err 6.159e-007
 	make_cos_table(3, 5, 4);	// 3 kB, err 1.88958e-009
