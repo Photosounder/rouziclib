@@ -15,3 +15,8 @@ typedef struct
 	uint8_t *buf;
 	size_t as, len;		// len for strings excludes the nul end character
 } buffer_t;
+
+typedef struct
+{
+	double hi, lo;
+} ddouble_t;

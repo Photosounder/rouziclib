@@ -1,28 +1,29 @@
 // Based on https://github.com/tuwien-cms/xprec/blob/mainline/csrc/dd_arith.h itself based on https://github.com/scibuilder/QD/blob/master/include/qd/inline.h / https://github.com/scibuilder/QD/blob/master/include/qd/dd_inline.h
 
-typedef struct
-{
-	double hi, lo;
-} ddouble_t;
+// in ../general/structs.h
+// ddouble_t
 
 extern ddouble_t add_dd_q_quick(double a, double b);
 extern ddouble_t add_dd_q(double a, double b);
 extern ddouble_t sub_dd_q(double a, double b);
 extern ddouble_t mul_dd_q(double a, double b);
 
-extern ddouble_t add_qd(ddouble_t x, double y);
-extern ddouble_t sub_qd(ddouble_t x, double y);
-extern ddouble_t sub_dq(double x, ddouble_t y);
-extern ddouble_t mul_qd(ddouble_t x, double y);
-extern ddouble_t div_qd(ddouble_t x, double y);
-extern ddouble_t div_dq(double x, ddouble_t y);
+extern ddouble_t add_qd(ddouble_t a, double b);
+extern ddouble_t sub_qd(ddouble_t a, double b);
+extern ddouble_t sub_dq(double a, ddouble_t b);
+extern ddouble_t mul_qd(ddouble_t a, double b);
+extern ddouble_t div_qd(ddouble_t a, double b);
+extern ddouble_t div_dq(double a, ddouble_t b);
 
 extern ddouble_t neg_q(ddouble_t a);
-extern ddouble_t recip_q(ddouble_t y);
-extern ddouble_t add_qq(ddouble_t x, ddouble_t y);
-extern ddouble_t sub_qq(ddouble_t x, ddouble_t y);
+extern ddouble_t recip_q(ddouble_t b);
+extern ddouble_t add_qq(ddouble_t a, ddouble_t b);
+extern ddouble_t sub_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t mul_qq(ddouble_t a, ddouble_t b);
-extern ddouble_t div_qq(ddouble_t x, ddouble_t y);
+extern ddouble_t div_qq(ddouble_t a, ddouble_t b);
+
+extern int cmp_qq(const ddouble_t *a, const ddouble_t *b);
+extern int cmp_qd(const ddouble_t *a, const double *b);
 
 static const ddouble_t Q_ZERO =	{0., 0.};
 static const ddouble_t Q_ONE =	{1., 0.};

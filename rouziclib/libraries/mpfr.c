@@ -54,4 +54,22 @@ void r_mix(real_t x, double t, real_t start, real_t end)	// x = (end-start)*t + 
 	r_add(x, start);
 }
 
+ddouble_t mpfr_to_ddouble(real_t v)
+{
+	ddouble_t r;
+	real_t d;
+
+	// Make hi part
+	r.hi = r_todouble(v);
+
+	// Make lo part by difference between v and r.hi
+	r_init(d);
+	r_setd(d, r.hi);
+	r_rsub(d, v, d);		// difference (remainder)
+	r.lo = r_todouble(d);
+	r_free(d);
+
+	return r;
+}
+
 #endif
