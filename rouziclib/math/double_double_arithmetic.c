@@ -191,6 +191,7 @@ ddouble_t cos_tr_q(ddouble_t x)
 		{-8.522886041732633963e-24, 8.532437825678034454e-41},  // T_22
 		{9.544663034057627948e-27, 1.151960091453906345e-43},   // T_24
 		{-9.074481245220183057e-30, -4.298448379283649233e-46}, // T_26
+		{7.415916419082441039e-33, 5.109528734073711531e-49},   // T_28		
 	};
 
 	// x = ]-inf , +inf[ --> x = [0 , 1[
@@ -212,7 +213,7 @@ ddouble_t cos_tr_q(ddouble_t x)
 	x = mul_qd_simple(x, 4.);
 
 	// Chebyshev evaluation
-	y = eval_chebyshev_polynomial_even_q(x, cm, 26);
+	y = eval_chebyshev_polynomial_even_q(x, cm, 28);
 
 	return mul_qd_simple(y, endsign);
 }

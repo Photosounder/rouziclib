@@ -123,7 +123,7 @@ double eval_chebyshev_polynomial(double x, double *cm, int degree)
 	return y;
 }
 
-double eval_chebyshev_polynomial_even(double x, double *cm, int degree)	// here cm is multipliers for T_0, T_2, T_4, ...
+double eval_chebyshev_polynomial_even(double x, double *cm, int degree)		// here cm is multipliers for T_0, T_2, T_4, ...
 {
 	int id;
 	double b1=0., b2, y;
