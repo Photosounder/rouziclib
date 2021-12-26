@@ -4,6 +4,8 @@ extern double eval_polynomial_unrolled(double x, double *c, int degree);
 extern xy_t eval_polynomial_unrolled_xy(xy_t p, xy_t *c, int degree);
 extern double eval_polynomial_2d(xy_t p, double **c, xyi_t degree);
 extern double eval_chebyshev_polynomial(double x, double *cm, int degree);
+extern double eval_chebyshev_polynomial_even(double x, double *cm, int degree);
+extern ddouble_t eval_chebyshev_polynomial_even_q(ddouble_t x, ddouble_t *cm, int degree);
 extern xy_t eval_chebyshev_polynomial_xy(xy_t x, xy_t *cm, int degree);
 extern void integrate_chebyshev_coefs(double *cm, int degree, double *cmi, double span);
 extern double get_polynomial_error(double (*f)(double), double start, double end, double *c, int degree, int errmode);

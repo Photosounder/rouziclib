@@ -123,6 +123,81 @@ double eval_chebyshev_polynomial(double x, double *cm, int degree)
 	return y;
 }
 
+double eval_chebyshev_polynomial_even(double x, double *cm, int degree)	// here cm is multipliers for T_0, T_2, T_4, ...
+{
+	int id;
+	double b1=0., b2, y;
+
+	degree >>= 1;
+
+	if (degree == 0)
+		return cm[0];
+
+	// Clenshaw evaluation
+	y = cm[degree];
+	for (id = degree-1; id >= 1; id--)
+	{
+		b2 = b1;
+		b1 = y;
+		y = 2.*x*b1 - b2;
+		b2 = b1;
+		b1 = y;
+		y = cm[id] + 2.*x*b1 - b2;
+	}
+
+	b2 = b1;
+	b1 = y;
+	y = 2.*x*b1 - b2;
+	y = cm[0] + x*y - b1;
+
+	return y;
+}
+
+ddouble_t eval_chebyshev_polynomial_even_q(ddouble_t x, ddouble_t *cm, int degree)	// here cm is multipliers for T_0, T_2, T_4, ...
+{
+	int id;
+	ddouble_t b1={0}, b2, y;
+
+	degree >>= 1;
+
+	if (degree == 0)
+		return cm[0];
+
+	// Clenshaw evaluation
+	y = cm[degree];
+	for (id = degree-1; id >= 1; id--)
+	{
+		b2 = b1;
+		b1 = y;
+
+		//y = 2.*x*b1 - b2;
+		y = mul_qd_simple(mul_qq(x, b1), 2.);
+		y = sub_qq(y, b2);
+
+		b2 = b1;
+		b1 = y;
+
+		//y = cm[id] + 2.*x*b1 - b2;
+		y = mul_qd_simple(mul_qq(x, b1), 2.);
+		y = sub_qq(y, b2);
+		y = add_qq(cm[id], y);
+	}
+
+	b2 = b1;
+	b1 = y;
+
+	//y = 2.*x*b1 - b2;
+	y = mul_qd_simple(mul_qq(x, b1), 2.);
+	y = sub_qq(y, b2);
+
+	//y = cm[0] + x*y - b1;
+	y = mul_qq(x, y);
+	y = sub_qq(y, b1);
+	y = add_qq(cm[0], y);
+
+	return y;
+}
+
 xy_t eval_chebyshev_polynomial_xy(xy_t x, xy_t *cm, int degree)
 {
 	int id;

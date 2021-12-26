@@ -11,7 +11,7 @@
 #include "../rouziclib/rouziclib.h"
 #include "../rouziclib/rouziclib.c"
 
-#define PREC	256
+#define PREC	512
 
 #define COEF_COUNT 100
 
@@ -267,7 +267,7 @@ double k=0., errmin=1., mink;
 
 void make_cos_table_human(const int cos_order, const double step)	// cos_order is <= 6
 {
-	int32_t i, is, segcount, prec;
+	int32_t i, is, segcount;
 	real_t c[COEF_COUNT];
 	real_t segstep, segstart, segend, maxseg;
 	double end=1., err, maxerr=0.;
@@ -320,6 +320,36 @@ void make_cos_table_human(const int cos_order, const double step)	// cos_order i
 	fclose (file);
 
 	printf("\nMax error: %g\n", maxerr);
+}
+
+void make_cos_double_double_approx()
+{
+	int i;
+	const int degree = 60, p_count = 1000;
+	real_t *cm;
+	real_t start, end, v;
+
+	cm = r_init_array(degree+1);
+
+	r_init(start);
+	r_setd(start, -0.25);
+	r_init(end);
+	r_setd(end, 0.25);
+	r_init(v);
+
+	chebyshev_analysis_on_function_mpfr(f_cos, start, end, cm, degree, p_count);
+	
+	for (i=0; i <= degree; i++)
+	{
+		mpfr_abs(v, cm[i], MPFR_RNDN);
+		if (mpfr_cmp_d(v, 1e-150) > 0)
+		{
+			//mpfr_fprintf(stdout, "T_%d(x) * % .32Rg\n", i, cm[i]);
+			ddouble_t q = mpfr_to_ddouble(cm[i]);
+			fprintf(stdout, "{%.19g, %.19g},	// T_%d\n", q.hi, q.lo, i);
+		}
+	}
+	r_free(v);
 }
 
 // Sinc windowed with squared gaussian window
@@ -939,12 +969,13 @@ int main(int argc, char **argv)
 
 	//make_erf_radlim_mid_table(3, 1./4.);		// causes SIGSEGV for some reason
 
-//	make_cos_table_human(atoi(argv[1]), 0.01);
+	make_cos_double_double_approx();
+/*	make_cos_table_human(atoi(argv[1]), 0.01);
 	make_cos_table(2, 5, 4);	// 1/2 kB, float err 4.2e-006, double err 6.159e-007
 	make_cos_table(3, 5, 4);	// 3 kB, err 1.88958e-009
 	make_cos_table(4, 5, 2);	// 2 kB, err 4.63742e-012
 	make_cos_table(5, 6, 1);	// 2.5 kB, err ~9e-016, pure err 1.48783e-016
-/*	make_wsinc_table(2, 5, 6.625, 1.6083);
+	make_wsinc_table(2, 5, 6.625, 1.6083);
 	make_cos_table_human(2, 0.01);
 
 	cos_error_curve();

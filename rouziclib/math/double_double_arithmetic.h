@@ -15,15 +15,19 @@ extern ddouble_t mul_qd(ddouble_t a, double b);
 extern ddouble_t div_qd(ddouble_t a, double b);
 extern ddouble_t div_dq(double a, ddouble_t b);
 
-extern ddouble_t neg_q(ddouble_t a);
-extern ddouble_t recip_q(ddouble_t b);
 extern ddouble_t add_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t sub_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t mul_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t div_qq(ddouble_t a, ddouble_t b);
+extern ddouble_t neg_q(ddouble_t a);
+extern ddouble_t recip_q(ddouble_t b);
+extern ddouble_t mul_qd_simple(ddouble_t a, double m);
 
 extern int cmp_qq(const ddouble_t *a, const ddouble_t *b);
-extern int cmp_qd(const ddouble_t *a, const double *b);
+extern int cmp_qd(const ddouble_t a, const double b);
+
+extern ddouble_t floor_q(ddouble_t a);
+extern ddouble_t cos_tr_q(ddouble_t x);
 
 static const ddouble_t Q_ZERO =	{0., 0.};
 static const ddouble_t Q_ONE =	{1., 0.};
