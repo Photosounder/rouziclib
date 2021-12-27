@@ -29,12 +29,7 @@ double get_polynomial_error_mpfr(void (*f)(real_t,real_t), real_t start, real_t 
 	for (i=0; i <= 1000; i++)
 	{
 		r_mix(x, (double) i / 1000., start, end);
-
-		// polynomial
-		r_set(a, c[degree-1]);
-		for (ic=degree-2; ic >= 0; ic--)
-			r_fma(a, a, x, c[ic]);
-
+		eval_polynomial_mpfr(a, x, c, degree);
 		f(b, x);
 
 		if (errmode==DIVMODE)

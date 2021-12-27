@@ -31,10 +31,10 @@ extern ddouble_t cos_tr_q(ddouble_t x);
 
 static const ddouble_t Q_ZERO =	{0., 0.};
 static const ddouble_t Q_ONE =	{1., 0.};
-static const ddouble_t Q_2PI =	{6.283185307179586232, 2.449293598294706414e-16};
-static const ddouble_t Q_PI =	{3.141592653589793116, 1.224646799147353207e-16};
-static const ddouble_t Q_PI_2 = {1.570796326794896558, 6.123233995736766036e-17};
-static const ddouble_t Q_PI_4 = {0.785398163397448279, 3.061616997868383018e-17};
-static const ddouble_t Q_E =	{2.718281828459045091, 1.445646891729250158e-16};
-static const ddouble_t Q_LOG2 = {0.6931471805599452862, 2.319046813846299558e-17};
-static const ddouble_t Q_LOG10 = {2.302585092994045901, -2.170756223382249351e-16};
+static const ddouble_t Q_2PI =	{6.2831853071795862, 2.4492935982947064e-16};
+static const ddouble_t Q_PI =	{3.1415926535897931, 1.2246467991473532e-16};
+static const ddouble_t Q_PI_2 = {1.5707963267948966, 6.123233995736766e-17};
+static const ddouble_t Q_PI_4 = {0.7853981633974483, 3.061616997868383e-17};
+static const ddouble_t Q_E =	{2.7182818284590451, 1.4456468917292502e-16};
+static const ddouble_t Q_LOG2 = {0.69314718055994528, 2.3190468138462996e-17};
+static const ddouble_t Q_LOG10 = {2.3025850929940459, -2.1707562233822494e-16};

@@ -57,6 +57,7 @@ extern void r_gaussian(real_t y, real_t x);
 extern void r_mix(real_t x, double t, real_t start, real_t end);
 extern ddouble_t mpfr_to_ddouble(real_t v);
 extern void ddouble_to_mpfr(real_t r, ddouble_t v);
+extern double diff_mpfr_ddouble(real_t m, ddouble_t q);
 
 #else
 

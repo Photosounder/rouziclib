@@ -78,4 +78,17 @@ void ddouble_to_mpfr(real_t r, ddouble_t v)
 	r_addd(r, v.lo);
 }
 
+double diff_mpfr_ddouble(real_t m, ddouble_t q)
+{
+	double r;
+	real_t d;
+
+	r_init(d);
+	ddouble_to_mpfr(d, q);
+	r_sub(d, m);
+	r = r_todouble(d);
+	r_free(d);
+	return r;
+}
+
 #endif

@@ -1,5 +1,6 @@
 extern double eval_polynomial(double x, double *c, int degree);
 extern xy_t eval_polynomial_xy(xy_t p, xy_t *c, int degree);
+extern ddouble_t eval_polynomial_q(ddouble_t x, ddouble_t *c, int degree);
 extern double eval_polynomial_unrolled(double x, double *c, int degree);
 extern xy_t eval_polynomial_unrolled_xy(xy_t p, xy_t *c, int degree);
 extern double eval_polynomial_2d(xy_t p, double **c, xyi_t degree);

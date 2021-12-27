@@ -20,6 +20,17 @@ xy_t eval_polynomial_xy(xy_t p, xy_t *c, int degree)
 	return r;
 }
 
+ddouble_t eval_polynomial_q(ddouble_t x, ddouble_t *c, int degree)
+{
+	int i;
+	ddouble_t r = c[degree];
+
+	for (i=degree-1; i >= 0; i--)
+		r = add_qq(mul_qq(r, x), c[i]);
+
+	return r;
+}
+
 double eval_polynomial_unrolled(double x, double *c, int degree)
 {
 	double y = c[degree];
@@ -253,8 +264,7 @@ double get_polynomial_error(double (*f)(double), double start, double end, doubl
 	err = 0.;
 	for (i=0; i <= 1000; i++)
 	{
-		x = (double) i / 1000.;
-		x = x * (end-start) + start;
+		x = mix(start, end, (double) i / 1000.);
 		y = eval_polynomial(x, c, degree);
 		fx = f(x);
 
