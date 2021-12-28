@@ -15,5 +15,10 @@ typedef struct
 
 typedef struct
 {
+	ddouble_t x, y;
+} xyq_t;
+
+typedef struct
+{
 	xyz_t x, y, z;
 } matrix_t;

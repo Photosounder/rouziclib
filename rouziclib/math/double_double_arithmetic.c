@@ -1,4 +1,20 @@
+// Avoids optimising away certain crucial operations when /fp:fast or -ffast-math are specified
+// Works on MSVC and Clang, not on GCC
+#ifndef _gcc_
+#pragma float_control(push)
+#pragma float_control(precise, on)
+#endif
+
+ddouble_t ddouble(const double v)
+{
+	ddouble_t r = {v, 0.};
+	return r;
+}
+
 // Double to quad basic operations
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t add_dd_q_quick(double a, double b)
 {
 	ddouble_t r;
@@ -7,6 +23,9 @@ ddouble_t add_dd_q_quick(double a, double b)
 	return r;
 }
 
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t add_dd_q(double a, double b)
 {
 	ddouble_t r;
@@ -16,6 +35,9 @@ ddouble_t add_dd_q(double a, double b)
 	return r;
 }
 
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t sub_dd_q(double a, double b)
 {
 	ddouble_t r;
@@ -25,6 +47,9 @@ ddouble_t sub_dd_q(double a, double b)
 	return r;
 }
 
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t mul_dd_q(double a, double b)
 {
 	ddouble_t r;
@@ -58,6 +83,9 @@ ddouble_t mul_qd(ddouble_t a, double b)
 	return add_dd_q_quick(c.hi, fma(a.lo, b, c.lo));
 }
 
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t div_qd(ddouble_t a, double b)
 {
 	double t_hi = a.hi / b;
@@ -94,6 +122,9 @@ ddouble_t sub_qq(ddouble_t a, ddouble_t b)
 }
 
 // Based on https://stackoverflow.com/a/31647953/1675589
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t mul_qq(ddouble_t a, ddouble_t b)
 {
 	ddouble_t r, m;
@@ -114,6 +145,9 @@ ddouble_t mul_qq(ddouble_t a, ddouble_t b)
 	return r;
 }
 
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t div_qq(ddouble_t a, ddouble_t b)
 {
 	double t_hi = a.hi / b.hi;
@@ -132,6 +166,9 @@ ddouble_t neg_q(ddouble_t a)
 	return r;
 }
 
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
 ddouble_t recip_q(ddouble_t b)
 {
 	double t_hi = 1.0 / b.hi;
@@ -184,6 +221,10 @@ ddouble_t floor_q(ddouble_t a)
 
 	return r;
 }
+
+#ifndef _gcc_
+#pragma float_control(pop)
+#endif
 
 #define COS_Q_CHEB
 ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.2e-32 (Chebyshev version, the other is slightly worse)

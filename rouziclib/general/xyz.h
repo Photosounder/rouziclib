@@ -1,35 +1,43 @@
 // in general/xyz_struct.h:
-// xy_t, xyi_t, xyz_t, matrix_t
+// xy_t, xyi_t, xyz_t, xyq_t, matrix_t
 
 #define XY0	xy(0.,0.)
 #define XY1	xy(1.,1.)
 #define XYI0	xyi(0,0)
 #define XYI1	xyi(1,1)
 #define XYZ0	xyz(0.,0.,0.)
+#define XYQ0	set_xyq(ddouble(0.))
 #define XYNAN	xy(NAN,NAN)
 #define zyx(z, y, x)	xyz(x, y, z)
 
 extern xy_t xy(const double x, const double y);
 extern xyz_t xyz(const double x, const double y, const double z);
 extern xyi_t xyi(const int x, const int y);
+extern xyq_t xyq(const ddouble_t x, const ddouble_t y);
 extern void xy_to_v(xy_t a, double *v1, double *v2);
 extern void xyz_to_v(xyz_t a, double *v1, double *v2, double *v3);
 extern void xyi_to_v(xyi_t a, int *v1, int *v2);
+extern void xyq_to_v(xyq_t a, ddouble_t *v1, ddouble_t *v2);
 extern xy_t xyz_to_xy(const xyz_t in);
 extern xyz_t xy_to_xyz(const xy_t in);
 extern xy_t xyi_to_xy(const xyi_t in);
 extern xyz_t xyi_to_xyz(const xyi_t in);
 extern xyi_t xy_to_xyi(const xy_t in);
+extern xy_t xyq_to_xy(const xyq_t in);
+extern xyq_t xy_to_xyq(const xy_t in);
 extern xy_t set_xy(const double v);
 extern xyz_t set_xyz(const double v);
 extern xyi_t set_xyi(const int v);
+extern xyq_t set_xyq(const ddouble_t v);
 
 extern int is0_xy(const xy_t v);
 extern int is0_xyz(const xyz_t v);
 extern int is0_xyi(const xyi_t v);
+extern int is0_xyq(const xyq_t v);
 extern int equal_xy(const xy_t a, const xy_t b);
 extern int equal_xyz(const xyz_t a, const xyz_t b);
 extern int equal_xyi(const xyi_t a, const xyi_t b);
+extern int equal_xyq(const xyq_t a, const xyq_t b);
 extern int equal_ulp_xy(const xy_t a, const xy_t b, const int64_t ulp_tolerance);
 extern xy_t add_xy(xy_t a, xy_t b);
 extern xyz_t add_xyz(xyz_t a, xyz_t b);
@@ -80,11 +88,19 @@ extern xyi_t cmp_ge_xyi(xyi_t a, xyi_t b);
 extern xy_t func1_xy(xy_t a, double (*f)(double));
 extern xyz_t func1_xyz(xyz_t a, double (*f)(double));
 extern xyi_t func1_xyi(xyi_t a, int (*f)(int));
+extern xyq_t func1_xyq(xyq_t a, ddouble_t (*f)(ddouble_t));
 
 #define fmod_xy(a, b)	func2_xy(a, b, fmod)
+#define add_xyq(a,b)	func2_xyq(a, b, add_qq)
+#define sub_xyq(a,b)	func2_xyq(a, b, sub_qq)
+#define mul_xyq(a,b)	func2_xyq(a, b, mul_qq)
+#define div_xyq(a,b)	func2_xyq(a, b, div_qq)
+#define neg_xyq(a,b)	func2_xyq(a, b, neg_q)
+#define inv_xyq(a,b)	func2_xyq(a, b, recip_q)
 extern xy_t func2_xy(xy_t a, xy_t b, double (*f)(double,double));
 extern xyz_t func2_xyz(xyz_t a, xyz_t b, double (*f)(double,double));
 extern xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int));
+extern xyq_t func2_xyq(xyq_t a, xyq_t b, ddouble_t (*f)(ddouble_t,ddouble_t));
 
 #define mix_xy(a, b, c)		func3_xy(a, b, c, mix)
 #define mix_xyz(a, b, c)	func3_xyz(a, b, c, mix)
@@ -94,6 +110,7 @@ extern xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int));
 extern xy_t func3_xy(xy_t a, xy_t b, xy_t c, double (*f)(double,double,double));
 extern xyz_t func3_xyz(xyz_t a, xyz_t b, xyz_t c, double (*f)(double,double,double));
 extern xyi_t func3_xyi(xyi_t a, xyi_t b, xyi_t c, int (*f)(int,int,int));
+extern xyq_t func3_xyq(xyq_t a, xyq_t b, xyq_t c, ddouble_t (*f)(ddouble_t,ddouble_t,ddouble_t));
 
 extern xyi_t lshift_xyi(xyi_t a, int sh);
 extern xyi_t rshift_xyi(xyi_t a, int sh);

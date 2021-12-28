@@ -18,6 +18,16 @@ recti_t recti(const xyi_t p0, const xyi_t p1)
 	return r;
 }
 
+rectq_t rectq(const xyq_t p0, const xyq_t p1)
+{
+	rectq_t r;
+
+	r.p0 = p0;
+	r.p1 = p1;
+
+	return r;
+}
+
 triangle_t triangle(const xy_t a, const xy_t b, const xy_t c)
 {
 	triangle_t tr;

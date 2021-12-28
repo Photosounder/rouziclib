@@ -91,6 +91,7 @@ void zoom_reset(zoom_t *zc, int *flag_zoom_key)
 {
 	zc->zoomscale = 1.;
 	zc->offset_u = XY0;
+	zc->offset_uq = XYQ0;
 	zc->just_reset = 1;
 	zc->zoom_key_time = 0;
 	*flag_zoom_key = 1;
@@ -132,7 +133,16 @@ void calc_screen_limits(zoom_t *zc)
 {
 	int x, y;
 
-	if (3*fb.w > 3*fb.h)				// if widescreen (more than 4:3 aka 12:9)
+	#ifdef ZOOM_Q
+	// If offset_u needs to update offset_uq
+	//if (zc->offset_u.x != zc->offset_uq.x.hi || zc->offset_u.y != zc->offset_uq.y.hi)
+	//	zc->offset_uq = xy_to_xyq(zc->offset_u);
+
+	// Otherwise offset_u copies offset_uq
+	zc->offset_u = xyq_to_xy(zc->offset_uq);
+	#endif
+
+	if (3*fb.w > 3*fb.h)				// if widescreen (more than 3:3 (formerly 4:3))
 		zc->scrscale = (double) fb.h / 18.;	// for 1920x1080 srcscale would be 60
 	else
 		zc->scrscale = (double) fb.w / 18.;
@@ -179,7 +189,10 @@ void toggle_guizoom(zoom_t *zc, int on)	// used for temporarily disabling zoomin
 void change_zoom(xy_t pos, double zoom_scale)
 {
 	if (isnan_xy(pos)==0)
+	{
 		zc.offset_u = pos;
+		zc.offset_uq = xy_to_xyq(pos);
+	}
 
 	if (isnan(zoom_scale)==0)
 		zc.zoomscale = zoom_scale;

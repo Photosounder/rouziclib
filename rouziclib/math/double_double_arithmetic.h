@@ -3,6 +3,8 @@
 // in ../general/structs.h
 // ddouble_t
 
+extern ddouble_t ddouble(const double v);
+
 extern ddouble_t add_dd_q_quick(double a, double b);
 extern ddouble_t add_dd_q(double a, double b);
 extern ddouble_t sub_dd_q(double a, double b);

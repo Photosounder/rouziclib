@@ -141,6 +141,9 @@ Audio system that can call multiple callbacks, mix their outputs, register them,
 ** link:rouziclib/general/structs.h[structs.h] +
 Generic buffer structure and generic lookup table structure.
 
+** link:rouziclib/general/macros.h[macros.h] +
+Stringify macros and a macro to detect GCC.
+
 ** link:rouziclib/general/globals.c[globals.c] / link:rouziclib/general/globals.h[globals.h] +
 Creates the globals used by the various system in rouziclib, such as the framebuffer structure (thread-local so that other threads can render to a framebuffer and therefore use the usual drawing and GUI functions, like when rendering a video), the zoom-scroll state, the mouse-keyboard state, the vector typeface, the audio system, the window manager as well as the default drawing thickness.
 

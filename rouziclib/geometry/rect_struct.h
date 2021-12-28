@@ -10,5 +10,10 @@ typedef struct
 
 typedef struct
 {
+	xyq_t p0, p1;
+} rectq_t;
+
+typedef struct
+{
 	xy_t a, b, c;
 } triangle_t;

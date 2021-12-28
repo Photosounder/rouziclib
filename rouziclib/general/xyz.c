@@ -26,6 +26,15 @@ xyi_t xyi(const int x, const int y)
 	return out;
 }
 
+xyq_t xyq(const ddouble_t x, const ddouble_t y)
+{
+	xyq_t out;
+
+	out.x = x;
+	out.y = y;
+	return out;
+}
+
 void xy_to_v(xy_t a, double *v1, double *v2)
 {
 	*v1 = a.x;
@@ -40,6 +49,12 @@ void xyz_to_v(xyz_t a, double *v1, double *v2, double *v3)
 }
 
 void xyi_to_v(xyi_t a, int *v1, int *v2)
+{
+	*v1 = a.x;
+	*v2 = a.y;
+}
+
+void xyq_to_v(xyq_t a, ddouble_t *v1, ddouble_t *v2)
 {
 	*v1 = a.x;
 	*v2 = a.y;
@@ -92,6 +107,24 @@ xyi_t xy_to_xyi(const xy_t in)
 	return out;
 }
 
+xy_t xyq_to_xy(const xyq_t in)
+{
+	xy_t out;
+
+	out.x = in.x.hi;
+	out.y = in.y.hi;
+	return out;
+}
+
+xyq_t xy_to_xyq(const xy_t in)
+{
+	xyq_t out;
+
+	out.x = ddouble(in.x);
+	out.y = ddouble(in.y);
+	return out;
+}
+
 xy_t set_xy(const double v)
 {
 	return xy(v, v);
@@ -107,34 +140,49 @@ xyi_t set_xyi(const int v)
 	return xyi(v, v);
 }
 
+xyq_t set_xyq(const ddouble_t v)
+{
+	return xyq(v, v);
+}
+
 int is0_xy(const xy_t v)
 {
-	return (v.x==0.) && (v.y==0.);
+	return (v.x==0. && v.y==0.);
 }
 
 int is0_xyz(const xyz_t v)
 {
-	return (v.x==0.) && (v.y==0.) && (v.z==0.);
+	return (v.x==0. && v.y==0. && v.z==0.);
 }
 
 int is0_xyi(const xyi_t v)
 {
-	return (v.x==0) && (v.y==0);
+	return (v.x==0 && v.y==0);
+}
+
+int is0_xyq(const xyq_t v)
+{
+	return (v.x.hi==0. && v.x.lo==0. && v.y.hi==0. && v.y.lo==0.);
 }
 
 int equal_xy(const xy_t a, const xy_t b)
 {
-	return (a.x==b.x) && (a.y==b.y);
+	return (a.x==b.x && a.y==b.y);
 }
 
 int equal_xyz(const xyz_t a, const xyz_t b)
 {
-	return (a.x==b.x) && (a.y==b.y) && (a.z==b.z);
+	return (a.x==b.x && a.y==b.y && a.z==b.z);
 }
 
 int equal_xyi(const xyi_t a, const xyi_t b)
 {
-	return (a.x==b.x) && (a.y==b.y);
+	return (a.x==b.x && a.y==b.y);
+}
+
+int equal_xyq(const xyq_t a, const xyq_t b)
+{
+	return (cmp_qq(&a.x, &b.x) == 0 && cmp_qq(&a.y, &b.y) == 0);
 }
 
 int equal_ulp_xy(const xy_t a, const xy_t b, const int64_t ulp_tolerance)
@@ -393,6 +441,13 @@ xyi_t func1_xyi(xyi_t a, int (*f)(int))
 	return a;
 }
 
+xyq_t func1_xyq(xyq_t a, ddouble_t (*f)(ddouble_t))
+{
+	a.x = f(a.x);
+	a.y = f(a.y);
+	return a;
+}
+
 xy_t func2_xy(xy_t a, xy_t b, double (*f)(double,double))
 {
 	a.x = f(a.x, b.x);
@@ -415,6 +470,13 @@ xyi_t func2_xyi(xyi_t a, xyi_t b, int (*f)(int,int))
 	return a;
 }
 
+xyq_t func2_xyq(xyq_t a, xyq_t b, ddouble_t (*f)(ddouble_t,ddouble_t))
+{
+	a.x = f(a.x, b.x);
+	a.y = f(a.y, b.y);
+	return a;
+}
+
 xy_t func3_xy(xy_t a, xy_t b, xy_t c, double (*f)(double,double,double))
 {
 	a.x = f(a.x, b.x, c.x);
@@ -431,6 +493,13 @@ xyz_t func3_xyz(xyz_t a, xyz_t b, xyz_t c, double (*f)(double,double,double))
 }
 
 xyi_t func3_xyi(xyi_t a, xyi_t b, xyi_t c, int (*f)(int,int,int))
+{
+	a.x = f(a.x, b.x, c.x);
+	a.y = f(a.y, b.y, c.y);
+	return a;
+}
+
+xyq_t func3_xyq(xyq_t a, xyq_t b, xyq_t c, ddouble_t (*f)(ddouble_t,ddouble_t,ddouble_t))
 {
 	a.x = f(a.x, b.x, c.x);
 	a.y = f(a.y, b.y, c.y);
@@ -465,7 +534,7 @@ xyi_t and_xyi(xyi_t a, int mask)
 	return a;
 }
 
-// the following functions return individual minimums or maximums
+// The following functions return individual minimums or maximums
 xy_t min_xy(xy_t a, xy_t b)
 {
 	a.x = MINN(a.x, b.x);
