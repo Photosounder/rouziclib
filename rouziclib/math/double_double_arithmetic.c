@@ -232,6 +232,7 @@ ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.2e-32 (Chebyshev version, t
 		{-1.4026753595423889e-06, 9.914502332376071e-23},       // c26
 		{7.1722342681062607e-08, 4.9416329701476483e-24},       // c28
 		/* Errors for this implementation based on the maximum degree used:
+		   degree 24 => 9.10454e-30
 		   degree 26 => 5.68422e-32
 		   degree 28 => 5.17274e-32
 		   degree 30 => 5.17274e-32
