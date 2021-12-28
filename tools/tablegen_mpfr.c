@@ -472,7 +472,7 @@ void test_cos_ddouble()
 		r_abs(yq);
 		err = r_todouble(yq);
 		maxerr = MAXN(err, maxerr);
-		if (err > 3.1e-24)
+		if (err > 3e-32)
 			fprintf(stdout, "f(%.17g): %.5e\n", r_todouble(x), err);
 	}
 
