@@ -186,6 +186,10 @@ ddouble_t mul_qd_simple(ddouble_t a, double m)	// multiplier must only change th
 	return a;
 }
 
+#ifndef _gcc_
+#pragma float_control(pop)
+#endif
+
 int cmp_qq(const ddouble_t *a, const ddouble_t *b)
 {
 	if (a->hi > b->hi) return 1;
@@ -221,10 +225,6 @@ ddouble_t floor_q(ddouble_t a)
 
 	return r;
 }
-
-#ifndef _gcc_
-#pragma float_control(pop)
-#endif
 
 #define COS_Q_CHEB
 ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.2e-32 (Chebyshev version, the other is slightly worse)
@@ -272,7 +272,7 @@ ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.2e-32 (Chebyshev version, t
 		{2.3099916358372477e-05, -3.4908602905870041e-22},      // c24
 		{-1.4026753595423889e-06, 9.914502332376071e-23},       // c26
 		{7.1722342681062607e-08, 4.9416329701476483e-24},       // c28
-		/* Errors for this implementation based on the maximum degree used:
+		/* Errors for this implementation based on the polynomial degree:
 		   degree 24 => 9.10454e-30
 		   degree 26 => 5.68422e-32
 		   degree 28 => 5.17274e-32
