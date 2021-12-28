@@ -196,7 +196,7 @@ Basic math functions, the inverse error function, the integral of the error func
 IEEE-754 floating point manipulation, fractional part calculation and dealing with numbers at the level of https://en.wikipedia.org/wiki/Unit_in_the_last_place[units of least precision] to guarantee incrementation or make floating point comparisons that take a degree of error into account.
 
 ** link:rouziclib/math/double_double_arithmetic.c[double_double_arithmetic.c] / link:rouziclib/math/double_double_arithmetic.h[double_double_arithmetic.h] +
-https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#Double-double_arithmetic[Double-double arithmetic] for higher precision calculations. Mainly based on code from https://github.com/tuwien-cms/xprec/blob/mainline/csrc/[there] which is itself based on the https://github.com/scibuilder/QD/[QD library]. Also contains an original high precision cos approximation.
+https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format#Double-double_arithmetic[Double-double arithmetic] for higher precision calculations. Mainly based on code from https://github.com/tuwien-cms/xprec/blob/mainline/csrc/[there] which is itself based on the https://github.com/scibuilder/QD/[QD library]. Also contains an original high precision cos approximation accurate to 4.2e-32.
 
 ** link:rouziclib/math/rand.c[rand.c] / link:rouziclib/math/rand.h[rand.h] +
 Functions to generate uniform pseudo-random numbers in a given range, nmumbers with a normal (Gaussian) distribution and a PRNG based on https://github.com/skeeto/hash-prospector[xorshift-multiply hashing].

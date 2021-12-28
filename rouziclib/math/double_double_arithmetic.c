@@ -93,12 +93,25 @@ ddouble_t sub_qq(ddouble_t a, ddouble_t b)
 	return z;
 }
 
+// Based on https://stackoverflow.com/a/31647953/1675589
 ddouble_t mul_qq(ddouble_t a, ddouble_t b)
 {
-	ddouble_t c = mul_dd_q(a.hi, b.hi);
-	double t = a.hi * b.lo;
-	t = fma(a.lo, b.hi, t);
-	return add_dd_q_quick(c.hi, c.lo + t);
+	ddouble_t r, m;
+	const double c = 134217729.;
+	double up, u1, u2, vp, v1, v2;
+
+	up = a.hi*c;        vp = b.hi*c;
+	u1 = (a.hi-up)+up;  v1 = (b.hi-vp)+vp;
+	u2 = a.hi-u1;       v2 = b.hi-v1;
+
+	m.hi = a.hi*b.hi;
+	m.lo = (((u1*v1-m.hi)+(u1*v2))+(u2*v1))+(u2*v2);
+
+	m.lo += a.hi*b.lo + a.lo*b.hi;
+	r.hi = m.hi+m.lo;
+	r.lo = m.hi - r.hi + m.lo;
+
+	return r;
 }
 
 ddouble_t div_qq(ddouble_t a, ddouble_t b)
@@ -173,27 +186,33 @@ ddouble_t floor_q(ddouble_t a)
 }
 
 #define COS_Q_CHEB
-ddouble_t cos_tr_q(ddouble_t x)	// max error about 3.5e-24 (Chebyshev version, the other is somehow slightly worse)
+ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.2e-32 (Chebyshev version, the other is slightly worse)
 {
 	double endsign = 1.;
 	ddouble_t y;
 	#ifdef COS_Q_CHEB
 	ddouble_t cm[] = {
-		{0.47200121576823478, -1.5640151617803393e-17}, 	// T_0
-		{-0.4994032582704071, 1.4758624598140668e-17},  	// T_2
-		{0.027992079617547617, 7.3010368448985277e-19}, 	// T_4
-		{-0.00059669519654884649, -1.3902999147480702e-20},     // T_6
-		{6.7043948699168399e-06, 2.035995049262044e-22},        // T_8
-		{-4.6532295897319527e-08, -1.769161868176914e-24},      // T_10
-		{2.1934576589567331e-10, 2.8463881389941215e-27},       // T_12
-		{-7.4816487010336462e-13, 4.1338949231363225e-29},      // T_14
-		{1.9322978458633277e-15, -7.2354286636588526e-32},      // T_16
-		{-3.9101701216325904e-18, 6.942454170604681e-35},       // T_18
-		{6.3670401158338003e-21, 1.579630782651198e-37},        // T_20
-		{-8.522886041732634e-24, 8.5324378256780345e-41},       // T_22
-		{9.5446630340576279e-27, 1.1519600914539063e-43},       // T_24
-		{-9.0744812452201831e-30, -4.2984483792836492e-46},     // T_26
-		{7.415916419082441e-33, 5.1095287340737115e-49},        // T_28
+		{0.47200121576823478, -1.5640151617803393e-17}, 	// T_0 (err 1.56e-34)
+		{-0.4994032582704071, 1.4758624598140668e-17},  	// T_2 (err 1.5e-35)
+		{0.027992079617547617, 7.3010368448985277e-19}, 	// T_4 (err 4.49e-35)
+		{-0.00059669519654884649, -1.3902999147480702e-20},     // T_6 (err 7.07e-38)
+		{6.7043948699168399e-06, 2.035995049262044e-22},        // T_8 (err -2.51e-39)
+		{-4.6532295897319527e-08, -1.769161868176914e-24},      // T_10 (err -1.36e-40)
+		{2.1934576589567331e-10, 2.8463881389941215e-27},       // T_12 (err 1e-43)
+		{-7.4816487010336462e-13, 4.1338949231363225e-29},      // T_14 (err -5.31e-46)
+		{1.9322978458633277e-15, -7.2354286636588526e-32},      // T_16 (err 2.4e-49)
+		{-3.9101701216325904e-18, 6.942454170604681e-35},       // T_18 (err 3.62e-52)
+		{6.3670401158338003e-21, 1.579630782651198e-37},        // T_20 (err 5.06e-54)
+		{-8.522886041732634e-24, 8.5324378256780345e-41},       // T_22 (err 2.82e-57)
+		{9.5446630340576279e-27, 1.1519600914539063e-43},       // T_24 (err 6.84e-61)
+		{-9.0744812452201831e-30, -4.2984483792836492e-46},     // T_26 (err 1.25e-63)
+		{7.415916419082441e-33, 5.1095287340737115e-49},        // T_28 (err -9.6e-66)
+		/* Errors for this implementation based on the maximum degree used:
+		   T_24 => 9.10396e-30
+		   T_26 => 4.26725e-32
+		   T_28 => 4.16839e-32
+		   T_30 => 4.16839e-32
+		   */
 	};
 	#else
 	ddouble_t c[] = {
@@ -212,6 +231,11 @@ ddouble_t cos_tr_q(ddouble_t x)	// max error about 3.5e-24 (Chebyshev version, t
 		{2.3099916358372477e-05, -3.4908602905870041e-22},      // c24
 		{-1.4026753595423889e-06, 9.914502332376071e-23},       // c26
 		{7.1722342681062607e-08, 4.9416329701476483e-24},       // c28
+		/* Errors for this implementation based on the maximum degree used:
+		   degree 26 => 5.68422e-32
+		   degree 28 => 5.17274e-32
+		   degree 30 => 5.17274e-32
+		   */
 	};		
 	#endif
 
@@ -235,12 +259,12 @@ ddouble_t cos_tr_q(ddouble_t x)	// max error about 3.5e-24 (Chebyshev version, t
 	x = mul_qd_simple(x, 4.);
 
 	// Chebyshev evaluation
-	y = eval_chebyshev_polynomial_even_q(x, cm, 22);
+	y = eval_chebyshev_polynomial_even_q(x, cm, 28);
 
 	#else
 
 	// Polynomial evaluation
-	y = eval_polynomial_q(mul_qq(x, x), c, 14);
+	y = eval_polynomial_q(mul_qq(x, x), c, 28/2);
 	#endif
 
 	return mul_qd_simple(y, endsign);

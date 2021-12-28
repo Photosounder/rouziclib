@@ -1,6 +1,7 @@
 #ifdef RL_MPFR
 
 extern void eval_polynomial_mpfr(real_t y, real_t x, real_t *c, int degree);
+extern void eval_chebyshev_polynomial_mpfr(real_t y, real_t x, real_t *cm, int degree);
 extern double get_polynomial_error_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int degree, int errmode);
 
 extern void polynomial_addition_mpfr(real_t *a, int adeg, real_t *b, int bdeg, real_t *c);

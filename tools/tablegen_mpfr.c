@@ -179,7 +179,7 @@ double k=0., errmin=1., mink;
 	FILE *file;
 	char header_path[64];
 
-	sprintf(header_path, "../rouziclib/fastfloat/fastcos_d%d.h", cos_order);
+	sprintf(header_path, "../rouziclib/approximations/tables/fastcos_d%d.h", cos_order);
 	file = fopen(header_path, "wb");
 	fprintf(file, "{");
 
@@ -242,8 +242,8 @@ double k=0., errmin=1., mink;
 		//mpfr_printf("%+.16Rf  err %g\n\tdouble err:%g\ti=%3d (segratio 1/%.0f) [%.7Rf , %.7Rf]\n", c[0], err, errd, is, 1./step, segstart, segend);
 
 		for (i=0; i<cos_order; i++)
-			mpfr_fprintf(file, "%.20Rg, ", c[i]);
-		mpfr_fprintf(file, "%.20Rg%s", c[cos_order], (is==segcount-1 && quads < 4) ? "};\n" : ", \n");
+			mpfr_fprintf(file, "%.17Rg, ", c[i]);
+		mpfr_fprintf(file, "%.17Rg%s", c[cos_order], (is==segcount-1 && quads < 4) ? "};\n" : ", \n");
 	}
 
 	if (quads==4)
@@ -311,8 +311,8 @@ void make_cos_table_human(const int cos_order, const double step)	// cos_order i
 		// Print to file
 		mpfr_fprintf(file, "%Rg	", segstart);
 		for (i=cos_order; i > 0; i--)
-			mpfr_fprintf(file, "% .20Rg   ", c[i]);
-		mpfr_fprintf(file, "% .20Rg\n", c[0]);
+			mpfr_fprintf(file, "% .17Rg   ", c[i]);
+		mpfr_fprintf(file, "% .17Rg\n", c[0]);
 		fflush(file);
 	}
 	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
@@ -322,14 +322,84 @@ void make_cos_table_human(const int cos_order, const double step)	// cos_order i
 	printf("\nMax error: %g\n", maxerr);
 }
 
+void compare_chebyshev_arithmetics(void (*f)(real_t,real_t), real_t *cm, int degree, double xd)
+{
+	int id;
+	real_t xr, yr, x2r;
+	ddouble_t xq={0};
+
+	xd *= 4.;
+
+	r_init(xr);
+	r_init(yr);
+	r_setd(xr, xd);
+	xq.hi = xd;
+
+	ddouble_t b1q={0}, b2q, yq, x2q = mul_qd_simple(xq, 2.);
+	real_t b1r, b2r;
+
+	r_init(b1r);
+	r_init(b2r);
+	r_init(x2r);
+	r_rmuld(x2r, xr, 2.);
+
+	// Clenshaw evaluation
+	yq = mpfr_to_ddouble(cm[degree]);
+	r_set(yr, cm[degree]);
+	for (id = degree-1; id >= 1; id--)
+	{
+		fprintf(stdout, "id %2d:\n", id);
+
+		b2q = b1q;
+		b1q = yq;
+		r_set(b2r, b1r);
+		r_set(b1r, yr);
+
+		//y = cm[id] + x2*b1 - b2q;
+
+		yq = mul_qq(x2q, b1q);
+		r_rmul(yr, x2r, b1r);
+		mpfr_fprintf(stdout, "	x2 %Rg (diff %g) * b1 %Rg (diff %g) => y %Rg (diff %g)\n", x2r, sub_qq(x2q, mpfr_to_ddouble(x2r)).hi, b1r, sub_qq(b1q, mpfr_to_ddouble(b1r)).hi, yr, sub_qq(yq, mpfr_to_ddouble(yr)).hi);
+
+		yq = add_qq(mpfr_to_ddouble(cm[id]), yq);
+		r_add(yr, cm[id]);
+		mpfr_fprintf(stdout, "	cm[%d] %Rg + y => y %Rg (diff %g)\n", id, cm[id], yr, sub_qq(yq, mpfr_to_ddouble(yr)).hi);
+
+		yq = sub_qq(yq, b2q);
+		r_sub(yr, b2r);
+		mpfr_fprintf(stdout, "	y - b2 %Rg (diff %g) => y %Rg (diff %g)\n", b2r, sub_qq(b2q, mpfr_to_ddouble(b2r)).hi, yr, sub_qq(yq, mpfr_to_ddouble(yr)).hi);
+	}
+
+	//y = cm[0] + x*y - b1q;
+	yq = mul_qq(xq, yq);
+	yq = add_qq(mpfr_to_ddouble(cm[0]), yq);
+	yq = sub_qq(yq, b1q);
+
+	r_mul(yr, xr);
+	r_add(yr, cm[0]);
+	r_sub(yr, b1r);
+
+//yq = cos_tr_q(mul_qd_simple(xq, 0.25));
+	// Compare yr with yq
+	mpfr_fprintf(stdout, "id %2d: %g\n", id, sub_qq(yq, mpfr_to_ddouble(yr)).hi);
+
+	r_free(b1r);
+	r_free(b2r);
+	r_free(xr);
+	r_free(yr);
+	r_free(x2r);
+}
+
 void make_cos_double_double_approx()
 {
 	int i;
-	const int degree = 60, p_count = 1000;
-	real_t *cm;
+	const int degree = 28, p_count = 1000;
+	real_t *c, *cm;
 	real_t start, end, v;
+	double err;
 
 	cm = r_init_array(degree+1);
+	c = r_init_array(degree+1);
 
 	r_init(start);
 	r_setd(start, -0.25);
@@ -338,18 +408,45 @@ void make_cos_double_double_approx()
 	r_init(v);
 
 	chebyshev_analysis_on_function_mpfr(f_cos, start, end, cm, degree, p_count);
-	
-	for (i=0; i <= degree; i++)
+	polynomial_fit_on_function_by_dct_mpfr(f_cos, start, end, c, degree);
+	err = get_polynomial_error_mpfr(f_cos, start, end, c, degree, NEGMODE);
+	fprintf(stdout, "Polynomial error: %.5eg\n", err);
+
+	// Print Chebyshev multipliers
+	for (i=0; i <= degree; i+=2)
 	{
 		mpfr_abs(v, cm[i], MPFR_RNDN);
 		if (mpfr_cmp_d(v, 1e-150) > 0)
 		{
 			//mpfr_fprintf(stdout, "T_%d(x) * % .32Rg\n", i, cm[i]);
 			ddouble_t q = mpfr_to_ddouble(cm[i]);
-			fprintf(stdout, "{%.19g, %.19g},	// T_%d\n", q.hi, q.lo, i);
+			fprintf(stdout, "{%.17g, %.17g},	// T_%d (err %.3g)\n", q.hi, q.lo, i, diff_mpfr_ddouble(cm[i], q));
 		}
 	}
+
+	// Print polynomial coefficients
+	for (i=0; i <= degree; i+=2)
+	{
+		ddouble_t q = mpfr_to_ddouble(c[i]);
+		fprintf(stdout, "{%.17g, %.17g},	// c%d\n", q.hi, q.lo, i);
+	}
+
+	// Print Horner form of polynomial
+	for (i=degree; i > 2; i-=2)
+		mpfr_fprintf(stdout, "(");
+	for (i=degree; i > 0; i-=2)
+		if (i==degree)
+			mpfr_fprintf(stdout, "%.17Rg*x2 + ", c[i]);
+		else
+			mpfr_fprintf(stdout, "%.17Rg)*x2 + %s", c[i], (i%8) ? "" : "\n\t");
+	mpfr_fprintf(stdout, "%.17Rg\n", c[0]);
+
+	// Compare arithmetics
+	compare_chebyshev_arithmetics(f_cos, cm, degree, 0.24998772);
+
 	r_free(v);
+	r_free_array(&cm, degree+1);
+	r_free_array(&c, degree+1);
 }
 
 void test_cos_ddouble()
@@ -363,9 +460,11 @@ void test_cos_ddouble()
 	r_init(ym);
 	r_init(yq);
 
-	r_setd(x, -0.2);
-	for (; mpfr_cmp_d(x, 1.4) < 0; r_addd(x, 0.0098431537))
+	r_setd(x, 0.);
+	for (; mpfr_cmp_d(x, 0.25) < 0; r_addd(x, 1.18e-7))
 	{
+		ddouble_to_mpfr(x, mpfr_to_ddouble(x));		// round it to an exact double-double value
+
 		f_cos(ym, x);
 		r = cos_tr_q(mpfr_to_ddouble(x));
 		ddouble_to_mpfr(yq, r);
@@ -373,6 +472,8 @@ void test_cos_ddouble()
 		r_abs(yq);
 		err = r_todouble(yq);
 		maxerr = MAXN(err, maxerr);
+		if (err > 3.1e-24)
+			fprintf(stdout, "f(%.17g): %.5e\n", r_todouble(x), err);
 	}
 
 	fprintf(stdout, "Max error of cos_tr_q(): %.5e\n", maxerr);
@@ -480,7 +581,7 @@ void make_wsinc_table(const int order, const int lutsp, double wsinc_range, doub
 	FILE *file;
 	char header_path[64];
 
-	sprintf(header_path, "../rouziclib/fastfloat/fastwsinc.h", order);
+	sprintf(header_path, "../rouziclib/approximations/tables/fastwsinc.h", order);
 	file = fopen(header_path, "wb");
 	fprintf(file, "{");
 	
@@ -523,8 +624,8 @@ void make_wsinc_table(const int order, const int lutsp, double wsinc_range, doub
 		mpfr_printf("[%.7Rf , %.7Rf]\terr %e\n", segstart, segend, err);
 
 		for (i=0; i<order; i++)
-			mpfr_fprintf(file, "%.20Rg, ", c[i]);
-		mpfr_fprintf(file, "%.20Rg%s", c[order], (is==segcount-1) ? "};\n" : ", \n");
+			mpfr_fprintf(file, "%.17Rg, ", c[i]);
+		mpfr_fprintf(file, "%.17Rg%s", c[order], (is==segcount-1) ? "};\n" : ", \n");
 	}
 
 	double ind_off = exp2(double_get_exponent(wsinc_range));	// offset to calculate the LUT index from the offset mantissa
@@ -715,8 +816,8 @@ void make_erf_radlim_table2(const int order, const double step, int order_index)
 		// Print to file
 		mpfr_fprintf(file, "%Rg	", segstart);
 		for (i=order; i > 0; i--)
-			mpfr_fprintf(file, "% .20Rg   ", c[i]);
-		mpfr_fprintf(file, "% .20Rg (err % .3g)\n", c[0], err);
+			mpfr_fprintf(file, "% .17Rg   ", c[i]);
+		mpfr_fprintf(file, "% .17Rg (err % .3g)\n", c[0], err);
 	}
 	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
 
@@ -777,8 +878,8 @@ void make_erf_radlim_table(const int order, const double step)	// order is <= 6
 		// Print to file
 		mpfr_fprintf(file, "%Rg	", segstart);
 		for (i=order; i > 0; i--)
-			mpfr_fprintf(file, "% .20Rg   ", c[i]);
-		mpfr_fprintf(file, "% .20Rg (err % .3g)\n", c[0], err);
+			mpfr_fprintf(file, "% .17Rg   ", c[i]);
+		mpfr_fprintf(file, "% .17Rg (err % .3g)\n", c[0], err);
 	}
 	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
 
@@ -893,8 +994,8 @@ void make_erf_radlim_mid_table(const int order, const double step)	// order is <
 
 		// Print to file
 		for (i=0; i<order; i++)
-			mpfr_fprintf(file, "%.20Rg, ", c[i]);
-		mpfr_fprintf(file, "%.20Rg%s", c[order], (is==segcount-1) ? "};\n" : ", \n");
+			mpfr_fprintf(file, "%.17Rg, ", c[i]);
+		mpfr_fprintf(file, "%.17Rg%s", c[order], (is==segcount-1) ? "};\n" : ", \n");
 		fflush(file);
 	}
 	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);
@@ -982,8 +1083,8 @@ void make_asin_table_human(const int order, const double step)
 		// Print to file
 		mpfr_fprintf(file, "%Rg	", segstart);
 		for (i=order; i > 0; i--)
-			mpfr_fprintf(file, "% .20Rg   ", c[i]);
-		mpfr_fprintf(file, "% .20Rg (err % .3g)\n", c[0], err);
+			mpfr_fprintf(file, "% .17Rg   ", c[i]);
+		mpfr_fprintf(file, "% .17Rg (err % .3g)\n", c[0], err);
 		fflush(file);
 	}
 	mpfr_fprintf(file, "\nMax error: %g at segment %Rg\n", maxerr, maxseg);

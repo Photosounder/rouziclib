@@ -14,6 +14,46 @@ void eval_polynomial_mpfr(real_t y, real_t x, real_t *c, int degree)
 	r_add(y, c[0]);
 }
 
+void eval_chebyshev_polynomial_mpfr(real_t y, real_t x, real_t *cm, int degree)
+{
+	int id;
+	real_t b1, b2, x2;
+
+	r_init(b1);
+	r_init(b2);
+	r_init(x2);
+
+	if (degree == 0)
+	{
+		r_set(y, cm[0]);
+		goto end;
+	}
+
+	r_rmuld(x2, x, 2.);
+
+	// Clenshaw evaluation
+	r_set(y, cm[degree]);
+	for (id = degree-1; id >= 1; id--)
+	{
+		r_set(b2, b1);
+		r_set(b1, y);
+
+		// y = cm[id] + x2*b1 - b2;
+		r_fma(y, x2, b1, cm[id]);
+		r_sub(y, b2);
+		
+	}
+
+	// y = cm[0] + x*y - b1;
+	r_fma(y, x, y, cm[0]);
+	r_sub(y, b1);
+
+end:
+	r_free(b1);
+	r_free(b2);
+	r_free(x2);
+}
+
 double get_polynomial_error_mpfr(void (*f)(real_t,real_t), real_t start, real_t end, real_t *c, int degree, int errmode)
 {
 	int i, ic;
