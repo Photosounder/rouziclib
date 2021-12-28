@@ -106,7 +106,7 @@ Every piece of code in this library is ultimately included into one of those thr
 * link:rouziclib/general[general/]
 
 ** link:rouziclib/general/xyz.c[xyz.c] / link:rouziclib/general/xyz.h[xyz.h] and link:rouziclib/general/xyz_struct.h[xyz_struct.h] +
-Vectors (2D, 3D integer 2D and 3x3 matrices) with conversions and operations. Very widely used throughout the library.
+Vectors (2D, 3D, integer 2D, double-double 2D and 3x3 matrices) with conversions and operations. Very widely used throughout the library.
 
 ** link:rouziclib/general/time.c[time.c] / link:rouziclib/general/time.h[time.h] +
 Multiplatform standard and high resolution time-measuring, sleep, date-time string parsing and Julian date conversion.
