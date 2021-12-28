@@ -134,11 +134,7 @@ void calc_screen_limits(zoom_t *zc)
 	int x, y;
 
 	#ifdef ZOOM_Q
-	// If offset_u needs to update offset_uq
-	//if (zc->offset_u.x != zc->offset_uq.x.hi || zc->offset_u.y != zc->offset_uq.y.hi)
-	//	zc->offset_uq = xy_to_xyq(zc->offset_u);
-
-	// Otherwise offset_u copies offset_uq
+	// offset_u copies offset_uq
 	zc->offset_u = xyq_to_xy(zc->offset_uq);
 	#endif
 
