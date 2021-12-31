@@ -8,10 +8,10 @@ extern double fastcos_tr_d5(double x);
 extern xy_t fastcos_tr_d3_xy(xy_t v);
 
 #define fastcosf_d2(x)	fastcosf_tr_d2((x)*0.159154943f)
-#define fastcos_d2(x)	fastcos_tr_d2((x)*0.15915494309189533576888)
-#define fastcos_d3(x)	fastcos_tr_d3((x)*0.15915494309189533576888)
-#define fastcos_d4(x)	fastcos_tr_d4((x)*0.15915494309189533576888)
-#define fastcos_d5(x)	fastcos_tr_d5((x)*0.15915494309189533576888)
+#define fastcos_d2(x)	fastcos_tr_d2((x)*0.15915494309189535)
+#define fastcos_d3(x)	fastcos_tr_d3((x)*0.15915494309189535)
+#define fastcos_d4(x)	fastcos_tr_d4((x)*0.15915494309189535)
+#define fastcos_d5(x)	fastcos_tr_d5((x)*0.15915494309189535)
 
 #define fastsinf_d2(x) fastcosf_d2((x)-0.5*pi)
 #define fastsin_d2(x) fastcos_d2((x)-0.5*pi)
@@ -45,3 +45,6 @@ extern xy_t fastcos_tr_d3_xy(xy_t v);
 #define fastsin_tr_d5	sin_tr
 
 #endif
+
+extern ddouble_t cos_tr_q(ddouble_t x);
+extern ddouble_t cos_q(ddouble_t x);

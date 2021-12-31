@@ -1,9 +1,7 @@
-#define RL_PI 3.14159265358979323846264338327950288
+#define RL_PI 3.1415926535897931
 #define pi RL_PI
-#define e_ 2.7182818284590452353602874713526625
 
 #define sign(x)		(((x) > 0) - ((x) < 0))
-#define positive(x)	((x) > 0 ? (x) : 0)
 #define MAXN(x, y)	(((x) > (y)) ? (x) : (y))
 #define MINN(x, y)	(((x) < (y)) ? (x) : (y))
 

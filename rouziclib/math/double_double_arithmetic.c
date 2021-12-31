@@ -73,7 +73,7 @@ ddouble_t sub_qd(ddouble_t a, double b)
 
 ddouble_t sub_dq(double a, ddouble_t b)
 {
-	// FIXME probably not ideal
+	// FIXME probably not optimal
 	return add_qd(neg_q(b), a);
 }
 
@@ -226,88 +226,142 @@ ddouble_t floor_q(ddouble_t a)
 	return r;
 }
 
-#define COS_Q_CHEB
-ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.2e-32 (Chebyshev version, the other is slightly worse)
+ddouble_t string_to_ddouble(const char *string, char **endptr)
 {
-	double endsign = 1.;
-	ddouble_t y;
-	#ifdef COS_Q_CHEB
-	ddouble_t cm[] = {
-		{0.47200121576823478, -1.5640151617803393e-17}, 	// T_0 (err 1.56e-34)
-		{-0.4994032582704071, 1.4758624598140668e-17},  	// T_2 (err 1.5e-35)
-		{0.027992079617547617, 7.3010368448985277e-19}, 	// T_4 (err 4.49e-35)
-		{-0.00059669519654884649, -1.3902999147480702e-20},     // T_6 (err 7.07e-38)
-		{6.7043948699168399e-06, 2.035995049262044e-22},        // T_8 (err -2.51e-39)
-		{-4.6532295897319527e-08, -1.769161868176914e-24},      // T_10 (err -1.36e-40)
-		{2.1934576589567331e-10, 2.8463881389941215e-27},       // T_12 (err 1e-43)
-		{-7.4816487010336462e-13, 4.1338949231363225e-29},      // T_14 (err -5.31e-46)
-		{1.9322978458633277e-15, -7.2354286636588526e-32},      // T_16 (err 2.4e-49)
-		{-3.9101701216325904e-18, 6.942454170604681e-35},       // T_18 (err 3.62e-52)
-		{6.3670401158338003e-21, 1.579630782651198e-37},        // T_20 (err 5.06e-54)
-		{-8.522886041732634e-24, 8.5324378256780345e-41},       // T_22 (err 2.82e-57)
-		{9.5446630340576279e-27, 1.1519600914539063e-43},       // T_24 (err 6.84e-61)
-		{-9.0744812452201831e-30, -4.2984483792836492e-46},     // T_26 (err 1.25e-63)
-		{7.415916419082441e-33, 5.1095287340737115e-49},        // T_28 (err -9.6e-66)
-		/* Errors for this implementation based on the maximum degree used:
-		   T_24 => 9.10396e-30
-		   T_26 => 4.26725e-32
-		   T_28 => 4.16839e-32
-		   T_30 => 4.16839e-32
-		   */
-	};
-	#else
-	ddouble_t c[] = {
-		{1, -5.2685651532657577e-36},   			// c0
-		{-19.739208802178716, -1.2530591017479423e-15}, 	// c2
-		{64.939394022668296, -4.2563201318878282e-15},  	// c4
-		{-85.456817206693728, 2.0361752253113143e-16},  	// c6
-		{60.244641371876661, -3.2212648404075122e-16},  	// c8
-		{-26.426256783374399, 1.1982764379130646e-15},  	// c10
-		{7.9035363713184692, -3.9613952660077854e-16},  	// c12
-		{-1.714390711088672, -3.4612037008301457e-17},  	// c14
-		{0.28200596845579096, 2.1376133124519225e-17},  	// c16
-		{-0.036382841142537675, 1.7328614067836044e-18},        // c18
-		{0.0037798342004859886, -1.8105199741884246e-20},       // c20
-		{-0.0003229910638446016, -1.3130761734743837e-20},      // c22
-		{2.3099916358372477e-05, -3.4908602905870041e-22},      // c24
-		{-1.4026753595423889e-06, 9.914502332376071e-23},       // c26
-		{7.1722342681062607e-08, 4.9416329701476483e-24},       // c28
-		/* Errors for this implementation based on the polynomial degree:
-		   degree 24 => 9.10454e-30
-		   degree 26 => 5.68422e-32
-		   degree 28 => 5.17274e-32
-		   degree 30 => 5.17274e-32
-		   */
-	};		
-	#endif
+	int i, neg=0, digits_end=0, separator_pos, p_len, exponent=0, digit_count, dest_index, carry;
+	const int print = 0;	// set to 1 to print buffer contents
+	const char *p;
+	char *endptr2=NULL, buf_a[1386], buf_b[1386];
+	double vd, a, digit_mul;
+	ddouble_t r={0};
 
-	// x = ]-inf , +inf[ --> x = [0 , 1[
-	x = sub_qq(x, floor_q(x));
-
-	// Quadrant symmetry
-	// x = [0 , 1[ --> x = [0 , 0.5]
-	if (cmp_qd(x, 0.5) > 0)
-		x = sub_dq(1., x);
-
-	// x = [0 , 0.5] --> x = [0 , 0.25]
-	if (cmp_qd(x, 0.25) > 0)
+	// Let strtod reveal invalid strings, NANs, INFs and zeros
+	vd = strtod(string, &endptr2);
+	if (vd==0. || isfinite(vd)==0)
 	{
-		endsign = -1.;
-		x = sub_dq(0.5, x);
+		if (endptr)
+			*endptr = endptr2;
+
+		return ddouble(vd);
 	}
 
-	#ifdef COS_Q_CHEB
-	// x = [0 , 0.25] --> x = [0 , 1] to fit the Chebyshev unit span
-	x = mul_qd_simple(x, 4.);
+	p = skip_whitespace(string);
 
-	// Chebyshev evaluation
-	y = eval_chebyshev_polynomial_even_q(x, cm, 28);
+	// Detect and remove sign
+	if (p[0] == '+' || p[0] == '-')
+	{
+		if (p[0] == '-')
+			neg = 1;
+		p = &p[1];
+	}
 
-	#else
+	// Find things
+	p_len = endptr2 - p;
+	separator_pos = p_len;			// if there's no separator this position will be used
+	for (i=0; i < p_len; i++)
+	{
+		// Look for last digit
+		if (isdigit(p[i]))
+			digits_end = i;
 
-	// Polynomial evaluation
-	y = eval_polynomial_q(mul_qq(x, x), c, 28/2);
-	#endif
+		// Look for separator
+		if (p[i] == '.')
+			separator_pos = i;
 
-	return mul_qd_simple(y, endsign);
+		// Look for exponent
+		if (p[i] == 'e' || p[i] == 'E')
+		{
+			separator_pos = MINN(separator_pos, i);		// if there's no separator 'e' will be used
+			exponent = atoi(&p[i+1]);
+			break;
+		}
+	}
+
+	vd = fabs(vd);
+	r.hi = vd;
+
+	// Any finite double can have the exact value it represents represented exactly by 1 (sign) + 309 (integers) + 1 (.) + 1074 (fractionals) = 1385 chars
+
+	// Turn the original string into a +309.1074 representation
+	sprintf(buf_a, "%+01385.1074f", 0.);
+
+	// Place digits from before the separator
+	for (i=0; i < separator_pos; i++)
+	{
+		dest_index = 310-1-i - exponent;
+		if (dest_index >= 310)		// digit goes after destination separator
+			dest_index++;
+
+		if (dest_index > 0 && dest_index < 1385)
+			buf_a[dest_index] = p[separator_pos-1-i];
+	}
+
+	// Place digits from after the separator
+	for (i=0; i < digits_end-separator_pos; i++)
+	{
+		dest_index = 310+i - exponent;
+		if (dest_index >= 310)		// digit goes after destination separator
+			dest_index++;
+
+		if (dest_index > 0 && dest_index < 1385)
+			buf_a[dest_index] = p[separator_pos+1+i];
+	}
+
+	// Turn vd into a +309.1074 representation
+	sprintf(buf_b, "%+01385.1074f", vd);
+	if (print) fprintf_rl(stdout, "%s\n%s\n", buf_a, buf_b);
+
+	// Subtract digits
+	carry = 0;
+	for (i=1384; i > 0; i--)
+	{
+		if (i != 310)
+		{
+			buf_a[i] = buf_a[i] - buf_b[i] + carry + '0';
+
+			carry = 0;
+			if (buf_a[i] < '0')
+			{
+				carry = -1;
+				buf_a[i] += 10;
+			}
+		}
+	}
+
+	// Handle propagated carry that flips the sign
+	if (carry == -1)
+	{
+		// Flip sign
+		buf_a[0] = buf_a[0]=='+' ? '-' : '+';
+
+		// Flip digits
+		for (i=1; i < 1385; i++)
+			if (i != 310)
+				buf_a[i] = '9' - buf_a[i] + '0';
+
+		// Propagate carry from the lowest digit
+		for (i=1384; i > 0; i--)
+		{
+			if (i != 310)
+			{
+				buf_a[i] += 1;
+
+				if (buf_a[i] > '9')
+					buf_a[i] -= 10;
+				else
+					break;		// stop spreading the carry when there's no more overflow
+			}
+		}
+	}
+	if (print) fprintf_rl(stdout, "%s\n", buf_a);
+
+	// Turn buf_a into a double
+	r.lo = strtod(buf_a, NULL);
+	if (print) fprintf_rl(stdout, "Result: {%.17g, %.17g}\n\n", r.hi, r.lo);
+
+	// Apply sign
+	if (neg)
+		r = neg_q(r);
+
+	return r;
 }

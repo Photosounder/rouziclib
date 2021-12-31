@@ -134,12 +134,10 @@ double eval_chebyshev_polynomial(double x, double *cm, int degree)
 	return y;
 }
 
-double eval_chebyshev_polynomial_even(double x, double *cm, int degree)		// here cm is multipliers for T_0, T_2, T_4, ...
+double eval_chebyshev_polynomial_even(double x, double *cm, int degree)		// here degree is /2, cm is multipliers for T_0, T_2, T_4, ...
 {
 	int id;
 	double b1=0., b2, y, x2 = 2.*x;
-
-	degree >>= 1;
 
 	if (degree == 0)
 		return cm[0];
@@ -193,12 +191,10 @@ ddouble_t eval_chebyshev_polynomial_q(ddouble_t x, ddouble_t *cm, int degree)
 	return y;
 }
 
-ddouble_t eval_chebyshev_polynomial_even_q(ddouble_t x, ddouble_t *cm, int degree)	// here cm is multipliers for T_0, T_2, T_4, ...
+ddouble_t eval_chebyshev_polynomial_even_q(ddouble_t x, ddouble_t *cm, int degree)	// here degree is /2, cm is multipliers for T_0, T_2, T_4, ...
 {
 	int id;
 	ddouble_t b1={0}, b2, y, x2 = mul_qd_simple(x, 2.);
-
-	degree >>= 1;
 
 	if (degree == 0)
 		return cm[0];

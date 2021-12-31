@@ -164,19 +164,29 @@ void toggle_guizoom(zoom_t *zc, int on)	// used for temporarily disabling zoomin
 {
 	static double stored_zoomscale=1.;
 	static xy_t stored_offset_u;
+	static xyq_t stored_offset_uq;
 
 	if (on)
 	{
 		zc->zoomscale = stored_zoomscale;
+		#ifdef ZOOM_Q
+		zc->offset_uq = stored_offset_uq;
+		#else
 		zc->offset_u = stored_offset_u;
+		#endif
 	}
 	else
 	{
 		stored_zoomscale = zc->zoomscale;
+		#ifdef ZOOM_Q
+		stored_offset_uq = zc->offset_uq;
+		zc->offset_uq = XYQ0;
+		#else
 		stored_offset_u = zc->offset_u;
+		zc->offset_u = XY0;
+		#endif
 
 		zc->zoomscale = 1.;
-		zc->offset_u = XY0;
 	}
 
 	calc_screen_limits(zc);

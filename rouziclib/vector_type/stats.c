@@ -66,6 +66,8 @@ double calc_strwidth_len(vector_font_t *font, const uint8_t *string, double scal
 	for (i=0; i<len; i++)
 	{
 		co = utf8_to_unicode32(&string[i], &i);
+		if (co == 0xFFFFFFFF)
+			break;
 
 		// Arabic form substitution
 		c = get_arabic_form(co, &string[i+1], len-(i+1), con_prev);	// substitute for Arabic form if needed

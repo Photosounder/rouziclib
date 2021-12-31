@@ -334,6 +334,9 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 	{
 		is = i;							// save i at start (it might get incremented right below)
 		co = utf8_to_unicode32(&string[i], &i);			// get (original) codepoint and increment i
+		if (co == 0xFFFFFFFF)
+			break;
+
 		c = get_arabic_form(co, &string[i+1], len-(i+1), con_prev);	// substitute for Arabic form if needed
 		ucd = get_unicode_data(c);
 		if (ucd.bidicat!=bidicat_NSM)				// if character that is not a combining mark
