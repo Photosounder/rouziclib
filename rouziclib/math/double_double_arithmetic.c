@@ -231,7 +231,7 @@ ddouble_t string_to_ddouble(const char *string, char **endptr)
 	int i, neg=0, digits_end=0, separator_pos, p_len, exponent=0, digit_count, dest_index, carry;
 	const int print = 0;	// set to 1 to print buffer contents
 	const char *p;
-	char *endptr2=NULL, buf_a[1386], buf_b[1386];
+	char *endptr2=NULL, buf_a[635+1], buf_b[635+1];
 	double vd, a, digit_mul;
 	ddouble_t r={0};
 
@@ -281,9 +281,10 @@ ddouble_t string_to_ddouble(const char *string, char **endptr)
 	r.hi = vd;
 
 	// Any finite double can have the exact value it represents represented exactly by 1 (sign) + 309 (integers) + 1 (.) + 1074 (fractionals) = 1385 chars
+	// However the last 750 chars have no influence so using only 324 fractional chars instead of 1074 is just as good
 
-	// Turn the original string into a +309.1074 representation
-	sprintf(buf_a, "%+01385.1074f", 0.);
+	// Turn the original string into a +309.324 representation
+	sprintf(buf_a, "%+0635.324f", 0.);
 
 	// Place digits from before the separator
 	for (i=0; i < separator_pos; i++)
@@ -292,7 +293,7 @@ ddouble_t string_to_ddouble(const char *string, char **endptr)
 		if (dest_index >= 310)		// digit goes after destination separator
 			dest_index++;
 
-		if (dest_index > 0 && dest_index < 1385)
+		if (dest_index > 0 && dest_index < 635)
 			buf_a[dest_index] = p[separator_pos-1-i];
 	}
 
@@ -303,17 +304,17 @@ ddouble_t string_to_ddouble(const char *string, char **endptr)
 		if (dest_index >= 310)		// digit goes after destination separator
 			dest_index++;
 
-		if (dest_index > 0 && dest_index < 1385)
+		if (dest_index > 0 && dest_index < 635)
 			buf_a[dest_index] = p[separator_pos+1+i];
 	}
 
-	// Turn vd into a +309.1074 representation
-	sprintf(buf_b, "%+01385.1074f", vd);
+	// Turn vd into a +309.324 representation
+	sprintf(buf_b, "%+0635.324f", vd);
 	if (print) fprintf_rl(stdout, "%s\n%s\n", buf_a, buf_b);
 
 	// Subtract digits
 	carry = 0;
-	for (i=1384; i > 0; i--)
+	for (i=635-1; i > 0; i--)
 	{
 		if (i != 310)
 		{
@@ -335,12 +336,12 @@ ddouble_t string_to_ddouble(const char *string, char **endptr)
 		buf_a[0] = buf_a[0]=='+' ? '-' : '+';
 
 		// Flip digits
-		for (i=1; i < 1385; i++)
+		for (i=1; i < 635; i++)
 			if (i != 310)
 				buf_a[i] = '9' - buf_a[i] + '0';
 
 		// Propagate carry from the lowest digit
-		for (i=1384; i > 0; i--)
+		for (i=635-1; i > 0; i--)
 		{
 			if (i != 310)
 			{
