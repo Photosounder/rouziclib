@@ -906,7 +906,14 @@ ddouble_t result = *((ddouble_t *) &prog.return_real[0]);
 fprintf_rl(stdout, "{%.17g, %.17g}\n", result.hi, result.lo);
 ```
 
-Which gives us the result in double-double format: `{-0.65364362086361194, 2.5846614087018284e-17}`.
+Which gives us the result in double-double format: `{-0.65364362086361194, 2.5846614087018284e-17}`. The same can be done with `RLIP_REAL_MPFR` without changing the `source`. We obtain the result by doing this:
+
+```
+mpfr_t *result = ((mpfr_t *) &prog.return_real[0]);
+mpfr_fprintf(stdout, "Program returned %.60Rg\n\n", *result);
+```
+
+Giving us a very high precision result of `-0.65364362086361191463916818309775038142413359664621824700701`.
 
 == Tools
 

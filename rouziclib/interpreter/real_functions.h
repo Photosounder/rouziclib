@@ -1,4 +1,4 @@
-// Double
+//**** Double ****
 static void real_d_set(double *r, double *a) { *r = *a; }
 static double real_d_cvt_r_d(double *a) { return *a; }
 static void real_d_cvt_d_r(double *r, double a) { *r = a; };
@@ -69,7 +69,7 @@ static rlip_real_functions_t real_d_functions = {
 	{"rangelimit_", rangelimit, "frrrr"}
 
 
-// Double-double
+//**** Double-double ****
 static void real_q_set(ddouble_t *r, ddouble_t *a) { *r = *a; }
 static double real_q_cvt_r_d(ddouble_t *a) { return a->hi; }
 static void real_q_cvt_d_r(ddouble_t *r, double a) { *r = ddouble(a); };
@@ -138,3 +138,70 @@ static rlip_real_functions_t real_q_functions = {
 	{"max_", real_q_max,	"frrr"},		\
 	{"pow_", real_q_pow,	"frrr"},		\
 	{"rangelimit_", rangelimit, "frrrr"}
+
+
+#ifdef RL_MPFR
+//**** MPFR ****
+static void real_mpfr_set(mpfr_t *r, mpfr_t *a) { mpfr_set(*r, *a, MPFR_RNDN); }
+static double real_mpfr_cvt_r_d(mpfr_t *a) { return mpfr_get_d(*a, MPFR_RNDN); }
+static void real_mpfr_cvt_d_r(mpfr_t *r, double a) { mpfr_set_d(*r, a, MPFR_RNDN); };
+static int64_t real_mpfr_cvt_r_i(mpfr_t *a) { return mpfr_get_sj(*a, MPFR_RNDN); }
+static void real_mpfr_cvt_i_r(mpfr_t *r, int64_t a) { mpfr_set_sj(*r, a, MPFR_RNDN); }
+static int real_mpfr_cmp(mpfr_t *a, mpfr_t *b) { return mpfr_cmp(*a, *b); }
+static void real_mpfr_ator(mpfr_t *r, const char *string, char **endptr) { mpfr_strtofr(*r, string, endptr, 10, MPFR_RNDN); }
+static void real_mpft_var_init(mpfr_t *r) { mpfr_init_set_d(*r, 0., MPFR_RNDN); }
+static void real_mpft_var_deinit(mpfr_t *r) { mpfr_clear(*r); }
+
+static void real_mpfr_add(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_add(*r, *a, *b, MPFR_RNDN); }
+static void real_mpfr_sub(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_sub(*r, *a, *b, MPFR_RNDN); }
+static void real_mpfr_mul(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_mul(*r, *a, *b, MPFR_RNDN); }
+static void real_mpfr_div(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_div(*r, *a, *b, MPFR_RNDN); }
+
+static void real_mpfr_nan(mpfr_t *r) { mpfr_set_nan(*r); }
+static void real_mpfr_pi(mpfr_t *r) { mpfr_const_pi(*r, MPFR_RNDN); }
+static void real_mpfr_e(mpfr_t *r) { mpfr_set_d(*r, 1., MPFR_RNDN); mpfr_exp(*r, *r, MPFR_RNDN); }
+
+static void real_mpfr_abs(mpfr_t *r, mpfr_t *a) { mpfr_abs(*r, *a, MPFR_RNDN); }
+static void real_mpfr_sign(mpfr_t *r, mpfr_t *a) { int s = mpfr_sgn(*a); mpfr_set_sj(*r, s, MPFR_RNDN); }
+static void real_mpfr_nearbyint(mpfr_t *r, mpfr_t *a) { mpfr_round(*r, *a); }
+static void real_mpfr_floor(mpfr_t *r, mpfr_t *a) { mpfr_floor(*r, *a); }
+static void real_mpfr_ceil(mpfr_t *r, mpfr_t *a) { mpfr_ceil(*r, *a); }
+static void real_mpfr_trunc(mpfr_t *r, mpfr_t *a) { mpfr_trunc(*r, *a); }
+static void real_mpfr_cos(mpfr_t *r, mpfr_t *a) { mpfr_cos(*r, *a, MPFR_RNDN); }
+static void real_mpfr_sin(mpfr_t *r, mpfr_t *a) { mpfr_sin(*r, *a, MPFR_RNDN); }
+
+static void real_mpfr_pow(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_pow(*r, *a, *b, MPFR_RNDN); }
+
+static rlip_real_functions_t real_mpfr_functions = {
+	sizeof(mpfr_t),
+	(void (*)(uint8_t *,uint8_t *))			real_mpfr_set,
+	(double (*)(uint8_t *))				real_mpfr_cvt_r_d,
+	(void (*)(uint8_t *,double))			real_mpfr_cvt_d_r,
+	(int64_t (*)(uint8_t *))			real_mpfr_cvt_r_i,
+	(void (*)(uint8_t *,int64_t))			real_mpfr_cvt_i_r,
+	(int (*)(const uint8_t *,const uint8_t *))	real_mpfr_cmp,
+	(void (*)(uint8_t *,const char *,char **))	real_mpfr_ator,
+	(void (*)(uint8_t *))				real_mpft_var_init,
+	(void (*)(uint8_t *))				real_mpft_var_deinit,
+};
+
+// Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_REAL_MPFR, RLIP_FUNC, {"x", &x, "pr"}, ... };
+#define RLIP_REAL_MPFR				\
+	{"rlip_real_functions", &real_mpfr_functions, ""},	\
+	{"add_", real_mpfr_add,	"frrr"},		\
+	{"sub_", real_mpfr_sub,	"frrr"},		\
+	{"mul_", real_mpfr_mul,	"frrr"},		\
+	{"div_", real_mpfr_div,	"frrr"},		\
+	{"nan_", real_mpfr_nan,	"fr"},			\
+	{"pi_", real_mpfr_pi,	"fr"},			\
+	{"e_", real_mpfr_e,	"fr"},			\
+	{"abs_", real_mpfr_abs,	"frr"},			\
+	{"sign_", real_mpfr_sign,	"frr"},			\
+	{"nearbyint_", real_mpfr_nearbyint, "frr"},	\
+	{"floor_", real_mpfr_floor, "frr"},		\
+	{"ceil_", real_mpfr_ceil,	"frr"},			\
+	{"trunc_", real_mpfr_trunc, "frr"},		\
+	{"cos_", real_mpfr_cos,	"frr"},			\
+	{"sin_", real_mpfr_sin,	"frr"},			\
+	{"pow_", real_mpfr_pow,	"frrr"}
+#endif
