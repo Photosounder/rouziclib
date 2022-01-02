@@ -47,26 +47,26 @@ static rlip_real_functions_t real_d_functions = {
 // Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLE, RLIP_FUNC, {"x", &x, "pr"}, ... };
 #define RLIP_REAL_DOUBLE				\
 	{"rlip_real_functions", &real_d_functions, ""},	\
-	{"add_", real_d_add,	"frrr"},		\
-	{"sub_", real_d_sub,	"frrr"},		\
-	{"mul_", real_d_mul,	"frrr"},		\
-	{"div_", real_d_div,	"frrr"},		\
-	{"nan_", real_d_nan,	"fr"},			\
-	{"pi_", real_d_pi,	"fr"},			\
-	{"e_", real_d_e,	"fr"},			\
-	{"abs_", real_d_abs,	"frr"},			\
-	{"sign_", real_d_sign,	"frr"},			\
+	{"add_", real_d_add,		"frrr"},	\
+	{"sub_", real_d_sub,		"frrr"},	\
+	{"mul_", real_d_mul,		"frrr"},	\
+	{"div_", real_d_div,		"frrr"},	\
+	{"nan_", real_d_nan,		"fr"},		\
+	{"pi_", real_d_pi,		"fr"},		\
+	{"e_", real_d_e,		"fr"},		\
+	{"abs_", real_d_abs,		"frr"},		\
+	{"sign_", real_d_sign,		"frr"},		\
 	{"nearbyint_", real_d_nearbyint, "frr"},	\
-	{"floor_", real_d_floor, "frr"},		\
-	{"ceil_", real_d_ceil,	"frr"},			\
-	{"trunc_", real_d_trunc, "frr"},		\
-	{"clamp_", real_d_clamp, "frr"},		\
-	{"cos_", real_d_cos,	"frr"},			\
-	{"sin_", real_d_sin,	"frr"},			\
-	{"min_", real_d_min,	"frrr"},		\
-	{"max_", real_d_max,	"frrr"},		\
-	{"pow_", real_d_pow,	"frrr"},		\
-	{"rangelimit_", rangelimit, "frrrr"}
+	{"floor_", real_d_floor,	"frr"},		\
+	{"ceil_", real_d_ceil,		"frr"},		\
+	{"trunc_", real_d_trunc,	"frr"},		\
+	{"clamp_", real_d_clamp,	"frr"},		\
+	{"cos_", real_d_cos,		"frr"},		\
+	{"sin_", real_d_sin,		"frr"},		\
+	{"min_", real_d_min,		"frrr"},	\
+	{"max_", real_d_max,		"frrr"},	\
+	{"pow_", real_d_pow,		"frrr"},	\
+	{"rangelimit_", rangelimit,	"frrrr"}
 
 
 //**** Double-double ****
@@ -118,26 +118,26 @@ static rlip_real_functions_t real_q_functions = {
 // Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLEDOUBLE, RLIP_FUNC, {"x", &x, "pr"}, ... };
 #define RLIP_REAL_DOUBLEDOUBLE				\
 	{"rlip_real_functions", &real_q_functions, ""},	\
-	{"add_", real_q_add,	"frrr"},		\
-	{"sub_", real_q_sub,	"frrr"},		\
-	{"mul_", real_q_mul,	"frrr"},		\
-	{"div_", real_q_div,	"frrr"},		\
-	{"nan_", real_q_nan,	"fr"},			\
-	{"pi_", real_q_pi,	"fr"},			\
-	{"e_", real_q_e,	"fr"},			\
-	{"abs_", real_q_abs,	"frr"},			\
-	{"sign_", real_q_sign,	"frr"},			\
+	{"add_", real_q_add,		"frrr"},	\
+	{"sub_", real_q_sub,		"frrr"},	\
+	{"mul_", real_q_mul,		"frrr"},	\
+	{"div_", real_q_div,		"frrr"},	\
+	{"nan_", real_q_nan,		"fr"},		\
+	{"pi_", real_q_pi,		"fr"},		\
+	{"e_", real_q_e,		"fr"},		\
+	{"abs_", real_q_abs,		"frr"},		\
+	{"sign_", real_q_sign,		"frr"},		\
 	{"nearbyint_", real_q_nearbyint, "frr"},	\
-	{"floor_", real_q_floor, "frr"},		\
-	{"ceil_", real_q_ceil,	"frr"},			\
-	{"trunc_", real_q_trunc, "frr"},		\
-	{"clamp_", real_q_clamp, "frr"},		\
-	{"cos_", real_q_cos,	"frr"},			\
-	{"sin_", real_q_sin,	"frr"},			\
-	{"min_", real_q_min,	"frrr"},		\
-	{"max_", real_q_max,	"frrr"},		\
-	{"pow_", real_q_pow,	"frrr"},		\
-	{"rangelimit_", rangelimit, "frrrr"}
+	{"floor_", real_q_floor,	"frr"},		\
+	{"ceil_", real_q_ceil,		"frr"},		\
+	{"trunc_", real_q_trunc,	"frr"},		\
+	{"clamp_", real_q_clamp,	"frr"},		\
+	{"cos_", real_q_cos,		"frr"},		\
+	{"sin_", real_q_sin,		"frr"},		\
+	{"min_", real_q_min,		"frrr"},	\
+	{"max_", real_q_max,		"frrr"},	\
+	{"pow_", real_q_pow,		"frrr"},	\
+	{"rangelimit_", rangelimit,	"frrrr"}
 
 
 #ifdef RL_MPFR
@@ -188,20 +188,20 @@ static rlip_real_functions_t real_mpfr_functions = {
 // Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_REAL_MPFR, RLIP_FUNC, {"x", &x, "pr"}, ... };
 #define RLIP_REAL_MPFR				\
 	{"rlip_real_functions", &real_mpfr_functions, ""},	\
-	{"add_", real_mpfr_add,	"frrr"},		\
-	{"sub_", real_mpfr_sub,	"frrr"},		\
-	{"mul_", real_mpfr_mul,	"frrr"},		\
-	{"div_", real_mpfr_div,	"frrr"},		\
-	{"nan_", real_mpfr_nan,	"fr"},			\
-	{"pi_", real_mpfr_pi,	"fr"},			\
-	{"e_", real_mpfr_e,	"fr"},			\
-	{"abs_", real_mpfr_abs,	"frr"},			\
-	{"sign_", real_mpfr_sign,	"frr"},			\
+	{"add_", real_mpfr_add,		"frrr"},	\
+	{"sub_", real_mpfr_sub,		"frrr"},	\
+	{"mul_", real_mpfr_mul,		"frrr"},	\
+	{"div_", real_mpfr_div,		"frrr"},	\
+	{"nan_", real_mpfr_nan,		"fr"},		\
+	{"pi_", real_mpfr_pi,		"fr"},		\
+	{"e_", real_mpfr_e,		"fr"},		\
+	{"abs_", real_mpfr_abs,		"frr"},		\
+	{"sign_", real_mpfr_sign,	"frr"},		\
 	{"nearbyint_", real_mpfr_nearbyint, "frr"},	\
-	{"floor_", real_mpfr_floor, "frr"},		\
-	{"ceil_", real_mpfr_ceil,	"frr"},			\
-	{"trunc_", real_mpfr_trunc, "frr"},		\
-	{"cos_", real_mpfr_cos,	"frr"},			\
-	{"sin_", real_mpfr_sin,	"frr"},			\
-	{"pow_", real_mpfr_pow,	"frrr"}
+	{"floor_", real_mpfr_floor,	"frr"},		\
+	{"ceil_", real_mpfr_ceil,	"frr"},		\
+	{"trunc_", real_mpfr_trunc,	"frr"},		\
+	{"cos_", real_mpfr_cos,		"frr"},		\
+	{"sin_", real_mpfr_sin,		"frr"},		\
+	{"pow_", real_mpfr_pow,		"frrr"}
 #endif
