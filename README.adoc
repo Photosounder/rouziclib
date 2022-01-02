@@ -902,7 +902,8 @@ rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLEDOUBLE, RLIP_FUNC, {"x", &x, "pd"} };
 An example RLIP program would be `const char source[] = "r v1 = cos_ x\n return_real v1"`, `v1` is declared as a `r` which is our custom real format (in this case a double-double), and `cos_` is defined in link:rouziclib/interpreter/real_functions.h[real_functions.h] as the double-double implementation of `cos`. Finally we use `return_real` instead of `return` to return the number in our format instead of `double`. We can read the higher precision result like so:
 
 ```
-fprintf_rl(stdout, "{%.17g, %.17g}\n", ((ddouble_t *) &prog.return_real[0])->hi, ((ddouble_t *) &prog.return_real[0])->lo);
+ddouble_t result = *((ddouble_t *) &prog.return_real[0]);
+fprintf_rl(stdout, "{%.17g, %.17g}\n", result.hi, result.lo);
 ```
 
 Which gives us the result in double-double format: `{-0.65364362086361194, 2.5846614087018284e-17}`.
