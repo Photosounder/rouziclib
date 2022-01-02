@@ -140,8 +140,8 @@ static rlip_real_functions_t real_q_functions = {
 	{"rangelimit_", rangelimit,	"frrrr"}
 
 
-#ifdef RL_MPFR
 //**** MPFR ****
+#ifdef RL_MPFR
 static void real_mpfr_set(mpfr_t *r, mpfr_t *a) { mpfr_set(*r, *a, MPFR_RNDN); }
 static double real_mpfr_cvt_r_d(mpfr_t *a) { return mpfr_get_d(*a, MPFR_RNDN); }
 static void real_mpfr_cvt_d_r(mpfr_t *r, double a) { mpfr_set_d(*r, a, MPFR_RNDN); };
@@ -187,7 +187,7 @@ static rlip_real_functions_t real_mpfr_functions = {
 
 // Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_REAL_MPFR, RLIP_FUNC, {"x", &x, "pr"}, ... };
 #define RLIP_REAL_MPFR				\
-	{"rlip_real_functions", &real_mpfr_functions, ""},	\
+	{"rlip_real_functions", &real_mpfr_functions, ""}, \
 	{"add_", real_mpfr_add,		"frrr"},	\
 	{"sub_", real_mpfr_sub,		"frrr"},	\
 	{"mul_", real_mpfr_mul,		"frrr"},	\
