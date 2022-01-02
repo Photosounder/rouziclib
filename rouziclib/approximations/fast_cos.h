@@ -48,3 +48,5 @@ extern xy_t fastcos_tr_d3_xy(xy_t v);
 
 extern ddouble_t cos_tr_q(ddouble_t x);
 extern ddouble_t cos_q(ddouble_t x);
+extern ddouble_t sin_tr_q(ddouble_t x);
+extern ddouble_t sin_q(ddouble_t x);

@@ -3,6 +3,7 @@ enum opcode_table
 	table_none=0,
 	table_vd,
 	table_vi,
+	table_vr,
 	table_ptr,
 	table_loc,
 };
@@ -22,8 +23,10 @@ typedef struct
 	opint_t *op;
 	rlip_reg_t *reg;
 	int *loc;
-	size_t op_count, op_as, vd_count, vd_as, vi_count, vi_as, ptr_count, ptr_as, loc_count, loc_as, reg_count, reg_as;
-	int rd[8], ri[8];	// generic registers
+	size_t op_count, op_as, vd_count, vd_as, vi_count, vi_as, vr_count, vr_as, ptr_count, ptr_as, loc_count, loc_as, reg_count, reg_as;
+	int valid_reals, abort_compilation;
+	int rd[8], ri[8], rr[8];	// generic registers
+	buffer_t *comp_log;
 } rlip_data_t;
 
 int rlip_find_value(const char *name, rlip_data_t *ed)
@@ -70,6 +73,17 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 			ed->d->vi[ed->reg[ir].index] = *(int64_t *) ptr;
 	}
 
+	if (strcmp(type, "r")==0 && ed->valid_reals)	// add to vr table
+	{
+		ed->reg[ir].table = table_vr;
+		ed->reg[ir].index = ed->vr_count * ed->d->rf.size_of_real;
+		alloc_enough(&ed->d->vr, ed->vr_count+=1, &ed->vr_as, ed->d->rf.size_of_real, 1.5);
+		if (ptr)
+			memcpy(&ed->d->vr[ed->reg[ir].index], ptr, ed->d->rf.size_of_real);
+		else if (ed->d->rf.var_init)
+			ed->d->rf.var_init(&ed->d->vr[ed->reg[ir].index]);
+	}
+
 	else if (type[0] == 'p' || type[0] == 'f')	// add to ptr table
 	{
 		ed->reg[ir].table = table_ptr;
@@ -91,6 +105,18 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 int rlip_add_value(const char *name, const void *ptr, const char *type, rlip_data_t *ed)
 {
 	int ir;
+
+	// Special case when the "value" is the rlip_real_functions_t structure
+	if (strcmp(name, "rlip_real_functions")==0 && ptr)
+	{
+		const rlip_real_functions_t *rf = ptr;
+		if (rf->size_of_real && rf->set && rf->cvt_r_d && rf->cvt_d_r && rf->cvt_r_i && rf->cvt_i_r && rf->cmp && rf->ator)
+		{
+			ed->d->rf = *rf;
+			ed->valid_reals = 1;
+		}
+		return -1;
+	}
 
 	// Look for existing instance of the value
 	ir = rlip_find_value(name, ed);
@@ -126,16 +152,29 @@ void prepend_opcode(rlip_data_t *ed, size_t add_count)
 void convert_pointer_to_variable(int ir, rlip_data_t *ed)
 {
 	// Convert a pointer to a variable forever
-	if (ed->reg[ir].type[0] == 'p')
+	if (ed->reg[ir].type[0] == 'p' && (ed->reg[ir].type[1] == 'd' || ed->reg[ir].type[1] == 'i' || ed->reg[ir].type[1] == 'r') && ed->reg[ir].type[2] == '\0')
 	{
 		// Prepend load opcode
 		prepend_opcode(ed, 3);
-		ed->op[0] = ed->reg[ir].type[1]=='d' ? op_load_d : op_load_i;
+		switch (ed->reg[ir].type[1])
+		{
+			case 'd': ed->op[0] = op_load_d; break;
+			case 'i': ed->op[0] = op_load_i; break;
+			case 'r':
+				  ed->op[0] = op_load_r;
+				  if (ed->valid_reals == 0)
+				  {
+					  
+					  bufprintf(ed->comp_log, "Real-type conversion without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs");
+					  ed->abort_compilation = 1;
+				  }
+				  break;
+		}
 		ed->op[2] = ed->reg[ir].index;
 
 		// Convert reg entry from pointer to variable
 		rlip_reg_t old_entry = ed->reg[ir];
-		rlip_add_value_at_reg_index(ir, old_entry.name, NULL, old_entry.type[1]=='d' ? "d" : "i", ed);
+		rlip_add_value_at_reg_index(ir, old_entry.name, NULL, &old_entry.type[1], ed);
 		free(old_entry.name);
 		free(old_entry.type);
 
@@ -146,6 +185,7 @@ void convert_pointer_to_variable(int ir, rlip_data_t *ed)
 
 void convert_expression_to_variable(const char *name, rlip_data_t *ed)
 {
+	// TODO convert to real if ed->valid_reals when real expression parsing will be implemented
 	double v = te_interp(name, NULL);			// interpret name as an expression
 
 	if (isnan(v)==0)					// if it's a valid expression
@@ -168,32 +208,57 @@ int rlip_find_convert_value(const char *name, rlip_data_t *ed)
 	return ir;
 }
 
+enum opcode rlip_find_cvt_opcode(char src_type, char dst_type)
+{
+	if (src_type == 'i' && dst_type == 'd') return op_cvt_i_d;
+	if (src_type == 'd' && dst_type == 'i') return op_cvt_d_i;
+	if (src_type == 'r' && dst_type == 'd') return op_cvt_r_d;
+	if (src_type == 'd' && dst_type == 'r') return op_cvt_d_r;
+	if (src_type == 'r' && dst_type == 'i') return op_cvt_r_i;
+	if (src_type == 'i' && dst_type == 'r') return op_cvt_i_r;
+
+	if (src_type == 'd' && dst_type == 'd') return op_set_d;
+	if (src_type == 'i' && dst_type == 'i') return op_set_i;
+	if (src_type == 'r' && dst_type == 'r') return op_set_r;
+
+	return op_end;
+}
+
 void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int i, rlip_data_t *ed)
 {
 	int io;
+	char var_type = ed->reg[*ir].type[0];
 
 	// Convert the variable to a generic register if the type doesn't match the one expected
-	if (ed->reg[*ir].type[0] != expected_type)
+	if (var_type != expected_type)
 	{
+		// Check real conversion
+		if (ed->valid_reals == 0 && (var_type == 'r' || expected_type == 'r'))
+		{
+
+			bufprintf(ed->comp_log, "Real type used without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs");
+			ed->abort_compilation = 1;
+		}
+
 		io = alloc_opcode(ed, 3);		// add conversion opcode
 		ed->op[io+2] = ed->reg[*ir].index;	// source index
 
-		if (expected_type == 'd')
+		// Opcode
+		ed->op[io] = rlip_find_cvt_opcode(var_type, expected_type);
+
+		// Destination index
+		switch (expected_type)
 		{
-			ed->op[io] = op_cvt_i_d;
-			ed->op[io+1] = ed->rd[1+i];		// destinaton index
-		}
-		else
-		{
-			ed->op[io] = op_cvt_d_i;
-			ed->op[io+1] = ed->ri[1+i];
+			case 'd': *ir = ed->rd[1+i];	break;
+			case 'i': *ir = ed->ri[1+i];	break;
+			case 'r': *ir = ed->rr[1+i];	break;
 		}
 
-		*ir = ed->op[io+1];	// the ir for this argument is now the generic register
+		ed->op[io+1] = ed->reg[*ir].index;	// the ir for this argument is now the generic register
 	}
 }
 
-int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed, int il, char **line, buffer_t *comp_log)
+int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed, int il, char **line)
 {
 	int i, n=0, ret;
 	char s1[32];
@@ -210,7 +275,7 @@ int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed
 
 			if (arg_ir[i] == -1)
 			{
-				bufprintf(comp_log, "Argument '%s' unidentified in line %d: '%s'", s1, il, line[il]);
+				bufprintf(ed->comp_log, "Argument '%s' unidentified in line %d: '%s'", s1, il, line[il]);
 				return -1;
 			}
 
@@ -220,7 +285,7 @@ int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed
 		}
 		else
 		{
-			bufprintf(comp_log, "Argument missing (%d arguments expected) in line %d: '%s'", strlen(cmd_arg_type), il, line[il]);
+			bufprintf(ed->comp_log, "Argument missing (%d arguments expected) in line %d: '%s'", strlen(cmd_arg_type), il, line[il]);
 			return -1;
 		}
 	}
@@ -240,24 +305,40 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 	enum opcode new_opcode;
 
 	ed->d = &data;
-
-	// Alloc return value array
-	ed->d->return_value = calloc(ret_count, sizeof(double));
+	ed->comp_log = comp_log;
 
 	// Add generic registers
 	for (i=0; i < sizeof(ed->rd)/sizeof(*ed->rd); i++)
-		ed->rd[i] = ed->reg[rlip_add_value(sprintf_ret(s0, "rd%d", i), NULL, "d", ed)].index;
+		ed->rd[i] = rlip_add_value(sprintf_ret(s0, "rd%d", i), NULL, "d", ed);
 
 	for (i=0; i < sizeof(ed->ri)/sizeof(*ed->ri); i++)
-		ed->ri[i] = ed->reg[rlip_add_value(sprintf_ret(s0, "ri%d", i), NULL, "i", ed)].index;
+		ed->ri[i] = rlip_add_value(sprintf_ret(s0, "ri%d", i), NULL, "i", ed);
 
 	// Add inputs to structure
 	for (i=0; i < input_count; i++)
 		rlip_add_value(inputs[i].name, inputs[i].ptr, inputs[i].type, ed);
 
+	// Add generic real registers
+	if (ed->valid_reals)
+		for (i=0; i < sizeof(ed->rr)/sizeof(*ed->rr); i++)
+			ed->rr[i] = rlip_add_value(sprintf_ret(s0, "rr%d", i), NULL, "r", ed);
+
+	// Alloc and init return value arrays
+	ed->d->return_value = calloc(ret_count, sizeof(double));
+	if (ed->valid_reals)
+	{
+		ed->d->return_real = calloc(ret_count, ed->d->rf.size_of_real);
+		if (ed->d->rf.var_init)
+			for (i=0; i < ret_count; i++)
+				ed->d->rf.var_init(&ed->d->return_real[i]);
+	}
+
 	// Parse lines and compile them into opcodes
 	for (il=0; il < linecount; il++)
 	{
+		if (ed->abort_compilation)
+			goto invalid_prog;
+
 		add_var_type = 0;
 		p = line[il];
 
@@ -270,13 +351,24 @@ line_proc_start:
 		sscanf(p, "%30s = %n", s0, &n);
 
 		// Declaring a new variable by its type
-		if (strcmp(s0, "d")==0 || strcmp(s0, "i")==0)
+		if (strcmp(s0, "d")==0 || strcmp(s0, "i")==0 || strcmp(s0, "r")==0)
 		{
 			// Set flag for creation of variable
 			if (s0[0]=='d')
 				add_var_type = table_vd;
-			else
+			else if (s0[0]=='i')
 				add_var_type = table_vi;
+			else
+			{
+				add_var_type = table_vr;
+
+				if (ed->valid_reals == 0)
+				{
+
+					bufprintf(ed->comp_log, "Real-type variable declaration without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs");
+					goto invalid_prog;
+				}
+			}
 
 			// Jump back to end up at the processing of "<var> = ..."
 			sscanf(p, "%*s%n", &n);
@@ -332,7 +424,7 @@ line_proc_start:
 
 			// Add or find destination var
 			if (add_var_type)
-				dest_ir = rlip_add_value(s0, NULL, add_var_type==table_vd ? "d" : "i", ed);
+				dest_ir = rlip_add_value(s0, NULL, add_var_type==table_vd ? "d" : add_var_type==table_vi ? "i" : "r", ed);
 			else
 				dest_ir = rlip_find_value(s0, ed);
 			
@@ -342,7 +434,7 @@ line_proc_start:
 				goto invalid_prog;
 			}
 
-			if (ed->reg[dest_ir].type[0]!='d' && ed->reg[dest_ir].type[0]!='i')
+			if (ed->reg[dest_ir].type[0]!='d' && ed->reg[dest_ir].type[0]!='i' && ed->reg[dest_ir].type[0]!='r')
 			{
 				bufprintf(comp_log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'", s0, ed->reg[dest_ir].type, il, line[il]);
 				goto invalid_prog;
@@ -431,7 +523,7 @@ line_proc_start:
 					else if (strcmp(s0, "adm")==0)		new_opcode = op_adm_ddd;
 add_command:
 					// Go through arguments to convert them and determine their types
-					if (rlip_get_arguments(&p[n], &cmd_arg_type[1], arg_ir, ed, il, line, comp_log))
+					if (rlip_get_arguments(&p[n], &cmd_arg_type[1], arg_ir, ed, il, line))
 						goto invalid_prog;
 
 					// Add opcode
@@ -449,26 +541,25 @@ add_command:
 					if (ed->reg[dest_ir].type[0] != cmd_arg_type[0])
 					{
 						// Output to generic register
-						ed->op[io+1] = cmd_arg_type[0]=='d' ? ed->rd[0] : ed->ri[0];
+						ed->op[io+1] = cmd_arg_type[0]=='d' ? ed->reg[ed->rd[0]].index : cmd_arg_type[0]=='i' ? ed->reg[ed->ri[0]].index : ed->reg[ed->rr[0]].index;
 
 						// Convert from generic register to destination
 						io = alloc_opcode(ed, 3);	// add conversion opcode
 						ed->op[io+1] = ed->reg[dest_ir].index;	// destination index
 
-						if (cmd_arg_type[0] == 'd')
+						ed->op[io] = rlip_find_cvt_opcode(cmd_arg_type[0], ed->reg[dest_ir].type[0]);
+
+						// Source index
+						switch (cmd_arg_type[0])
 						{
-							ed->op[io] = op_cvt_d_i;
-							ed->op[io+2] = ed->rd[0];		// source index
-						}
-						else
-						{
-							ed->op[io] = op_cvt_i_d;
-							ed->op[io+2] = ed->ri[0];
+							case 'd': ed->op[io+2] = ed->reg[ed->rd[0]].index;	break;
+							case 'i': ed->op[io+2] = ed->reg[ed->ri[0]].index;	break;
+							case 'r': ed->op[io+2] = ed->reg[ed->rr[0]].index;	break;
 						}
 					}
 				}
 
-				// Commands less typical needs
+				// Commands with less typical needs
 				if (cmd_found == 0)
 				{
 					if (strcmp(s0, "cmp")==0 || strcmp(s0, "cmpi")==0)
@@ -503,12 +594,18 @@ add_command:
 							io = alloc_opcode(ed, 4);
 
 							// Select correct opcode
-							if (strcmp(s2, "==")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_eq : op_cmp_ii_eq;
-							if (strcmp(s2, "!=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_ne : op_cmp_ii_ne;
-							if (strcmp(s2, "<")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_lt : op_cmp_ii_lt;
-							if (strcmp(s2, "<=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_le : op_cmp_ii_le;
-							if (strcmp(s2, ">")==0) 	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_gt : op_cmp_ii_gt;
-							if (strcmp(s2, ">=")==0)	ed->op[io] = cmd_arg_type[1]=='d' ? op_cmp_dd_ge : op_cmp_ii_ge;
+							if (strcmp(s2, "==")==0)	ed->op[io] = op_cmp_dd_eq;
+							if (strcmp(s2, "!=")==0)	ed->op[io] = op_cmp_dd_ne;
+							if (strcmp(s2, "<")==0) 	ed->op[io] = op_cmp_dd_lt;
+							if (strcmp(s2, "<=")==0)	ed->op[io] = op_cmp_dd_le;
+							if (strcmp(s2, ">")==0) 	ed->op[io] = op_cmp_dd_gt;
+							if (strcmp(s2, ">=")==0)	ed->op[io] = op_cmp_dd_ge;
+
+							if (cmd_arg_type[1]=='i')
+								ed->op[io] += 1;
+
+							if (cmd_arg_type[1]=='r')
+								ed->op[io] += 2;
 
 							if (ed->op[io] == 0)	// if comparison hasn't been found
 							{
@@ -520,17 +617,17 @@ add_command:
 							ed->op[io+2] = ed->reg[arg_ir[0]].index;
 							ed->op[io+3] = ed->reg[arg_ir[1]].index;
 							
-							// Convert integer result to double if needed
-							if (ed->reg[dest_ir].type[0] == 'd')
+							// Convert integer result to double or real if needed
+							if (ed->reg[dest_ir].type[0] == 'd' || ed->reg[dest_ir].type[0] == 'r')
 							{
 								// Output to generic register
-								ed->op[io+1] = ed->ri[0];
+								ed->op[io+1] = ed->reg[ed->ri[0]].index;
 
 								// Convert from generic register to destination
-								io = alloc_opcode(ed, 3);		// add conversion opcode
-								ed->op[io] = op_cvt_i_d;
-								ed->op[io+1] = ed->reg[dest_ir].index;	// destination index
-								ed->op[io+2] = ed->rd[0];		// source index
+								io = alloc_opcode(ed, 3);			// add conversion opcode
+								ed->op[io] = rlip_find_cvt_opcode('i', ed->reg[dest_ir].type[0]);
+								ed->op[io+1] = ed->reg[dest_ir].index;		// destination index
+								ed->op[io+2] = ed->reg[ed->ri[0]].index;	// source index
 							}
 						}
 						else
@@ -548,14 +645,12 @@ add_command:
 					if (ir > -1)
 					{
 						// Variable
-						if (strcmp(ed->reg[ir].type, "d")==0 || strcmp(ed->reg[ir].type, "i")==0)
+						if (strcmp(ed->reg[ir].type, "d")==0 || strcmp(ed->reg[ir].type, "i")==0 || strcmp(ed->reg[ir].type, "r")==0)
 						{
 							io = alloc_opcode(ed, 3);
 
-							if (ed->reg[dest_ir].table == ed->reg[ir].table)
-								ed->op[io] = ed->reg[ir].type[0]=='d' ? op_set_d : op_set_i;
-							else
-								ed->op[io] = ed->reg[ir].type[0]=='d' ? op_cvt_d_i : op_cvt_i_d;
+							// Copy (set) or convert
+							ed->op[io] = rlip_find_cvt_opcode(ed->reg[ir].type[0], ed->reg[dest_ir].type[0]);
 
 							ed->op[io+1] = ed->reg[dest_ir].index;
 							ed->op[io+2] = ed->reg[ir].index;
@@ -574,16 +669,24 @@ add_command:
 							new_opcode = 0;
 							switch (cmd_arg_count)
 							{
-								case 1:	if (strcmp(ed->reg[ir].type, "fd")==0)		new_opcode = op_func0_d;	break;
+								case 1:
+									if (strcmp(ed->reg[ir].type, "fd")==0)		new_opcode = op_func0_d;
+									else if (strcmp(ed->reg[ir].type, "fr")==0)	new_opcode = op_func0_r;
+									break;
 								case 2:
 									if (strcmp(ed->reg[ir].type, "fdd")==0)		new_opcode = op_func1_dd;
 									else if (strcmp(ed->reg[ir].type, "fdi")==0)	new_opcode = op_func1_di;
 									else if (strcmp(ed->reg[ir].type, "fii")==0)	new_opcode = op_func1_ii;
+									else if (strcmp(ed->reg[ir].type, "frr")==0)	new_opcode = op_func1_rr;
 									break;
-								case 3:	if (strcmp(ed->reg[ir].type, "fddd")==0)	new_opcode = op_func2_ddd;	break;
+								case 3:
+									if (strcmp(ed->reg[ir].type, "fddd")==0)	new_opcode = op_func2_ddd;
+									else if (strcmp(ed->reg[ir].type, "frrr")==0)	new_opcode = op_func2_rrr;
+									break;
 								case 4:
 									if (strcmp(ed->reg[ir].type, "fdddd")==0)	new_opcode = op_func3_dddd;
 									else if (strcmp(ed->reg[ir].type, "fdddi")==0)	new_opcode = op_func3_dddi;
+									else if (strcmp(ed->reg[ir].type, "frrrr")==0)	new_opcode = op_func3_rrrr;
 									break;
 							}
 
@@ -610,16 +713,32 @@ add_command:
 		// Commands starting with the command name
 		else
 		{
-			if (strcmp(s0, "return")==0)
+			// Return (double or real values)
+			if (strcmp(s0, "return")==0 || strcmp(s0, "return_real")==0)
 			{
-				enum opcode ret_op[] = { 0, op_ret_d, op_ret_dd, op_ret_ddd, op_ret_dddd };
-				char *ret_arg_type[] = { "", "d", "dd", "ddd", "dddd" };
+				enum opcode *ret_op;
+				char **ret_arg_type;
+				enum opcode ret_op_d[] = { 0, op_ret_d, op_ret_dd, op_ret_ddd, op_ret_dddd };
+				char *ret_arg_type_d[] = { "", "d", "dd", "ddd", "dddd" };
+				enum opcode ret_op_r[] = { 0, op_ret_r, op_ret_rr, op_ret_rrr, op_ret_rrrr };
+				char *ret_arg_type_r[] = { "", "r", "rr", "rrr", "rrrr" };
+
+				if (strcmp(s0, "return")==0)
+				{
+					ret_op = ret_op_d;
+					ret_arg_type = ret_arg_type_d;
+				}
+				else
+				{
+					ret_op = ret_op_r;
+					ret_arg_type = ret_arg_type_r;
+				}
 
 				n = 0;
 				sscanf(p, "%*s %n", &n);
 
 				// Get/convert arguments
-				if (rlip_get_arguments(&p[n], ret_arg_type[ret_count], arg_ir, ed, il, line, comp_log))
+				if (rlip_get_arguments(&p[n], ret_arg_type[ret_count], arg_ir, ed, il, line))
 					goto invalid_prog;
 
 				// Add return opcode
@@ -633,6 +752,7 @@ add_command:
 				ret_cmd_done = 1;
 			}
 
+			// If <condition result> goto <location>
 			if (strcmp(s0, "if")==0)
 			{
 				ret = sscanf(p, "%*s %30s goto %30s", s1, s2);
@@ -740,6 +860,10 @@ add_command:
 	}
 
 	data.valid_prog = 1;
+
+	// free_rlip() needs these values
+	ed->d->vr_count = ed->vr_count;
+	ed->d->ret_count = ret_count;
 
 	// If not all forward jumps were resolved
 	if (fwd_jumps != 0)

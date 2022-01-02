@@ -227,3 +227,13 @@ ddouble_t cos_q(ddouble_t x)
 {
 	return cos_tr_q(mul_qq(x, Q_1_2PI));
 }
+
+ddouble_t sin_tr_q(ddouble_t x)
+{
+	return cos_tr_q(add_qd(x, -0.25));
+}
+
+ddouble_t sin_q(ddouble_t x)
+{
+	return sin_tr_q(mul_qq(x, Q_1_2PI));
+}

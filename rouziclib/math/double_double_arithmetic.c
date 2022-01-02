@@ -208,22 +208,61 @@ int cmp_qd(const ddouble_t a, const double b)
 	return -1;
 }
 
-ddouble_t floor_q(ddouble_t a)
+ddouble_t min_qq(ddouble_t a, ddouble_t b)
+{
+	if (cmp_qq(&a, &b) < 0)
+		return a;
+	return b;
+}
+
+ddouble_t max_qq(ddouble_t a, ddouble_t b)
+{
+	if (cmp_qq(&a, &b) > 0)
+		return a;
+	return b;
+}
+
+ddouble_t rangelimit_qqq(ddouble_t x, ddouble_t min, ddouble_t max)
+{
+	return min_qq(max_qq(x, min), max);
+}
+
+ddouble_t floorceiltrunc_q(ddouble_t a, double (*func)(double))
 {
 	ddouble_t r;
 
-	r.hi = floor(a.hi);
+	r.hi = func(a.hi);
 	r.lo = 0.;
 
 	// If hi is large enough that it is an integer
 	if (r.hi == a.hi)
 	{
-		// Floor lo
-		r.lo = floor(a.lo);
+		// Apply function on lo
+		r.lo = func(a.lo);
 		return add_dd_q_quick(r.hi, r.lo);
 	}
 
 	return r;
+}
+
+ddouble_t floor_q(ddouble_t a)
+{
+	return floorceiltrunc_q(a, floor);
+}
+
+ddouble_t ceil_q(ddouble_t a)
+{
+	return floorceiltrunc_q(a, ceil);
+}
+
+ddouble_t trunc_q(ddouble_t a)
+{
+	return floorceiltrunc_q(a, trunc);
+}
+
+ddouble_t nearbyint_q(ddouble_t a)
+{
+	return floorceiltrunc_q(a, nearbyint);
 }
 
 ddouble_t string_to_ddouble(const char *string, char **endptr)

@@ -527,6 +527,9 @@ The simple part of RLIP where the compiled opcodes are ran.
 ** link:rouziclib/interpreter/decompilation.c[decompilation.c] / link:rouziclib/interpreter/decompilation.h[decompilation.h] +
 The decompiler shows what the opcodes mean so I can check what's really going on.
 
+** link:rouziclib/interpreter/real_functions.h[real_functions.h] +
+This defines the custom real arithmetic options. To define each format structures are filled and can be added to the RLIP compiler inputs with a simple macro such as `RLIP_REAL_DOUBLEDOUBLE` for double-double arithmetic.
+
 * link:rouziclib/network[network/] +
 TCP and HTTP socket-based code. Not very useful anymore since everything requires HTTPS.
 
@@ -731,7 +734,7 @@ Let's first look at how to run a basic example:
 	volatile int exec_on = 1;
 	prog.exec_on = &exec_on;
 	rlip_execute_opcode(&prog);
-	fprintf_rl(stdout, "Program returned %.16lg\n", prog.return_value[0]);
+	fprintf_rl(stdout, "Program returned %.16g\n", prog.return_value[0]);
 	free_rlip(&prog);
 ```
 
@@ -747,13 +750,13 @@ We declare a variable named `v1` as a type `d` (a `double`) which will receive t
 Then the source and inputs are compiled, which as always is a bit complicated, though I tried to keep it simple. Essentially my compiler relies on a registry to keep track of everything, and the argument to each compiled instruction is an index to one of the 3 arrays (besides the array of opcodes), namely an array of `double`, of `int64_t` and of pointers. Each opcode has specific types so it knows in which array to look for its arguments. Looking at the decompilation will make it clear:
 
 ```
-op_load_d            9      39
+op_load_d            9      41
 op_func1_dd          8       6       9
 op_ret_d             8
 op_end
 ```
 
-The first operation loads the value of `x` in the `double` array. `x` was provided as a pointer which ended up at index 39 in the pointer array, and it will be copied to index 9 in the `double` array. After this `x` won't be loaded anew (this is ensured by keeping all the load commands at the very beginning of the program so they can't be looped) and will be treated as a normal `double` variable, not a pointer to a value anymore. After this we can call `cos`, which was also provided as a pointer and is at index 6 in the pointer array. So `op_func1_dd` calls the function at the address at index 6 in the pointer array, with one argument which is from index 9 in the `double` array. It then stores the result at index 8 in the `double` array. Then this result is copied from the array to `prog.return_value`, which is how we access it.
+The first operation loads the value of `x` in the `double` array. `x` was provided as a pointer which ended up at index 41 in the pointer array, and it will be copied to index 9 in the `double` array. After this `x` won't be loaded anew (this is ensured by keeping all the load commands at the very beginning of the program so they can't be looped) and will be treated as a normal `double` variable, not a pointer to a value anymore. After this we can call `cos`, which was also provided as a pointer and is at index 6 in the pointer array. So `op_func1_dd` calls the function at the address at index 6 in the pointer array, with one argument which is from index 9 in the `double` array. It then stores the result at index 8 in the `double` array. Then this result is copied from the array to `prog.return_value`, which is how we access it.
 
 Given that we set `x` to 4.0 before executing the compiled program we obtain the expected result:
 ```
@@ -885,6 +888,24 @@ op_mad_ddd          26      26      28      28
 op_ret_ddd          21      24      26
 op_end
 ```
+
+=== Custom arithmetic
+
+We've used the `d` type for `double` variables and pointers, the `i` type for `int64_t`, but there's also a third type, `r`, and this one is whatever you want it to be. I created it so that I could use double-double arithmetic or MPFR's arbitrary precision arithmetic with RLIP, which allows me to calculate in higher precision or even use RLIP to implement code that uses MPFR, because MPFR syntax is awkward and ugly.
+
+The file link:rouziclib/interpreter/real_functions.h[real_functions.h] shows how a custom arithmetic for RLIP can be added. Functions to do basic operations in the custom format are created and referenced in structures that are provided to the RLIP compiler. Then all that is needed is to add the macro for the chosen arithmetic to the RLIP compiler inputs like so for example:
+
+```
+rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLEDOUBLE, RLIP_FUNC, {"x", &x, "pd"} };
+```
+
+An example RLIP program would be `const char source[] = "r v1 = cos_ x\n return_real v1"`, `v1` is declared as a `r` which is our custom real format (in this case a double-double), and `cos_` is defined in link:rouziclib/interpreter/real_functions.h[real_functions.h] as the double-double implementation of `cos`. Finally we use `return_real` instead of `return` to return the number in our format instead of `double`. We can read the higher precision result like so:
+
+```
+fprintf_rl(stdout, "Program returned {%.17g, %.17g}\n", ((ddouble_t *) &prog.return_real[0])->hi, ((ddouble_t *) &prog.return_real[0])->lo);
+```
+
+Which gives us the result in double-double format: `Program returned {-0.65364362086361194, 2.5846614087018284e-17}`.
 
 == Tools
 

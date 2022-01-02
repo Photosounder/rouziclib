@@ -45,6 +45,13 @@ int cmp_int(const int *a, const int *b)
 	return *a - *b;
 }
 
+int cmp_double(const double *a, const double *b)
+{
+	if (a > b) return 1;
+	if (a == b) return 0;
+	return -1;
+}
+
 int cmp_xy_by_x(const xy_t *a, const xy_t *b)	// xy comparison function (for qsort) sorting by x
 {
 	if (a->x > b->x) return 1;

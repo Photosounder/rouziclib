@@ -28,7 +28,13 @@ extern ddouble_t mul_qd_simple(ddouble_t a, double m);
 extern int cmp_qq(const ddouble_t *a, const ddouble_t *b);
 extern int cmp_qd(const ddouble_t a, const double b);
 
+extern ddouble_t min_qq(ddouble_t a, ddouble_t b);
+extern ddouble_t max_qq(ddouble_t a, ddouble_t b);
+extern ddouble_t rangelimit_qqq(ddouble_t x, ddouble_t min, ddouble_t max);
 extern ddouble_t floor_q(ddouble_t a);
+extern ddouble_t ceil_q(ddouble_t a);
+extern ddouble_t trunc_q(ddouble_t a);
+extern ddouble_t nearbyint_q(ddouble_t a);
 
 extern ddouble_t string_to_ddouble(const char *string, char **endptr);
 

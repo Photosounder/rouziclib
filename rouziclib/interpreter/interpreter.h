@@ -5,6 +5,7 @@ enum opcode
 
 	op_2word_ops = 2048,
 	op_ret_d,
+	op_ret_r,
 	op_jmp,
 	nop_jmp,
 	op_set0_d,
@@ -14,21 +15,30 @@ enum opcode
 
 	op_3word_ops = 3072,
 	op_ret_dd,
+	op_ret_rr,
 	op_load_d,
 	op_load_i,
+	op_load_r,
 	op_set_d,
 	op_set_i,
+	op_set_r,
 	op_cvt_i_d,
 	op_cvt_d_i,
+	op_cvt_r_d,
+	op_cvt_d_r,
+	op_cvt_r_i,
+	op_cvt_i_r,
 	op_sq_d,
 	op_sqrt_d,
 
 	op_jmp_cond,
 	nop_jmp_cond,
 	op_func0_d,
+	op_func0_r,
 
 	op_4word_ops = 4096,
 	op_ret_ddd,
+	op_ret_rrr,
 	op_add_dd,
 	op_add_ii,
 	op_sub_dd,
@@ -48,35 +58,59 @@ enum opcode
 
 	op_cmp_dd_eq,
 	op_cmp_ii_eq,
+	op_cmp_rr_eq,
 	op_cmp_dd_ne,
 	op_cmp_ii_ne,
+	op_cmp_rr_ne,
 	op_cmp_dd_lt,
 	op_cmp_ii_lt,
+	op_cmp_rr_lt,
 	op_cmp_dd_le,
 	op_cmp_ii_le,
+	op_cmp_rr_le,
 	op_cmp_dd_gt,
 	op_cmp_ii_gt,
+	op_cmp_rr_gt,
 	op_cmp_dd_ge,
 	op_cmp_ii_ge,
+	op_cmp_rr_ge,
 	op_func1_dd,
 	op_func1_di,
 	op_func1_ii,
+	op_func1_rr,
 
 	op_5word_ops = 5120,
 	op_ret_dddd,
+	op_ret_rrrr,
 	op_aad_ddd,
 	op_mmul_ddd,
 	op_mad_ddd,
 	op_adm_ddd,
 	op_func2_ddd,
+	op_func2_rrr,
 
 	op_6word_ops = 6144,
 	op_func3_dddd,
 	op_func3_dddi,
+	op_func3_rrrr,
 
 	op_7word_ops = 7168,
 	op_8word_ops = 8192,
 };
+
+typedef struct
+{
+	size_t size_of_real;
+	void (*set)(uint8_t *,uint8_t *);
+	double (*cvt_r_d)(uint8_t *);
+	void (*cvt_d_r)(uint8_t *,double);
+	int64_t (*cvt_r_i)(uint8_t *);
+	void (*cvt_i_r)(uint8_t *,int64_t);
+	int (*cmp)(const uint8_t *,const uint8_t *);
+	void (*ator)(uint8_t *,const char *,char **);
+	void (*var_init)(uint8_t *);		// optional
+	void (*var_deinit)(uint8_t *);		// optional
+} rlip_real_functions_t;
 
 #define opint_t int16_t
 
@@ -87,8 +121,12 @@ typedef struct
 	opint_t *op;
 	double *vd;
 	int64_t *vi;
+	uint8_t *vr;
+	rlip_real_functions_t rf;
 	void **ptr;
 	double *return_value;
+	uint8_t *return_real;
+	int vr_count, ret_count;
 } rlip_t;
 
 typedef struct
