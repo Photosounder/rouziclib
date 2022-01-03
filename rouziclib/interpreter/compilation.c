@@ -562,13 +562,15 @@ add_command:
 				// Commands with less typical needs
 				if (cmd_found == 0)
 				{
-					if (strcmp(s0, "cmp")==0 || strcmp(s0, "cmpi")==0)
+					if (strcmp(s0, "cmp")==0 || strcmp(s0, "cmpi")==0 || strcmp(s0, "cmpr")==0)
 					{
 						cmd_found = 1;
 						if (strcmp(s0, "cmp")==0)
 							sprintf(cmd_arg_type, "idd");
-						else
+						else if (strcmp(s0, "cmpi")==0)
 							sprintf(cmd_arg_type, "iii");
+						else
+							sprintf(cmd_arg_type, "irr");
 
 						n = 0;
 						ret = sscanf(p, "%*s %30s %30s %30s %n", s1, s2, s3, &n);
