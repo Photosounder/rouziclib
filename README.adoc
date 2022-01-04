@@ -530,6 +530,9 @@ The decompiler shows what the opcodes mean so I can check what's really going on
 ** link:rouziclib/interpreter/real_functions.h[real_functions.h] +
 This defines the custom real arithmetic options. To define each format structures are filled and can be added to the RLIP compiler inputs with a simple macro such as `RLIP_REAL_DOUBLEDOUBLE` for double-double arithmetic.
 
+** link:rouziclib/interpreter/expression.c[expression.c] / link:rouziclib/interpreter/expression.h[expression.h] +
+This turns mathematical expressions into RLIP programs. This serves as a replacement for the more limited https://github.com/codeplea/tinyexpr[TinyExpr].
+
 * link:rouziclib/network[network/] +
 TCP and HTTP socket-based code. Not very useful anymore since everything requires HTTPS.
 
@@ -596,7 +599,7 @@ Older FFTPACK code, only handles real-to-real transforms with no negative freque
 https://github.com/zywina/cfftpack[FFTPACK] code with both single and double precision available at the same time (I modified the code it's based on for this purpose). Does 1D and 2D complex-binned FFTs with negative frequencies, padding, conversion betwen real and complex bins, mixing single and double precision, padding, reallocation, and recompution or reallocation plans only as needed.
 
 ** link:rouziclib/libraries/tinyexpr.c[tinyexpr.c] / link:rouziclib/libraries/tinyexpr.h[tinyexpr.h] +
-https://github.com/codeplea/tinyexpr[TinyExpr] (logic branch) code which I use for many purposes, like parsing markup, knob text input evaluation, making graphing and image calculators. I added several of the functions I need and made `etof()` and `etoi()` as equivalents to `atof()` and `atoi()` but with mathematical expressions rather than simple number strings.
+https://github.com/codeplea/tinyexpr[TinyExpr] (logic branch) code which I use for many purposes, like parsing markup, knob text input evaluation, making graphing and image calculators. I added several of the functions I need and made `etof()` and `etoi()` as equivalents to `atof()` and `atoi()` but with mathematical expressions rather than simple number strings. I will probably soon remove it and use my RLIP-based expression parser instead.
 
 ** link:rouziclib/libraries/libcurl.c[libcurl.c] / link:rouziclib/libraries/libcurl.h[libcurl.h] +
 cURL code to get files through HTTPS. I can't seem to get authentication right.
@@ -707,7 +710,7 @@ More such commands are briefly described in link:rouziclib/vector_type/make_font
 
 == RLIP - rouziclib interpreted programming
 
-When parsing expressions with https://github.com/codeplea/tinyexpr[TinyExpr] doesn't cut it anymore, as was the case with my image calculator, something else is needed, something that allows you to type in interpreted programs. Since it was made with my image calculator in mind you may think of it as a kind of shader language, except that it runs on the CPU.
+When parsing expressions with https://github.com/codeplea/tinyexpr[TinyExpr] didn't cut it anymore, as was the case with my image calculator, something else was needed, something that allows you to type in interpreted programs. Since it was made with my image calculator in mind you may think of it as a kind of shader language, except that it runs on the CPU.
 
 Let's first look at how to run a basic example:
 
@@ -914,6 +917,16 @@ mpfr_fprintf(stdout, "Program returned %.60Rg\n\n", *result);
 ```
 
 Giving us a very high precision result of `-0.65364362086361191463916818309775038142413359664621824700701`.
+
+=== Expression parsing
+
+With link:rouziclib/interpreter/expression.c[expression.c] we can parse mathematical expressions such as `0.5 + 0.5cos(2pi (x-1))` into RLIP. My expression parser offers several advantages over https://github.com/codeplea/tinyexpr[TinyExpr] (which I previously would use extensively) which compel me to move away from the latter:
+
+- My expression parser works with integers and either doubles or the custom arithmetic format whereas TinyExpr only uses doubles, integers can't even be used.
+- Implied multiplications are supported. For instance `2x` means the same thing as `2*x` and `x cos(pi x)` the same as `x*cos(pi*x)`.
+- TinyExpr parses recursively, generates a recursive data structure and the execution is also recursive, which isn't optimal for clarity and speed of execution. In contrast my parser proceeds in simple loops over a string and then a symbol array, produces a flat RLIP listing which is itself compiled into a flat list of opcodes.
+- Both my expression parser and the RLIP interpreter output detailed error information, so if you have unmatched brackets you'll know it by looking at the log. TinyExpr doesn't tell you what's wrong with your expression.
+- I wrote my expression parser so it's easy for me to change it to suit my needs, whereas I tried but failed to modify TinyExpr.
 
 == Tools
 
