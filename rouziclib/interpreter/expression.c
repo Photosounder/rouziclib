@@ -49,6 +49,17 @@ void sym_move(symbol_data_t *sym, size_t *sym_count, int dst, int src)
 			sym[is].match -= src - dst;
 }
 
+void print_any_var(buffer_t *prog, symbol_data_t *sym)
+{
+	// Print value or variable as it was written
+	if (sym->type == sym_value || sym->type == sym_variable)
+		bufprintf(prog, " %.*s", sym->p_len, sym->p);
+
+	// Print result variable
+	else if (sym->type == sym_result_real || sym->type == sym_result_int)
+		bufprintf(prog, " %c%d", sym->type == sym_result_real ? 'v' : 'i', sym->result_id);
+}
+
 buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, int use_real, buffer_t *comp_log)
 {
 	buffer_t prog_s={0}, *prog=&prog_s;
@@ -320,15 +331,7 @@ loop_start:
 
 				// Go through all arguments and print them
 				for (i = is+1; i <= sym[is].match; i++)
-				{
-					// Print values and variables as they were written
-					if (sym[i].type == sym_value || sym[i].type == sym_variable)
-						bufprintf(prog, " %.*s", sym[i].p_len, sym[i].p);
-
-					// Print result variables
-					if (sym[i].type == sym_result_real || sym[i].type == sym_result_int)
-						bufprintf(prog, " %c%d", sym[i].type == sym_result_real ? 'v' : 'i', sym[i].result_id);
-				}
+					print_any_var(prog, &sym[i]);
 				bufprintf(prog, "\n");
 
 				// Remove everything that was just used from the sym array
@@ -426,15 +429,9 @@ prio_loop_start:
 
 				// Print neg command
 				bufprintf(prog, "%c v%d = sub%s 0", var_decl, result_id2, cmd_suffix);
-
 				i = is+1;
-				// Print value or variable as it was written
-				if (sym[i].type == sym_value || sym[i].type == sym_variable)
-					bufprintf(prog, " %.*s\n", sym[i].p_len, sym[i].p);
-
-				// Print result variable
-				else if (sym[i].type == sym_result_real || sym[i].type == sym_result_int)
-					bufprintf(prog, " %c%d\n", sym[i].type == sym_result_real ? 'v' : 'i', sym[i].result_id);
+				print_any_var(prog, &sym[i]);
+				bufprintf(prog, "\n");
 
 				// Replace input with result
 				sym[i].type = sym_result_real;
@@ -452,13 +449,7 @@ prio_loop_start:
 			// Go through all two arguments and print them
 			for (i = is-1; i <= is+1; i+=2)
 			{
-				// Print values and variables as they were written
-				if (sym[i].type == sym_value || sym[i].type == sym_variable)
-					bufprintf(prog, " %.*s", sym[i].p_len, sym[i].p);
-
-				// Print result variables
-				else if (sym[i].type == sym_result_real || sym[i].type == sym_result_int)
-					bufprintf(prog, " %c%d", sym[i].type == sym_result_real ? 'v' : 'i', sym[i].result_id);
+				print_any_var(prog, &sym[i]);
 
 				// Print comparison operator
 				if (is_comparison && i == is-1)
@@ -485,10 +476,9 @@ prio_loop_start:
 	}
 
 	// Print return value
-	if (sym[0].type == sym_result_real || sym[0].type == sym_result_int)
-		bufprintf(prog, "%s %c%d\n", use_real ? "return_real" : "return", sym[0].type == sym_result_real ? 'v' : 'i', sym[0].result_id);
-	else if (sym[0].type == sym_value || sym[0].type == sym_variable)
-		bufprintf(prog, "%s %.*s\n", use_real ? "return_real" : "return", sym[0].p_len, sym[0].p);
+	bufprintf(prog, "%s", use_real ? "return_real" : "return");
+	print_any_var(prog, &sym[0]);
+	bufprintf(prog, "\n");
 
 invalid_expr:
 	free(res_taken_r);
