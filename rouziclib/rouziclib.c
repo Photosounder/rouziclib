@@ -134,6 +134,7 @@
 #include "interpreter/compilation.c"
 #include "interpreter/execution.c"
 #include "interpreter/decompilation.c"
+#include "interpreter/expression.c"
 
 #include "network/network.c"
 #include "network/http.c"
