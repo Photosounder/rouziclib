@@ -60,13 +60,9 @@ buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suff
 	const char *p = expression, *end = &expression[len];
 	int *res_taken_r=NULL, *res_taken_i=NULL;
 	char var_decl = use_real ? 'r' : 'd';
-	int last_res_type=0, last_res_id=0;
 
 	sprint_unicode(red_str, sc_red);
 	sprint_unicode(grey_str, sc_grey);
-
-
-	// FIXME a one-symbol expression does nothing
 
 	// Map the string as symbols
 	while (1)
@@ -294,8 +290,6 @@ loop_start:
 
 				// Print start of command
 				bufprintf(prog, "%c v%d = %.*s%s", var_decl, result_id, sym[is].p_len, sym[is].p, cmd_suffix);
-				last_res_id = result_id;
-				last_res_type = sym_result_real;
 
 				// Go through all arguments and print them
 				for (i = is+1; i <= sym[is].match; i++)
@@ -396,8 +390,6 @@ prio_loop_start:
 				bufprintf(prog, "i i%d = %s", result_id, identified_cmd);
 			else
 				bufprintf(prog, "%c v%d = %s%s", var_decl, result_id, identified_cmd, cmd_suffix);
-			last_res_id = result_id;
-			last_res_type = is_comparison ? sym_result_int : sym_result_real;
 
 			// Go through all two arguments and print them
 			for (i = is-1; i <= is+1; i+=2)
@@ -427,9 +419,18 @@ prio_loop_start:
 		}
 	}
 
+	// Check that only one symbol remains
+	if (sym_count != 1)
+	{
+		bufprintf(comp_log, "%s%d symbols remain instead of the expected 1.%s\n", red_str, sym_count, grey_str);
+		goto invalid_expr;
+	}
+
 	// Print return value
-	if (last_res_type)
-		bufprintf(prog, "%s %c%d\n", use_real ? "return_real" : "return", last_res_type == sym_result_real ? 'v' : 'i', last_res_id); 
+	if (sym[0].type == sym_result_real || sym[0].type == sym_result_int)
+		bufprintf(prog, "%s %c%d\n", use_real ? "return_real" : "return", sym[0].type == sym_result_real ? 'v' : 'i', sym[0].result_id);
+	else if (sym[0].type == sym_value || sym[0].type == sym_variable)
+		bufprintf(prog, "%s %.*s\n", use_real ? "return_real" : "return", sym[0].p_len, sym[0].p);
 
 invalid_expr:
 	free(res_taken_r);
