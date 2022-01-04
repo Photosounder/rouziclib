@@ -363,15 +363,22 @@ loop_start:
 prio_loop_start:
 		max_prio = 0;
 
-		// Go through every symbol from the end to find the highest priority operator
-		for (is = sym_count-1; is >= 0; is--)
-		{
+		// Find the highest priority operator level
+		for (is=0; is < sym_count; is++)
 			if (sym[is].depth == id && sym[is].type == sym_operator && sym[is].operator_priority > max_prio)
-			{
 				max_prio = sym[is].operator_priority;
-				max_prio_pos = is;
-			}
-		}
+
+		// Find the first top priority operator to process
+		for (is=0; is < sym_count; is++)
+			if (sym[is].depth == id && sym[is].type == sym_operator)
+				if (sym[is].operator_priority == max_prio)
+				{
+					max_prio_pos = is;
+
+					// Stop at the first operator if operator isn't ^ or ^-
+					if (max_prio < 4)
+						break;
+				}
 
 		// Process an operator
 		if (max_prio > 0)
