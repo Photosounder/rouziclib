@@ -82,47 +82,74 @@ loop_start:
 		max_depth = MAXN(max_depth, depth);
 
 		// Try to read operators
-		if (cant_be_operator==0 && isalnum(p[0]) == 0)
+		if (isalnum(p[0]) == 0)
 		{
 			n = 0;
 			sscanf(p, "%32[-+*/%%%^=<>!]%n", name, &n);
-			if (n)
+
+			if (cant_be_operator==0)
 			{
-				bufprintf(comp_log, "Operator %s, %d chars\n", name, n);
+				if (n)
+				{
+					bufprintf(comp_log, "Operator %s, %d chars\n", name, n);
+					sym[is].type = sym_operator;
+
+					switch (p[0])
+					{
+						case '^':	// covers both ^ and ^-
+							sym[is].operator_priority = 4;
+							n = 1;
+							if (p[1] == '-')
+								n = 2;
+							break;
+						case '*':
+						case '/':
+						case '%':
+							sym[is].operator_priority = 3;
+							n = 1;
+							break;
+						case '+':
+						case '-':
+							sym[is].operator_priority = 2;
+							n = 1;
+							break;
+						case '=':
+						case '<':
+						case '>':
+						case '!':
+							sym[is].operator_priority = 1;
+							break;
+					}
+					sym[is].p = p;
+					sym[is].p_len = n;
+
+					cant_be_operator = 1;
+					goto loop_start;
+				}
+				else if (p[0] == ',')
+				{
+					n = 1;
+					bufprintf(comp_log, "Comma\n");
+					sym[is].type = sym_comma;
+					cant_be_operator = 1;
+					goto loop_start;
+				}
+			}
+			else if (p[0] == '-')
+			{
+				// Handle negation by inserting a 0 value symbol
+				sym[is].type = sym_value;
+				sym[is].p = "0";
+				sym[is].p_len = 1;
+
+				// Add '-' operator
+				is = sym_count;
+				alloc_enough(&sym, sym_count+=1, &sym_as, sizeof(symbol_data_t), 2.);
 				sym[is].type = sym_operator;
 				sym[is].p = p;
-				sym[is].p_len = n;
-
-				switch (p[0])
-				{
-					case '^':
-						sym[is].operator_priority = 4;
-						break;
-					case '*':
-					case '/':
-					case '%':
-						sym[is].operator_priority = 3;
-						break;
-					case '+':
-					case '-':
-						sym[is].operator_priority = 2;
-						break;
-					case '=':
-					case '<':
-					case '>':
-					case '!':
-						sym[is].operator_priority = 1;
-						break;
-				}
-
-				cant_be_operator = 1;
-				goto loop_start;
-			}
-			else if (p[0] == ',')
-			{
-				n = 1;
-				bufprintf(comp_log, "Comma\n");
-				sym[is].type = sym_comma;
+				sym[is].p_len = 1;
+				sym[is].depth = depth;
+				sym[is].operator_priority = 2;
 				cant_be_operator = 1;
 				goto loop_start;
 			}
@@ -151,7 +178,7 @@ loop_start:
 			sscanf(p, "%32[a-zA-Z0-9_]%n", name, &n);
 			if (n)
 			{
-				// The "pi" exception
+				// The "pi" exception TODO remove
 				if (pi_loaded == 0 && strcmp(name, "pi") == 0)
 				{
 					// Create a variable "pi" and call the pi function to set it
@@ -354,8 +381,8 @@ prio_loop_start:
 			// Identify operator
 			int is_comparison = 0;
 			const char *identified_op=NULL, *identified_cmd=NULL;
-			const char *op[] =  {  "==",   "<",    ">",    "<=",   ">=",   "!=",   "+",   "-",   "*",   "/",  "%",  "^" };
-			const char *cmd[] = { "cmpr", "cmpr", "cmpr", "cmpr", "cmpr", "cmpr", "add", "sub", "mul", "div", "mod", "pow" };
+			const char *op[] =  {  "==",   "<",    ">",    "<=",   ">=",   "!=",   "+",   "-",   "*",   "/",  "%",   "^",   "^-" };
+			const char *cmd[] = { "cmpr", "cmpr", "cmpr", "cmpr", "cmpr", "cmpr", "add", "sub", "mul", "div", "mod", "pow", "pow" };
 			for (i=0; i < sizeof(op)/sizeof(*op); i++)
 				if (compare_varlen_word_to_fixlen_word(sym[is].p, sym[is].p_len, op[i]))
 				{
@@ -385,6 +412,30 @@ prio_loop_start:
 			// Pick result ID
 			result_id = find_res_taken(is_comparison ? res_taken_i : res_taken_r, res_taken_count);
 
+			// Handle ^- exception (negative exponent) by inserting extra command
+			if (compare_varlen_word_to_fixlen_word(sym[is].p, sym[is].p_len, "^-"))
+			{
+				int result_id2 = find_res_taken(res_taken_r, res_taken_count);
+
+				// Print neg command
+				bufprintf(prog, "%c v%d = sub%s 0", var_decl, result_id2, cmd_suffix);
+
+				i = is+1;
+				// Print value or variable as it was written
+				if (sym[i].type == sym_value || sym[i].type == sym_variable)
+					bufprintf(prog, " %.*s\n", sym[i].p_len, sym[i].p);
+
+				// Print result variable
+				else if (sym[i].type == sym_result_real || sym[i].type == sym_result_int)
+					bufprintf(prog, " %c%d\n", sym[i].type == sym_result_real ? 'v' : 'i', sym[i].result_id);
+
+				// Replace input with result
+				sym[i].type = sym_result_real;
+				sym[i].result_id = result_id2;
+
+				res_taken_r[result_id2] = 0;
+			}
+
 			// Print start of command
 			if (is_comparison)
 				bufprintf(prog, "i i%d = %s", result_id, identified_cmd);
@@ -399,7 +450,7 @@ prio_loop_start:
 					bufprintf(prog, " %.*s", sym[i].p_len, sym[i].p);
 
 				// Print result variables
-				if (sym[i].type == sym_result_real || sym[i].type == sym_result_int)
+				else if (sym[i].type == sym_result_real || sym[i].type == sym_result_int)
 					bufprintf(prog, " %c%d", sym[i].type == sym_result_real ? 'v' : 'i', sym[i].result_id);
 
 				// Print comparison operator
