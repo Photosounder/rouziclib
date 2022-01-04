@@ -49,7 +49,7 @@ void sym_move(symbol_data_t *sym, size_t *sym_count, int dst, int src)
 			sym[is].match -= src - dst;
 }
 
-buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, buffer_t *comp_log)
+buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, int use_real, buffer_t *comp_log)
 {
 	buffer_t prog_s={0}, *prog=&prog_s;
 	int i, is, n=0, cant_be_operator=1, depth=0, max_depth=0, pi_loaded=0;
@@ -59,9 +59,14 @@ buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suff
 	char name[33], red_str[8], grey_str[8];
 	const char *p = expression, *end = &expression[len];
 	int *res_taken_r=NULL, *res_taken_i=NULL;
+	char var_decl = use_real ? 'r' : 'd';
+	int last_res_type=0, last_res_id=0;
 
 	sprint_unicode(red_str, sc_red);
 	sprint_unicode(grey_str, sc_grey);
+
+
+	// FIXME a one-symbol expression does nothing
 
 	// Map the string as symbols
 	while (1)
@@ -154,7 +159,7 @@ loop_start:
 				if (pi_loaded == 0 && strcmp(name, "pi") == 0)
 				{
 					// Create a variable "pi" and call the pi function to set it
-					bufprintf(prog, "r pi = pi%s\n", cmd_suffix);
+					bufprintf(prog, "%c pi = pi%s\n", var_decl, cmd_suffix);
 					pi_loaded = 1;
 				}
 
@@ -288,7 +293,9 @@ loop_start:
 				result_id = find_res_taken(res_taken_r, res_taken_count);
 
 				// Print start of command
-				bufprintf(prog, "r v%d = %.*s%s", result_id, sym[is].p_len, sym[is].p, cmd_suffix);
+				bufprintf(prog, "%c v%d = %.*s%s", var_decl, result_id, sym[is].p_len, sym[is].p, cmd_suffix);
+				last_res_id = result_id;
+				last_res_type = sym_result_real;
 
 				// Go through all arguments and print them
 				for (i = is+1; i <= sym[is].match; i++)
@@ -385,7 +392,12 @@ prio_loop_start:
 			result_id = find_res_taken(is_comparison ? res_taken_i : res_taken_r, res_taken_count);
 
 			// Print start of command
-			bufprintf(prog, is_comparison ? "i i%d = %s" : "r v%d = %s%s", result_id, identified_cmd, cmd_suffix);
+			if (is_comparison)
+				bufprintf(prog, "i i%d = %s", result_id, identified_cmd);
+			else
+				bufprintf(prog, "%c v%d = %s%s", var_decl, result_id, identified_cmd, cmd_suffix);
+			last_res_id = result_id;
+			last_res_type = is_comparison ? sym_result_int : sym_result_real;
 
 			// Go through all two arguments and print them
 			for (i = is-1; i <= is+1; i+=2)
@@ -414,6 +426,10 @@ prio_loop_start:
 			goto prio_loop_start;
 		}
 	}
+
+	// Print return value
+	if (last_res_type)
+		bufprintf(prog, "%s %c%d\n", use_real ? "return_real" : "return", last_res_type == sym_result_real ? 'v' : 'i', last_res_id); 
 
 invalid_expr:
 	free(res_taken_r);
