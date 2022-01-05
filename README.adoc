@@ -920,7 +920,7 @@ Giving us a very high precision result of `-0.6536436208636119146391681830977503
 
 === Expression parsing
 
-With link:rouziclib/interpreter/expression.c[expression.c] we can parse mathematical expressions such as `0.5 + 0.5cos(2pi (x-1))` into RLIP. My expression parser offers several advantages over https://github.com/codeplea/tinyexpr[TinyExpr] (which I would previously use extensively) which compel me to move away from the latter:
+With link:rouziclib/interpreter/expression.c[expression.c] we can parse mathematical expressions such as `0.5 + 0.5 * -cos(2pi (x-1))` into RLIP. My expression parser offers several advantages over https://github.com/codeplea/tinyexpr[TinyExpr] (which I would previously use extensively) which compel me to move away from the latter:
 
 - My expression parser works with integers (which are used as results for comparisons and can be used as function arguments) and either doubles or the custom arithmetic format whereas TinyExpr only uses doubles for everything.
 - Implied multiplications are supported. For instance `2x` means the same thing as `2*x` and `x cos(pi x)` the same as `x*cos(pi*x)`.

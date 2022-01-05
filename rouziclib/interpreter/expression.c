@@ -108,7 +108,7 @@ loop_start:
 					switch (p[0])
 					{
 						case '^':	// covers both ^ and ^-
-							sym[is].operator_priority = 4;
+							sym[is].operator_priority = 5;
 							n = 1;
 							if (p[1] == '-')
 								n = 2;
@@ -146,23 +146,32 @@ loop_start:
 					goto loop_start;
 				}
 			}
-			else if (p[0] == '-')
+			else
 			{
-				// Handle negation by inserting a 0 value symbol
-				sym[is].type = sym_value;
-				sym[is].p = "0";
-				sym[is].p_len = 1;
+				// Try to read number
+				n = 0;
+				sscanf(p, "%*g%n", &n);
 
-				// Add '-' operator
-				is = sym_count;
-				alloc_enough(&sym, sym_count+=1, &sym_as, sizeof(symbol_data_t), 2.);
-				sym[is].type = sym_operator;
-				sym[is].p = p;
-				sym[is].p_len = 1;
-				sym[is].depth = depth;
-				sym[is].operator_priority = 2;
-				cant_be_operator = 1;
-				goto loop_start;
+				// Handle negation by turning it into subtraction
+				if (p[0] == '-' && n == 0)	// if there's a '-' not part of a value
+				{
+					// Handle negation by inserting a 0 value symbol
+					sym[is].type = sym_value;
+					sym[is].p = "0";
+					sym[is].p_len = 1;
+
+					// Add '-' operator
+					is = sym_count;
+					alloc_enough(&sym, sym_count+=1, &sym_as, sizeof(symbol_data_t), 2.);
+					sym[is].type = sym_operator;
+					sym[is].p = p;
+					sym[is].p_len = 1;
+					sym[is].depth = depth;
+					sym[is].operator_priority = 4;
+					cant_be_operator = 1;
+					n = 1;
+					goto loop_start;
+				}
 			}
 		}
 
@@ -171,7 +180,6 @@ loop_start:
 		sscanf(p, "%*g%n", &n);
 		if (n)
 		{
-			//string_to_ddouble(p, NULL);
 			bufprintf(comp_log, "Value, %d chars\n", n);
 			sym[is].type = sym_value;
 			sym[is].p = p;
@@ -189,14 +197,6 @@ loop_start:
 			sscanf(p, "%32[a-zA-Z0-9_]%n", name, &n);
 			if (n)
 			{
-				// The "pi" exception TODO remove
-				if (pi_loaded == 0 && strcmp(name, "pi") == 0)
-				{
-					// Create a variable "pi" and call the pi function to set it
-					bufprintf(prog, "%c pi = pi%s\n", var_decl, cmd_suffix);
-					pi_loaded = 1;
-				}
-
 				bufprintf(comp_log, "%s named '%s', %d chars\n", p[n]=='(' ? "Function" : "Variable", name, n);
 				sym[is].type = p[n]=='(' ? sym_function : sym_variable;
 				sym[is].p = p;
@@ -379,7 +379,7 @@ prio_loop_start:
 					max_prio_pos = is;
 
 					// Stop at the first operator if operator isn't ^ or ^-
-					if (max_prio < 4)
+					if (max_prio < 5)
 						break;
 				}
 
@@ -480,7 +480,12 @@ prio_loop_start:
 	print_any_var(prog, &sym[0]);
 	bufprintf(prog, "\n");
 
+	if (0)
+	{
 invalid_expr:
+		free_buf(prog);
+	}
+
 	free(res_taken_r);
 	free(res_taken_i);
 	free(sym);
