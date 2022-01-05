@@ -115,7 +115,7 @@ int rlip_add_value(const char *name, const void *ptr, const char *type, rlip_dat
 	if (strcmp(name, "rlip_real_functions")==0 && ptr)
 	{
 		const rlip_real_functions_t *rf = ptr;
-		if (rf->size_of_real && rf->set && rf->cvt_r_d && rf->cvt_d_r && rf->cvt_r_i && rf->cvt_i_r && rf->cmp && rf->ator && rf->get_pi)
+		if (rf->size_of_real && rf->set && rf->cvt_r_d && rf->cvt_d_r && rf->cvt_r_i && rf->cvt_i_r && rf->cmp && rf->ator && rf->get_pi && rf->set_nan)
 		{
 			ed->d->rf = *rf;
 			ed->valid_reals = 1;

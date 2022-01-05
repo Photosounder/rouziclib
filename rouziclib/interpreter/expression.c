@@ -506,6 +506,12 @@ double rlip_expression_interp_double(const char *expression, buffer_t *comp_log)
 	prog.exec_on = &exec_on;
 	rlip_execute_opcode(&prog);
 
+	if (prog.valid_prog == 0)
+	{
+		free_rlip(&prog);
+		return NAN;
+	}
+
 	// Return value
 	double v = prog.return_value[0];
 	free_rlip(&prog);
@@ -515,6 +521,19 @@ double rlip_expression_interp_double(const char *expression, buffer_t *comp_log)
 
 int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_inputs_t *inputs, int input_count, buffer_t *comp_log)
 {
+	const rlip_real_functions_t *func=NULL;
+
+	// Find functions
+	for (int i=0; i < input_count; i++)
+		if (strcmp(inputs[i].name, "rlip_real_functions")==0)
+		{
+			func = inputs[i].ptr;
+			break;
+		}
+
+	if (func==NULL)
+		return 0;
+
 	// Expression to listing
 	buffer_t listing = expression_to_rlip_listing(expression, "_", 1, comp_log, 0);
 	if (listing.len == 0)
@@ -535,17 +554,12 @@ int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_in
 	if (prog.valid_prog == 0)
 	{
 		free_rlip(&prog);
+		func->set_nan(result);
 		return 0;
 	}
 
 	// Set return value
-	for (int i=0; i < input_count; i++)
-		if (strcmp(inputs[i].name, "rlip_real_functions")==0)
-		{
-			const rlip_real_functions_t *func = inputs[i].ptr;
-			func->set(result, &prog.return_real[0]);
-			break;
-		}
+	func->set(result, &prog.return_real[0]);
 
 	free_rlip(&prog);
 

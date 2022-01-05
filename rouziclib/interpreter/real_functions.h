@@ -41,6 +41,7 @@ static rlip_real_functions_t real_d_functions = {
 	(int (*)(const uint8_t *,const uint8_t *))	cmp_double,
 	(void (*)(uint8_t *,const char *,char **))	real_d_ator,
 	(void (*)(uint8_t *))				real_d_pi,
+	(void (*)(uint8_t *))				real_d_nan,
 	(void (*)(uint8_t *))				NULL,
 	(void (*)(uint8_t *))				NULL,
 };
@@ -52,7 +53,6 @@ static rlip_real_functions_t real_d_functions = {
 	{"sub_", real_d_sub,		"frrr"},	\
 	{"mul_", real_d_mul,		"frrr"},	\
 	{"div_", real_d_div,		"frrr"},	\
-	{"nan_", real_d_nan,		"fr"},		\
 	{"e_", real_d_e,		"fr"},		\
 	{"abs_", real_d_abs,		"frr"},		\
 	{"sign_", real_d_sign,		"frr"},		\
@@ -112,6 +112,7 @@ static rlip_real_functions_t real_q_functions = {
 	(int (*)(const uint8_t *,const uint8_t *))	cmp_qq,
 	(void (*)(uint8_t *,const char *,char **))	real_q_ator,
 	(void (*)(uint8_t *))				real_q_pi,
+	(void (*)(uint8_t *))				real_q_nan,
 	(void (*)(uint8_t *))				NULL,
 	(void (*)(uint8_t *))				NULL,
 };
@@ -123,7 +124,6 @@ static rlip_real_functions_t real_q_functions = {
 	{"sub_", real_q_sub,		"frrr"},	\
 	{"mul_", real_q_mul,		"frrr"},	\
 	{"div_", real_q_div,		"frrr"},	\
-	{"nan_", real_q_nan,		"fr"},		\
 	{"e_", real_q_e,		"fr"},		\
 	{"abs_", real_q_abs,		"frr"},		\
 	{"sign_", real_q_sign,		"frr"},		\
@@ -182,6 +182,7 @@ static rlip_real_functions_t real_mpfr_functions = {
 	(int (*)(const uint8_t *,const uint8_t *))	real_mpfr_cmp,
 	(void (*)(uint8_t *,const char *,char **))	real_mpfr_ator,
 	(void (*)(uint8_t *))				real_mpfr_pi,
+	(void (*)(uint8_t *))				real_mpfr_nan,
 	(void (*)(uint8_t *))				real_mpft_var_init,
 	(void (*)(uint8_t *))				real_mpft_var_deinit,
 };
@@ -193,7 +194,6 @@ static rlip_real_functions_t real_mpfr_functions = {
 	{"sub_", real_mpfr_sub,		"frrr"},	\
 	{"mul_", real_mpfr_mul,		"frrr"},	\
 	{"div_", real_mpfr_div,		"frrr"},	\
-	{"nan_", real_mpfr_nan,		"fr"},		\
 	{"e_", real_mpfr_e,		"fr"},		\
 	{"abs_", real_mpfr_abs,		"frr"},		\
 	{"sign_", real_mpfr_sign,	"frr"},		\

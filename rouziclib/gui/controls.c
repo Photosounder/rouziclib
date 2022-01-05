@@ -406,8 +406,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 		if (ret==1 || ret==2 || ret==3)
 		{
-			//v = te_interp(knob->edit.string, NULL);
-			v = rlip_expression_interp_double(knob->edit.string, NULL);
+			v = etof(knob->edit.string);
 			if (isnan(v))
 				v = knob->default_value;
 

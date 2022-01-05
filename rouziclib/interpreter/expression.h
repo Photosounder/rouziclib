@@ -29,3 +29,5 @@ extern symbol_data_t *expression_to_symbol_list(const char *expression, buffer_t
 extern buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, int use_real, buffer_t *comp_log, int verbose);
 extern double rlip_expression_interp_double(const char *expression, buffer_t *comp_log);
 extern int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_inputs_t *inputs, int input_count, buffer_t *comp_log);
+
+#define etof(expr) rlip_expression_interp_double(expr, NULL)
