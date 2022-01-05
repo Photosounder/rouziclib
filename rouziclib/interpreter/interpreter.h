@@ -108,6 +108,7 @@ typedef struct
 	void (*cvt_i_r)(uint8_t *,int64_t);
 	int (*cmp)(const uint8_t *,const uint8_t *);
 	void (*ator)(uint8_t *,const char *,char **);
+	void (*get_pi)(uint8_t *);
 	void (*var_init)(uint8_t *);		// optional
 	void (*var_deinit)(uint8_t *);		// optional
 } rlip_real_functions_t;

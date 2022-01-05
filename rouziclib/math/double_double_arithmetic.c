@@ -276,13 +276,11 @@ ddouble_t string_to_ddouble(const char *string, char **endptr)
 
 	// Let strtod reveal invalid strings, NANs, INFs and zeros
 	vd = strtod(string, &endptr2);
-	if (vd==0. || isfinite(vd)==0)
-	{
-		if (endptr)
-			*endptr = endptr2;
+	if (endptr)
+		*endptr = endptr2;
 
+	if (vd==0. || isfinite(vd)==0)
 		return ddouble(vd);
-	}
 
 	p = skip_whitespace(string);
 

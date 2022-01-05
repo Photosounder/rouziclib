@@ -27,6 +27,8 @@ typedef struct
 	int valid_reals, abort_compilation;
 	int rd[8], ri[8], rr[8];	// generic registers
 	buffer_t *comp_log;
+	rlip_inputs_t *inputs;
+	int input_count;
 } rlip_data_t;
 
 int rlip_find_value(const char *name, rlip_data_t *ed)
@@ -106,11 +108,14 @@ int rlip_add_value(const char *name, const void *ptr, const char *type, rlip_dat
 {
 	int ir;
 
+	if (name==NULL)
+		return -1;
+
 	// Special case when the "value" is the rlip_real_functions_t structure
 	if (strcmp(name, "rlip_real_functions")==0 && ptr)
 	{
 		const rlip_real_functions_t *rf = ptr;
-		if (rf->size_of_real && rf->set && rf->cvt_r_d && rf->cvt_d_r && rf->cvt_r_i && rf->cvt_i_r && rf->cmp && rf->ator)
+		if (rf->size_of_real && rf->set && rf->cvt_r_d && rf->cvt_d_r && rf->cvt_r_i && rf->cvt_i_r && rf->cmp && rf->ator && rf->get_pi)
 		{
 			ed->d->rf = *rf;
 			ed->valid_reals = 1;
@@ -165,7 +170,7 @@ void convert_pointer_to_variable(int ir, rlip_data_t *ed)
 				  if (ed->valid_reals == 0)
 				  {
 					  
-					  bufprintf(ed->comp_log, "Real-type conversion without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs");
+					  bufprintf(ed->comp_log, "Real-type conversion without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs\n");
 					  ed->abort_compilation = 1;
 				  }
 				  break;
@@ -183,23 +188,97 @@ void convert_pointer_to_variable(int ir, rlip_data_t *ed)
 	}
 }
 
-void convert_expression_to_variable(const char *name, rlip_data_t *ed)
+int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 {
-	// TODO convert to real if ed->valid_reals when real expression parsing will be implemented
-	double v = te_interp(name, NULL);			// interpret name as an expression
+	int ir = -1;
+	//vd = te_interp(name, NULL);			// interpret name as an expression
 
-	if (isnan(v)==0)					// if it's a valid expression
-		rlip_add_value(name, &v, "d", ed);		// add the value as a variable with the original expression as its name
+	if (ed->valid_reals)
+	{
+		// Allocate real value first
+		ir = rlip_add_value(name, NULL, "r", ed);
+		uint8_t *vr = &ed->d->vr[ed->reg[ir].index];
+
+		if (strcmp(name, "pi") == 0)
+			ed->d->rf.get_pi(vr);
+		else
+		{
+			// Read expression like a number
+			char *endptr=NULL;
+			ed->d->rf.ator(vr, name, &endptr);
+
+			// If ator didn't parse the whole string then it's not just one number
+			if (endptr[0])
+			{
+				// Check if it's only an unknown symbol
+				int max_depth=0;
+				size_t sym_count=0, sym_as=0;
+				symbol_data_t *sym = expression_to_symbol_list(name, ed->comp_log, 0, &max_depth, &sym_count, &sym_as);
+				if (sym_count == 1)
+				{
+			      		bufprintf(ed->comp_log, "Symbol '%.*s' unknown\n", sym[0].p_len, sym[0].p);
+					ed->abort_compilation = 1;
+					return -1;
+				}
+
+				free_null(&sym);
+
+				// Make copy of inputs without the variable pointers
+				rlip_inputs_t *inputs_copy = copy_alloc(ed->inputs, ed->input_count*sizeof(rlip_inputs_t));
+
+				for (int i=0; i < ed->input_count; i++)
+					if (inputs_copy[i].type)
+						if (inputs_copy[i].type[0] == 'p')
+							memset(&inputs_copy[i], 0, sizeof(rlip_inputs_t));
+
+				if (rlip_expression_interp_real(vr, name, inputs_copy, ed->input_count, ed->comp_log) == 0)
+				{
+			      		bufprintf(ed->comp_log, "Expression '%s' couldn't be interpreted\n", name);
+					ed->abort_compilation = 1;
+				}
+
+				free(inputs_copy);
+			}
+		}
+	}
+	else
+	{
+		double vd;
+
+		if (strcmp(name, "pi") == 0)
+			vd = pi;
+		else
+		{
+			// Read expression like a number
+			char *endptr=NULL;
+			vd = strtod(name, &endptr);
+
+			// If strtod didn't parse the whole string then it's not just one number
+			if (name != endptr && endptr[0])
+				vd = rlip_expression_interp_double(name, ed->comp_log);
+		}
+
+		if (isnan(vd)==0)					// if it's a valid expression
+			ir = rlip_add_value(name, &vd, "d", ed);		// add the value as a variable with the original expression as its name
+		else
+		{
+			bufprintf(ed->comp_log, "Invalid expression '%s'\n", name);
+			ed->abort_compilation = 1;
+		}
+	}
+
+	return ir;
 }
 
 int rlip_find_convert_value(const char *name, rlip_data_t *ed)
 {
 	int ir;
 
-	// It might be an expression, in which case make it a variable
-	convert_expression_to_variable(name, ed);
-
 	ir = rlip_find_value(name, ed);
+
+	// If it's an expression/value, make it a variable
+	if (ir == -1)
+		ir = convert_expression_to_variable(name, ed);
 
 	if (ir > -1)
 		// It might be a pointer, in which case make it a variable permanently
@@ -236,7 +315,7 @@ void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int i,
 		if (ed->valid_reals == 0 && (var_type == 'r' || expected_type == 'r'))
 		{
 
-			bufprintf(ed->comp_log, "Real type used without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs");
+			bufprintf(ed->comp_log, "Real type used without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs\n");
 			ed->abort_compilation = 1;
 		}
 
@@ -275,7 +354,7 @@ int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed
 
 			if (arg_ir[i] == -1)
 			{
-				bufprintf(ed->comp_log, "Argument '%s' unidentified in line %d: '%s'", s1, il, line[il]);
+				bufprintf(ed->comp_log, "Argument '%s' unidentified in line %d: '%s'\n", s1, il, line[il]);
 				return -1;
 			}
 
@@ -285,7 +364,7 @@ int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed
 		}
 		else
 		{
-			bufprintf(ed->comp_log, "Argument missing (%d arguments expected) in line %d: '%s'", strlen(cmd_arg_type), il, line[il]);
+			bufprintf(ed->comp_log, "Argument missing (%d arguments expected) in line %d: '%s'\n", strlen(cmd_arg_type), il, line[il]);
 			return -1;
 		}
 	}
@@ -317,6 +396,8 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 	// Add inputs to structure
 	for (i=0; i < input_count; i++)
 		rlip_add_value(inputs[i].name, inputs[i].ptr, inputs[i].type, ed);
+	ed->inputs = inputs;
+	ed->input_count = input_count;
 
 	// Add generic real registers
 	if (ed->valid_reals)
@@ -365,7 +446,7 @@ line_proc_start:
 				if (ed->valid_reals == 0)
 				{
 
-					bufprintf(ed->comp_log, "Real-type variable declaration without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs");
+					bufprintf(ed->comp_log, "Real-type variable declaration without valid functions (rlip_real_functions_t) provided in rlip_compile()'s inputs\n");
 					goto invalid_prog;
 				}
 			}
@@ -430,13 +511,13 @@ line_proc_start:
 			
 			if (dest_ir == -1)
 			{
-				bufprintf(comp_log, "Undeclared variable '%s' used in line %d: '%s'", s0, il, line[il]);
+				bufprintf(comp_log, "Undeclared variable '%s' used in line %d: '%s'\n", s0, il, line[il]);
 				goto invalid_prog;
 			}
 
 			if (ed->reg[dest_ir].type[0]!='d' && ed->reg[dest_ir].type[0]!='i' && ed->reg[dest_ir].type[0]!='r')
 			{
-				bufprintf(comp_log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'", s0, ed->reg[dest_ir].type, il, line[il]);
+				bufprintf(comp_log, "Assignment to variable '%s' of invalid type '%s' used in line %d: '%s'\n", s0, ed->reg[dest_ir].type, il, line[il]);
 				goto invalid_prog;
 			}
 
@@ -584,7 +665,7 @@ add_command:
 
 								if (arg_ir[i] == -1)
 								{
-									bufprintf(comp_log, "Argument '%s' unidentified in line %d: '%s'", i==0 ? s1 : s3, il, line[il]);
+									bufprintf(comp_log, "Argument '%s' unidentified in line %d: '%s'\n", i==0 ? s1 : s3, il, line[il]);
 									goto invalid_prog;
 								}
 
@@ -611,7 +692,7 @@ add_command:
 
 							if (ed->op[io] == 0)	// if comparison hasn't been found
 							{
-								bufprintf(comp_log, "Comparator invalid in line %d: '%s'", il, line[il]);
+								bufprintf(comp_log, "Comparator invalid in line %d: '%s'\n", il, line[il]);
 								goto invalid_prog;
 							}
 
@@ -634,7 +715,7 @@ add_command:
 						}
 						else
 						{
-							bufprintf(comp_log, "Argument missing (2 arguments expected) in line %d: '%s'", il, line[il]);
+							bufprintf(comp_log, "Argument missing (2 arguments expected) in line %d: '%s'\n", il, line[il]);
 							goto invalid_prog;
 						}
 					}
@@ -694,7 +775,7 @@ add_command:
 
 							if (new_opcode == 0)
 							{
-								bufprintf(comp_log, "Function type '%s' not implemented in line %d: '%s'", ed->reg[ir].type, il, line[il]);
+								bufprintf(comp_log, "Function type '%s' not implemented in line %d: '%s'\n", ed->reg[ir].type, il, line[il]);
 								goto invalid_prog;
 							}
 
@@ -706,7 +787,7 @@ add_command:
 
 				if (cmd_found == 0)
 				{
-					bufprintf(comp_log, "Unidentified '%s' in line %d: '%s'", s0, il, line[il]);
+					bufprintf(comp_log, "Unidentified '%s' in line %d: '%s'\n", s0, il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -769,20 +850,20 @@ add_command:
 					{
 						if (arg_ir[i] == -1)
 						{
-							bufprintf(comp_log, "Variable '%s' not found in line %d: '%s'", i==0 ? s1 : s2, il, line[il]);
+							bufprintf(comp_log, "Variable '%s' not found in line %d: '%s'\n", i==0 ? s1 : s2, il, line[il]);
 							goto invalid_prog;
 						}
 					}
 
 					if (strcmp(ed->reg[arg_ir[0]].type, "i") != 0)	// s1 must be an integer variable
 					{
-						bufprintf(comp_log, "Not an integer variable '%s' in line %d: '%s'", s1, il, line[il]);
+						bufprintf(comp_log, "Not an integer variable '%s' in line %d: '%s'\n", s1, il, line[il]);
 						goto invalid_prog;
 					}
 
 					if (strcmp(ed->reg[arg_ir[1]].type, "l") != 0)	// s2 must be a location
 					{
-						bufprintf(comp_log, "Not a location '%s' in line %d: '%s'", s2, il, line[il]);
+						bufprintf(comp_log, "Not a location '%s' in line %d: '%s'\n", s2, il, line[il]);
 						goto invalid_prog;
 					}
 
@@ -800,7 +881,7 @@ add_command:
 				}
 				else
 				{
-					bufprintf(comp_log, "Incorrect 'if <integer variable> goto <loc>' command in line %d: '%s'", il, line[il]);
+					bufprintf(comp_log, "Incorrect 'if <integer variable> goto <loc>' command in line %d: '%s'\n", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -821,13 +902,13 @@ add_command:
 					}
 					else
 					{
-						bufprintf(comp_log, "Command 'set0' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
+						bufprintf(comp_log, "Command 'set0' can't use type '%s' in line %d: '%s'\n", ed->reg[ir].type, il, line[il]);
 						goto invalid_prog;
 					}
 				}
 				else
 				{
-					bufprintf(comp_log, "Value not found for command 'set0' in line %d: '%s'", il, line[il]);
+					bufprintf(comp_log, "Value not found for command 'set0' in line %d: '%s'\n", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -848,13 +929,13 @@ add_command:
 					}
 					else
 					{
-						bufprintf(comp_log, "Command 'inc1' can't use type '%s' in line %d: '%s'", ed->reg[ir].type, il, line[il]);
+						bufprintf(comp_log, "Command 'inc1' can't use type '%s' in line %d: '%s'\n", ed->reg[ir].type, il, line[il]);
 						goto invalid_prog;
 					}
 				}
 				else
 				{
-					bufprintf(comp_log, "Value not found for command 'inc1' in line %d: '%s'", il, line[il]);
+					bufprintf(comp_log, "Value not found for command 'inc1' in line %d: '%s'\n", il, line[il]);
 					goto invalid_prog;
 				}
 			}
@@ -870,14 +951,14 @@ add_command:
 	// If not all forward jumps were resolved
 	if (fwd_jumps != 0)
 	{
-		bufprintf(comp_log, "There are %d unresolved forward jumps", fwd_jumps);
+		bufprintf(comp_log, "There are %d unresolved forward jumps\n", fwd_jumps);
 		data.valid_prog = 0;
 	}
 
 	// If the return command is missing
 	if (ret_cmd_done==0)
 	{
-		bufprintf(comp_log, "The 'return' command is missing or invalid");
+		bufprintf(comp_log, "The 'return' command is missing or invalid\n");
 invalid_prog:
 		data.valid_prog = 0;
 	}

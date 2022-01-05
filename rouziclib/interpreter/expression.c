@@ -1,30 +1,3 @@
-enum symbol_type
-{
-	sym_none,
-	sym_value,
-	sym_operator,
-	sym_variable,
-	sym_function,
-	sym_bracket_open,
-	sym_bracket_close,
-	sym_arg_open,
-	sym_arg_close,
-	sym_comma,
-	sym_result_real,
-	sym_result_int,
-};
-
-typedef struct
-{
-	enum symbol_type type;
-	int depth, match;
-	int operator_priority;
-	int result_id;
-	int can_imply_mul_with_prev, can_imply_mul_with_next;
-	const char *p;
-	int p_len;
-} symbol_data_t;
-
 int find_res_taken(int *res_taken, int count)
 {
 	// Pick result ID
@@ -60,17 +33,13 @@ void print_any_var(buffer_t *prog, symbol_data_t *sym)
 		bufprintf(prog, " %c%d", sym->type == sym_result_real ? 'v' : 'i', sym->result_id);
 }
 
-buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, int use_real, buffer_t *comp_log)
+symbol_data_t *expression_to_symbol_list(const char *expression, buffer_t *comp_log, int verbose, int *max_depth, size_t *sym_count, size_t *sym_as)
 {
-	buffer_t prog_s={0}, *prog=&prog_s;
-	int i, is, n=0, cant_be_operator=1, depth=0, max_depth=0, pi_loaded=0;
-	size_t len = strlen(expression);
+	int i, is, n=0, cant_be_operator=1, depth=0;
 	symbol_data_t *sym=NULL;
-	size_t sym_count=0, sym_as=0;
 	char name[33], red_str[8], grey_str[8];
+	size_t len = strlen(expression);
 	const char *p = expression, *end = &expression[len];
-	int *res_taken_r=NULL, *res_taken_i=NULL;
-	char var_decl = use_real ? 'r' : 'd';
 
 	sprint_unicode(red_str, sc_red);
 	sprint_unicode(grey_str, sc_grey);
@@ -84,13 +53,13 @@ loop_start:
 			break;
 
 		// Prepare new symbol
-		is = sym_count;
-		alloc_enough(&sym, sym_count+=1, &sym_as, sizeof(symbol_data_t), 2.);
+		is = *sym_count;
+		alloc_enough(&sym, *sym_count+=1, sym_as, sizeof(symbol_data_t), 2.);
 		sym[is].p = p;
 		sym[is].match = -1;
 		sym[is].result_id = -1;
 		sym[is].depth = depth;
-		max_depth = MAXN(max_depth, depth);
+		*max_depth = MAXN(*max_depth, depth);
 
 		// Try to read operators
 		if (isalnum(p[0]) == 0)
@@ -102,7 +71,7 @@ loop_start:
 			{
 				if (n)
 				{
-					bufprintf(comp_log, "Operator %s, %d chars\n", name, n);
+					if (verbose) bufprintf(comp_log, "Operator %s, %d chars\n", name, n);
 					sym[is].type = sym_operator;
 
 					switch (p[0])
@@ -140,7 +109,7 @@ loop_start:
 				else if (p[0] == ',')
 				{
 					n = 1;
-					bufprintf(comp_log, "Comma\n");
+					if (verbose) bufprintf(comp_log, "Comma\n");
 					sym[is].type = sym_comma;
 					cant_be_operator = 1;
 					goto loop_start;
@@ -161,8 +130,8 @@ loop_start:
 					sym[is].p_len = 1;
 
 					// Add '-' operator
-					is = sym_count;
-					alloc_enough(&sym, sym_count+=1, &sym_as, sizeof(symbol_data_t), 2.);
+					is = *sym_count;
+					alloc_enough(&sym, *sym_count+=1, sym_as, sizeof(symbol_data_t), 2.);
 					sym[is].type = sym_operator;
 					sym[is].p = p;
 					sym[is].p_len = 1;
@@ -180,7 +149,7 @@ loop_start:
 		sscanf(p, "%*g%n", &n);
 		if (n)
 		{
-			bufprintf(comp_log, "Value, %d chars\n", n);
+			if (verbose) bufprintf(comp_log, "Value, %d chars\n", n);
 			sym[is].type = sym_value;
 			sym[is].p = p;
 			sym[is].p_len = n;
@@ -197,7 +166,7 @@ loop_start:
 			sscanf(p, "%32[a-zA-Z0-9_]%n", name, &n);
 			if (n)
 			{
-				bufprintf(comp_log, "%s named '%s', %d chars\n", p[n]=='(' ? "Function" : "Variable", name, n);
+				if (verbose) bufprintf(comp_log, "%s named '%s', %d chars\n", p[n]=='(' ? "Function" : "Variable", name, n);
 				sym[is].type = p[n]=='(' ? sym_function : sym_variable;
 				sym[is].p = p;
 				sym[is].p_len = n;
@@ -216,7 +185,7 @@ loop_start:
 			if (is > 0)
 				if (sym[is-1].type == sym_function)
 					sym[is].type = sym_arg_open;
-			bufprintf(comp_log, "%s\n", sym[is].type==sym_arg_open ? "Function bracket open" : "Bracket open");
+			if (verbose) bufprintf(comp_log, "%s\n", sym[is].type==sym_arg_open ? "Function bracket open" : "Bracket open");
 			sym[is].can_imply_mul_with_prev = (sym[is].type == sym_bracket_open);
 			cant_be_operator = 1;
 			depth++;
@@ -248,13 +217,14 @@ loop_start:
 				}
 			}
 
-			bufprintf(comp_log, sym[is].type == sym_bracket_close ? "Bracket close\n" : "Function bracket close\n");
+			if (verbose) bufprintf(comp_log, sym[is].type == sym_bracket_close ? "Bracket close\n" : "Function bracket close\n");
 
 			// If the ')' remains unmatched
 			if (sym[is].match == -1)
 			{
 				bufprintf(comp_log, "%sUnmatched ')' at position %d%s\n", red_str, is, grey_str);
-				goto invalid_expr;
+				free_null(&sym);
+				return NULL;
 			}
 
 			cant_be_operator = 0;
@@ -268,29 +238,31 @@ loop_start:
 		else
 			bufprintf(comp_log, "%sCharacter 0x%x unidentified%s\n", red_str, p[0], grey_str);
 		n = 1;
-		sym_count--;
-		goto invalid_expr;
+		*sym_count--;
+		free_null(&sym);
+		return NULL;
 	}
 
 	// Check for unmatched brackets
-	for (is=0; is < sym_count; is++)
+	for (is=0; is < *sym_count; is++)
 		if ((sym[is].type == sym_bracket_open || sym[is].type == sym_arg_open) && sym[is].match == -1)
 		{
 			bufprintf(comp_log, "%sUnmatched '(' at position %d%s\n", red_str, is, grey_str);
-			goto invalid_expr;
+			free_null(&sym);
+			return NULL;
 		}
 
 	// Turned implied multiplications into operators
-	for (is=1; is < sym_count; is++)
+	for (is=1; is < *sym_count; is++)
 	{
 		if (sym[is-1].can_imply_mul_with_next && sym[is].can_imply_mul_with_prev)
 		{
 			// Move everything one place to make room for the operator
-			alloc_enough(&sym, sym_count+1, &sym_as, sizeof(symbol_data_t), 2.);
-			sym_move(sym, &sym_count, is+1, is);
+			alloc_enough(&sym, *sym_count+1, sym_as, sizeof(symbol_data_t), 2.);
+			sym_move(sym, sym_count, is+1, is);
 
 			// Add operator
-			bufprintf(comp_log, "Implied '*' operator added\n");
+			if (verbose) bufprintf(comp_log, "Implied '*' operator added\n");
 			sym[is].type = sym_operator;
 			sym[is].p = "*";
 			sym[is].p_len = 1;
@@ -299,6 +271,27 @@ loop_start:
 			sym[is].can_imply_mul_with_next = 0;
 		}
 	}
+
+	return sym;
+}
+
+buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, int use_real, buffer_t *comp_log, int verbose)
+{
+	buffer_t prog_s={0}, *prog=&prog_s;
+	int i, is, max_depth=0;
+	symbol_data_t *sym=NULL;
+	size_t sym_count=0, sym_as=0;
+	char red_str[8], grey_str[8];
+	int *res_taken_r=NULL, *res_taken_i=NULL;
+	char var_decl = use_real ? 'r' : 'd';
+
+	sprint_unicode(red_str, sc_red);
+	sprint_unicode(grey_str, sc_grey);
+
+	// Map the string as symbols
+	sym = expression_to_symbol_list(expression, comp_log, verbose, &max_depth, &sym_count, &sym_as);
+	if (sym == NULL)
+		goto invalid_expr;
 
 	int id, max_prio, max_prio_pos, result_id;
 	size_t res_taken_count = sym_count;
@@ -491,4 +484,70 @@ invalid_expr:
 	free(sym);
 
 	return prog_s;
+}
+
+double rlip_expression_interp_double(const char *expression, buffer_t *comp_log)
+{
+	// Expression to listing
+	buffer_t listing = expression_to_rlip_listing(expression, "", 0, comp_log, 0);
+	if (listing.len == 0)
+	{
+		free_buf(&listing);
+		return NAN;
+	}
+
+	// Listing to opcodes
+	rlip_inputs_t inputs[] = { RLIP_FUNC };
+	rlip_t prog = rlip_compile(listing.buf, inputs, sizeof(inputs)/sizeof(*inputs), 1, comp_log);
+	free_buf(&listing);
+
+	// Execute opcodes
+	volatile int exec_on = 1;
+	prog.exec_on = &exec_on;
+	rlip_execute_opcode(&prog);
+
+	// Return value
+	double v = prog.return_value[0];
+	free_rlip(&prog);
+
+	return v;
+}
+
+int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_inputs_t *inputs, int input_count, buffer_t *comp_log)
+{
+	// Expression to listing
+	buffer_t listing = expression_to_rlip_listing(expression, "_", 1, comp_log, 0);
+	if (listing.len == 0)
+	{
+		free_buf(&listing);
+		return 0;
+	}
+
+	// Listing to opcodes
+	rlip_t prog = rlip_compile(listing.buf, inputs, input_count, 1, comp_log);
+	free_buf(&listing);
+
+	// Execute opcodes
+	volatile int exec_on = 1;
+	prog.exec_on = &exec_on;
+	rlip_execute_opcode(&prog);
+
+	if (prog.valid_prog == 0)
+	{
+		free_rlip(&prog);
+		return 0;
+	}
+
+	// Set return value
+	for (int i=0; i < input_count; i++)
+		if (strcmp(inputs[i].name, "rlip_real_functions")==0)
+		{
+			const rlip_real_functions_t *func = inputs[i].ptr;
+			func->set(result, &prog.return_real[0]);
+			break;
+		}
+
+	free_rlip(&prog);
+
+	return 1;
 }

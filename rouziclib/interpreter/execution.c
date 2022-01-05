@@ -47,7 +47,7 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_cvt_d_i:	vi[op[1]] = (int64_t) vd[op[2]];
 			break;	case op_cvt_r_d:	vd[op[1]] = d->rf.cvt_r_d(&vr[op[2]]);
 			break;	case op_cvt_d_r:	d->rf.cvt_d_r(&vr[op[1]], vd[op[2]]);
-			break;	case op_cvt_r_i:	vd[op[1]] = d->rf.cvt_r_i(&vr[op[2]]);
+			break;	case op_cvt_r_i:	vi[op[1]] = d->rf.cvt_r_i(&vr[op[2]]);
 			break;	case op_cvt_i_r:	d->rf.cvt_i_r(&vr[op[1]], vi[op[2]]);
 
 			break;	case op_sq_d:		vd[op[1]] = sq(vd[op[2]]);					// <var> = sq <var/ptr/expr>
