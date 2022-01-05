@@ -24,6 +24,7 @@ static void real_d_trunc(double *r, double *a) { *r = trunc(*a); }
 static void real_d_clamp(double *r, double *a) { *r = rangelimit(*a, 0., 1.); }
 static void real_d_cos(double *r, double *a) { *r = cos(*a); }
 static void real_d_sin(double *r, double *a) { *r = sin(*a); }
+static void real_d_tan(double *r, double *a) { *r = tan(*a); }
 
 static void real_d_min(double *r, double *a, double *b) { *r = MINN(*a, *b); }
 static void real_d_max(double *r, double *a, double *b) { *r = MAXN(*a, *b); }
@@ -63,6 +64,7 @@ static rlip_real_functions_t real_d_functions = {
 	{"clamp_", real_d_clamp,	"frr"},		\
 	{"cos_", real_d_cos,		"frr"},		\
 	{"sin_", real_d_sin,		"frr"},		\
+	{"tan_", real_d_tan,		"frr"},		\
 	{"min_", real_d_min,		"frrr"},	\
 	{"max_", real_d_max,		"frrr"},	\
 	{"pow_", real_d_pow,		"frrr"},	\
@@ -95,6 +97,7 @@ static void real_q_trunc(ddouble_t *r, ddouble_t *a) { *r = trunc_q(*a); }
 static void real_q_clamp(ddouble_t *r, ddouble_t *a) { *r = rangelimit_qqq(*a, Q_ZERO, Q_ONE); }
 static void real_q_cos(ddouble_t *r, ddouble_t *a) { *r = cos_q(*a); }
 static void real_q_sin(ddouble_t *r, ddouble_t *a) { *r = sin_q(*a); }
+static void real_q_tan(ddouble_t *r, ddouble_t *a) { *r = ddouble(tan(a->hi)); }	// FIXME
 
 static void real_q_min(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = min_qq(*a, *b); }
 static void real_q_max(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = max_qq(*a, *b); }
@@ -134,6 +137,7 @@ static rlip_real_functions_t real_q_functions = {
 	{"clamp_", real_q_clamp,	"frr"},		\
 	{"cos_", real_q_cos,		"frr"},		\
 	{"sin_", real_q_sin,		"frr"},		\
+	{"tan_", real_q_tan,		"frr"},		\
 	{"min_", real_q_min,		"frrr"},	\
 	{"max_", real_q_max,		"frrr"},	\
 	{"pow_", real_q_pow,		"frrr"},	\

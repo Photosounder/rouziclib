@@ -217,10 +217,10 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 				if (sym_count == 1)
 				{
 			      		bufprintf(ed->comp_log, "Symbol '%.*s' unknown\n", sym[0].p_len, sym[0].p);
+					free_null(&sym);
 					ed->abort_compilation = 1;
 					return -1;
 				}
-
 				free_null(&sym);
 
 				// Make copy of inputs without the variable pointers
@@ -429,10 +429,10 @@ line_proc_start:
 		s2[0] = '\0';
 		s3[0] = '\0';
 		n = 0;
-		sscanf(p, "%30s = %n", s0, &n);
+		sscanf(p, "%30s %*s = %n", s0, &n);
 
 		// Declaring a new variable by its type
-		if (strcmp(s0, "d")==0 || strcmp(s0, "i")==0 || strcmp(s0, "r")==0)
+		if (n && (strcmp(s0, "d")==0 || strcmp(s0, "i")==0 || strcmp(s0, "r")==0))
 		{
 			// Set flag for creation of variable
 			if (s0[0]=='d')
@@ -458,8 +458,11 @@ line_proc_start:
 			goto line_proc_start;
 		}
 
+		n = 0;
+		sscanf(p, "%30s = %n", s0, &n);
+
 		// Declaring a location
-		else if (s0[strlen(s0)-1] == ':')
+		if (s0[strlen(s0)-1] == ':')
 		{
 			s0[strlen(s0)-1] = '\0';	// remove : to make location name
 
