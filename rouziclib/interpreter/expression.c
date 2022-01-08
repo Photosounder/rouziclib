@@ -238,7 +238,7 @@ loop_start:
 		else
 			bufprintf(comp_log, "%sCharacter 0x%x unidentified%s\n", red_str, p[0], grey_str);
 		n = 1;
-		*sym_count--;
+		(*sym_count)--;
 		free_null(&sym);
 		return NULL;
 	}
@@ -565,3 +565,24 @@ int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_in
 
 	return 1;
 }
+
+#ifdef RLIP_REAL_DOUBLEDOUBLE
+ddouble_t rlip_expression_interp_ddouble(const char *expression, buffer_t *comp_log)
+{
+	ddouble_t result={0};
+	rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLEDOUBLE };
+
+	rlip_expression_interp_real((uint8_t *) &result, expression, inputs, sizeof(inputs)/sizeof(*inputs), comp_log);
+
+	return result;
+}
+#endif
+
+#ifdef RLIP_REAL_MPFR
+int rlip_expression_interp_mpfr(mpfr_t *result, const char *expression, buffer_t *comp_log)
+{
+	rlip_inputs_t inputs[] = { RLIP_REAL_MPFR };
+
+	return rlip_expression_interp_real(result, expression, inputs, sizeof(inputs)/sizeof(*inputs), comp_log);
+}
+#endif
