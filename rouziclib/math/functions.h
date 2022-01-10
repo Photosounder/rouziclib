@@ -36,5 +36,6 @@ extern int modulo_euclidian(int a, int b);
 extern int find_closest_entry_double(double *array, int n, double v);
 extern double mix(double v0, double v1, double t);
 extern double get_interpolated_xy_array_value(double x, xy_t *array, size_t array_size);
+extern double get_interpolated_xy_array_value_nan(double x, xy_t *array, size_t array_size);
 extern size_t get_latest_xy_array_index(double x, xy_t *array, size_t array_size);
 extern double get_latest_xy_array_value(double x, xy_t *array, size_t array_size);

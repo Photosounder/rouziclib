@@ -251,7 +251,11 @@ void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key)
 	{
 		move_vector = mul_xy(move_vector, set_xy(4./zc->zoomscale));	// move by steps of 4 units
 		zc->zoomscale *= pow(2., 1./2. * zoom_way);
+		#ifdef ZOOM_Q
+		zc->offset_uq = add_xyq(zc->offset_uq, xy_to_xyq(move_vector));
+		#else
 		zc->offset_u = add_xy(zc->offset_u, move_vector);
+		#endif
 		calc_screen_limits(zc);
 		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
 		zc->mouse->b.orig = zc->mouse->u;
@@ -295,7 +299,11 @@ void zoom_overlay_control(zoom_t *zc, int *flag_zoom_key)
 	{
 		move_vector = mul_xy(move_vector, set_xy(20./12./zc->zoomscale));	// move by steps of 1;8 units
 		zc->zoomscale *= pow(2., 1./2. * zoom_way);
+		#ifdef ZOOM_Q
+		zc->offset_uq = add_xyq(zc->offset_uq, xy_to_xyq(move_vector));
+		#else
 		zc->offset_u = add_xy(zc->offset_u, move_vector);
+		#endif
 		calc_screen_limits(zc);
 		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
 		zc->mouse->b.orig = zc->mouse->u;

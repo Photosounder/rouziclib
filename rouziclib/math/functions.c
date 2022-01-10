@@ -322,6 +322,20 @@ double get_interpolated_xy_array_value(double x, xy_t *array, size_t array_size)
 	return array[array_size-1].y;
 }
 
+double get_interpolated_xy_array_value_nan(double x, xy_t *array, size_t array_size)
+{
+	if (array==NULL || array_size < 1)
+		return NAN;
+
+	if (x <= array[0].x)
+		return NAN;
+
+	if (x >= array[array_size-1].x)
+		return NAN;
+
+	return get_interpolated_xy_array_value(x, array, array_size);
+}
+
 size_t get_latest_xy_array_index(double x, xy_t *array, size_t array_size)
 {
 	xy_t value = xy(x, 0.);
