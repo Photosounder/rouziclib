@@ -116,7 +116,8 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "math/erf_radlim.h"
 #include "approximations/fixed_point.h"		// unused if RL_EXCL_APPROX is defined
 #include "approximations/fast_float.h"		// unused if RL_EXCL_APPROX is defined
-#include "approximations/fast_cos.h"		// mostly unused if RL_EXCL_APPROX is defined
+#include "approximations/fast_cos.h"		// unused if RL_EXCL_APPROX is defined
+#include "approximations/high_prec.h"
 #include "approximations/simd.h"		// unused if RL_EXCL_APPROX is defined
 
 #include "graphics/graphics.h"

@@ -145,6 +145,11 @@ ddouble_t mul_qq(ddouble_t a, ddouble_t b)
 	return r;
 }
 
+ddouble_t mad_qqq(ddouble_t a, ddouble_t b, ddouble_t c)
+{
+	return add_qq(mul_qq(a, b), c);
+}
+
 #ifdef _gcc_
 __attribute__((optimize("-fno-fast-math")))
 #endif
@@ -164,6 +169,13 @@ ddouble_t neg_q(ddouble_t a)
 	r.hi = -a.hi;
 	r.lo = -a.lo;
 	return r;
+}
+
+ddouble_t abs_q(ddouble_t a)
+{
+	if (a.hi < 0.)
+		a = neg_q(a);
+	return a;
 }
 
 #ifdef _gcc_

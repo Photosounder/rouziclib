@@ -20,8 +20,10 @@ extern ddouble_t div_dq(double a, ddouble_t b);
 extern ddouble_t add_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t sub_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t mul_qq(ddouble_t a, ddouble_t b);
+extern ddouble_t mad_qqq(ddouble_t a, ddouble_t b, ddouble_t c);
 extern ddouble_t div_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t neg_q(ddouble_t a);
+extern ddouble_t abs_q(ddouble_t a);
 extern ddouble_t recip_q(ddouble_t b);
 extern ddouble_t mul_qd_simple(ddouble_t a, double m);
 
@@ -40,6 +42,7 @@ extern ddouble_t string_to_ddouble(const char *string, char **endptr);
 
 static const ddouble_t Q_ZERO =	 {0., 0.};
 static const ddouble_t Q_ONE =	 {1., 0.};
+static const ddouble_t Q_NAN =	 {NAN, NAN};
 static const ddouble_t Q_2PI =	 {6.2831853071795862, 2.4492935982947064e-16};
 static const ddouble_t Q_PI =	 {3.1415926535897931, 1.2246467991473532e-16};
 static const ddouble_t Q_PI_2 =  {1.5707963267948966, 6.123233995736766e-17};

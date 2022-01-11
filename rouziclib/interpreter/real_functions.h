@@ -22,9 +22,11 @@ static void real_d_floor(double *r, double *a) { *r = floor(*a); }
 static void real_d_ceil(double *r, double *a) { *r = ceil(*a); }
 static void real_d_trunc(double *r, double *a) { *r = trunc(*a); }
 static void real_d_clamp(double *r, double *a) { *r = rangelimit(*a, 0., 1.); }
+static void real_d_sqrt(double *r, double *a) { *r = sqrt(*a); }
 static void real_d_cos(double *r, double *a) { *r = cos(*a); }
 static void real_d_sin(double *r, double *a) { *r = sin(*a); }
 static void real_d_tan(double *r, double *a) { *r = tan(*a); }
+static void real_d_asin(double *r, double *a) { *r = asin(*a); }
 
 static void real_d_min(double *r, double *a, double *b) { *r = MINN(*a, *b); }
 static void real_d_max(double *r, double *a, double *b) { *r = MAXN(*a, *b); }
@@ -62,9 +64,11 @@ static rlip_real_functions_t real_d_functions = {
 	{"ceil_", real_d_ceil,		"frr"},		\
 	{"trunc_", real_d_trunc,	"frr"},		\
 	{"clamp_", real_d_clamp,	"frr"},		\
+	{"sqrt_", real_d_sqrt,		"frr"},		\
 	{"cos_", real_d_cos,		"frr"},		\
 	{"sin_", real_d_sin,		"frr"},		\
 	{"tan_", real_d_tan,		"frr"},		\
+	{"asin_", real_d_asin,		"frr"},		\
 	{"min_", real_d_min,		"frrr"},	\
 	{"max_", real_d_max,		"frrr"},	\
 	{"pow_", real_d_pow,		"frrr"},	\
@@ -95,8 +99,10 @@ static void real_q_floor(ddouble_t *r, ddouble_t *a) { *r = floor_q(*a); }
 static void real_q_ceil(ddouble_t *r, ddouble_t *a) { *r = ceil_q(*a); }
 static void real_q_trunc(ddouble_t *r, ddouble_t *a) { *r = trunc_q(*a); }
 static void real_q_clamp(ddouble_t *r, ddouble_t *a) { *r = rangelimit_qqq(*a, Q_ZERO, Q_ONE); }
+static void real_q_sqrt(ddouble_t *r, ddouble_t *a) { *r = sqrt_q(*a); }
 static void real_q_cos(ddouble_t *r, ddouble_t *a) { *r = cos_q(*a); }
 static void real_q_sin(ddouble_t *r, ddouble_t *a) { *r = sin_q(*a); }
+static void real_q_asin(ddouble_t *r, ddouble_t *a) { *r = asin_q(*a); }
 static void real_q_tan(ddouble_t *r, ddouble_t *a) { *r = ddouble(tan(a->hi)); }	// FIXME
 
 static void real_q_min(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = min_qq(*a, *b); }
@@ -135,9 +141,11 @@ static rlip_real_functions_t real_q_functions = {
 	{"ceil_", real_q_ceil,		"frr"},		\
 	{"trunc_", real_q_trunc,	"frr"},		\
 	{"clamp_", real_q_clamp,	"frr"},		\
+	{"sqrt_", real_q_sqrt,		"frr"},		\
 	{"cos_", real_q_cos,		"frr"},		\
 	{"sin_", real_q_sin,		"frr"},		\
 	{"tan_", real_q_tan,		"frr"},		\
+	{"asin_", real_q_asin,		"frr"},		\
 	{"min_", real_q_min,		"frrr"},	\
 	{"max_", real_q_max,		"frrr"},	\
 	{"pow_", real_q_pow,		"frrr"},	\
@@ -171,8 +179,10 @@ static void real_mpfr_nearbyint(mpfr_t *r, mpfr_t *a) { mpfr_round(*r, *a); }
 static void real_mpfr_floor(mpfr_t *r, mpfr_t *a) { mpfr_floor(*r, *a); }
 static void real_mpfr_ceil(mpfr_t *r, mpfr_t *a) { mpfr_ceil(*r, *a); }
 static void real_mpfr_trunc(mpfr_t *r, mpfr_t *a) { mpfr_trunc(*r, *a); }
+static void real_mpfr_sqrt(mpfr_t *r, mpfr_t *a) { mpfr_sqrt(*r, *a, MPFR_RNDN); }
 static void real_mpfr_cos(mpfr_t *r, mpfr_t *a) { mpfr_cos(*r, *a, MPFR_RNDN); }
 static void real_mpfr_sin(mpfr_t *r, mpfr_t *a) { mpfr_sin(*r, *a, MPFR_RNDN); }
+static void real_mpfr_asin(mpfr_t *r, mpfr_t *a) { mpfr_asin(*r, *a, MPFR_RNDN); }
 
 static void real_mpfr_pow(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_pow(*r, *a, *b, MPFR_RNDN); }
 
@@ -205,7 +215,9 @@ static rlip_real_functions_t real_mpfr_functions = {
 	{"floor_", real_mpfr_floor,	"frr"},		\
 	{"ceil_", real_mpfr_ceil,	"frr"},		\
 	{"trunc_", real_mpfr_trunc,	"frr"},		\
+	{"sqrt_", real_mpfr_sqrt,	"frr"},		\
 	{"cos_", real_mpfr_cos,		"frr"},		\
 	{"sin_", real_mpfr_sin,		"frr"},		\
+	{"asin_", real_mpfr_asin,	"frr"},		\
 	{"pow_", real_mpfr_pow,		"frrr"}
 #endif

@@ -50,6 +50,7 @@
 #include "approximations/fixed_point.c"
 #include "approximations/fast_float.c"
 #include "approximations/fast_cos.c"
+#include "approximations/high_prec.c"
 #include "approximations/simd.c"
 
 #include "graphics/graphics.c"
