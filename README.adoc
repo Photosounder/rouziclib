@@ -237,7 +237,10 @@ Fixed point approximations for the square root, division, log2m exp2, cosine, at
 Floating point approximations for log2, exp2, pow, the square root (which tends to be slower than just using `sqrt()`), linear to sRGB gamma conversion and exp over a small range.
 
 ** link:rouziclib/approximations/fast_cos.c[fast_cos.c] / link:rouziclib/approximations/fast_cos.h[fast_cos.h] +
-Floating point approximations for the cosine at different levels of precision (up to 4.3e-32 with the double-double implementation), in turns or radians.
+Floating point approximations for the cosine at different levels of precision, in turns or radians.
+
+** link:rouziclib/approximations/high_prec.c[high_prec.c] / link:rouziclib/approximations/high_prec.h[high_prec.h] +
+Higher precision (usually with maximum errors around the 10^-33^ - 10^-30^ range) approximations double-double arithmetic for functions such as the square root, sine/cosine, arcsin.
 
 ** link:rouziclib/approximations/simd.c[simd.c] / link:rouziclib/approximations/simd.h[simd.h] +
 Intel x86 SIMD versions of cosine, Gaussian, error function and linear to sRGB conversion approximations.
