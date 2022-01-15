@@ -313,7 +313,8 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 
 		if (strcmp(a, "link_pos_id")==0)		// sets the ID of the element that gives its position as an offset for this element
 		{
-			char offset[3]={0};
+			char *offset = cur_elem->link_pos_off_str;
+			memset(offset, 0, 3*sizeof(char));
 			if (sscanf(line, "link_pos_id %d.%2s", &cur_elem->link_pos_id, offset) < 1)
 				fprintf_rl(stderr, "No ID provided for link_pos_id in line %d: \"%s\"\n", il, line);
 
@@ -513,7 +514,10 @@ void sprint_gui_layout(gui_layout_t *layout, char **str, size_t *str_as)
 
 			// Positioning
 			if (cur_elem->link_pos_id >= 0)
-				sprintf_realloc(str, str_as, 1, "link_pos_id %d\n", cur_elem->link_pos_id);
+				if (isnan(cur_elem->link_pos_off.x) && isnan(cur_elem->link_pos_off.y))
+					sprintf_realloc(str, str_as, 1, "link_pos_id %d\n", cur_elem->link_pos_id);
+				else
+					sprintf_realloc(str, str_as, 1, "link_pos_id %d.%s\n", cur_elem->link_pos_id, cur_elem->link_pos_off_str);
 
 			if (cur_elem->pos_val >= 0)
 				sprintf_realloc(str, str_as, 1, "pos\tv%d\n", cur_elem->pos_val);
@@ -659,6 +663,7 @@ xy_t get_elem_dim(gui_layout_t *layout, const int id)
 xy_t gui_layout_get_link_pos(gui_layout_t *layout, const int id)
 {
 	layout_elem_t *cur_elem=NULL;
+	xy_t link_pos;
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return XY0;
@@ -667,7 +672,24 @@ xy_t gui_layout_get_link_pos(gui_layout_t *layout, const int id)
 	if (check_elem_id_validity(layout, cur_elem->link_pos_id, 0)==0)
 		return XY0;
 
-	return add_xy(get_elem_pos(layout, cur_elem->link_pos_id) , gui_layout_get_link_pos(layout, cur_elem->link_pos_id));
+	// Get position of linked element
+	link_pos = add_xy(get_elem_pos(layout, cur_elem->link_pos_id) , gui_layout_get_link_pos(layout, cur_elem->link_pos_id));
+
+	// Take link_pos_off into account if at least partially defined
+	if (isnan(cur_elem->link_pos_off.x)==0 || isnan(cur_elem->link_pos_off.y)==0)
+	{
+		// Get the linked element's area
+		rect_t link_area = gui_layout_elem_comp_area(layout, cur_elem->link_pos_id);
+
+		// Interpolate between the corners of the linked element's area
+		if (isnan(cur_elem->link_pos_off.x)==0)
+			link_pos.x = mix(link_area.p0.x, link_area.p1.x, cur_elem->link_pos_off.x);
+
+		if (isnan(cur_elem->link_pos_off.y)==0)
+			link_pos.y = mix(link_area.p0.y, link_area.p1.y, cur_elem->link_pos_off.y);
+	}
+
+	return link_pos;
 }
 
 rect_t gui_layout_elem_comp_area(gui_layout_t *layout, const int id)

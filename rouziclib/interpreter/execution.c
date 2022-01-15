@@ -39,7 +39,7 @@ int rlip_execute_opcode(rlip_t *d)
 							d->rf.set(&d->return_real[1], &vr[op[2]]);
 			break;	case op_load_d:		vd[op[1]] = *(double *) d->ptr[op[2]];				// compiler-only
 			break;	case op_load_i:		vi[op[1]] = *(int64_t *) d->ptr[op[2]];
-			break;	case op_load_r:		d->rf.set(&vr[op[1]*d->rf.size_of_real], d->ptr[op[2]]);
+			break;	case op_load_r:		d->rf.set(&vr[op[1]], d->ptr[op[2]]);
 			break;	case op_set_d:		vd[op[1]] = vd[op[2]];						// <var> = <var/ptr/expr>
 			break;	case op_set_i:		vi[op[1]] = vi[op[2]];
 			break;	case op_set_r:		d->rf.set(&vr[op[1]], &vr[op[2]]);

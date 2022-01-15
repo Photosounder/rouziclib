@@ -486,6 +486,25 @@ invalid_expr:
 	return prog_s;
 }
 
+rlip_t rlip_expression_compile(const char *expression, rlip_inputs_t *inputs, int input_count, int real, buffer_t *comp_log)
+{
+	buffer_t listing;
+	rlip_t prog={0};
+
+	// Expression to listing
+	if (real)
+		listing = expression_to_rlip_listing(expression, "_", 1, comp_log, 0);
+	else
+		listing = expression_to_rlip_listing(expression, "", 0, comp_log, 0);
+
+	// Listing to opcodes
+	if (listing.len)
+		prog = rlip_compile(listing.buf, inputs, input_count, 1, comp_log);
+	free_buf(&listing);
+
+	return prog;
+}
+
 double rlip_expression_interp_double(const char *expression, buffer_t *comp_log)
 {
 	// Expression to listing
@@ -546,17 +565,17 @@ int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_in
 	rlip_t prog = rlip_compile(listing.buf, inputs, input_count, 1, comp_log);
 	free_buf(&listing);
 
-	// Execute opcodes
-	volatile int exec_on = 1;
-	prog.exec_on = &exec_on;
-	rlip_execute_opcode(&prog);
-
 	if (prog.valid_prog == 0)
 	{
 		free_rlip(&prog);
 		func->set_nan(result);
 		return 0;
 	}
+
+	// Execute opcodes
+	volatile int exec_on = 1;
+	prog.exec_on = &exec_on;
+	rlip_execute_opcode(&prog);
 
 	// Set return value
 	func->set(result, &prog.return_real[0]);

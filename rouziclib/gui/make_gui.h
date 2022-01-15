@@ -29,6 +29,7 @@ typedef struct
 	int implemented;
 	int link_pos_id;
 	xy_t link_pos_off;
+	char link_pos_off_str[3];
 } layout_elem_t;
 
 typedef struct

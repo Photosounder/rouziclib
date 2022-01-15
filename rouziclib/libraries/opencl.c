@@ -579,8 +579,8 @@ void dialog_cl_gl_interop_options()
 	const char *layout_src[] = {
 		"elem 0", "type none", "label OpenCL/GL Interop Options", "pos	-0;6	8;3", "dim	4	9;4", "off	0	1", "",
 		"elem 10", "type checkbox", "label clFinish()", "pos	0	5;11", "dim	3	0;10", "off	0	1", "",
-		"elem 11", "type checkbox", "label glFinish()", "link_pos_id 10", "pos	0	-0;11", "dim	3	0;10", "off	0	1", "",
-		"elem 12", "type checkbox", "label Interop sync", "link_pos_id 11", "pos	0	-0;11", "dim	3	0;10", "off	0	1", "",
+		"elem 11", "type checkbox", "label glFinish()", "link_pos_id 10._b", "pos	0	-0;1", "dim	3	0;10", "off	0	1", "",
+		"elem 12", "type checkbox", "label Interop sync", "link_pos_id 11._b", "pos	0	-0;1", "dim	3	0;10", "off	0	1", "",
 		"elem 20", "type label", "pos	0	7;5", "dim	3	0;10", "off	0	1", "",
 		"elem 21", "type label", "link_pos_id 20", "pos	0	-0;11", "dim	3	0;7", "off	0	1", "",
 		"elem 30", "type checkbox", "label Test pattern", "pos	0	-0;2", "dim	3	0;6", "off	0	1", "",
@@ -607,7 +607,7 @@ void dialog_cl_gl_interop_options()
 
 	// Box visual test
 	static int pattern_on=1;
-	ctrl_checkbox_fromlayout(&pattern_on, &layout, 30);	
+	ctrl_checkbox_fromlayout(&pattern_on, &layout, 30);
 
 	if (pattern_on)
 	{

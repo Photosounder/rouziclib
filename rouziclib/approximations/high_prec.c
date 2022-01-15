@@ -1,4 +1,4 @@
-ddouble_t sqrt_q(ddouble_t x)
+ddouble_t sqrt_q(ddouble_t x)	// max error ratio about 5.8e-33
 {
 	ddouble_t y, y2, v1, v2, v3;
 
@@ -125,7 +125,7 @@ ddouble_t sin_q(ddouble_t x)
 	return sin_tr_q(mul_qq(x, Q_1_2PI));
 }
 
-ddouble_t asin_q(ddouble_t x)
+ddouble_t asin_q(ddouble_t x)	// max error < 1e-30 for |x| < 0.9996, < 1e-28 for |x| < 0.99999999, worsens as it approaches 1
 {
 	int i;
 	ddouble_t y, a, a2, b, c, d, ax;
@@ -147,26 +147,27 @@ ddouble_t asin_q(ddouble_t x)
 	if (x.hi < 0.)
 		y = neg_q(y);
 
-	// Newton-Raphson steps y -= (sin(y) - x) / cos(y)
+	// Newton-Raphson steps (the first iteration brings the error in the e-17 range)
+	// y -= (a - x) / sqrt(1 - a^2)
 	/*for (i=0; i < 3; i++)
 	{
 		a = sin_q(y);
-
-		// Replaces b = cos_q(y)
-		b = sqrt_q(sub_dq(1., mul_qq(a, a)));
-
+		b = sqrt_q(sub_dq(1., mul_qq(a, a)));	// replaces b = cos_q(y)
 		a = div_qq(sub_qq(a, x), b);
 		y = sub_qq(y, a);
 	}*/
 
-	// Halley's method
+	// Halley's method (the first iteration brings the error in the e-24 range)
 	// y -= (2 sqrt(1 - a^2) (x-a))/(a (x+a) - 2)
-	a = sin_q(y);
-	a2 = mul_qq(a, a);
-	c = sub_dq(1., a2);		// c = 1 - a^2
-	b = mul_qq(mul_qd_simple(sqrt_q(c), 2.), sub_qq(x, a));
-	d = sub_qd(mul_qq(a, add_qq(x, a)), 2.);
-	y = sub_qq(y, div_qq(b, d));
+	for (i=0; i < 2; i++)
+	{
+		a = sin_q(y);
+		a2 = mul_qq(a, a);
+		c = sub_dq(1., a2);		// c = 1 - a^2
+		b = mul_qq(mul_qd_simple(sqrt_q(c), 2.), sub_qq(x, a));
+		d = sub_qd(mul_qq(a, add_qq(x, a)), 2.);
+		y = sub_qq(y, div_qq(b, d));
+	}
 
 	return y;
 }
