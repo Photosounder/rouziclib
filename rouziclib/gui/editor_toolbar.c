@@ -21,7 +21,34 @@ void elem_te_val(gui_layout_t *layout, const int id, gui_layout_t *lp, int *val,
 		*val = atoi(te->string);
 }
 
-void gui_layout_edit_toolbar_core(int *toggle_edit_on)
+void gui_layout_markup_window(int *markup_te_ret, gui_layout_t **markup_layout)
+{
+	static gui_layout_t layout={0}, *lp=NULL;
+	char **new_elem_src, string[64];
+
+	const char *layout_src[] = {
+		"elem 0", "type rect", "label Markup", "pos	0	0", "dim	5;6	8;9", "off	0	1", "",
+		"elem 80", "type textedit", "pos	0;3	-0;9", "dim	5	7;9", "off	0	1", "",
+	};
+
+	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout markup");
+
+	// Window
+	static flwindow_t window={0};
+	flwindow_init_defaults(&window);
+	window.bg_opacity = 0.94;
+	window.shadow_strength = 0.5*window.bg_opacity;
+	draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
+
+	// Controls
+	get_textedit_fromlayout(&layout, 80)->edit_mode = te_mode_full;
+	get_textedit_fromlayout(&layout, 80)->scroll_mode = 1;
+	get_textedit_fromlayout(&layout, 80)->scroll_mode_scale_def = 40. * 4.5;
+	*markup_te_ret = ctrl_textedit_fromlayout(&layout, 80);
+	*markup_layout = &layout;
+}
+
+void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_layout_t **markup_layout)
 {
 	static int pinned=0;
 	textedit_t *te;
@@ -32,7 +59,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 	static int sel_change = 0;
 	static double rounding_prec_v=NAN;
 
-	int i, ret;
+	int i;
 	static gui_layout_t layout={0}, *lp=NULL;
 	char **new_elem_src, string[64];
 
@@ -59,7 +86,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 		"elem 73", "type label", "label Pos v#", "link_pos_id 72", "pos	-0;6	0;3", "dim	0;5;6	0;2;6", "off	0	1", "",
 		"elem 74", "type textedit", "link_pos_id 72", "pos	0;7;6	0", "dim	0;6;6	0;6", "off	1", "",
 		"elem 75", "type label", "label Dim v#", "link_pos_id 74", "pos	-0;6	0;3", "dim	0;5;6	0;2;6", "off	0	1", "",
-		"elem 80", "type textedit", "link_pos_id 101", "pos	0;2	-0;9;6", "dim	0;11	1;5;6", "off	0;6	1", "",
+		"elem 80", "type none", "link_pos_id 101", "pos	0;2	-0;9;6", "dim	0;11	1;5;6", "off	0;6	1", "",
 		"elem 81", "type label", "label Markup", "link_pos_id 80", "pos	0	0;3;6", "dim	0;9	0;3", "off	0;6	1", "",
 		"elem 82", "type button", "label Generate markup", "link_pos_id 80", "pos	1;1	0", "dim	0;11	0;4", "off	0;6	1", "",
 		"elem 83", "type button", "label Copy C literal to clipboard", "link_pos_id 80", "pos	0;7;6	-0;8;6", "dim	0;6	0;4", "off	0	1", "",
@@ -278,22 +305,20 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 
 	// Markup
 	draw_label_fromlayout(&layout, 81, ALIG_LEFT);
-	te = layout.elem[80].data;
-	te->max_scale = 1./6.;
-	te->edit_mode = te_mode_full;
-	te->scroll_mode = 1;
-	te->scroll_mode_scale_def = 40. * 4.5;
-	ret = ctrl_textedit_fromlayout(&layout, 80);
+	window_set_parent_area(gui_layout_markup_window, NULL, gui_layout_elem_comp_area_os(&layout, 80, XY0));	// Markup subwindow
 
 	static int cont_gen_markup = 1;
 	ctrl_checkbox_fromlayout(&cont_gen_markup, &layout, 85);
 
-	if (ctrl_button_fromlayout(&layout, 82) || (cont_gen_markup && mouse.b.lmb==-1 && cur_textedit != te && ret==0))	// Generate markup
+	te = get_textedit_fromlayout(*markup_layout, 80);
+	if (ctrl_button_fromlayout(&layout, 82) || (cont_gen_markup && mouse.b.lmb==-1 && cur_textedit != te && *markup_te_ret==0))	// Generate markup
 	{
 		char *new_src=NULL;
 		size_t new_src_as=0;
 		sprint_gui_layout(lp, &new_src, &new_src_as);
-		print_to_layout_textedit(&layout, 80, 0, "%s", new_src);
+		if (new_src)
+			if (strcmp(new_src, get_textedit_string_fromlayout(*markup_layout, 80)))	// only print if markup changed
+				print_to_layout_textedit(*markup_layout, 80, 0, "%s", new_src);
 		free(new_src);
 	}
 
@@ -314,7 +339,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 	}
 
 	int apply_markup = 0;
-	if (ctrl_button_fromlayout(&layout, 84) || (cont_gen_markup && ret==2))	// Apply markup
+	if (ctrl_button_fromlayout(&layout, 84) || (cont_gen_markup && *markup_te_ret==2))	// Apply markup
 		apply_markup = 1;
 
 	// Unimplemented elems code
@@ -376,7 +401,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 
 	if (apply_markup && lp)
 	{
-		te = layout.elem[80].data;
+		te = (*markup_layout)->elem[80].data;
 		if (strlen(te->string) > 0)
 		{
 			gui_layout_t new_layout={0}, layout_copy;
@@ -408,8 +433,11 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on)
 
 void gui_layout_edit_toolbar(int toggle_edit_on)
 {
-	static int toggle_edit_on_copy;
+	static int toggle_edit_on_copy, markup_window_detached=0, markup_te_ret=0;
+	static gui_layout_t *markup_layout=NULL;
 
 	toggle_edit_on_copy = toggle_edit_on;
-	window_register(1, gui_layout_edit_toolbar_core, NULL, rect(XY0, XY0), NULL, 1, &toggle_edit_on_copy);
+	window_register(1, gui_layout_markup_window, NULL, RECTNAN, &markup_window_detached, 2, &markup_te_ret, &markup_layout);
+	window_set_parent(gui_layout_markup_window, NULL, gui_layout_edit_toolbar_core, NULL);
+	window_register(1, gui_layout_edit_toolbar_core, NULL, rect(XY0, XY0), NULL, 3, &toggle_edit_on_copy, &markup_te_ret, &markup_layout);
 }
