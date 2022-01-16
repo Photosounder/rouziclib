@@ -22,7 +22,7 @@ typedef struct
 	int result_id;
 	int can_imply_mul_with_prev, can_imply_mul_with_next;
 	const char *p;
-	int p_len;
+	int p_len, p_to_free;
 } symbol_data_t;
 
 extern symbol_data_t *expression_to_symbol_list(const char *expression, buffer_t *comp_log, int verbose, int *max_depth, size_t *sym_count, size_t *sym_as);

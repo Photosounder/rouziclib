@@ -78,12 +78,14 @@ const char *string_parse_fractional_12(const char *string, double *v)
 
 	p = skip_whitespace(p);
 
+	// Detect minus sign to first process the number as positive
 	if (p[0] == '-')
 	{
 		neg = 1;
 		p++;
 	}
 
+	// Loop through the semicolon-separated numbers
 	for (i=0; i < 20 && ret==1; i++)
 	{
 		n=0;
@@ -96,11 +98,13 @@ const char *string_parse_fractional_12(const char *string, double *v)
 			divisor *= 12.;
 		}
 
+		// Skip next semicolon
 		n=0;
 		sscanf(p, ";%n", &n);
 		p = &p[n];
 
-		if (p[0]==' ' || p[0]=='\t')	// detect whitespace so that the next sscanf avoids reading the numbers after the whitespace
+		// Detect whitespace so that the next sscanf avoids reading the numbers after the whitespace
+		if (p[0]==' ' || p[0]=='\t')
 			ret = 0;
 	}
 

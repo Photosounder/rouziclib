@@ -149,6 +149,37 @@ loop_start:
 		sscanf(p, "%*g%n", &n);
 		if (n)
 		{
+			intmax_t doz_frac = 12;
+			buffer_t doz_conv={0};
+
+			// Convert dozenal numbers to fractions
+			while (p[n] == ';')
+			{
+				// Avoid skipping whitespace to find the next number
+				if (isspace(p[n+1]))
+					break;
+
+				// Find next number
+				int n2=0;
+				sscanf(&p[n], ";%*g%n", &n2);
+
+				// Process element
+				if (n2)
+				{
+					// Start fractional expression
+					if (doz_conv.buf == NULL)
+						bufprintf(&doz_conv, "%.*s", n, p);
+
+					// Continue fraction
+					bufprintf(&doz_conv, "+%.*s/%" PRIdMAX, n2-1, &p[n+1], doz_frac);
+
+					doz_frac *= 12;
+					n += n2;
+				}
+				else
+					break;
+			}
+
 			if (verbose) bufprintf(comp_log, "Value, %d chars\n", n);
 			sym[is].type = sym_value;
 			sym[is].p = p;
@@ -156,6 +187,15 @@ loop_start:
 			sym[is].can_imply_mul_with_prev = 1;
 			sym[is].can_imply_mul_with_next = 1;
 			cant_be_operator = 0;
+
+			// Finish and register dozenal fraction
+			if (doz_conv.buf)
+			{
+				sym[is].p = doz_conv.buf;
+				sym[is].p_len = doz_conv.len;
+				sym[is].p_to_free = 1;
+			}
+
 			goto loop_start;
 		}
 
@@ -223,6 +263,7 @@ loop_start:
 			if (sym[is].match == -1)
 			{
 				bufprintf(comp_log, "%sUnmatched ')' at position %d%s\n", red_str, is, grey_str);
+				*sym_count = 0;
 				free_null(&sym);
 				return NULL;
 			}
@@ -238,7 +279,7 @@ loop_start:
 		else
 			bufprintf(comp_log, "%sCharacter 0x%x unidentified%s\n", red_str, p[0], grey_str);
 		n = 1;
-		(*sym_count)--;
+		*sym_count = 0;
 		free_null(&sym);
 		return NULL;
 	}
@@ -248,6 +289,7 @@ loop_start:
 		if ((sym[is].type == sym_bracket_open || sym[is].type == sym_arg_open) && sym[is].match == -1)
 		{
 			bufprintf(comp_log, "%sUnmatched '(' at position %d%s\n", red_str, is, grey_str);
+			*sym_count = 0;
 			free_null(&sym);
 			return NULL;
 		}
@@ -481,6 +523,9 @@ invalid_expr:
 
 	free(res_taken_r);
 	free(res_taken_i);
+	for (is=0; is < sym_count; is++)
+		if (sym[is].p_to_free)
+			free((char *) sym[is].p);
 	free(sym);
 
 	return prog_s;

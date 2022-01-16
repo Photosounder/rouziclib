@@ -660,7 +660,7 @@ The point `p2` of the glyph A is a good example of the need for such notation. T
 
 I also use a similar notation for angles. For geometrical design I think it's most sensible to think of angles as fractions of a full circle, using radians would be absurd, and in a way traditional notation by degrees lets you do this, but in a flawed way (because you must multiply everything by 360 and 360 isn't a multiple of 16, and frankly I'm not a fan of using a strange number like 45 to represent an eighth of a circle). If you want to represent an angle that is a third of a circle, it would make sense to represent it as 0;4. However since in geometry there is hardly any use for angles that are larger than a full circle, that means every angle in my notation would have to start with "0;". So I do away with it and simply represent a third of a circle as 4. This notation has advantages over using degrees, for instance 1/32 of a circle is 11.25&#176;, a rather awkward 4-digit number, but simply 0;4;6 in my representation, which is quite simple when you think of ";6" as simply "a half". That representation also has the benefit of matching the familiar clock face, you already know what a 2 o'clock angle looks like.
 
-=== Curved segments, subglyphs and other advanced features
+=== Curve segments, subglyphs and other advanced features
 
 I use this notation in designing glyphs for rotations or the command called `curveseg` which defines a new point that forms a line that forms a curve by defining an angle to the previous line in the curve, and also defining a length that is either a ratio of the previous line's length or an absolute length. My design for the glyph &#1421; is a good example of this:
 
@@ -930,6 +930,7 @@ With link:rouziclib/interpreter/expression.c[expression.c] we can parse mathemat
 - TinyExpr parses recursively, generates a recursive data structure and the execution is also recursive, which isn't optimal for clarity and speed of execution. In contrast my parser proceeds in simple loops over a string and then a symbol array and produces a flat RLIP listing which is itself compiled into a flat list of opcodes.
 - Both my expression parser and the RLIP interpreter output detailed error information, so if you have unmatched brackets you'll know it by looking at the log. TinyExpr doesn't tell you what's wrong with your expression.
 - I wrote my expression parser so it's easy for me to change it to suit my needs, whereas I tried but failed to modify TinyExpr.
+- My expression parser can interpret my link:#quasi-base-12-notation[dozenal numbers] as numbers, so interpreting `1;4 * 3` will give `4.0`.
 
 == Tools
 

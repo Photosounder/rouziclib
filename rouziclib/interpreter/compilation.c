@@ -214,9 +214,12 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 				int max_depth=0;
 				size_t sym_count=0, sym_as=0;
 				symbol_data_t *sym = expression_to_symbol_list(name, ed->comp_log, 0, &max_depth, &sym_count, &sym_as);
-				if (sym_count == 1)
+				if (sym_count == 0 || (sym_count == 1 && sym[0].type == sym_variable))
 				{
-			      		bufprintf(ed->comp_log, "Symbol '%.*s' unknown\n", sym[0].p_len, sym[0].p);
+					if (sym_count == 1)
+						bufprintf(ed->comp_log, "Symbol '%.*s' unknown\n", sym[0].p_len, sym[0].p);
+					else
+						bufprintf(ed->comp_log, "Expression '%s' couldn't be interpreted\n", name);
 					free_null(&sym);
 					ed->abort_compilation = 1;
 					return -1;
@@ -254,7 +257,7 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 			vd = strtod(name, &endptr);
 
 			// If strtod didn't parse the whole string then it's not just one number
-			if (name != endptr && endptr[0])
+			if (endptr[0])
 				vd = rlip_expression_interp_double(name, ed->comp_log);
 		}
 
