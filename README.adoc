@@ -932,6 +932,28 @@ With link:rouziclib/interpreter/expression.c[expression.c] we can parse mathemat
 - I wrote my expression parser so it's easy for me to change it to suit my needs, whereas I tried but failed to modify TinyExpr.
 - My expression parser can interpret my link:#quasi-base-12-notation[dozenal numbers] as numbers, so interpreting `1;4 * 3` will give `4.0`.
 
+An expression may be compiled and executed multiple times like so:
+
+```
+	// Inputs
+	const char expression[] = "0.5 + 0.5erf(2x)";
+	static double x;
+	rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
+
+	// Expression interpretation + compilation to opcodes
+	rlip_t prog = rlip_expression_compile(expression, inputs, sizeof(inputs)/sizeof(*inputs), 0, NULL);
+	volatile int exec_on = 1;
+	prog.exec_on = &exec_on;
+
+	// Execution
+	for (x = -3.; x <= 3.; x += 0.125)
+	{
+		rlip_execute_opcode(&prog);
+		fprintf_rl(stdout, "f(%6g) = %.16f\n", x, prog.return_value[0]);
+	}
+	free_rlip(&prog);
+```
+
 == Tools
 
 Tools used to generate parts of rouziclib, such as the compressed typeface header, the many lookup tables or the C header containing the OpenCL code, are described link:tools/[here].

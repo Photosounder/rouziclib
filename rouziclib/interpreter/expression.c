@@ -37,7 +37,7 @@ symbol_data_t *expression_to_symbol_list(const char *expression, buffer_t *comp_
 {
 	int i, is, n=0, cant_be_operator=1, depth=0;
 	symbol_data_t *sym=NULL;
-	char name[33], red_str[8], grey_str[8];
+	char *endptr, name[33], red_str[8], grey_str[8];
 	size_t len = strlen(expression);
 	const char *p = expression, *end = &expression[len];
 
@@ -118,8 +118,8 @@ loop_start:
 			else
 			{
 				// Try to read number
-				n = 0;
-				sscanf(p, "%*g%n", &n);
+				strtod(p, &endptr);
+				n = endptr - p;
 
 				// Handle negation by turning it into subtraction
 				if (p[0] == '-' && n == 0)	// if there's a '-' not part of a value
@@ -144,9 +144,9 @@ loop_start:
 			}
 		}
 
-		// Try to read number
-		n = 0;
-		sscanf(p, "%*g%n", &n);
+		// Try to read number		
+		strtod(p, &endptr);	// sscanf("0.5erf", "%*g%n", &n) fails
+		n = endptr - p;
 		if (n)
 		{
 			intmax_t doz_frac = 12;
@@ -161,7 +161,8 @@ loop_start:
 
 				// Find next number
 				int n2=0;
-				sscanf(&p[n], ";%*g%n", &n2);
+				strtod(&p[n+1], &endptr);
+				n2 = endptr - &p[n+1];
 
 				// Process element
 				if (n2)
@@ -171,10 +172,10 @@ loop_start:
 						bufprintf(&doz_conv, "%.*s", n, p);
 
 					// Continue fraction
-					bufprintf(&doz_conv, "+%.*s/%" PRIdMAX, n2-1, &p[n+1], doz_frac);
+					bufprintf(&doz_conv, "+%.*s/%" PRIdMAX, n2, &p[n+1], doz_frac);
 
 					doz_frac *= 12;
-					n += n2;
+					n += n2+1;
 				}
 				else
 					break;
