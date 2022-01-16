@@ -203,7 +203,7 @@ loop_start:
 		if (isalpha(p[0]))
 		{
 			n = 0;
-			sscanf(p, "%32[a-zA-Z0-9_]%n", name, &n);
+			sscanf(p, "%32[a-zA-Z0-9_.]%n", name, &n);
 			if (n)
 			{
 				if (verbose) bufprintf(comp_log, "%s named '%s', %d chars\n", p[n]=='(' ? "Function" : "Variable", name, n);
