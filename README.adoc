@@ -717,32 +717,33 @@ When parsing expressions with https://github.com/codeplea/tinyexpr[TinyExpr] did
 
 Let's first look at how to run a basic example:
 
-```
-	// Inputs
-	static double x;
-	rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
-	const char source[] = "d v1 = cos x\n return v1";
+[source,C]
+----
+// Inputs
+static double x;
+rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
+const char source[] = "d v1 = cos x\n return v1";
 
-	// Compilation
-	buffer_t comp_log={0};
-	rlip_t prog = rlip_compile(source, inputs, sizeof(inputs)/sizeof(*inputs), 1, &comp_log);
-	if (comp_log.len)
-		fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
-	free_buf(&comp_log);
+// Compilation
+buffer_t comp_log={0};
+rlip_t prog = rlip_compile(source, inputs, sizeof(inputs)/sizeof(*inputs), 1, &comp_log);
+if (comp_log.len)
+	fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
+free_buf(&comp_log);
 
-	// Decompilation
-	buffer_t decomp = rlip_decompile(&prog);
-	fprintf_rl(stdout, "Decompilation:\n%s\n", decomp.buf);
-	free_buf(&decomp);
+// Decompilation
+buffer_t decomp = rlip_decompile(&prog);
+fprintf_rl(stdout, "Decompilation:\n%s\n", decomp.buf);
+free_buf(&decomp);
 
-	// Execution
-	x = 4.;
-	volatile int exec_on = 1;
-	prog.exec_on = &exec_on;
-	rlip_execute_opcode(&prog);
-	fprintf_rl(stdout, "Program returned %.16g\n", prog.return_value[0]);
-	free_rlip(&prog);
-```
+// Execution
+x = 4.;
+volatile int exec_on = 1;
+prog.exec_on = &exec_on;
+rlip_execute_opcode(&prog);
+fprintf_rl(stdout, "Program returned %.16g\n", prog.return_value[0]);
+free_rlip(&prog);
+----
 
 First the inputs. We create a variable `x`, then the inputs structure which only contains the default functions plus our `x` which will also be accessed by the name `"x"`. It is defined as a type `pd` which means a pointer to a `double`. Then our source code:
 
@@ -901,23 +902,26 @@ We've used the `d` type for `double` variables and pointers, the `i` type for `i
 
 The file link:rouziclib/interpreter/real_functions.h[real_functions.h] shows how a custom arithmetic for RLIP can be added. Functions to do basic operations in the custom format are created and referenced in structures that are provided to the RLIP compiler. Then all that is needed is to add the macro for the chosen arithmetic to the RLIP compiler inputs like so for example:
 
-```
+[source,C]
+----
 rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLEDOUBLE, RLIP_FUNC, {"x", &x, "pd"} };
-```
+----
 
 An example RLIP program would be `const char source[] = "r v1 = cos_ x\n return_real v1";`, `v1` is declared as a `r` which is our custom real format (in this case a double-double), and `cos_` is defined in link:rouziclib/interpreter/real_functions.h[real_functions.h] as the double-double implementation of `cos`. Finally we use `return_real` instead of `return` to return the number in our format instead of `double`. We can read the higher precision result like so:
 
-```
+[source,C]
+----
 ddouble_t result = *((ddouble_t *) &prog.return_real[0]);
 fprintf_rl(stdout, "{%.17g, %.17g}\n", result.hi, result.lo);
-```
+----
 
 Which gives us the result in double-double format: `{-0.65364362086361194, 2.5846614087018284e-17}`. The same can be done with `RLIP_REAL_MPFR` without changing the `source`. We obtain the result by doing this:
 
-```
+[source,C]
+----
 mpfr_t *result = ((mpfr_t *) &prog.return_real[0]);
 mpfr_fprintf(stdout, "Program returned %.60Rg\n\n", *result);
-```
+----
 
 Giving us a very high precision result of `-0.65364362086361191463916818309775038142413359664621824700701`.
 
@@ -934,25 +938,26 @@ With link:rouziclib/interpreter/expression.c[expression.c] we can parse mathemat
 
 An expression may be compiled and executed multiple times like so:
 
-```
-	// Inputs
-	const char expression[] = "0.5 + 0.5erf(2x)";
-	static double x;
-	rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
+[source,C]
+----
+// Inputs
+const char expression[] = "0.5 + 0.5erf(2x)";
+static double x;
+rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
 
-	// Expression interpretation + compilation to opcodes
-	rlip_t prog = rlip_expression_compile(expression, inputs, sizeof(inputs)/sizeof(*inputs), 0, NULL);
-	volatile int exec_on = 1;
-	prog.exec_on = &exec_on;
+// Expression interpretation + compilation to opcodes
+rlip_t prog = rlip_expression_compile(expression, inputs, sizeof(inputs)/sizeof(*inputs), 0, NULL);
+volatile int exec_on = 1;
+prog.exec_on = &exec_on;
 
-	// Execution
-	for (x = -3.; x <= 3.; x += 0.125)
-	{
-		rlip_execute_opcode(&prog);
-		fprintf_rl(stdout, "f(%6g) = %.16f\n", x, prog.return_value[0]);
-	}
-	free_rlip(&prog);
-```
+// Execution
+for (x = -3.; x <= 3.; x += 0.125)
+{
+	rlip_execute_opcode(&prog);
+	fprintf_rl(stdout, "f(%6g) = %.16f\n", x, prog.return_value[0]);
+}
+free_rlip(&prog);
+----
 
 == Tools
 
