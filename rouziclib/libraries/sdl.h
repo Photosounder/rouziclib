@@ -62,6 +62,14 @@ extern void dropfile_event_proc(SDL_Event event);
 extern int dropfile_get_count();
 extern char *dropfile_pop_first();
 
-extern void rl_sdl_standard_main_loop(int use_drawq, const char *window_name, int maximise_window, void (*func)());
+typedef struct
+{
+	const char *window_name;
+	void (*func)();
+	int use_drawq, maximise_window, gui_toolbar;
+	xyi_t wind_dim, wind_pos;
+} sdl_main_param_t;
+
+extern void rl_sdl_standard_main_loop(sdl_main_param_t param);
 
 #endif

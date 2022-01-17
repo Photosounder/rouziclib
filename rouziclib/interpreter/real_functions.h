@@ -88,7 +88,7 @@ static void real_q_sub(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = sub_qq(*
 static void real_q_mul(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = mul_qq(*a, *b); }
 static void real_q_div(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = div_qq(*a, *b); }
 
-static void real_q_nan(ddouble_t *r) { *r = (ddouble_t) {NAN, NAN}; }
+static void real_q_nan(ddouble_t *r) { *r = ddouble(NAN); }
 static void real_q_pi(ddouble_t *r) { *r = Q_PI; }
 static void real_q_e(ddouble_t *r) { *r = Q_E; }
 

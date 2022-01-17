@@ -902,7 +902,7 @@ char *dropfile_pop_first()
 	return p;
 }
 
-void rl_sdl_standard_main_loop(int use_drawq, const char *window_name, int maximise_window, void (*func)())
+void rl_sdl_standard_main_loop(sdl_main_param_t param)
 {
 	static int exit_flag=0, init=1;
 	SDL_Event event;
@@ -911,10 +911,14 @@ void rl_sdl_standard_main_loop(int use_drawq, const char *window_name, int maxim
 	{
 		init = 0;
 
-		fb.use_drawq = use_drawq;	// OpenCL draw queue
+		fb.use_drawq = param.use_drawq;	// OpenCL draw queue
 
-		sdl_graphics_init_autosize(window_name, SDL_WINDOW_RESIZABLE, 0);
-		if (maximise_window)
+		if (is0_xyi(param.wind_dim))
+			sdl_graphics_init_autosize(param.window_name, SDL_WINDOW_RESIZABLE, 0);
+		else
+			sdl_graphics_init_full(param.window_name, param.wind_dim, param.wind_pos, SDL_WINDOW_RESIZABLE);
+
+		if (param.maximise_window)
 			SDL_MaximizeWindow(fb.window);
 
 		zc = init_zoom(&mouse, drawing_thickness);
@@ -962,9 +966,10 @@ void rl_sdl_standard_main_loop(int use_drawq, const char *window_name, int maxim
 
 		//-------------input-----------------
 
-		func();
+		param.func();
 
-		gui_layout_edit_toolbar(mouse.key_state[RL_SCANCODE_F6]==2);
+		if (param.gui_toolbar)
+			gui_layout_edit_toolbar(mouse.key_state[RL_SCANCODE_F6]==2);
 		window_manager();
 
 		mousecursor_logic_and_draw();

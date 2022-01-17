@@ -88,6 +88,7 @@ extern void colour_blowout_double(double *pred, double *pgrn, double *pblu);
 extern void colour_blowout_int_cw(uint32_t Wr, uint32_t Wg, uint32_t Wb, uint32_t *pred, uint32_t *pgrn, uint32_t *pblu);
 extern void colour_blowout_int(uint32_t *pred, uint32_t *pgrn, uint32_t *pblu);
 extern void rangelimit_frgb(frgb_t *c);
+extern col_t get_colour_seq_linear(double x, xyz_t freq, xyz_t phase, double m, double a);
 extern col_t get_colour_seq_fullarg(double x, xyz_t freq, xyz_t phase, double m, double a);
 extern col_t get_colour_seq(double x, xyz_t freq, xyz_t phase);
 extern col_t colour_mul(col_t col, double m);
