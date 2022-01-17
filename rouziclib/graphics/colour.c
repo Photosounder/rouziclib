@@ -561,7 +561,6 @@ col_t get_colour_seq_linear(double x, xyz_t freq, xyz_t phase, double m, double 
 
 	c = mad_xyz(freq, set_xyz(x), phase);
 	c = mad_xyz(set_xyz(m), sin_xyz(mul_xyz(c, set_xyz(2.*pi))), set_xyz(a));
-	c = func1_xyz(c, Lab_L_to_linear);
 
 	return make_colour(c.x, c.y, c.z, 1.);
 }
