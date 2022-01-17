@@ -62,4 +62,6 @@ extern void dropfile_event_proc(SDL_Event event);
 extern int dropfile_get_count();
 extern char *dropfile_pop_first();
 
+extern void rl_sdl_standard_main_loop(int use_drawq, const char *window_name, int maximise_window, void (*func)());
+
 #endif

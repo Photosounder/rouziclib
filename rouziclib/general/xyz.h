@@ -139,6 +139,7 @@ extern int mul_x_by_y_xyi(xyi_t a);
 
 extern xy_t mad_xy(xy_t pos, xy_t tmul, xy_t tadd);
 extern xyz_t mad_xyz(xyz_t pos, xyz_t tmul, xyz_t tadd);
+extern xyi_t mad_xyi(xyi_t pos, xyi_t tmul, xyi_t tadd);
 extern double get_xyz_index(xyz_t v, const int index);
 extern xy_t swap_xy(xy_t v);
 

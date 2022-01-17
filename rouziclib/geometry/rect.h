@@ -22,6 +22,7 @@ extern rect_t mul_rect(rect_t r, xy_t m);
 extern recti_t rshift_recti(recti_t r, int sh);
 extern rect_t make_rect_centred(const xy_t c, const xy_t wh);
 extern rect_t make_rect_off(const xy_t pos, const xy_t dim, const xy_t off);
+extern recti_t make_recti_off(const xyi_t pos, const xyi_t dim, const xyi_t off);
 extern void rect_to_pos_dim(rect_t r, xy_t *pos, xy_t *dim, xy_t off);
 extern xy_t get_rect_centre(rect_t r);
 extern xyi_t get_recti_centre(recti_t r);

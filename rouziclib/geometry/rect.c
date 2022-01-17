@@ -153,6 +153,11 @@ rect_t make_rect_off(const xy_t pos, const xy_t dim, const xy_t off)
 	return rect(sub_xy(pos, mul_xy(off, dim)), mad_xy(sub_xy(set_xy(1.), off), dim, pos));
 }
 
+recti_t make_recti_off(const xyi_t pos, const xyi_t dim, const xyi_t off)
+{
+	return recti(sub_xyi(pos, mul_xyi(off, dim)), mad_xyi(sub_xyi(set_xyi(1), off), dim, pos));
+}
+
 void rect_to_pos_dim(rect_t r, xy_t *pos, xy_t *dim, xy_t off)
 {
 	*dim = sub_xy(r.p1, r.p0);

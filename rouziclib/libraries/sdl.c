@@ -902,4 +902,75 @@ char *dropfile_pop_first()
 	return p;
 }
 
+void rl_sdl_standard_main_loop(int use_drawq, const char *window_name, int maximise_window, void (*func)())
+{
+	static int exit_flag=0, init=1;
+	SDL_Event event;
+
+	if (init)
+	{
+		init = 0;
+
+		fb.use_drawq = use_drawq;	// OpenCL draw queue
+
+		sdl_graphics_init_autosize(window_name, SDL_WINDOW_RESIZABLE, 0);
+		if (maximise_window)
+			SDL_MaximizeWindow(fb.window);
+
+		zc = init_zoom(&mouse, drawing_thickness);
+		calc_screen_limits(&zc);
+		mouse = init_mouse();
+
+		#ifdef RL_INCL_VECTOR_TYPE_FILEBALL
+		vector_font_load_from_header();
+		#else
+		make_fallback_font(font);
+		#endif
+
+		#ifdef __EMSCRIPTEN__
+		SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#screen");
+		#endif
+	}
+
+	#ifdef __EMSCRIPTEN__
+	#else
+	while (exit_flag==0)
+	#endif
+	{
+		//********Input handling********
+
+		mouse_pre_event_proc(&mouse);
+		keyboard_pre_event_proc(&mouse);
+		sdl_handle_window_resize(&zc);
+
+		while (SDL_PollEvent(&event))
+		{
+			dropfile_event_proc(event);
+			sdl_mouse_event_proc(&mouse, event, &zc);
+			sdl_keyboard_event_proc(&mouse, event);
+
+			if (event.type==SDL_QUIT)
+				exit_flag = 1;
+		}
+
+		if (mouse.key_state[RL_SCANCODE_RETURN] == 2 && get_kb_alt())
+			sdl_toggle_borderless_fullscreen();
+
+		textedit_add(cur_textedit, NULL);	// processes the new keystrokes in the current text editor
+
+		mouse_post_event_proc(&mouse, &zc);
+
+		//-------------input-----------------
+
+		func();
+
+		gui_layout_edit_toolbar(mouse.key_state[RL_SCANCODE_F6]==2);
+		window_manager();
+
+		mousecursor_logic_and_draw();
+
+		sdl_flip_fb();
+	}
+}
+
 #endif

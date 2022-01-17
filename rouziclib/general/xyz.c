@@ -659,6 +659,11 @@ xyz_t mad_xyz(xyz_t pos, xyz_t tmul, xyz_t tadd)
 	return add_xyz(mul_xyz(pos, tmul), tadd);
 }
 
+xyi_t mad_xyi(xyi_t pos, xyi_t tmul, xyi_t tadd)
+{
+	return add_xyi(mul_xyi(pos, tmul), tadd);
+}
+
 double get_xyz_index(xyz_t v, const int index)
 {
 	switch (index)
