@@ -199,6 +199,7 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 					cur_elem->type = gui_type_none;
 					cur_elem->colour = GUI_COL_DEF;
 					cur_elem->link_pos_id = -1;
+					cur_elem->link_pos_off = XYNAN;
 					cur_elem->pos_val = -1;
 					cur_elem->dim_val = -1;
 				}
@@ -514,7 +515,7 @@ void sprint_gui_layout(gui_layout_t *layout, char **str, size_t *str_as)
 
 			// Positioning
 			if (cur_elem->link_pos_id >= 0)
-				if (isnan(cur_elem->link_pos_off.x) && isnan(cur_elem->link_pos_off.y))
+				if ((isnan(cur_elem->link_pos_off.x) && isnan(cur_elem->link_pos_off.y)) || cur_elem->link_pos_off_str[0]=='\0')
 					sprintf_realloc(str, str_as, 1, "link_pos_id %d\n", cur_elem->link_pos_id);
 				else
 					sprintf_realloc(str, str_as, 1, "link_pos_id %d.%s\n", cur_elem->link_pos_id, cur_elem->link_pos_off_str);
