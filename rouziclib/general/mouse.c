@@ -232,6 +232,7 @@ void mousecursor_logic_and_draw()
 	{
 		#ifdef RL_SDL
 		SDL_SetRelativeMouseMode(1);
+		sdl_set_mouse_pos_world(mouse.u);
 		#endif
 
 		if (mouse.showcursor == 1)
@@ -242,7 +243,7 @@ void mousecursor_logic_and_draw()
 		#ifdef RL_SDL
 		SDL_SetRelativeMouseMode(mouse.warp);
 
-		if (mouse.warp_prev && mouse.warp==0)		// set the mouse position after exiting warp mode
+		if (mouse.warp_prev || mouse.warp)		// set the mouse position during warp or after exiting warp mode
 			sdl_set_mouse_pos_world(mouse.b.orig);
 		#endif
 	}

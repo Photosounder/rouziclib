@@ -796,19 +796,19 @@ double chebyshev_multiplier_by_dct(double *y, int p_count, int id, double (*cos_
 	return sum;
 }
 
-double chebyshev_multiplier_by_dct_2d(double **z, int p_count, xyi_t id)	// look for the Chebyshev multiplier of degree id
+double chebyshev_multiplier_by_dct_2d(double **z, xyi_t p_count, xyi_t id)	// look for the Chebyshev multiplier of degree id
 {
 	xyi_t ip;
 	double x, y, sum=0.;
-	xy_t freq = mul_xy(xyi_to_xy(id), set_xy(pi / (double) p_count));
+	xy_t freq = mul_xy(xyi_to_xy(id), div_xy(set_xy(pi), xyi_to_xy(p_count)));
 
 	// DCT
-	for (y=0.5, ip.y=0; ip.y < p_count; ip.y++, y+=1.)
-		for (x=0.5, ip.x=0; ip.x < p_count; ip.x++, x+=1.)
+	for (y=0.5, ip.y=0; ip.y < p_count.y; ip.y++, y+=1.)
+		for (x=0.5, ip.x=0; ip.x < p_count.x; ip.x++, x+=1.)
 			sum += z[ip.y][ip.x] * cos(y * freq.y) * cos(x * freq.x);
 
 	// Sum division
-	sum *= 4. / sq((double) p_count);
+	sum *= 4. / (double) mul_x_by_y_xyi(p_count);
 	if (id.y==0)
 		sum *= 0.5;	// frequency 0 gets its sum halved
 
@@ -912,7 +912,7 @@ void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_
 		}
 }
 
-double **chebyshev_fit_on_points_by_dct_2d(double **z, int p_count, xyi_t degree)
+double **chebyshev_fit_on_points_by_dct_2d(double **z, xyi_t p_count, xyi_t degree)
 {
 	xyi_t id;
 	double **cm = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
@@ -925,7 +925,7 @@ double **chebyshev_fit_on_points_by_dct_2d(double **z, int p_count, xyi_t degree
 	return cm;
 }
 
-double **polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start, xy_t end, double **c, xyi_t degree)
+double **polynomial_fit_on_points_by_dct_2d(double **z, xyi_t p_count, xy_t start, xy_t end, double **c, xyi_t degree)
 {
 	xyi_t id;
 	double **cm;
@@ -944,22 +944,22 @@ double **polynomial_fit_on_points_by_dct_2d(double **z, int p_count, xy_t start,
 	return c;
 }
 
-double **polynomial_function_to_point_2d(double (*f)(double, double), int p_count, xy_t start, xy_t end)
+double **polynomial_function_to_point_2d(double (*f)(double, double), xyi_t p_count, xy_t start, xy_t end)
 {
 	xyi_t ip;
-	double **z = (double **) calloc_2d_contig(p_count, p_count, sizeof(double));
+	double **z = (double **) calloc_2d_contig(p_count.y, p_count.x, sizeof(double));
 
 	// Compute the points
-	for (ip.y=0; ip.y < p_count; ip.y++)
-		for (ip.x=0; ip.x < p_count; ip.x++)
-			z[ip.y][ip.x] = f((end.x-start.x) * (0.5+0.5*chebyshev_node(p_count, ip.x)) + start.x, (end.y-start.y) * (0.5+0.5*chebyshev_node(p_count, ip.y)) + start.y);
+	for (ip.y=0; ip.y < p_count.y; ip.y++)
+		for (ip.x=0; ip.x < p_count.x; ip.x++)
+			z[ip.y][ip.x] = f((end.x-start.x) * (0.5+0.5*chebyshev_node(p_count.x, ip.x)) + start.x, (end.y-start.y) * (0.5+0.5*chebyshev_node(p_count.y, ip.y)) + start.y);
 
 	return z;
 }
 
 double **polynomial_fit_on_function_by_dct_2d(double (*f)(double, double), xy_t start, xy_t end, double **c, xyi_t degree)
 {
-	int p_count = 1000;
+	xyi_t p_count = set_xyi(1000);
 	xyi_t ip;
 	double **z;
 

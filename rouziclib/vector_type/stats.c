@@ -85,7 +85,7 @@ double calc_strwidth_len(vector_font_t *font, const uint8_t *string, double scal
 		c_prev = c;
 	}
 
-	w -= LETTERSPACING * scale;	// removes the end space
+	w -= LETTERSPACING * scale;	// removes the end space FIXME wrong if last char is small letter
 	w = MAXN(0., w);
 
 	return w;
