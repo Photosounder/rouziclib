@@ -181,7 +181,7 @@ void cursor_processing(vector_font_t *font, const char *string, uint32_t c, xy_t
 	if (is0_col(text_sel_col))
 		text_sel_col = make_colour(0.0033, 0.028, 0.1, 1.);
 
-	if (recur==0 && is==0)		// if it's the first run of this function for this string in this loop
+	if (recur==0 /*&& is==0*/)		// if it's the first run of this function for this string in this loop FIXME 'is' doesn't get to be 0 if the string starts with colours
 	{
 		sel0 = cur_textedit->sel0;
 		sel1 = cur_textedit->sel1;

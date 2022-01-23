@@ -151,7 +151,8 @@ void prepend_opcode(rlip_data_t *ed, size_t add_count)
 
 	// Shift all registered locations
 	for (i=0; i < ed->loc_count; i++)
-		ed->loc[i] += add_count;
+		if (ed->loc[i])
+			ed->loc[i] += add_count;
 }
 
 void convert_pointer_to_variable(int ir, rlip_data_t *ed)

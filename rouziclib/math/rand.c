@@ -70,7 +70,7 @@ double gaussian_rand_approx()							// max error: 0.00865 at ±0.772135
 double gaussian_rand_approx_pos(uint32_t pos)
 {
 	double r = ((double) rand_xsm32(pos) - 2147483647.5) * 4.656612874e-10;
-	return copysign(0.8862269254 * sqrt(- fastlog(1. - r*r)), r);
+	return copysign(0.8862269254 * sqrt(- fastlog(1. - r*r)), r);		// 0.8862.. is sqrt(pi)/2.
 }
 
 xy_t gaussian_rand_approx_xy()
