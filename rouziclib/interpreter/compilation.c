@@ -99,6 +99,7 @@ void rlip_add_value_at_reg_index(int ir, const char *name, const void *ptr, cons
 		ed->reg[ir].table = table_loc;
 		ed->reg[ir].index = ed->loc_count;
 		alloc_enough((void **) &ed->loc, ed->loc_count+=1, &ed->loc_as, sizeof(void *), 1.5);
+		ed->loc[ed->reg[ir].index] = -1;
 		if (ptr)
 			ed->loc[ed->reg[ir].index] = *(int *) ptr;	// the ptr is missing if this is being called when adding a goto command to a forward location
 	}
@@ -151,7 +152,7 @@ void prepend_opcode(rlip_data_t *ed, size_t add_count)
 
 	// Shift all registered locations
 	for (i=0; i < ed->loc_count; i++)
-		if (ed->loc[i])
+		if (ed->loc[i] > -1)
 			ed->loc[i] += add_count;
 }
 
@@ -877,7 +878,7 @@ add_command:
 					io = alloc_opcode(ed, 3);
 					ed->op[io] = op_jmp_cond;
 					ed->op[io+1] = ed->reg[arg_ir[0]].index;					// integer variable
-					if (ed->loc[ed->reg[arg_ir[1]].index])
+					if (ed->loc[ed->reg[arg_ir[1]].index] > -1)
 						ed->op[io+2] = (opint_t) ed->loc[ed->reg[arg_ir[1]].index] - io;	// signed backward jump offset
 					else
 					{
