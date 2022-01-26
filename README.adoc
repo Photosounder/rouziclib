@@ -19,6 +19,7 @@ It includes some of the following:
 * An original Hue-Saturation-Luminance colour space with a Luminance that is about perceptually correct (unlike the 1931 CIE XYZ colour space which gets the weights of each colour blatantly wrong) which is used for HSL to RGB conversion and for bringing out of gamut colours (such as colours that have components brighter than 1.0) to the most appropriate representable colour
 * Vector font generation, vector text rendering and a built-in minimalistic vector font that is always available. A more complete typeface is available in the link:vector_type[vector_type] directory
 * Vector procedural zoomable interface elements that for instance allow you to have a fully functional button just by calling a function with all the necessary information provided as parameters (without anything stored in memory) and simply getting the return value, with no need for storage for each instance of a control, no unique IDs or anything
+* A system to make GUI layouts based on markup as well as a window manager to handle multiple windows as well as nested subwindows properly
 * Functions to conveniently do operations on point vectors (2D or 3D) or rectangles and triangles, such as generating rectangle coordinates based on position, size and offset vectors, or calculating the scaling and positioning needed to make a rectangle fit in a certain way inside another rectangle. This forms the basis of the aforementioned interface system.
 * A drawing queue-based graphical system that lets the main thread queue drawing commands and then is rendered on the GPU using OpenCL or the CPU in a threaded way
 * A file concatenation feature called fileball similar to tarball that I use to pack and compress many files together as one header that can be included in an executable in a portable compiler-independent way, like my vector typeface.
@@ -452,6 +453,9 @@ Toolbar to create and modify GUI layouts.
 
 ** link:rouziclib/gui/floating_window.c[floating_window.c] / link:rouziclib/gui/floating_window.h[floating_window.h] +
 Create and handle floating windows with a draggable title bar, a resizing control, a pinning control and a closing button.
+
+** link:rouziclib/gui/window_manager.c[window_manager.c] / link:rouziclib/gui/window_manager.h[window_manager.h] +
+Window functions can be added to a registry and the window manager runs the window functions in an order that it manages mainly based on which window was last clicked and relations between subwindows and their parent window.
 
 * link:rouziclib/fileio[fileio/]
 
