@@ -548,7 +548,7 @@ TCP and HTTP socket-based code. Not very useful anymore since everything require
 OpenCL code for initialising a context, compiling a kernel and more. Relies on https://github.com/martijnberger/clew[CLEW].
 
 ** link:rouziclib/libraries/sdl.c[sdl.c] / link:rouziclib/libraries/sdl.h[sdl.h] +
-SDL2 code to get display and driver information, handle various types of events, control the mouse cursor, initialise graphics and audio, use the clipboard, poll drag-and-drop file events.
+SDL2 code to get display and driver information, handle various types of events, control the mouse cursor, initialise graphics and audio, use the clipboard, poll drag-and-drop file events. Also includes a function that serves as a program's main loop that calls a function you provide, with a structure to select features.
 
 ** link:rouziclib/libraries/vulkan.c[vulkan.c] / link:rouziclib/libraries/vulkan.h[vulkan.h] and link:rouziclib/libraries/vulkan_struct.h[vulkan_struct.h] +
 Aborted attempt to port my OpenCL system to Vulkan. Vulkan is rather complicated.
