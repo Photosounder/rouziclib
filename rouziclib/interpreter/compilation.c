@@ -236,6 +236,7 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 						if (inputs_copy[i].type[0] == 'p')
 							memset(&inputs_copy[i], 0, sizeof(rlip_inputs_t));
 
+				// Interpret expression
 				if (rlip_expression_interp_real(vr, name, inputs_copy, ed->input_count, ed->comp_log) == 0)
 				{
 			      		bufprintf(ed->comp_log, "Expression '%s' couldn't be interpreted\n", name);
@@ -260,7 +261,26 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 
 			// If strtod didn't parse the whole string then it's not just one number
 			if (endptr[0])
+			{
+				// Check if it's only an unknown symbol
+				int max_depth=0;
+				size_t sym_count=0, sym_as=0;
+				symbol_data_t *sym = expression_to_symbol_list(name, ed->comp_log, 0, &max_depth, &sym_count, &sym_as);
+				if (sym_count == 0 || (sym_count == 1 && sym[0].type == sym_variable))
+				{
+					if (sym_count == 1)
+						bufprintf(ed->comp_log, "Symbol '%.*s' unknown\n", sym[0].p_len, sym[0].p);
+					else
+						bufprintf(ed->comp_log, "Expression '%s' couldn't be interpreted\n", name);
+					free_null(&sym);
+					ed->abort_compilation = 1;
+					return -1;
+				}
+				free_null(&sym);
+
+				// Interpret expression
 				vd = rlip_expression_interp_double(name, ed->comp_log);
+			}
 		}
 
 		if (isnan(vd)==0)					// if it's a valid expression
