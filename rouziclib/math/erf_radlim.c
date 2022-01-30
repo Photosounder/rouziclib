@@ -22,7 +22,7 @@ double point_line_distance_signed_presub(xy_t l1, xy_t l2)	// distance to the ne
 	return (l2.x*l1.y - l1.x*l2.y) / hypot_xy(l1, l2);	// double of the area of the triangle / length of line
 }
 
-double calc_triangle_pixel_weight(triangle_t tr, xy_t p, double drawing_thickness)	// triangle points should be clockwise
+double calc_triangle_pixel_weight_old(triangle_t tr, xy_t p, double drawing_thickness)	// triangle points should be clockwise
 {
 	xyz_t ld, lda;
 	xy_t thick_mul = set_xy(1./drawing_thickness);

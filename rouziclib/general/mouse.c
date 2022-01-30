@@ -157,6 +157,9 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 		mouse->warp = 0;
 	}
 
+	if (mouse->window_focus_flag < 0)
+		mouse->warp = 0;
+
 	if (mouse->b.mmb > 0 && mouse->zoom_allowed)		// when to reset the zoom (when MMB is held down)
 		zoom_key_released(zc, &mouse->zoom_flag, 2);
 
