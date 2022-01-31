@@ -796,6 +796,25 @@ double chebyshev_multiplier_by_dct(double *y, int p_count, int id, double (*cos_
 	return sum;
 }
 
+ddouble_t chebyshev_multiplier_by_dct_q(ddouble_t *y, int p_count, int id)	// look for the Chebyshev multiplier of degree id
+{
+	int i;
+	ddouble_t x, sum=Q_ZERO, freq;
+
+	freq = div_qd(ddouble((double) id * 0.5), (double) p_count);
+
+	// DCT
+	for (x=ddouble(0.5), i=0; i < p_count; i++, x = add_qd(x, 1.))
+		sum = add_qq(sum, mul_qq(y[i], cos_tr_q(mul_qq(x, freq))));
+
+	// Sum division
+	sum = div_qd(sum, (double) p_count);
+	if (id > 0)				// non-DC components need doubling
+	    sum = mul_qd_simple(sum, 2.);
+
+	return sum;
+}
+
 double chebyshev_multiplier_by_dct_2d(double **z, xyi_t p_count, xyi_t id)	// look for the Chebyshev multiplier of degree id
 {
 	xyi_t ip;

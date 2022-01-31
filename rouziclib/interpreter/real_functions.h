@@ -104,6 +104,7 @@ static void real_q_cos(ddouble_t *r, ddouble_t *a) { *r = cos_q(*a); }
 static void real_q_sin(ddouble_t *r, ddouble_t *a) { *r = sin_q(*a); }
 static void real_q_asin(ddouble_t *r, ddouble_t *a) { *r = asin_q(*a); }
 static void real_q_exp(ddouble_t *r, ddouble_t *a) { *r = exp_q(*a); }
+static void real_q_erf(ddouble_t *r, ddouble_t *a) { *r = erf_q(*a); }
 static void real_q_tan(ddouble_t *r, ddouble_t *a) { *r = ddouble(tan(a->hi)); }	// FIXME
 
 static void real_q_min(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = min_qq(*a, *b); }
@@ -148,6 +149,7 @@ static rlip_real_functions_t real_q_functions = {
 	{"tan_", real_q_tan,		"frr"},		\
 	{"asin_", real_q_asin,		"frr"},		\
 	{"exp_", real_q_exp,		"frr"},		\
+	{"erf_", real_q_erf,		"frr"},		\
 	{"min_", real_q_min,		"frrr"},	\
 	{"max_", real_q_max,		"frrr"},	\
 	{"pow_", real_q_pow,		"frrr"},	\
@@ -187,6 +189,7 @@ static void real_mpfr_sin(mpfr_t *r, mpfr_t *a) { mpfr_sin(*r, *a, MPFR_RNDN); }
 static void real_mpfr_asin(mpfr_t *r, mpfr_t *a) { mpfr_asin(*r, *a, MPFR_RNDN); }
 static void real_mpfr_exp(mpfr_t *r, mpfr_t *a) { mpfr_exp(*r, *a, MPFR_RNDN); }
 static void real_mpfr_log(mpfr_t *r, mpfr_t *a) { mpfr_log(*r, *a, MPFR_RNDN); }
+static void real_mpfr_erf(mpfr_t *r, mpfr_t *a) { mpfr_erf(*r, *a, MPFR_RNDN); }
 
 static void real_mpfr_pow(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_pow(*r, *a, *b, MPFR_RNDN); }
 
@@ -225,5 +228,6 @@ static rlip_real_functions_t real_mpfr_functions = {
 	{"asin_", real_mpfr_asin,	"frr"},		\
 	{"exp_", real_mpfr_exp,		"frr"},		\
 	{"log_", real_mpfr_log,		"frr"},		\
+	{"erf_", real_mpfr_erf,		"frr"},		\
 	{"pow_", real_mpfr_pow,		"frrr"}
 #endif
