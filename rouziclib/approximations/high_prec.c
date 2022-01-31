@@ -228,49 +228,54 @@ ddouble_t exp_q(ddouble_t x)
 	return exp2_q(mul_qq(x, Q_1_LOG2));
 }
 
-ddouble_t erf_q(ddouble_t x)	// max err < 2.4e-32
+ddouble_t erf_q(ddouble_t x)	// max err < 2.1e-32
 {
-	#include "tables/erf_q.h"	// contains tables cm0 to cm5
+	#include "tables/erf_q.h"	// contains tables cm0 to cm6, 2.6 kB
 	ddouble_t xa, xm, y;
 
-	// Map x in [0 , 9] to the unit range of the Chebyshev polynomial
 	xa = abs_q(x);
 
 	// Chebyshev evaluation by segment
-	if (xa.hi <= 1.)
+	if (xa.hi <= 0.5)
 	{
-		xm = sub_qd(mul_qd_simple(xa, 2.), 1.);		// [0 , 1] => [-1 , 1]
-		y = eval_chebyshev_polynomial_q(xm, cm0, 29);
+		xm = sub_qd(mul_qd_simple(xa, 4.), 1.);		// [0 , 0.5] => [-1 , 1]
+		y = eval_chebyshev_polynomial_q(xm, cm0, 25);
+	}
+	else if (xa.hi <= 1.)
+	{
+		xm = sub_qd(mul_qd_simple(xa, 4.), 3.);		// [0.5 , 1] => [-1 , 1]
+		y = eval_chebyshev_polynomial_q(xm, cm1, 25);
 	}
 	else if (xa.hi <= 2.)
 	{
 		xm = sub_qd(mul_qd_simple(xa, 2.), 3.);		// [1 , 2] => [-1 , 1]
-		y = eval_chebyshev_polynomial_q(xm, cm1, 27);
+		y = eval_chebyshev_polynomial_q(xm, cm2, 27);
 	}
 	else if (xa.hi <= 3.5)
 	{
 		xm = div_qd(mul_qd_simple(sub_qd(xa, 2.75), 4.), 3.);	// [2 , 3.5] => [-1 , 1]
-		y = eval_chebyshev_polynomial_q(xm, cm2, 27);
+		y = eval_chebyshev_polynomial_q(xm, cm3, 27);
 	}
 	else if (xa.hi <= 6.)
 	{
 		xm = div_qd(mul_qd_simple(sub_qd(xa, 4.75), 4.), 5.);	// [3.5 , 6] => [-1 , 1]
-		y = eval_chebyshev_polynomial_q(xm, cm3, 25);
+		y = eval_chebyshev_polynomial_q(xm, cm4, 25);
 	}
 	else if (xa.hi <= 10.)
 	{
 		xm = mul_qd_simple(sub_qd(xa, 8.), 0.5);		// [6 , 10] => [-1 , 1]
-		y = eval_chebyshev_polynomial_q(xm, cm4, 17);
+		y = eval_chebyshev_polynomial_q(xm, cm5, 17);
 	}
 	else //if (xa.hi <= 20.)
 	{
 		xa = min_qq(xa, ddouble(40.));
 		xm = div_qd(sub_qd(xa, 15.), 5.);			// [10 , 20] => [-1 , 1]
-		y = eval_chebyshev_polynomial_q(xm, cm5, 20);
+		y = eval_chebyshev_polynomial_q(xm, cm6, 20);
 	}
 
 	// Apply other operations
-	y = sub_dq(1., exp_q(y));
+	if (xa.hi > 1.)
+		y = sub_dq(1., exp_q(y));
 
 	// Apply sign
 	if (x.hi < 0.)
