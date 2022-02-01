@@ -116,7 +116,7 @@ int rlip_add_value(const char *name, const void *ptr, const char *type, rlip_dat
 	if (strcmp(name, "rlip_real_functions")==0 && ptr)
 	{
 		const rlip_real_functions_t *rf = ptr;
-		if (rf->size_of_real && rf->set && rf->cvt_r_d && rf->cvt_d_r && rf->cvt_r_i && rf->cvt_i_r && rf->cmp && rf->ator && rf->get_pi && rf->set_nan)
+		if (rf->size_of_real && rf->set && rf->cvt_r_d && rf->cvt_d_r && rf->cvt_r_i && rf->cvt_i_r && rf->cmp && rf->ator && rf->get_pi && rf->get_e && rf->set_nan)
 		{
 			ed->d->rf = *rf;
 			ed->valid_reals = 1;
@@ -203,6 +203,8 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 
 		if (strcmp(name, "pi") == 0)
 			ed->d->rf.get_pi(vr);
+		else if (strcmp(name, "e") == 0)
+			ed->d->rf.get_e(vr);
 		else
 		{
 			// Read expression like a number
@@ -253,6 +255,8 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 
 		if (strcmp(name, "pi") == 0)
 			vd = pi;
+		else if (strcmp(name, "e") == 0)
+			vd = 2.7182818284590451;
 		else
 		{
 			// Read expression like a number

@@ -228,6 +228,11 @@ ddouble_t exp_q(ddouble_t x)
 	return exp2_q(mul_qq(x, Q_1_LOG2));
 }
 
+ddouble_t gaussian_q(ddouble_t x)
+{
+	return exp_q(neg_q(mul_qq(x, x)));
+}
+
 ddouble_t erf_q(ddouble_t x)	// max err < 2.1e-32
 {
 	#include "tables/erf_q.h"	// contains tables cm0 to cm6, 2.6 kB
@@ -238,17 +243,17 @@ ddouble_t erf_q(ddouble_t x)	// max err < 2.1e-32
 	// Chebyshev evaluation by segment
 	if (xa.hi <= 0.5)
 	{
-		xm = sub_qd(mul_qd_simple(xa, 4.), 1.);		// [0 , 0.5] => [-1 , 1]
+		xm = sub_qd(mul_qd_simple(xa, 4.), 1.);			// [0 , 0.5] => [-1 , 1]
 		y = eval_chebyshev_polynomial_q(xm, cm0, 25);
 	}
 	else if (xa.hi <= 1.)
 	{
-		xm = sub_qd(mul_qd_simple(xa, 4.), 3.);		// [0.5 , 1] => [-1 , 1]
+		xm = sub_qd(mul_qd_simple(xa, 4.), 3.);			// [0.5 , 1] => [-1 , 1]
 		y = eval_chebyshev_polynomial_q(xm, cm1, 25);
 	}
 	else if (xa.hi <= 2.)
 	{
-		xm = sub_qd(mul_qd_simple(xa, 2.), 3.);		// [1 , 2] => [-1 , 1]
+		xm = sub_qd(mul_qd_simple(xa, 2.), 3.);			// [1 , 2] => [-1 , 1]
 		y = eval_chebyshev_polynomial_q(xm, cm2, 27);
 	}
 	else if (xa.hi <= 3.5)

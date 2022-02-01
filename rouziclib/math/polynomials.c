@@ -281,6 +281,29 @@ void integrate_chebyshev_coefs(double *cm, int degree, double *cmi, double span)
 	}
 }
 
+void integrate_chebyshev_coefs_q(ddouble_t *cm, int degree, ddouble_t *cmi, ddouble_t span)	// cmi is assumed to be allocated to degree+2, cmi[0] unset
+{
+	int id;
+	ddouble_t scale = mul_qd_simple(span, 0.5);
+
+	// Degree 0
+	cmi[1] = mul_qq(cm[0], scale);
+	if (degree <= 0)
+		return;
+
+	// Degree 1
+	cmi[2] = mul_qq(cm[1], mul_qd_simple(scale, 0.25));
+	if (degree <= 1)
+		return;
+
+	// Degrees 2 and above
+	for (id=2; id <= degree; id++)
+	{
+		cmi[id-1] = sub_qq(cmi[id-1], div_qd(mul_qq(scale, cm[id]), 2. * (double) (id-1)));
+		cmi[id+1] = div_qd(mul_qq(scale, cm[id]), 2. * (double) (id+1));
+	}
+}
+
 double get_polynomial_error(double (*f)(double), double start, double end, double *c, int degree, int errmode)
 {
 	int i;
@@ -717,6 +740,14 @@ double chebyshev_node(double degree, double node)		// node = 0,...,degree-1  FIX
 	return cos(pi * (node + 0.5) / degree);
 }
 
+ddouble_t chebyshev_node_q(double degree, double node)
+{
+	if (degree < 1. || node+0.5 < 0. || node+0.5 > degree)
+		return Q_ZERO;
+
+	return cos_q(div_qd(mul_qd(Q_PI, node + 0.5), degree));
+}
+
 void polynomial_fit_on_points(xy_t *p, double *c, int degree)
 {
 	int i, ii, id, j, deg;
@@ -796,7 +827,7 @@ double chebyshev_multiplier_by_dct(double *y, int p_count, int id, double (*cos_
 	return sum;
 }
 
-ddouble_t chebyshev_multiplier_by_dct_q(ddouble_t *y, int p_count, int id)	// look for the Chebyshev multiplier of degree id
+ddouble_t chebyshev_multiplier_by_dct_q(ddouble_t *y, int p_count, int id)
 {
 	int i;
 	ddouble_t x, sum=Q_ZERO, freq;
@@ -874,6 +905,18 @@ double *polynomial_function_to_points(double (*f)(double), double start, double 
 	return y;
 }
 
+ddouble_t *polynomial_function_to_points_dq(double (*f)(double), double start, double end, int p_count)
+{
+	int i;
+	ddouble_t *y = calloc(p_count, sizeof(ddouble_t));
+
+	// Compute the points
+	for (i=0; i < p_count; i++)
+		y[i] = ddouble(f((end-start) * (0.5+0.5*chebyshev_node(p_count, i)) + start));
+
+	return y;
+}
+
 void polynomial_fit_on_function_by_dct_count(double (*f)(double), double start, double end, double *c, int degree, int p_count, double (*cos_func)(double))
 {
 	int i;
@@ -903,6 +946,21 @@ void chebyshev_analysis_on_function(double (*f)(double), double start, double en
 	// Compute the coefficients
 	for (id=0; id <= degree; id++)
 		cm[id] = chebyshev_multiplier_by_dct(y, p_count, id, cos_func);	// get the Chebyshev multiplier for degree id
+
+	free(y);
+}
+
+void chebyshev_analysis_on_function_dq(double (*f)(double), double start, double end, ddouble_t *cm, int degree, int p_count)
+{
+	int id;
+	ddouble_t *y;
+
+	// Compute the points
+	y = polynomial_function_to_points_dq(f, start, end, p_count);
+
+	// Compute the coefficients
+	for (id=0; id <= degree; id++)
+		cm[id] = chebyshev_multiplier_by_dct_q(y, p_count, id);	// get the Chebyshev multiplier for degree id
 
 	free(y);
 }

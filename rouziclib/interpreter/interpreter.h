@@ -109,6 +109,7 @@ typedef struct
 	int (*cmp)(const uint8_t *,const uint8_t *);
 	void (*ator)(uint8_t *,const char *,char **);
 	void (*get_pi)(uint8_t *);
+	void (*get_e)(uint8_t *);
 	void (*set_nan)(uint8_t *);
 	void (*var_init)(uint8_t *);		// optional
 	void (*var_deinit)(uint8_t *);		// optional

@@ -10,6 +10,7 @@ extern ddouble_t eval_chebyshev_polynomial_q(ddouble_t x, ddouble_t *cm, int deg
 extern ddouble_t eval_chebyshev_polynomial_even_q(ddouble_t x, ddouble_t *cm, int degree);
 extern xy_t eval_chebyshev_polynomial_xy(xy_t x, xy_t *cm, int degree);
 extern void integrate_chebyshev_coefs(double *cm, int degree, double *cmi, double span);
+extern void integrate_chebyshev_coefs_q(ddouble_t *cm, int degree, ddouble_t *cmi, ddouble_t span);
 extern double get_polynomial_error(double (*f)(double), double start, double end, double *c, int degree, int errmode);
 extern double get_polynomial_error_2d(double (*f)(double,double), xy_t start, xy_t end, double **c, xyi_t degree, int errmode);
 extern double get_polynomial_error_from_points(double *x, double *y, int p_count, double *c, int degree, int errmode);
@@ -30,16 +31,20 @@ extern double *chebyshev_coefs(int degree);
 extern const double *chebyshev_coefs_cached(int degree);
 extern double **chebyshev_coefs_2d(xyi_t degree);
 extern double chebyshev_node(double degree, double node);
+extern ddouble_t chebyshev_node_q(double degree, double node);
 
 extern void polynomial_fit_on_points(xy_t *p, double *c, int degree);
 extern void polynomial_fit_on_function(double (*f)(double), double start, double end, double *c, int degree);
 extern double chebyshev_multiplier_by_dct(double *y, int p_count, int id, double (*cos_func)(double));
+extern ddouble_t chebyshev_multiplier_by_dct_q(ddouble_t *y, int p_count, int id);
 extern double chebyshev_multiplier_by_dct_2d(double **z, xyi_t p_count, xyi_t id);
 extern void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, double end, double *c, int degree, double (*cos_func)(double));
 extern double *polynomial_function_to_points(double (*f)(double), double start, double end, int p_count);
+extern ddouble_t *polynomial_function_to_points_dq(double (*f)(double), double start, double end, int p_count);
 extern void polynomial_fit_on_function_by_dct_count(double (*f)(double), double start, double end, double *c, int degree, int p_count, double (*cos_func)(double));
 extern void polynomial_fit_on_function_by_dct(double (*f)(double), double start, double end, double *c, int degree, double (*cos_func)(double));
 extern void chebyshev_analysis_on_function(double (*f)(double), double start, double end, double *cm, int degree, int p_count, double (*cos_func)(double));
+extern void chebyshev_analysis_on_function_dq(double (*f)(double), double start, double end, ddouble_t *cm, int degree, int p_count);
 extern void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_t end, double **c);
 extern double **chebyshev_fit_on_points_by_dct_2d(double **z, xyi_t p_count, xyi_t degree);
 extern double **polynomial_fit_on_points_by_dct_2d(double **z, xyi_t p_count, xy_t start, xy_t end, double **c, xyi_t degree);
