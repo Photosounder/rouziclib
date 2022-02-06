@@ -679,9 +679,9 @@ void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, double 
 	// Store the drawing parameters in the main drawing queue
 	df = drawq_add_to_main_queue(p_count==3 ? DQT_TRIANGLE : DQT_TETRAGON);
 	df[0] = 1./radius;
-	df[1] = colour.r;
-	df[2] = colour.g;
-	df[3] = colour.b;
+	df[1] = colour.r * intensity;
+	df[2] = colour.g * intensity;
+	df[3] = colour.b * intensity;
 	for (i=0; i < p_count; i++)
 	{
 		df[4+i*2] = p[i].x;
