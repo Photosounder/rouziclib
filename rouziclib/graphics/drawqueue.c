@@ -225,6 +225,7 @@ int32_t drawq_entry_size(const enum dq_type type)
 		case DQT_RECT_BLACK_INV:	return 6;
 		case DQT_PLAIN_FILL:		return 3;
 		case DQT_TRIANGLE:		return 10;
+		case DQT_TETRAGON:		return 12;
 		case DQT_GAIN:			return 1;
 		case DQT_GAIN_PARAB:		return 1;
 		case DQT_LUMA_COMPRESS:		return 1;

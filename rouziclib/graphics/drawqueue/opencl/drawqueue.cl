@@ -27,6 +27,7 @@ float4 drawgradienttest(float4 pv)
 float4 draw_queue(global float *df, global int *poslist, global int *entrylist, global uchar *data_cl, const int sector_w, const int sector_size)
 {
 	const int2 p = (int2) (get_global_id(0), get_global_id(1));
+	const float2 pf = convert_float2(p);
 	const int sec = (p.y >> sector_size) * sector_w + (p.x >> sector_size);	// sector index
 	global int *di = (global int *) df;	// main queue pointer
 	int i, eli, entry_count, qi;
@@ -58,26 +59,27 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 				pv = blend_pixel(br[brlvl], pv, di[qi+1]);
 				break;
 
-				case DQT_LINE_THIN_ADD:		pv = draw_line_thin_add(&df[qi+1], pv);
-			break;	case DQT_POINT_ADD:		pv = draw_point_add(&df[qi+1], pv);
-			break;	case DQT_RECT_FULL:		pv = draw_rect_full_add(&df[qi+1], pv);
-			break;	case DQT_RECT_BLACK:		pv = draw_black_rect(&df[qi+1], pv);
-			break;	case DQT_RECT_BLACK_INV:	pv = draw_black_rect_inv(&df[qi+1], pv);
+				case DQT_LINE_THIN_ADD:		pv = draw_line_thin_add(&df[qi+1], pv, pf);
+			break;	case DQT_POINT_ADD:		pv = draw_point_add(&df[qi+1], pv, pf);
+			break;	case DQT_RECT_FULL:		pv = draw_rect_full_add(&df[qi+1], pv, pf);
+			break;	case DQT_RECT_BLACK:		pv = draw_black_rect(&df[qi+1], pv, pf);
+			break;	case DQT_RECT_BLACK_INV:	pv = draw_black_rect_inv(&df[qi+1], pv, pf);
 			break;	case DQT_PLAIN_FILL:		pv = draw_plain_fill_add(&df[qi+1], pv);
-			break;	case DQT_TRIANGLE:		pv = draw_triangle(&df[qi+1], pv);
+			break;	case DQT_TRIANGLE:		pv = draw_triangle(&df[qi+1], pv, pf);
+			break;	case DQT_TETRAGON:		pv = draw_tetragon(&df[qi+1], pv, pf);
 			break;	case DQT_GAIN:			pv = pv * df[qi+1];
 			break;	case DQT_GAIN_PARAB:		pv = gain_parabolic(pv, df[qi+1]);
 			break;	case DQT_LUMA_COMPRESS:		pv = luma_compression(pv, df[qi+1]);
 			break;	case DQT_COL_MATRIX:		pv = colour_matrix(&df[qi+1], pv);
 			break;	case DQT_CLIP:			pv = min(pv, df[qi+1]);
 			break;	case DQT_CLAMP:			pv = clamp(pv, 0.f, 1.f);
-			break;	case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv);
-			break;	case DQT_CIRCLE_HOLLOW:		pv = draw_circle_hollow_add(&df[qi+1], pv);
+			break;	case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv, pf);
+			break;	case DQT_CIRCLE_HOLLOW:		pv = draw_circle_hollow_add(&df[qi+1], pv, pf);
 			//break;	case DQT_BLIT_BILINEAR:	pv = blit_sprite_bilinear(&df[qi+1], data_cl, pv);
-			break;	case DQT_BLIT_FLATTOP:		pv = blit_sprite_flattop((global uint *) &di[qi+1], data_cl, pv);
-			break;	case DQT_BLIT_FLATTOP_ROT:	pv = blit_sprite_flattop_rot((global uint *) &di[qi+1], data_cl, pv);
-			break;	case DQT_BLIT_AANEAREST:	pv = blit_sprite_aa_nearest((global uint *) &di[qi+1], data_cl, pv);
-			break;	case DQT_BLIT_AANEAREST_ROT:	pv = blit_sprite_aa_nearest_rot((global uint *) &di[qi+1], data_cl, pv);
+			break;	case DQT_BLIT_FLATTOP:		pv = blit_sprite_flattop((global uint *) &di[qi+1], data_cl, pv, pf);
+			break;	case DQT_BLIT_FLATTOP_ROT:	pv = blit_sprite_flattop_rot((global uint *) &di[qi+1], data_cl, pv, pf);
+			break;	case DQT_BLIT_AANEAREST:	pv = blit_sprite_aa_nearest((global uint *) &di[qi+1], data_cl, pv, pf);
+			break;	case DQT_BLIT_AANEAREST_ROT:	pv = blit_sprite_aa_nearest_rot((global uint *) &di[qi+1], data_cl, pv, pf);
 			//break;	case DQT_BLIT_PHOTO:		pv = blit_photo(&df[qi+1], data_cl, pv);
 			break;	case DQT_TEST1:			pv = drawgradienttest(pv);
 

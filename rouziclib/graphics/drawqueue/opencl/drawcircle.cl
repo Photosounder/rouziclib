@@ -1,7 +1,5 @@
-float4 draw_circle_full_add(global float *le, float4 pv)
+float4 draw_circle_full_add(global float *le, float4 pv, const float2 pf)
 {
-	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const float2 pf = convert_float2(p);
 	float4 col;
 	float2 pc;
 	float circrad, rad, dc, dn, df;
@@ -24,10 +22,8 @@ float4 draw_circle_full_add(global float *le, float4 pv)
 	return pv;
 }
 
-float4 draw_circle_hollow_add(global float *le, float4 pv)
+float4 draw_circle_hollow_add(global float *le, float4 pv, const float2 pf)
 {
-	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const float2 pf = convert_float2(p);
 	float4 col;
 	float2 pc;
 	float circrad, rad, dc, dn, df;

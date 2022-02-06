@@ -45,12 +45,11 @@ float calc_right_triangle_pixel_weight(float2 rp)
 
 float calc_subtriangle_pixel_weight(float2 p0, float2 p1)
 {
-	float2 pd, rot, r0, r1, np;
+	float2 rot, r0, r1, np;
 	float weight;
 
 	// Rotate points
-	pd = p1 - p0;
-	rot = pd * native_rsqrt(pd.x*pd.x + pd.y*pd.y);
+	rot = fast_normalize(p1 - p0);
 	r0.x = rot.x*p0.y - rot.y*p0.x;
 	r0.y = rot.x*p0.x + rot.y*p0.y;
 	r1.x = rot.x*p1.y - rot.y*p1.x;
@@ -63,26 +62,24 @@ float calc_subtriangle_pixel_weight(float2 p0, float2 p1)
 	return weight;
 }
 
-float4 draw_triangle(global float *le, float4 pv)
+float4 draw_triangle(global float *le, float4 pv, const float2 pf)
 {
-	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const float2 pf = convert_float2(p);
 	float rad, weight;
 	float2 p0, p1, p2;
 	float4 col;
 
 	// Load parameters
-	p0.x = le[0];
-	p0.y = le[1];
-	p1.x = le[2];
-	p1.y = le[3];
-	p2.x = le[4];
-	p2.y = le[5];
-	rad = le[6];
-	col.s0 = le[7];
-	col.s1 = le[8];
-	col.s2 = le[9];
+	rad = le[0];
+	col.s0 = le[1];
+	col.s1 = le[2];
+	col.s2 = le[3];
 	col.s3 = 1.f;
+	p0.x = le[4];
+	p0.y = le[5];
+	p1.x = le[6];
+	p1.y = le[7];
+	p2.x = le[8];
+	p2.y = le[9];
 
 	// Transform triangle coordinates
 	p0 = (p0 - pf) * rad;
@@ -93,6 +90,45 @@ float4 draw_triangle(global float *le, float4 pv)
 	weight = calc_subtriangle_pixel_weight(p0, p1);
 	weight += calc_subtriangle_pixel_weight(p1, p2);
 	weight += calc_subtriangle_pixel_weight(p2, p0);
+
+	// Apply weight to colour
+	pv += weight * col;
+
+	return pv;
+}
+
+float4 draw_tetragon(global float *le, float4 pv, const float2 pf)
+{
+	float rad, weight;
+	float2 p0, p1, p2, p3;
+	float4 col;
+
+	// Load parameters
+	rad = le[0];
+	col.s0 = le[1];
+	col.s1 = le[2];
+	col.s2 = le[3];
+	col.s3 = 1.f;
+	p0.x = le[4];
+	p0.y = le[5];
+	p1.x = le[6];
+	p1.y = le[7];
+	p2.x = le[8];
+	p2.y = le[9];
+	p3.x = le[10];
+	p3.y = le[11];
+
+	// Transform triangle coordinates
+	p0 = (p0 - pf) * rad;
+	p1 = (p1 - pf) * rad;
+	p2 = (p2 - pf) * rad;
+	p3 = (p3 - pf) * rad;
+
+	// Calculate weight for each subtriangle
+	weight = calc_subtriangle_pixel_weight(p0, p1);
+	weight += calc_subtriangle_pixel_weight(p1, p2);
+	weight += calc_subtriangle_pixel_weight(p2, p3);
+	weight += calc_subtriangle_pixel_weight(p3, p0);
 
 	// Apply weight to colour
 	pv += weight * col;

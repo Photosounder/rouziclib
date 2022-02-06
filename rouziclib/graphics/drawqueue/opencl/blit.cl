@@ -482,10 +482,8 @@ float4 image_filter_aa_nearest(global float4 *im, int2 im_dim, const int fmt, fl
 	return pv;
 }*/
 
-float4 blit_sprite_flattop(global uint *lei, global uchar *data_cl, float4 pv)
+float4 blit_sprite_flattop(global uint *lei, global uchar *data_cl, float4 pv, const float2 pf)
 {
-	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const float2 pf = convert_float2(p);
 	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
@@ -510,10 +508,8 @@ float4 blit_sprite_flattop(global uint *lei, global uchar *data_cl, float4 pv)
 	return pv;
 }
 
-float4 blit_sprite_flattop_rot(global uint *lei, global uchar *data_cl, float4 pv)
+float4 blit_sprite_flattop_rot(global uint *lei, global uchar *data_cl, float4 pv, const float2 pf)
 {
-	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const float2 pf = convert_float2(p);
 	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
@@ -543,10 +539,8 @@ float4 blit_sprite_flattop_rot(global uint *lei, global uchar *data_cl, float4 p
 	return pv;
 }
 
-float4 blit_sprite_aa_nearest(global uint *lei, global uchar *data_cl, float4 pv)
+float4 blit_sprite_aa_nearest(global uint *lei, global uchar *data_cl, float4 pv, const float2 pf)
 {
-	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const float2 pf = convert_float2(p);
 	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
@@ -568,10 +562,8 @@ float4 blit_sprite_aa_nearest(global uint *lei, global uchar *data_cl, float4 pv
 	return pv;
 }
 
-float4 blit_sprite_aa_nearest_rot(global uint *lei, global uchar *data_cl, float4 pv)
+float4 blit_sprite_aa_nearest_rot(global uint *lei, global uchar *data_cl, float4 pv, const float2 pf)
 {
-	const int2 p = (int2) (get_global_id(0), get_global_id(1));
-	const float2 pf = convert_float2(p);
 	global float *lef = (global float *) lei;
 	global float4 *im;
 	int2 im_dim;
