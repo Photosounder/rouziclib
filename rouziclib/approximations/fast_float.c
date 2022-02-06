@@ -321,7 +321,7 @@ double fastexp_limited(double x)	// max error of 1/11039 for x <= 0
 	if (x > end)
 		return 0.;
 
-	lutind = double_as_u64(x + offset) - double_as_u64(offset) >> ish;
+	lutind = (double_as_u64(x + offset) - double_as_u64(offset)) >> ish;
 
 	return polynomial_from_lut(lut, lutind, order, x);
 }

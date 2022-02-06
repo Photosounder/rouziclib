@@ -6,6 +6,14 @@ void swap_double(double *a, double *b)
 	*b = c;
 }
 
+void swap_xy_xy(xy_t *a, xy_t *b)
+{
+	xy_t c = *a;
+
+	*a = *b;
+	*b = c;
+}
+
 void swap_i32(int32_t *a, int32_t *b)
 {
 	int32_t c = *a;

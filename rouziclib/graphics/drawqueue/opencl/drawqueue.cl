@@ -7,6 +7,7 @@
 #include "drawline.cl"
 #include "drawrect.cl"
 #include "drawcircle.cl"
+#include "drawtriangle.cl"
 #include "srgb.cl"
 #include "colour.cl"
 #include "bits.cl"
@@ -63,6 +64,7 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			break;	case DQT_RECT_BLACK:		pv = draw_black_rect(&df[qi+1], pv);
 			break;	case DQT_RECT_BLACK_INV:	pv = draw_black_rect_inv(&df[qi+1], pv);
 			break;	case DQT_PLAIN_FILL:		pv = draw_plain_fill_add(&df[qi+1], pv);
+			break;	case DQT_TRIANGLE:		pv = draw_triangle(&df[qi+1], pv);
 			break;	case DQT_GAIN:			pv = pv * df[qi+1];
 			break;	case DQT_GAIN_PARAB:		pv = gain_parabolic(pv, df[qi+1]);
 			break;	case DQT_LUMA_COMPRESS:		pv = luma_compression(pv, df[qi+1]);

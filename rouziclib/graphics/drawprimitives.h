@@ -23,3 +23,6 @@ extern void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t
 extern void draw_point_on_row(xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
 extern void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, const blend_func_t bf, double intensity);
 extern void draw_mousecursor(xy_t pos);
+extern void draw_triangle_dq(triangle_t tri, double radius, frgb_t colour, double intensity);
+extern void draw_triangle(triangle_t tri, double radius, col_t colour, double intensity);
+extern void draw_triangle_wc(triangle_t tri, double radius, col_t colour, double intensity);

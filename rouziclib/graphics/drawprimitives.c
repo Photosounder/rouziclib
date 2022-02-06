@@ -659,3 +659,59 @@ void draw_mousecursor(xy_t pos)
 
 	draw_triangle_thin(tr, drawing_thickness, col, cur_blend, 1.);
 }
+
+void draw_triangle_dq(triangle_t tri, double radius, frgb_t colour, double intensity)
+{
+	float *df;
+	double grad;
+	xyi_t ip;
+	recti_t bbi;
+
+	grad = 3. * radius;
+
+	if (drawq_get_bounding_box_for_polygon((xy_t *) &tri, 3, set_xy(grad), &bbi) == 0)
+		return;
+
+	// Store the drawing parameters in the main drawing queue
+	df = drawq_add_to_main_queue(DQT_TRIANGLE);
+	df[0] = tri.a.x;
+	df[1] = tri.a.y;
+	df[2] = tri.b.x;
+	df[3] = tri.b.y;
+	df[4] = tri.c.x;
+	df[5] = tri.c.y;
+	df[6] = 1./radius;
+	df[7] = colour.r;
+	df[8] = colour.g;
+	df[9] = colour.b;
+
+	// Find the affected sectors
+	for (ip.y=bbi.p0.y; ip.y<=bbi.p1.y; ip.y++)
+		for (ip.x=bbi.p0.x; ip.x<=bbi.p1.x; ip.x++)
+			drawq_add_sector_id(ip.y*fb.sector_w + ip.x);	// add sector reference
+}
+
+void draw_triangle(triangle_t tri, double radius, col_t colour, double intensity)
+{
+	if (fb.discard)
+		return;
+
+	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
+
+	if (fb.use_drawq)
+		draw_triangle_dq(tri, radius, col_to_frgb(colour), intensity);
+	// TODO lrgb version
+}
+
+void draw_triangle_wc(triangle_t tri, double radius, col_t colour, double intensity)
+{
+	// Convert to screen coordinates
+	tri.a = sc_xy(tri.a);
+	tri.b = sc_xy(tri.b);
+	tri.c = sc_xy(tri.c);
+
+	// Swap two points to maintain the proper point sequence order
+	swap_xy_xy(&tri.a, &tri.b);
+
+	draw_triangle(tri, radius, colour, intensity);
+}

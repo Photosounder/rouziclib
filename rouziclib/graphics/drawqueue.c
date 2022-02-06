@@ -224,6 +224,7 @@ int32_t drawq_entry_size(const enum dq_type type)
 		case DQT_RECT_BLACK:		return 6;
 		case DQT_RECT_BLACK_INV:	return 6;
 		case DQT_PLAIN_FILL:		return 3;
+		case DQT_TRIANGLE:		return 10;
 		case DQT_GAIN:			return 1;
 		case DQT_GAIN_PARAB:		return 1;
 		case DQT_LUMA_COMPRESS:		return 1;
@@ -395,7 +396,7 @@ void drawq_test1()		// BRDF test
 
 int drawq_get_bounding_box(rect_t box, xy_t rad, recti_t *bbi)
 {
-	rect_t bb, screen_box = rect(XY0, xy(fb.w-1, fb.h-1));
+	rect_t bb, fb_box = rect(XY0, xy(fb.w-1, fb.h-1));
 
 	box = sort_rect(box);
 
@@ -403,11 +404,39 @@ int drawq_get_bounding_box(rect_t box, xy_t rad, recti_t *bbi)
 	bb.p0 = ceil_xy(sub_xy(box.p0, rad));
 	bb.p1 = floor_xy(add_xy(box.p1, rad));
 
-	if (check_box_box_intersection(bb, screen_box)==0)
+	// Check against framebuffer boundaries
+	if (check_box_box_intersection(bb, fb_box)==0)
 		return 0;
 
-	bbi->p0 = xy_to_xyi(max_xy(bb.p0, screen_box.p0));
-	bbi->p1 = xy_to_xyi(min_xy(bb.p1, screen_box.p1));
+	// Convert to sector coordinates
+	bbi->p0 = xy_to_xyi(max_xy(bb.p0, fb_box.p0));
+	bbi->p1 = xy_to_xyi(min_xy(bb.p1, fb_box.p1));
+	*bbi = rshift_recti(*bbi, fb.sector_size);
+
+	return 1;
+}
+
+int drawq_get_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi)
+{
+	int i;
+	rect_t bb, fb_box = rect(XY0, xy(fb.w-1, fb.h-1));
+
+	// Calculate the bounding box
+	bb.p0 = ceil_xy(sub_xy(p[0], rad));
+	bb.p1 = floor_xy(add_xy(p[0], rad));
+	for (i=1; i < p_count; i++)
+	{
+		bb.p0 = min_xy(bb.p0, ceil_xy(sub_xy(p[i], rad)));
+		bb.p1 = max_xy(bb.p1, floor_xy(add_xy(p[i], rad)));
+	}
+
+	// Check against framebuffer boundaries
+	if (check_box_box_intersection(bb, fb_box)==0)
+		return 0;
+
+	// Convert to sector coordinates
+	bbi->p0 = xy_to_xyi(max_xy(bb.p0, fb_box.p0));
+	bbi->p1 = xy_to_xyi(min_xy(bb.p1, fb_box.p1));
 	*bbi = rshift_recti(*bbi, fb.sector_size);
 
 	return 1;
@@ -415,7 +444,7 @@ int drawq_get_bounding_box(rect_t box, xy_t rad, recti_t *bbi)
 
 void drawq_get_inner_box(rect_t box, xy_t rad, recti_t *bbi)
 {
-	rect_t bb, screen_box = rect(XY0, xy(fb.w-1, fb.h-1));
+	rect_t bb, fb_box = rect(XY0, xy(fb.w-1, fb.h-1));
 
 	box = sort_rect(box);
 
@@ -423,8 +452,8 @@ void drawq_get_inner_box(rect_t box, xy_t rad, recti_t *bbi)
 	bb.p0 = floor_xy(add_xy(box.p0, rad));
 	bb.p1 = ceil_xy(sub_xy(box.p1, rad));
 
-	bbi->p0 = xy_to_xyi(max_xy(bb.p0, screen_box.p0));
-	bbi->p1 = xy_to_xyi(min_xy(bb.p1, screen_box.p1));
+	bbi->p0 = xy_to_xyi(max_xy(bb.p0, fb_box.p0));
+	bbi->p1 = xy_to_xyi(min_xy(bb.p1, fb_box.p1));
 	*bbi = rshift_recti(*bbi, fb.sector_size);
 }
 
