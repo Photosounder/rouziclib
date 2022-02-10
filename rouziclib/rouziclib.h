@@ -43,6 +43,7 @@ extern "C" {
 
 #ifdef _WIN32
 #define _WINSOCKAPI_	// prevents Winsock.h / Winsock2.h conflict
+#define NOMINMAX	// avoids min/max macros
 #include <windows.h>
 #include <shlobj.h>
 #endif
