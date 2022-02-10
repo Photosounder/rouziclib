@@ -178,6 +178,14 @@ ddouble_t abs_q(ddouble_t a)
 	return a;
 }
 
+ddouble_t copysign_q(ddouble_t a, ddouble_t b)
+{
+	if ((a.hi > 0. && b.hi < 0.) || (a.hi < 0. && b.hi > 0.))
+		a = neg_q(a);
+
+	return a;
+}
+
 ddouble_t sq_q(ddouble_t a)
 {
 	return mul_qq(a, a);

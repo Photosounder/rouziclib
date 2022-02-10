@@ -40,8 +40,12 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 
 	// Fit an undetached window into its parent area if it exists
 	if (parent_area)
-		if (*diag_on==0 || w->init==0)
+		if (*diag_on!=1 || w->init==0)
 			fit_sublayout_into_area(*parent_area, layout, id, w->parent_fit_offset, 1);
+
+	if (diag_on)
+		if (*diag_on == 2)
+			*diag_on = 1;
 
 	w->init = 1;
 

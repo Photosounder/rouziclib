@@ -111,6 +111,7 @@ static void real_q_tan(ddouble_t *r, ddouble_t *a) { *r = ddouble(tan(a->hi)); }
 static void real_q_min(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = min_qq(*a, *b); }
 static void real_q_max(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = max_qq(*a, *b); }
 static void real_q_pow(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = ddouble(pow(a->hi, b->hi)); }	// FIXME
+static void real_q_copysign(ddouble_t *r, ddouble_t *a, ddouble_t *b) { *r = copysign_q(*a, *b); }
 
 static void real_q_rangelimit(ddouble_t *r, ddouble_t *a, ddouble_t *b, ddouble_t *c) { *r = rangelimit_qqq(*a, *b, *c); }
 
@@ -155,6 +156,7 @@ static rlip_real_functions_t real_q_functions = {
 	{"min_", real_q_min,		"frrr"},	\
 	{"max_", real_q_max,		"frrr"},	\
 	{"pow_", real_q_pow,		"frrr"},	\
+	{"copysign_", real_q_copysign,	"frrr"},	\
 	{"rangelimit_", rangelimit,	"frrrr"}
 
 
@@ -194,6 +196,7 @@ static void real_mpfr_log(mpfr_t *r, mpfr_t *a) { mpfr_log(*r, *a, MPFR_RNDN); }
 static void real_mpfr_erf(mpfr_t *r, mpfr_t *a) { mpfr_erf(*r, *a, MPFR_RNDN); }
 
 static void real_mpfr_pow(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_pow(*r, *a, *b, MPFR_RNDN); }
+static void real_mpfr_copysign(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_copysign(*r, *a, *b, MPFR_RNDN); }
 
 static rlip_real_functions_t real_mpfr_functions = {
 	sizeof(mpfr_t),
@@ -232,5 +235,6 @@ static rlip_real_functions_t real_mpfr_functions = {
 	{"exp_", real_mpfr_exp,		"frr"},		\
 	{"log_", real_mpfr_log,		"frr"},		\
 	{"erf_", real_mpfr_erf,		"frr"},		\
-	{"pow_", real_mpfr_pow,		"frrr"}
+	{"pow_", real_mpfr_pow,		"frrr"},	\
+	{"copysign_", real_mpfr_copysign, "frrr"}
 #endif

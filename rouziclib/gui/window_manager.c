@@ -21,6 +21,9 @@ void window_run(window_manager_entry_t *w)
 	}
 
 	cur_parent_area = w->parent_area;
+	if (w->wind_on)
+		if (*w->wind_on==1 && w->newly_registered)
+			*w->wind_on = 2;
 	cur_wind_on = w->wind_on;
 	cur_window_data = w->window_data;
 
@@ -77,6 +80,7 @@ int window_register(int priority, void *window_func, void *window_data, rect_t p
 		if (wind_man.window[i].window_data == window_data)
 		{
 			entry = &wind_man.window[i];
+			entry->newly_registered = 0;
 			goto skip_add2;
 		}
 
@@ -95,6 +99,7 @@ skip_add1:
 	entry->window_data = window_data;
 	entry->ptr_count = num_args;
 	entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));
+	entry->newly_registered = 1;
 
 	// Set window orders
 	wind_man.min_order = entry->order = wind_man.min_order - 1;

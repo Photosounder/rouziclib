@@ -21,7 +21,7 @@ typedef struct
 
 typedef struct
 {
-	int *wind_on, dereg, order, already_ran;
+	int *wind_on, dereg, order, already_ran, newly_registered;
 	void *window_func, *parent_window_func;
 	void *window_data, *parent_window_data;
 	void **ptr_array;

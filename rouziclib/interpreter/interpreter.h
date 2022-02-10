@@ -158,6 +158,7 @@ extern double rlip_builtin_rand01(int64_t pos);
 	{"log10", log10, "fdd"},			\
 	{"log2", log2,	"fdd"},				\
 	{"pow", pow, "fddd"},				\
+	{"copysign", copysign, "fddd"},			\
 	{"sin", sin, "fdd"},				\
 	{"sinh", sinh, "fdd"},				\
 	{"tan", tan, "fdd"},				\

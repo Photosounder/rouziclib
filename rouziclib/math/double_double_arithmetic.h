@@ -24,6 +24,7 @@ extern ddouble_t mad_qqq(ddouble_t a, ddouble_t b, ddouble_t c);
 extern ddouble_t div_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t neg_q(ddouble_t a);
 extern ddouble_t abs_q(ddouble_t a);
+extern ddouble_t copysign_q(ddouble_t a, ddouble_t b);
 extern ddouble_t sq_q(ddouble_t a);
 extern ddouble_t recip_q(ddouble_t b);
 extern ddouble_t mul_qd_simple(ddouble_t a, double m);
