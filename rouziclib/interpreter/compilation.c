@@ -520,6 +520,12 @@ line_proc_start:
 							fwd_jumps--;
 						}
 
+					if ((ed->op[io] >> 10) < 1)
+					{
+						bufprintf(comp_log, "op[%d] is %d\n", io, ed->op[io]);
+						goto invalid_prog;
+					}
+
 					io += ed->op[io] >> 10;
 				}
 			}
