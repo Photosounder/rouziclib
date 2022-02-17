@@ -279,7 +279,7 @@ Draw Gaussian-antialiased thin lines and Gaussian dots. Also contains a generic 
 Draw Gaussian-antialiased full or dark rectangles.
 
 ** link:rouziclib/graphics/drawprimitives.c[drawprimitives.c] / link:rouziclib/graphics/drawprimitives.h[drawprimitives.h] +
-Draw Gaussian-antialiased circles (full or hollow), hollow rectangles and chamfered (angular) rectangles, rounded rectangles, dashed lines, Gaussian gradients and dots, triangles and mouse cursors.
+Draw Gaussian-antialiased circles (full or hollow), hollow rectangles and chamfered (angular) rectangles, rounded rectangles, dashed lines, Gaussian gradients and dots, hollow triangles, mouse cursors, as well as full triangles and concave tetragons.
 
 ** link:rouziclib/graphics/drawqueue.c[drawqueue.c] / link:rouziclib/graphics/drawqueue.h[drawqueue.h] +
 Drawing queue rendering system.
