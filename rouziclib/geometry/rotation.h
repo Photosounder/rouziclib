@@ -9,3 +9,4 @@ extern xyz_t rotate_y_pre(xyz_t p, double costh, double sinth);
 extern xyz_t rotate_z_pre(xyz_t p, double costh, double sinth);
 extern xyz_t rotate_pt_matrix(xyz_t p, matrix_t m);
 extern matrix_t rotation_matrix_zxy(xyz_t th);
+extern xyz_t cross_product_xyz(xyz_t a, xyz_t b);

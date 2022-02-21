@@ -24,6 +24,7 @@ size_t get_raster_mode_elem_size(const int mode)
 		case IMAGE_USE_LRGB:	return sizeof(lrgb_t);
 		case IMAGE_USE_FRGB:	return sizeof(frgb_t);
 		case IMAGE_USE_SQRGB:	return sizeof(sqrgb_t);
+		case IMAGE_USE_BUF:	return 1;
 		default:		return 0;
 	}
 }

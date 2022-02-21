@@ -105,3 +105,8 @@ matrix_t rotation_matrix_zxy(xyz_t th)	// makes a 3x3 rotation matrix of 3D Eule
 
 	return m;
 }
+
+xyz_t cross_product_xyz(xyz_t a, xyz_t b)
+{
+	return xyz(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
+}

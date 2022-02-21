@@ -116,7 +116,7 @@ float4 draw_tetragon(global float *le, float4 pv, const float2 pf)
 	p3.x = le[10];
 	p3.y = le[11];
 
-	// Transform triangle coordinates
+	// Transform polygon coordinates
 	p0 = (p0 - pf) * rad;
 	p1 = (p1 - pf) * rad;
 	p2 = (p2 - pf) * rad;

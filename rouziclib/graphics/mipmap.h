@@ -20,6 +20,8 @@ extern void blit_mipmap_rotated(mipmap_t m, xy_t pscale, xy_t pos, double angle,
 extern rect_t blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp);
 extern int get_largest_mipmap_lvl_index(mipmap_t m);
 extern xyi_t get_largest_mipmap_lvl_dim(mipmap_t m);
+extern void fwrite_mipmap(FILE *file, mipmap_t m);
+extern mipmap_t fread_mipmap(FILE *file);
 
 #define MIPMAP_TILE_SIZE	512
 #define MIPMAP_MIN_SIZE		4

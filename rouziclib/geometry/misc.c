@@ -42,3 +42,21 @@ triangle_t triangle_dilate(triangle_t tr, double d)	// d is in units, not a prop
 
 	return trs;
 }
+
+double polygon_signed_area(xy_t *p, int p_count)
+{
+	int i;
+	double sum = 0.;
+	xy_t p0, p1;
+
+	p0 = p[p_count-1];
+
+	for (i=0; i < p_count; i++)
+	{
+		p1 = p[i];
+		sum += (p1.x - p0.x) * (p1.y + p0.y);		// double the area below the line
+		p0 = p1;
+	}
+
+	return sum * 0.5;
+}

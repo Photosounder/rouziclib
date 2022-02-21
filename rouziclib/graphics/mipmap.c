@@ -827,3 +827,116 @@ xyi_t get_largest_mipmap_lvl_dim(mipmap_t m)
 
 	return xyi(0, 0);
 }
+
+void fwrite_mipmap(FILE *file, mipmap_t m)
+{
+	int il, ir;
+
+	// Write top level info
+	fwrite_byte8(file, m.lvl_count);
+	fwrite_LE32(file, m.fulldim.x);
+	fwrite_LE32(file, m.fulldim.y);
+	fwrite_LE32(file, m.total_bytes);
+
+	// Write each level
+	for (il=0; il < m.lvl_count; il++)
+	{
+		fwrite_LE32(file, m.lvl[il].fulldim.x);
+		fwrite_LE32(file, m.lvl[il].fulldim.y);
+		fwrite_LE16(file, m.lvl[il].tiledim.x);
+		fwrite_LE16(file, m.lvl[il].tiledim.y);
+		fwrite_LE16(file, m.lvl[il].tilecount.x);
+		fwrite_LE16(file, m.lvl[il].tilecount.y);
+		fwrite_LE32(file, float_as_u32(m.lvl[il].scale.x));
+		fwrite_LE32(file, float_as_u32(m.lvl[il].scale.y));
+		fwrite_LE32(file, m.lvl[il].total_bytes);
+
+		// Write each tile
+		for (ir=0; ir < mul_x_by_y_xyi(m.lvl[il].tilecount); ir++)
+		{
+			raster_t r = m.lvl[il].r[ir];
+
+			fwrite_LE16(file, r.dim.x);
+			fwrite_LE16(file, r.dim.y);
+			int mode = get_raster_mode(r);
+			fwrite_byte8(file, mode);
+			if (mode == IMAGE_USE_BUF)
+			{
+				fwrite_byte8(file, r.buf_fmt);
+				fwrite_LE32(file, r.buf_size);
+			}
+
+			// Write pixel data buffer
+			void *p = get_raster_buffer_for_mode(r, mode);
+			fwrite(p, get_raster_mode_elem_size(mode), mode == IMAGE_USE_BUF ? r.buf_size : mul_x_by_y_xyi(r.dim), file);
+		}
+	}
+}
+
+mipmap_t fread_mipmap(FILE *file)
+{
+	mipmap_t m={0};
+	int il, ir;
+	uint8_t *ptr;
+
+	// Read top level info
+	m.lvl_count = fread_byte8(file);
+	m.lvl = calloc(m.lvl_count, sizeof(mipmap_level_t));
+	m.fulldim.x = fread_LE32(file);
+	m.fulldim.y = fread_LE32(file);
+	m.total_bytes = fread_LE32(file);
+
+	// Read each level
+	for (il=0; il < m.lvl_count; il++)
+	{
+		m.lvl[il].fulldim.x = fread_LE32(file);
+		m.lvl[il].fulldim.y = fread_LE32(file);
+		m.lvl[il].tiledim.x = fread_LE16(file);
+		m.lvl[il].tiledim.y = fread_LE16(file);
+		m.lvl[il].tilecount.x = fread_LE16(file);
+		m.lvl[il].tilecount.y = fread_LE16(file);
+		m.lvl[il].scale.x = u32_as_float(fread_LE32(file));
+		m.lvl[il].scale.y = u32_as_float(fread_LE32(file));
+		m.lvl[il].total_bytes = fread_LE32(file);
+
+		// Alloc contiguous pixel buffer for whole mipmap level
+		ptr = calloc(m.lvl[il].total_bytes - mul_x_by_y_xyi(m.lvl[il].tilecount) * sizeof(raster_t), 1);
+
+		// Alloc array of tiles
+		if (mul_x_by_y_xyi(m.lvl[il].tilecount))
+			m.lvl[il].r = malloc(mul_x_by_y_xyi(m.lvl[il].tilecount) * sizeof(raster_t));
+		else
+			m.lvl[il].r = NULL;
+
+		// Read each tile
+		for (ir=0; ir < mul_x_by_y_xyi(m.lvl[il].tilecount); ir++)
+		{
+			raster_t r={0};
+
+			r.dim.x = fread_LE16(file);
+			r.dim.y = fread_LE16(file);
+			int mode = fread_byte8(file);
+
+			// Point to contiguous data buffer
+			r = make_raster(ptr, r.dim, XYI0, mode);
+
+			if (mode == IMAGE_USE_BUF)
+			{
+				r.buf_fmt = fread_byte8(file);
+				r.buf_size = fread_LE32(file);
+			}
+
+			// Read pixel data buffer
+			int elem_size = get_raster_mode_elem_size(mode);
+			fread(ptr, elem_size, mode == IMAGE_USE_BUF ? r.buf_size : mul_x_by_y_xyi(r.dim), file);
+
+			m.lvl[il].r[ir] = r;
+			if (mode == IMAGE_USE_BUF)
+				ptr = &ptr[r.buf_size];
+			else
+				ptr = &ptr[mul_x_by_y_xyi(r.dim) * elem_size];
+		}
+	}
+
+	return m;
+}
