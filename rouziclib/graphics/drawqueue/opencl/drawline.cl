@@ -15,8 +15,8 @@ float4 draw_line_thin_add(global float *le, float4 pv, const float2 pf)
 	col.s3 = le[8];
 
 	// 40 FR without branching
-	rp.y = pf.x * sinth + pf.y * costh;	// 2 FR
 	rp.x = pf.x * costh - pf.y * sinth;	// 3 FR
+	rp.y = pf.x * sinth + pf.y * costh;	// 2 FR
 
 	v = (erf_fast(rp.x-r1x) - erf_fast(rp.x-r2x)) * 0.5f;	// 26 FR
 	v *= gaussian(rp.y-r1y);				// 8 FR
@@ -27,7 +27,6 @@ float4 draw_line_thin_add(global float *le, float4 pv, const float2 pf)
 
 float4 draw_point_add(global float *le, float4 pv, const float2 pf)
 {
-	const float gl = 4.f;	// gaussian drawing limit
 	float rad, d;
 	float2 dp;
 	float4 col;

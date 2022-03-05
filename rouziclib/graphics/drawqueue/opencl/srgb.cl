@@ -106,7 +106,7 @@ float4 linear_to_srgb(float4 pl0, uint seed)
 
 	// Lower bit depth simulation
 	if (max_s < 255.f)
-		pl1 = round(pl1 * max_s) / max_s;
+		pl1 = round(pl1 * max_s) * (1.f/max_s);
 
 	return pl1;
 }
