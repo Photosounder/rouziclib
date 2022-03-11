@@ -72,6 +72,7 @@ void zoom_toggle(zoom_t *zc, int *flag_zoom_key)
 
 	if (*flag_zoom_key==0)		// if the cursor is to be shown and we switched from zoom on to zoom off
 	{
+		// Uncapture and move cursor to the centre of the screen
 		#ifdef RL_SDL
 		SDL_SetRelativeMouseMode(0);
 		SDL_WarpMouseInWindow(fb.window, fb.w/2, fb.h/2);
@@ -94,8 +95,11 @@ void zoom_reset(zoom_t *zc, int *flag_zoom_key)
 	zc->offset_uq = XYQ0;
 	zc->just_reset = 1;
 	zc->zoom_key_time = 0;
-	*flag_zoom_key = 1;
-	zoom_toggle(zc, flag_zoom_key);
+
+	if (*flag_zoom_key == 1)
+		zoom_toggle(zc, flag_zoom_key);
+	else
+		calc_screen_limits(zc);
 }
 
 void zoom_key_released(zoom_t *zc, int *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down

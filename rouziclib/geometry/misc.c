@@ -60,3 +60,62 @@ double polygon_signed_area(xy_t *p, int p_count)
 
 	return sum * 0.5;
 }
+
+double subtriangle_angle_approx(double y, double x)	// very roughly atan2(y, x) / (2.*pi)
+{
+	double angle, d;
+	int obtuse;
+
+	if (x == 0.)
+		return NAN;
+
+	obtuse = fabs(y) > fabs(x);
+	if (obtuse)
+		swap_double(&y, &x);
+
+	// Core of the approximation, a very loosely approximate atan(y/x) / (2.*pi) over ]-1 , 1[
+	d = y / x;
+	angle = 0.13185 * d;
+
+	if (obtuse)
+		angle = sign(d)*0.25 - angle;
+
+	return angle;
+}
+
+double calc_sharp_subtriangle_pixel_weight(xy_t p0, xy_t p1)
+{
+	xy_t rot, r0, r1;
+	double weight;
+
+	// Rotate points (unnormalised)
+	rot = sub_xy(p1, p0);
+	r0.x = rot.x*p0.y - rot.y*p0.x;
+	r0.y = rot.x*p0.x + rot.y*p0.y;
+	r1.y = rot.x*p1.x + rot.y*p1.y;
+
+	// Calc weight
+	weight = subtriangle_angle_approx(r1.y, r0.x) - subtriangle_angle_approx(r0.y, r0.x);
+
+	return weight;
+}
+
+double calc_sharp_polygon_pixel_weight(xy_t p, xy_t *corner, int corner_count)	// a weight of ~0.0 means p is outside of the polygon, ~1.0 means inside
+{
+	int i;
+	xy_t p0, p1;
+	double weight = 0.;
+
+	p0 = sub_xy(corner[corner_count-1], p);
+	for (i=0; i < corner_count; i++)
+	{
+		// Transform corner coordinates
+		p1 = sub_xy(corner[i], p);
+
+		// Calculate weight for each subtriangle
+		weight += calc_sharp_subtriangle_pixel_weight(p0, p1);
+		p0 = p1;
+	}
+
+	return weight;
+}

@@ -43,14 +43,14 @@ float calc_right_triangle_pixel_weight(float2 rp)
 
 float calc_subtriangle_pixel_weight(float2 p0, float2 p1)
 {
-	float2 rot, r0, r1, np;
+	float2 rot, r0, r1;
 	float weight;
 
 	// Rotate points
 	rot = fast_normalize(p1 - p0);
 	r0.x = rot.x*p0.y - rot.y*p0.x;
 	r0.y = rot.x*p0.x + rot.y*p0.y;
-	r1.x = rot.x*p1.y - rot.y*p1.x;
+	r1.x = r0.x;
 	r1.y = rot.x*p1.x + rot.y*p1.y;
 
 	// Calc weights
