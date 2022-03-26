@@ -20,6 +20,7 @@ void window_run(window_manager_entry_t *w)
 				return;
 	}
 
+	// Set the globals (parent area, wind_on and data)
 	cur_parent_area = w->parent_area;
 	if (w->wind_on)
 		if (*w->wind_on==1 && w->newly_registered)
@@ -27,6 +28,7 @@ void window_run(window_manager_entry_t *w)
 	cur_wind_on = w->wind_on;
 	cur_window_data = w->window_data;
 
+	// Run the window function
 	switch (w->ptr_count)
 	{
 			case 0:	((void (*)())f)();
@@ -41,7 +43,11 @@ void window_run(window_manager_entry_t *w)
 		break;	default: fprintf_rl(stderr, "In window_run(): Unsupported number of pointers (%d)\n", w->ptr_count);
 	}
 
+	// Update the flags
 	w->already_ran = 1;
+	if (w->wind_on)
+		if (*w->wind_on==2 && w->newly_registered)
+			*w->wind_on = 1;
 
 	// Run all undetached children
 	int i;

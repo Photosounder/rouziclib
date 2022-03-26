@@ -1,5 +1,5 @@
 #ifdef _WIN32
-char *open_file_dialog(char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif;*.tiff\1"
+char *open_file_dialog(const char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif;*.tiff\1"
 {
 	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;
 	OPENFILENAMEW ofn={0};
@@ -35,7 +35,7 @@ char *open_file_dialog(char *filter)		// the filter must use \1 instead of \0 as
 	return NULL;
 }
 
-char *save_file_dialog(char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif\1"
+char *save_file_dialog(const char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif\1"
 {
 	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;
 	OPENFILENAMEW ofn={0};
@@ -75,13 +75,13 @@ char *save_file_dialog(char *filter)		// the filter must use \1 instead of \0 as
 
 #ifndef _WIN32
 #ifndef __APPLE__
-char *open_file_dialog(char *filter)
+char *open_file_dialog(const char *filter)
 {
 	fprintf_rl(stderr, "open_file_dialog() not implemented on this platform\n");
 	return NULL;
 }
 
-char *save_file_dialog(char *filter)
+char *save_file_dialog(const char *filter)
 {
 	fprintf_rl(stderr, "save_file_dialog() not implemented on this platform\n");
 	return NULL;

@@ -43,10 +43,6 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 		if (*diag_on!=1 || w->init==0)
 			fit_sublayout_into_area(*parent_area, layout, id, w->parent_fit_offset, 1);
 
-	if (diag_on)
-		if (*diag_on == 2)
-			*diag_on = 1;
-
 	w->init = 1;
 
 	//**** Background, title bar and resizing logic ****
