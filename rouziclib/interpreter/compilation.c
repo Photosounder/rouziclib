@@ -393,7 +393,7 @@ int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed
 		}
 		else
 		{
-			bufprintf(ed->comp_log, "Argument missing (%d arguments expected) in line %d: '%s'\n", strlen(cmd_arg_type)-1, il, line[il]);
+			bufprintf(ed->comp_log, "Argument missing (%d arguments expected) in line %d: '%s'\n", strlen(cmd_arg_type)-(cmd_arg_type[0]=='f'), il, line[il]);
 			return -1;
 		}
 	}

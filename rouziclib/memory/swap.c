@@ -1,3 +1,11 @@
+void swap_float(float *a, float *b)
+{
+	float c = *a;
+
+	*a = *b;
+	*b = c;
+}
+
 void swap_double(double *a, double *b)
 {
 	double c = *a;

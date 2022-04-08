@@ -182,6 +182,7 @@ extern double rlip_builtin_rand01(int64_t pos);
 	{"max", max_tefunc, "fddd"},			\
 	{"clamp", clamp_tefunc, "fdd"},			\
 	{"rangelimit", rangelimit, "fdddd"},		\
+	{"rangewrap", rangewrap, "fdddd"},		\
 	{"mix", mix, "fdddd"},				\
 	{"sign", sign_tefunc, "fdd"},			\
 	{"trunc", trunc, "fdd"},			\
