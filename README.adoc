@@ -269,6 +269,9 @@ Colour operations, inversion, HSL conversions, channel access, out-of-gamut desa
 ** link:rouziclib/graphics/blending.c[blending.c] / link:rouziclib/graphics/blending.h[blending.h] and link:rouziclib/graphics/blending_struct.h[blending_struct.h] +
 Pixel blending functions.
 
+** link:rouziclib/graphics/flattop_interpolation.c[flattop_interpolation.c] / link:rouziclib/graphics/flattop_interpolation.h[flattop_interpolation.h] +
+Functions used for flat-top filtering/interpolation of images.
+
 ** link:rouziclib/graphics/blit.c[blit.c] / link:rouziclib/graphics/blit.h[blit.h] +
 Image blitting with no scaling, flat-top filtering or bilinear interpolation and rotation.
 

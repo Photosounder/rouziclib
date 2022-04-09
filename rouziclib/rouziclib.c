@@ -60,6 +60,7 @@
 #include "graphics/yuv.c"
 #include "graphics/colour.c"
 #include "graphics/blending.c"
+#include "graphics/flattop_interpolation.c"
 #include "graphics/blit.c"
 #include "graphics/drawline.c"
 #include "graphics/drawrect.c"

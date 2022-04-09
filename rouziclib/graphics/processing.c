@@ -157,73 +157,39 @@ float *get_pixel_address_2d(void *ptr, xyi_t dim, xyi_t ip, int channels)
 
 void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const int channels, xy_t pscale, xy_t pos, float * (*get_pix_f)(void*,xyi_t,xyi_t,int))
 {
-	int32_t ic;
-	xyi_t ip, jp, start, stop, jstart, jstop;
+	int ic;
 	float *dst_p, *src_p, sumf[4];
-	xy_t p0, p1, pin, kr0, ikr0, kr1, ipscale = inv_xy(pscale), iw;
-	int32_t nsx, nsy;	// number of samples to get
-	double iw_xy;
-	interp_param_t param_x, param_y;
+	double interp_weight;
+	flattop_param_t param={0}, *p = &param;
 
 	if (dst==NULL || src==NULL || channels > 4)
 		return ;
 
-	kr1 = set_xy(1.0);
-	kr0 = kr1;				// kernel radiuses at the unscaled level
-	if (pscale.x < 1.)
-		kr0.x *= ipscale.x;
+	param = flattop_init_param(dst_dim, src_dim, pscale, pos);
 
-	if (pscale.y < 1.)
-		kr0.y *= ipscale.y;
-
-	ikr0 = inv_xy(kr0);			// ikr0 = ]0 , 1]
-
-	param_x = calc_interp_param_modlin(ikr0.x);
-	param_y = calc_interp_param_modlin(ikr0.y);
-
-	nsx = kr0.x * 2.;			// number of input samples necessary for each pixel
-	nsy = kr0.y * 2.;
-
-	// find start and stop indices
-	p0 = mad_xy(pscale, neg_xy(kr1), pos);
-	p1 = mad_xy(pscale, add_xy(kr1, xy(src_dim.x-1, src_dim.y-1)), pos);
-
-	start.x = MAXN(0, floor(MINN(p0.x, p1.x)));
-	start.y = MAXN(0, floor(MINN(p0.y, p1.y)));
-	stop.x = MINN(dst_dim.x, ceil(MAXN(p0.x, p1.x)+1));	// not sure about the logic of the +1 but it works
-	stop.y = MINN(dst_dim.y, ceil(MAXN(p0.y, p1.y)+1));
-
-	for (ip.y=start.y; ip.y<stop.y; ip.y++)
+	for (p->ip.y = p->start.y; p->ip.y < p->stop.y; p->ip.y++)
 	{
-		pin.y = ((double) ip.y - pos.y) * ipscale.y;
-		jstart.y = floor(pin.y - kr0.y)+1;		if (jstart.y < 0) jstart.y = 0;
-		jstop.y = ceil(pin.y + kr0.y);			if (jstop.y > src_dim.y) jstop.y = src_dim.y;
-
-		for (ip.x=start.x; ip.x<stop.x; ip.x++)
+		for (p->ip.x = p->start.x; p->ip.x < p->stop.x; p->ip.x++)
 		{
-			pin.x = ((double) ip.x - pos.x) * ipscale.x;
-			jstart.x = floor(pin.x - kr0.x)+1;	if (jstart.x < 0) jstart.x = 0;
-			jstop.x = ceil(pin.x + kr0.x);		if (jstop.x > src_dim.x) jstop.x = src_dim.x;
-			//jstop.x = jstart.x + nsx;	if (jstop.x > src_dim.x) jstop.x = src_dim.x;
+			flattop_calc_j_bounds(p, pos);
 
 			memset(sumf, 0, channels*sizeof(float));		// blank the new sum pixel
 
-			for (jp.y=jstart.y; jp.y<jstop.y; jp.y++)
+			for (p->jp.y = p->jstart.y; p->jp.y < p->jstop.y; p->jp.y++)
 			{
-				iw.y = param_y.func((double) jp.y - pin.y, ikr0.y, param_y);
+				flattop_calc_weight_y(p);
 
-				for (jp.x=jstart.x; jp.x<jstop.x; jp.x++)
+				for (p->jp.x = p->jstart.x; p->jp.x < p->jstop.x; p->jp.x++)
 				{
-					iw.x = param_x.func((double) jp.x - pin.x, ikr0.x, param_x);
-					iw_xy = iw.x * iw.y;			// interpolation weight
+					interp_weight = flattop_calc_weight(p);
 
-					src_p = get_pix_f(src, src_dim, jp, channels);	// get the pixel pointer
+					src_p = get_pix_f(src, src_dim, p->jp, channels);	// get the pixel pointer
 					for (ic=0; ic<channels; ic++)
-						sumf[ic] += src_p[ic] * iw_xy;
+						sumf[ic] += src_p[ic] * interp_weight;
 				}
 			}
 
-			dst_p = get_pix_f(dst, dst_dim, ip, channels);	// get the pixel pointer
+			dst_p = get_pix_f(dst, dst_dim, p->ip, channels);	// get the pixel pointer
 			for (ic=0; ic<channels; ic++)
 				dst_p[ic] += sumf[ic];
 		}

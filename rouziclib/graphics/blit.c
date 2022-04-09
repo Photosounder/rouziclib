@@ -105,65 +105,6 @@ void blit_layout(raster_t r)
 	}
 }
 
-double blit_scale_func_linear(double x, double unit_inv, interp_param_t p)
-{
-	uint64_t *xp = (uint64_t *) &x;
-
-	*xp &= 0x7FFFFFFFFFFFFFFF;	// fabs() equivalent
-	x *= unit_inv;
-
-	return (1. - x) * unit_inv;
-	//return (0.5+0.5*cos(pi*x)) * unit_inv;
-}
-
-double blit_scale_func_modlin(double x, double unit_inv, interp_param_t p)
-{
-	uint64_t *xp = (uint64_t *) &x;
-
-	*xp &= 0x7FFFFFFFFFFFFFFF;	// fabs() equivalent
-
-	if (x < p.knee)
-		return p.top;
-	else
-		return p.c1*x + p.c0;
-}
-
-interp_param_t calc_interp_param_modlin(double n)
-{
-	interp_param_t p;
-	double m, trough, ni = 1./n;	// n = ]0 , 1], ni >= 1
-
-	if (ni == floor(ni))				// if ni is an integer like 1.0, 2.0, 3.0...
-		p.func = blit_scale_func_linear;	// this means regular linear filtering should be used
-	else
-		p.func = blit_scale_func_modlin;	// this means my modified filtering should be used
-
-	p.knee = 0.5 - fabs(fmod(ni, 1.) - 0.5);	// Knee position = [0 , 0.5]
-
-	m = floor(ni+0.5);			// mid-point of the current trough segment
-	trough = 2.*m - n*m*m;			// uncorrected trough height
-	trough = (1. - p.knee*n) / trough;	// corrected
-
-	p.top = trough;
-	p.c1 = -trough / (ni-p.knee);
-	p.c0 = -p.c1 * ni;			// this gives a 0 intercept at ni
-
-	return p;
-}
-
-double calc_flattop_slope(double n)
-{
-	double knee, midpoint, trough, top, slope;
-
-	knee = 0.5 - fabs(fmod(n, 1.) - 0.5);		// the knee position ping pongs within [0 , 0.5] depending on n
-	midpoint = floor(n+0.5);			// the mid-point of the current trough segment
-	trough = 2.*midpoint - midpoint*midpoint/n;	// the height of the trough
-	top = (1. - knee/n) / trough;			// the height of the flat top
-	slope = -top / (n-knee);			// and the most important, the slope
-
-	return slope;
-}
-
 void blit_scale_nearest(raster_t r, xy_t pos, xy_t ipscale, xyi_t start, xyi_t stop)
 {
 	int32_t ix, iy, biyw;

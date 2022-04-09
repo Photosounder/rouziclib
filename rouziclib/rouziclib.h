@@ -128,6 +128,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "graphics/yuv.h"
 #include "graphics/colour.h"
 #include "graphics/blending.h"
+#include "graphics/flattop_interpolation.h"
 #include "graphics/blit.h"
 #include "graphics/drawline.h"
 #include "graphics/drawrect.h"
