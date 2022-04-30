@@ -184,13 +184,13 @@ void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const 
 					interp_weight = flattop_calc_weight(p);
 
 					src_p = get_pix_f(src, src_dim, p->jp, channels);	// get the pixel pointer
-					for (ic=0; ic<channels; ic++)
+					for (ic=0; ic < channels; ic++)
 						sumf[ic] += src_p[ic] * interp_weight;
 				}
 			}
 
 			dst_p = get_pix_f(dst, dst_dim, p->ip, channels);	// get the pixel pointer
-			for (ic=0; ic<channels; ic++)
+			for (ic=0; ic < channels; ic++)
 				dst_p[ic] += sumf[ic];
 		}
 	}

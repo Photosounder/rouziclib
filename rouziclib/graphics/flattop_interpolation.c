@@ -83,7 +83,7 @@ flattop_param_t flattop_init_param(xyi_t dst_dim, xyi_t src_dim, xy_t pscale, xy
 	p0 = mad_xy(pscale, neg_xy(p->kr1), pos);
 	p1 = mad_xy(pscale, add_xy(p->kr1, xy(src_dim.x-1, src_dim.y-1)), pos);
 
-	p->start = max_xyi(XYI0, xy_to_xyi(min_xy(p0, p1)));
+	p->start = max_xyi(XYI0, xy_to_xyi(floor_xy(min_xy(p0, p1))));
 	p->stop = min_xyi(dst_dim, add_xyi(XYI1, xy_to_xyi(ceil_xy(max_xy(p0, p1)))));
 
 	return param;
@@ -95,7 +95,7 @@ void flattop_calc_j_bounds(flattop_param_t *p, xy_t pos)
 	p->pin = mul_xy(sub_xy(xyi_to_xy(p->ip), pos), p->ipscale);
 
 	// Start and end for sampling in the source image
-	p->jstart = max_xyi(XYI0, add_xyi(xy_to_xyi(sub_xy(p->pin, p->kr0)), XYI1));
+	p->jstart = max_xyi(XYI0, add_xyi(xy_to_xyi(floor_xy(sub_xy(p->pin, p->kr0))), XYI1));
 	p->jstop = min_xyi(p->src_dim, xy_to_xyi(ceil_xy(add_xy(p->pin, p->kr0))));
 }
 
