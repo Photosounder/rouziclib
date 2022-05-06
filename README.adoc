@@ -61,7 +61,7 @@ extern "C" {
 #define fprintf_rl fprintf_wrapper
 #include <stdio.h>
 #include <stdarg.h>
-extern void fprintf_wrapper (FILE *stream, const char* format, ...);
+extern void fprintf_wrapper(FILE *stream, const char* format, ...);
 
 #include <rouziclib/rouziclib.h>
 
@@ -79,16 +79,16 @@ rl.c
 
 // this creates that custom printing function that all calls to fprintf_rl in rouziclib will use
 
-void fprintf_wrapper (FILE *stream, const char* format, ...)
+void fprintf_wrapper(FILE *stream, const char* format, ...)
 {
     va_list args;
 
-    va_start (args, format);
+    va_start(args, format);
 
-    vfprintf (stream, format, args);    // printf to original stream
-    fflush (stream);
+    vfprintf(stream, format, args);    // printf to original stream
+    fflush(stream);
 
-    va_end (args);
+    va_end(args);
 }
 
 #include <rouziclib/rouziclib.c>
@@ -225,9 +225,6 @@ Polynomial evaluation (1D and 2D), error calculation for approximations, coeffic
 
 ** link:rouziclib/math/polynomials_mpfr.c[polynomials_mpfr.c] / link:rouziclib/math/polynomials_mpfr.h[polynomials_mpfr.h] +
 MPFR-based versions of the functions of link:rouziclib/math/polynomials.c[polynomials.c] for fitting and evaluating polynomials at high arbitrary precisions, usually for the purpose of generating lookup tables.
-
-** link:rouziclib/math/erf_radlim.c[erf_radlim.c] / link:rouziclib/math/erf_radlim.h[erf_radlim.h] +
-Part of my attempts at directly computing Gaussian-antialiased triangles.
 
 * link:rouziclib/approximations[approximations/]
 

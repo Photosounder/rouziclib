@@ -46,7 +46,6 @@
 #include "math/debug.c"
 #include "math/polynomials.c"
 #include "math/polynomials_mpfr.c"
-#include "math/erf_radlim.c"
 #include "approximations/fixed_point.c"
 #include "approximations/fast_float.c"
 #include "approximations/fast_cos.c"
