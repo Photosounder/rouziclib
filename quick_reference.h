@@ -1,3 +1,68 @@
+//**** Macros ****
+	// Macros you can define in your rl.h before including rouziclib.h
+
+#define COL_FRGB
+	// Makes col_t be frgb_t rather than lrgb_t. Needed if not using the LRGB graphics system
+
+#define LRGB_NODITHER
+	// Used when using the LRGB graphics system to disable dithering
+
+#define LBD 12
+	// Sets the bit depth for the LRGB graphics system. Should be between 12 and 15, 15 is the default when this is not defined.
+
+#define GAUSSLIMIT 0.001
+	// Intensity limit for drawing Gaussian drawing functions. Can be set if you want better quality or more trimmed Gaussians for speed. Default is 0.0002.
+
+#define GAUSSRAD_HQ 3.
+	// Drawing radius limit for other Gaussian drawing functions. Can be set if you want better quality or more trimmed Gaussians for speed. Default is 4.
+
+#define RL_INCL_UNICODE_DATA_MINI
+#define RL_INCL_VECTOR_TYPE_FILEBALL
+	// Needed for vector font displaying used in the GUI system
+
+#define RL_INCL_UNICODE_DATA
+	// Includes more detailed Unicode data for each Unicode character, which takes more room
+
+#define RL_SDL
+#define RL_OPENCL
+#define RL_OPENCL_GL
+#define RL_BUILTIN_GLEW
+	// Includes the parts of rouziclib that use SDL2, OpenCL, the OpenCL-OpenGL interop and my cut-down version of GLEW for using OpenGL
+
+#define RL_EXCL_APPROX
+	// Excludes the approximation functions that use lookup tables
+
+#define RL_GDI32
+	// Includes Windows code for taking screenshots. Needs linking to gdi32.lib
+
+#define RL_CRASHDUMP
+	// Includes the Windows code for producing a crash dump
+
+#define RL_INCL_NETWORK
+	// Includes network socket code
+
+#define RL_MPFR
+#define RL_OPENCL
+#define RL_VULKAN
+#define RL_CLFFT
+#define RL_FFMPEG
+#define RL_OPENCV
+#define RL_DEVIL
+#define RL_LIBSNDFILE
+#define RL_LIBRAW
+#define RL_LIBJPEG
+#define RL_LIBCURL is defined
+#define RL_MINIAUDIO is defined
+#define RL_OPENAL is defined
+	// Include various libraries and the code that use them. MiniAudio is already part of rouziclib but is excluded by default due to code size.
+
+#define RL_ZLIB
+	// Includes Zlib. If not defined then Miniz is used instead
+
+#define RL_EXCL_FFTPACK is defined
+#define RL_EXCL_CFFTPACK is defined
+	// Excludes FFT code due to size
+
 //**** Colour ****
 
 	// Make HSL colour
