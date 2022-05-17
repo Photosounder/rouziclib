@@ -218,22 +218,23 @@ void convert_lrgb_to_srgb(int mode)
 		{
 			p = fb.r.l[i];
 
-			#ifdef _DEBUG
+			/*#ifdef _DEBUG
 			if (p.r > ONE)
 				p.r = (rand()&1) << LBD;	// reveals out of range pixels
 			if (p.g > ONE)
 				p.g = (rand()&1) << LBD;
 			if (p.b > ONE)
 				p.b = (rand()&1) << LBD;
-			#endif
+			#endif*/
 
 			dith_on = p.r+p.g+p.b >= black_threshold;	// 0 if the pixel is black, 1 otherwise
 			dither = dither_l.lutint[id] * dith_on;
-			ps.r = bytecheck_l.lutb[lsrgb_l.lutint[p.r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
+			ps.b = bytecheck_l.lutb[lsrgb_l.lutint[p.r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
 			ps.g = bytecheck_l.lutb[lsrgb_l.lutint[p.g] + dither >> 5];
-			ps.b = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
+			ps.r = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
 
-			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
+			//fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
+			fb.r.srgb[i] = ps;
 
 			id = (id+1) & 0x3FFF;
 
@@ -250,10 +251,11 @@ void convert_lrgb_to_srgb(int mode)
 		{
 			p = fb.r.l[i];
 
-			ps.r = lsrgb_l.lutint[p.r] >> 5;
+			ps.b = lsrgb_l.lutint[p.r] >> 5;
 			ps.g = lsrgb_l.lutint[p.g] >> 5;
-			ps.b = lsrgb_l.lutint[p.b] >> 5;
-			fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
+			ps.r = lsrgb_l.lutint[p.b] >> 5;
+			//fb.r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
+			fb.r.srgb[i] = ps;
 		}
 	}
 }
