@@ -16,6 +16,9 @@
 #define GAUSSRAD_HQ 3.
 	// Drawing radius limit for other Gaussian drawing functions. Can be set if you want better quality or more trimmed Gaussians for speed. Default is 4.
 
+#define DQS_THREADS 8
+	// Number of CPU threads for software rendering of drawing queues (a sort of non-OpenCL fallback for the OpenCL drawing queue graphics system). Default is 1, a good value is ~8.
+
 #define RL_INCL_UNICODE_DATA_MINI
 #define RL_INCL_VECTOR_TYPE_FILEBALL
 	// Needed for vector font displaying used in the GUI system
