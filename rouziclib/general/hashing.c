@@ -1,4 +1,4 @@
-#include "../libraries/orig/xxh64.c"
+#include "../libraries/xxh64.c"
 
 uint64_t get_pointer_hash(const void *ptr)
 {
