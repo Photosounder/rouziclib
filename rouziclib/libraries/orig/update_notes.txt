@@ -38,25 +38,24 @@ stb_image_write:
 
 stb_vorbis:
 	https://github.com/nothings/stb/blob/master/stb_vorbis.c
-	v1.19, Feb 5, 2020
+	v1.22, Jul 12, 2021
 	comment out the line that says '#define alloca __builtin_alloca'
 
 minimp3:
 	https://github.com/lieff/minimp3/blob/master/minimp3.h
-	Feb 12, 2020
+	Jul 31, 2021
 
 dr_flac:
 	https://github.com/mackron/dr_libs/blob/master/dr_flac.h
-	Jan 30, 2020
-	when updating delete the whole drflac__fopen() function
+	Apr 10, 2022
 
 thread.h:
-	https://github.com/mattiasgustavsson/libs/blob/master/thread.h
+	https://github.com/mattiasgustavsson/libs/blob/main/thread.h
 	v0.3, Nov 28, 2017
 	in thread_create() we need a #ifdef _MSC_VER to keep MinGW happy with __try and __except
 	:%s/\<thread_create\>/th_thread_create/g
 
-tinyexpr:
+tinyexpr (not really needed anymore):
 	https://github.com/codeplea/tinyexpr/tree/logic
 	Jul 10, 2018
 	only download tinyexpr.[ch]
@@ -64,15 +63,12 @@ tinyexpr:
 
 xxhash:
 	https://github.com/Cyan4973/xxHash/blob/dev/xxhash.h
-	https://github.com/Cyan4973/xxHash/blob/dev/xxh3.h
-	Fed 13, 2020
+	May 4, 2022
 
 miniz:
 	https://github.com/richgel999/miniz/releases
-	release 2.0.8, Sep 19, 2018
-	only download miniz.[ch], the versions found in miniz-2.0.x.zip
-	put #ifndef MINIZ_USE_UNALIGNED_LOADS_AND_STORES in miniz.h before the
-	line #if MINIZ_X86_OR_X64_CPU, and of course add the appropriate #endif
+	release 2.2.0, Jun 27, 2021
+	only download miniz.[ch], the versions found in miniz-2.x.x.zip
 
 miniaudio:
 	https://github.com/mackron/miniaudio/blob/dev/miniaudio.h
