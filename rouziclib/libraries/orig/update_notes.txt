@@ -61,10 +61,6 @@ tinyexpr (not really needed anymore):
 	only download tinyexpr.[ch]
 	in tinyexpr.c replace 'te_fun2 t = s->function;' lines with 'const void *t = s->function;'
 
-xxhash:
-	https://github.com/Cyan4973/xxHash/blob/dev/xxhash.h
-	May 4, 2022
-
 miniz:
 	https://github.com/richgel999/miniz/releases
 	release 2.2.0, Jun 27, 2021

@@ -1,3 +1,5 @@
+#include "../libraries/orig/xxh64.c"
+
 uint64_t get_pointer_hash(const void *ptr)
 {
 	return XXH64(&ptr, sizeof(void *), 0);

@@ -124,7 +124,7 @@ Processing SDL keyboard events to update arrays of flags while avoiding missing 
 Functions that do nothing and say so when that's needed.
 
 ** link:rouziclib/general/hashing.c[hashing.c] / link:rouziclib/general/hashing.h[hashing.h] +
-Functions for hashing using https://github.com/Cyan4973/xxHash/[xxHash].
+Functions for hashing based on https://github.com/Cyan4973/xxHash/[xxHash]. I didn't like how big and complicated the original code was so I made a much smaller, simpler and more readable version in link:rouziclib/libraries/orig/xxh64.c[xxh64.c].
 
 ** link:rouziclib/general/threading.c[threading.c] / link:rouziclib/general/threading.h[threading.h] +
 Multiplatform threading, mainly wrappers for https://github.com/mattiasgustavsson/libs/blob/main/thread.h[thread.h].
