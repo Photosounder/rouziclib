@@ -3,10 +3,10 @@
 
 typedef struct
 {
-	uint64_t total_len;    // Total length hashed
-	uint64_t v[4];         // Accumulator lanes
-	uint8_t buf[32];     // Internal buffer for partial reads
-	uint32_t bufsize;      // Amount of data in buf
+	uint64_t total_len;	// Total length hashed
+	uint64_t v[4];		// Accumulator lanes
+	uint8_t buf[32];	// Internal buffer for partial reads
+	uint32_t bufsize;	// Amount of data in buf
 } XXH64_state_t;
 
 #define XXH_PRIME64_1	0x9E3779B185EBCA87ULL
@@ -25,7 +25,7 @@ uint64_t XXH64_round(uint64_t acc, uint64_t input)
 
 uint64_t XXH64_mergeRound(uint64_t acc, uint64_t val)
 {
-	val  = XXH64_round(0, val);
+	val = XXH64_round(0, val);
 	acc ^= val;
 	return acc * XXH_PRIME64_1 + XXH_PRIME64_4;
 }
@@ -139,7 +139,7 @@ uint64_t XXH64_digest(const XXH64_state_t *s)
 		hash = XXH64_mergeRound(hash, s->v[3]);
 	}
 	else
-		hash  = s->v[2] + XXH_PRIME64_5;
+		hash = s->v[2] + XXH_PRIME64_5;
 
 	hash += s->total_len;
 

@@ -19,6 +19,9 @@
 #define DQS_THREADS 8
 	// Number of CPU threads for software rendering of drawing queues (a sort of non-OpenCL fallback for the OpenCL drawing queue graphics system). Default is 1, a good value is ~8.
 
+#define RL_DONT_ASSUME_LITTLE_ENDIAN
+	// If not defined then endianness-sensitive code asssumes little endianness. Definining RL_DONT_ASSUME_LITTLE_ENDIAN makes all code work properly if ever executed in big endian.
+
 #define RL_INCL_UNICODE_DATA_MINI
 #define RL_INCL_VECTOR_TYPE_FILEBALL
 	// Needed for vector font displaying used in the GUI system
