@@ -71,7 +71,7 @@ uint64_t fread_LE64(FILE *file)
 	b0 = fread_LE32(file);
 	b1 = fread_LE32(file);
 
-	return (uint64_t) (b1<<32) | b0;
+	return ((uint64_t) b1<<32) | b0;
 #endif
 }
 

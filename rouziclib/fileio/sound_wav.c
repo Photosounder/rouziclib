@@ -3,7 +3,7 @@ float *load_sound_wav_mem(const uint8_t *data, size_t data_len, size_t *sample_c
 	const uint8_t *p, *chunk;
 	int bit_depth=0, byte_depth=0, compression=0;
 	size_t i, full_count=0, chunk_size;
-	float *output, vol;
+	float *output=NULL, vol;
 	int32_t (*func_read)(const uint8_t *, size_t *) = read_byte8s_offset;
 
 	// Advance to first chunk

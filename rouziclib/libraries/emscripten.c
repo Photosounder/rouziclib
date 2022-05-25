@@ -89,7 +89,7 @@ void em_fit_canvas_to_innerwindow()
 	if (fb.fullscreen_on)
 		return ;
 
-	SDL_SetWindowSize(fb.window, MINN(fb.maxdim.x, EM_ASM_INT(return window.innerWidth;)), MINN(fb.maxdim.y, EM_ASM_INT(return window.innerHeight;)));
+	SDL_SetWindowSize(fb.window, MINN(fb.maxdim.x, EM_ASM_INT((return window.innerWidth;))), MINN(fb.maxdim.y, EM_ASM_INT((return window.innerHeight;))));
 	sdl_handle_window_resize(&zc);
 }
 

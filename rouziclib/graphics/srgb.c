@@ -429,7 +429,7 @@ void convert_frgb_to_lrgb()
 {
 	int32_t i, pixc = fb.w*fb.h*4;
 	const float offset = (float) (1UL << 23-LBD);		// 23 (mantissa) - 15 (fractional bits of the result) = 8 (offset)
-	float *pf, v;
+	float *pf, v=0.f;
 	uint16_t *pl;
 	uint32_t *vint = (uint32_t *) &v;
 
@@ -450,7 +450,7 @@ void convert_frgb_to_lrgb_ratio(const float ratio)
 {
 	int32_t i, pixc = fb.w*fb.h*4;
 	const float offset = (float) (1UL << 23-LBD);		// 23 (mantissa) - 15 (fractional bits of the result) = 8 (offset)
-	float *pf, v;
+	float *pf, v=0.f;
 	uint16_t *pl;
 	uint32_t *vint = (uint32_t *) &v;
 

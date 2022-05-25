@@ -114,7 +114,10 @@ uint8_t *load_raw_file_dos_conv(const char *path, size_t *size)	// loads raw fil
 
 	fclose(in_file);
 
-	data = realloc(data, fsize-offset+1);
+	uint8_t *ra = realloc(data, fsize-offset+1);
+	if (ra)
+		data = ra;
+
 
 	if (size)
 		*size = fsize - offset;

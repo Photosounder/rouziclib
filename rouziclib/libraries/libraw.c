@@ -25,7 +25,7 @@ raster_t load_raw_thumb(libraw_data_t *rd)
 {
 	int ret;
 	libraw_processed_image_t *proc_image;
-	raster_t r;
+	raster_t r={0};
 
 	ret = libraw_unpack_thumb(rd);
 	if (ret)

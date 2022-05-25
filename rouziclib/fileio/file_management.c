@@ -136,7 +136,7 @@ int remove_empty_dir(const char *path)
 
 int remove_every_file(const char *path)		// returns 0 if successful on every single file
 {
-	int i, ret;
+	int i, ret=0;
 	fs_dir_t dir;
 	char ffp[PATH_MAX*4];
 
@@ -155,7 +155,7 @@ int remove_every_file(const char *path)		// returns 0 if successful on every sin
 
 int remove_dir(const char *path)
 {
-	int i, ret;
+	int i, ret=0;
 	fs_dir_t dir;
 	char ffp[PATH_MAX*4];
 

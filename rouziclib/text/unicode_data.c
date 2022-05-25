@@ -64,7 +64,7 @@ unicode_data_t *load_unicode_data_from_file(uint8_t *ucd_path, int16_t **codepoi
 	(*codepoint_lut) = calloc (0x110000, sizeof(int16_t));
 
 	ic = 0;
-	while (fgets(line, 512, udf))
+	while (fgets(line, sizeof(line), udf))
 	{
 		// Field 0: Code point
 		if (string_get_field(line, ";", 0, a))
