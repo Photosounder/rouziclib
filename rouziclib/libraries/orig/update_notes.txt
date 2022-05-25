@@ -68,4 +68,4 @@ miniz:
 
 miniaudio:
 	https://github.com/mackron/miniaudio/blob/dev/miniaudio.h
-	Version 0.10.34, Apr 20, 2021
+	v0.11.9, Apr 20, 2022
