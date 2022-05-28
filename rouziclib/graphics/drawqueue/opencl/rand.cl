@@ -1,9 +1,9 @@
 uint rand_xsm32(uint x)
 {
+	x ^= x >> 16;
+	x *= 0x21f0aaadu;
 	x ^= x >> 15;
-	x *= 0xd168aaadu;
-	x ^= x >> 15;
-	x *= 0xaf723597u;
+	x *= 0x735a2d97u;
 	x ^= x >> 15;
 	return x;
 }

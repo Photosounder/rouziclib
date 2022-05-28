@@ -1,13 +1,13 @@
 uint32_t rand_xsm32_state = 1;
 
-// Xorshift-multiply hashing PRNG based on github.com/skeeto/hash-prospector
+// Xorshift-multiply hashing PRNG based on github.com/skeeto/hash-prospector, github.com/skeeto/hash-prospector/issues/19#issuecomment-1120105785
 uint32_t rand_xsm32(uint32_t x)		// x can be seen as a sequence position
 {
 	//x += 0x3243f6a8u;	// suggested by nullprogram.com/blog/2021/09/14/, avoids 0 -> 0
+	x ^= x >> 16;
+	x *= 0x21f0aaadu;
 	x ^= x >> 15;
-	x *= 0xd168aaadu;
-	x ^= x >> 15;
-	x *= 0xaf723597u;
+	x *= 0x735a2d97u;
 	x ^= x >> 15;
 	return x;
 }
