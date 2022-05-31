@@ -185,7 +185,7 @@ void system_open(const char *path)
 	wchar_t path_w[PATH_MAX*2];
 
 	utf8_to_wchar(path, path_w);
-	ShellExecuteW(NULL, NULL, path_w, NULL, NULL, SW_SHOWNORMAL);	// not using L"open" in the 2nd argument opens with the correct associated program
+	ShellExecuteW(NULL, NULL, path_w, NULL, NULL, 1 /*SW_SHOWNORMAL*/);	// not using L"open" in the 2nd argument opens with the correct associated program
 	#endif
 }
 #endif
@@ -197,6 +197,11 @@ void system_open_url(const char *url)
 	system_open(url);
 	#endif
 }
+#endif
+
+#ifdef _WIN32
+#include <shtypes.h>
+typedef ULONG SFGAOF;
 #endif
 
 void show_file_in_explorerW(const wchar_t *wpath)

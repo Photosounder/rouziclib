@@ -3,10 +3,11 @@
 #define __APPLE__
 #endif
 
+#define THREAD_U64 uint64_t
 #define THREAD_IMPLEMENTATION
 #include "../libraries/orig/thread.h"
 
-int thread_detach(thread_ptr_t thread)
+int thread_detach(rl_thread_t thread)
 {
 	#if defined( _WIN32 )
 
@@ -106,6 +107,12 @@ int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value)
 	#error Unknown platform.
 	#endif
 }
+
+// Wrappers
+void rl_mutex_init   (rl_mutex_t *mutex) { thread_mutex_init((thread_mutex_t *) mutex); }
+void rl_mutex_destroy(rl_mutex_t *mutex) { thread_mutex_term((thread_mutex_t *) mutex); }
+void rl_mutex_lock   (rl_mutex_t *mutex) { thread_mutex_lock((thread_mutex_t *) mutex); }
+void rl_mutex_unlock (rl_mutex_t *mutex) { thread_mutex_unlock((thread_mutex_t *) mutex); }
 
 #ifdef RL_THREADING_PLATFORM_FAKING
 #undef __APPLE__

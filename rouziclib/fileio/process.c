@@ -123,6 +123,24 @@ extern char ***_NSGetArgv(void);
 extern int *_NSGetArgc(void);
 #endif
 
+#ifdef _WIN32
+
+// from ShlObj.h
+#ifndef SHSTDAPI
+#if defined(_SHELL32_)
+#define SHSTDAPI          STDAPI
+#define SHSTDAPI_(type)   STDAPI_(type)
+#else
+#define SHSTDAPI          EXTERN_C DECLSPEC_IMPORT HRESULT STDAPICALLTYPE
+#define SHSTDAPI_(type)   EXTERN_C DECLSPEC_IMPORT type STDAPICALLTYPE
+#endif
+#endif // SHSTDAPI
+
+// from shellapi.h
+SHSTDAPI_(LPWSTR *)  CommandLineToArgvW(_In_ LPCWSTR lpCmdLine, _Out_ int* pNumArgs);
+
+#endif
+
 char **get_argv(int *argc)
 {
 #ifdef _WIN32

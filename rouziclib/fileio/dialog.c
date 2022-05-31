@@ -1,4 +1,6 @@
 #ifdef _WIN32
+#include <commdlg.h>
+
 char *open_file_dialog(const char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif;*.tiff\1"
 {
 	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;

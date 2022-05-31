@@ -137,9 +137,6 @@
 #include "interpreter/decompilation.c"
 #include "interpreter/expression.c"
 
-#include "network/network.c"
-#include "network/http.c"
-
 #include "libraries/opencl.c"
 #include "libraries/sdl.c"
 #include "libraries/vulkan.c"

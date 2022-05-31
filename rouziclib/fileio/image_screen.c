@@ -34,14 +34,14 @@ raster_t take_desktop_screenshot()
 #ifdef _WIN32
 #ifdef RL_GDI32
 	// Capture the primary display
-	int nScreenWidth = GetSystemMetrics(SM_CXSCREEN);
-	int nScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+	int nScreenWidth = GetSystemMetrics(0 /*SM_CXSCREEN*/);
+	int nScreenHeight = GetSystemMetrics(1 /*SM_CYSCREEN*/);
 	HWND hDesktopWnd = GetDesktopWindow();
 	HDC hDesktopDC = GetDC(hDesktopWnd);
 	HDC hCaptureDC = CreateCompatibleDC(hDesktopDC);
 	HBITMAP hCaptureBitmap = CreateCompatibleBitmap(hDesktopDC, nScreenWidth, nScreenHeight);
 	SelectObject(hCaptureDC, hCaptureBitmap);
-	BitBlt(hCaptureDC, 0, 0, nScreenWidth, nScreenHeight, hDesktopDC, 0, 0, SRCCOPY|CAPTUREBLT);	// this does the capture
+	BitBlt(hCaptureDC, 0, 0, nScreenWidth, nScreenHeight, hDesktopDC, 0, 0, (DWORD)0x00CC0020 /*SRCCOPY*/ | (DWORD)0x40000000 /*CAPTUREBLT*/);	// this does the capture
 
 	// Convert the bitmap to a raster
 	r = make_raster(NULL, xyi(nScreenWidth, nScreenHeight), XYI0, IMAGE_USE_SRGB);

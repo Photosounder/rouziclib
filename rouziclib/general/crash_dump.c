@@ -1,5 +1,11 @@
 #ifdef RL_CRASHDUMP
 #ifdef _WIN32
+#include <DbgHelp.h>
+
+#ifdef _MSC_VER
+#pragma comment (lib, "DbgHelp.lib")
+#endif
+
 const char *crashdump_dir_path=NULL;
 
 wchar_t *crashdump_make_dump_path()

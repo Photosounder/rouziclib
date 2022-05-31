@@ -42,10 +42,45 @@ extern "C" {
 #include <limits.h>
 
 #ifdef _WIN32
-#define _WINSOCKAPI_	// prevents Winsock.h / Winsock2.h conflict
+#define WIN32_LEAN_AND_MEAN
+#define __IXMLDOMDocument_INTERFACE_DEFINED__	// exclude this stupid XML garbage which causes problems
+
 #define NOMINMAX	// avoids min/max macros
+
+#define NOGDICAPMASKS
+#define NOVIRTUALKEYCODES
+#define NOWINMESSAGES
+#define NOWINSTYLES
+#define NOSYSMETRICS
+#define NOMENUS
+#define NOICONS
+#define NOKEYSTATES
+#define NOSYSCOMMANDS
+#define NORASTEROPS
+#define NOSHOWWINDOW
+#define OEMRESOURCE
+#define NOATOM
+#define NOCLIPBOARD
+#define NOCOLOR
+#define NODRAWTEXT
+#define NOKERNEL
+#define NOMEMMGR
+#define NOMETAFILE
+#define NOOPENFILE
+#define NOSCROLL
+#define NOSERVICE
+#define NOSOUND
+#define NOTEXTMETRIC
+#define NOWH
+#define NOWINOFFSETS
+#define NOCOMM
+#define NOKANJI
+#define NOHELP
+#define NOPROFILER
+#define NODEFERWINDOWPOS
+#define NOMCX
+
 #include <windows.h>
-#include <shlobj.h>
 #endif
 
 #if defined(_MSC_VER)
@@ -205,10 +240,6 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "interpreter/decompilation.h"
 #include "interpreter/real_functions.h"
 #include "interpreter/expression.h"
-
-// used if RL_INCL_NETWORK is defined
-#include "network/network.h"
-#include "network/http.h"
 
 #include "libraries/opencl.h"		// used if RL_OPENCL is defined
 #include "libraries/sdl.h"		// used if RL_SDL is defined

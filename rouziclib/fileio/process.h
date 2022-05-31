@@ -1,4 +1,6 @@
 #ifdef _WIN32
+#include <processthreadsapi.h>
+
 extern PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags);
 extern PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags, int close_handles);
 extern void wait_process_end(PROCESS_INFORMATION *procinf);

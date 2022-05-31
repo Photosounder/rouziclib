@@ -5,10 +5,18 @@
 #endif
 
 #ifdef _WIN32
-#define WIN32
+ #ifndef WIN32
+  #define WIN32
+  #define TODO_UNDEF_WIN32
+ #endif
 #endif
+
 #include "libraw/libraw.h"
-#undef WIN32
+
+#ifdef TODO_UNDEF_WIN32
+ #undef WIN32
+ #undef TODO_UNDEF_WIN32
+#endif
 
 typedef struct
 {

@@ -249,6 +249,10 @@ void sleep_ms(int ms)
 }
 
 #ifdef _WIN32
+#ifndef _NTDEF_
+typedef _Return_type_success_(return >= 0) LONG NTSTATUS;	// taken from bcrypt.h
+#endif
+
 typedef NTSTATUS (NTAPI *NtDelayExecution_func)(BOOLEAN Alertable, PLARGE_INTEGER DelayInterval);
 NtDelayExecution_func NtDelayExecution;
 typedef NTSTATUS (NTAPI *ZwSetTimerResolution_func)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
