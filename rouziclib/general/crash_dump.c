@@ -1,5 +1,7 @@
 #ifdef RL_CRASHDUMP
 #ifdef _WIN32
+#include <winver.h>
+#include <timezoneapi.h>
 #include <DbgHelp.h>
 
 #ifdef _MSC_VER
@@ -41,7 +43,7 @@ void crashdump_write_minidump(EXCEPTION_POINTERS *exception_ptr)
 
 	MiniDumpWriteDump(GetCurrentProcess(),
 			GetCurrentProcessId(),
-			CreateFileW((LPCWSTR) wpath, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL),
+			CreateFileW((LPCWSTR) wpath, GENERIC_READ | GENERIC_WRITE, 0, NULL, 2 /*CREATE_ALWAYS*/, FILE_ATTRIBUTE_NORMAL, NULL),
 			MiniDumpWithDataSegs,
 			&dump_info,
 			NULL, NULL);

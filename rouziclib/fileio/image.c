@@ -245,8 +245,6 @@ raster_t load_image_from_http_lib(image_load_mem_func_t load_func, char *url, co
 
 	#ifdef RL_LIBCURL
 	data_size = curl_https_get(url, -1, ONE_RETRY, &data, &data_alloc);
-	#else
-	data_size = http_get(url, -1, ONE_RETRY, &data, &data_alloc);
 	#endif
 
 	if (data_size > 0)

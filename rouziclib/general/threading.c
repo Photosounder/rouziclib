@@ -3,6 +3,29 @@
 #define __APPLE__
 #endif
 
+#ifdef _WIN32
+// WinBase.h
+#define INFINITE            0xFFFFFFFF
+#define THREAD_PRIORITY_LOWEST          THREAD_BASE_PRIORITY_MIN
+#define THREAD_PRIORITY_HIGHEST         THREAD_BASE_PRIORITY_MAX
+
+WINBASEAPI
+_Ret_maybenull_
+HANDLE
+WINAPI
+CreateWaitableTimerA(
+    _In_opt_ LPSECURITY_ATTRIBUTES lpTimerAttributes,
+    _In_     BOOL bManualReset,
+    _In_opt_ LPCSTR lpTimerName
+    );
+#ifndef UNICODE
+#define CreateWaitableTimer  CreateWaitableTimerA
+#endif
+
+// winerror.h
+#define ERROR_TIMEOUT                    1460L
+#endif
+
 #define THREAD_U64 uint64_t
 #define THREAD_IMPLEMENTATION
 #include "../libraries/orig/thread.h"

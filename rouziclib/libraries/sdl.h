@@ -6,7 +6,6 @@
 #endif
 
 #include <SDL.h>
-#include <SDL_syswm.h>
 #include <SDL_audio.h>
 #include <SDL_opengl.h>
 

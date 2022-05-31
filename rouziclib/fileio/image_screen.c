@@ -27,6 +27,13 @@ void win_reorder_screenshot_pixels(raster_t r)
 	}
 }
 
+#ifdef _WIN32
+#ifdef RL_GDI32
+#include <wingdi.h>
+#include <WinUser.h>
+#endif
+#endif
+
 raster_t take_desktop_screenshot()
 {
 	raster_t r={0};

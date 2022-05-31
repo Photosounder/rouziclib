@@ -185,6 +185,17 @@ char *extract_file_extension(const char *path, char *ext)
 	return ext;
 }
 
+#ifdef _WIN32
+#ifndef SHFOLDERAPI
+#if defined(_SHFOLDER_) || defined(_SHELL32_)
+#define SHFOLDERAPI           STDAPI
+#else
+#define SHFOLDERAPI           EXTERN_C DECLSPEC_IMPORT HRESULT STDAPICALLTYPE
+#endif
+#endif
+SHFOLDERAPI SHGetFolderPathW(_Reserved_ HWND hwnd, _In_ int csidl, _In_opt_ HANDLE hToken, _In_ DWORD dwFlags, _Out_writes_(MAX_PATH) LPWSTR pszPath);
+#endif
+
 char *win_get_system_folder_path(int csidl)
 {
 	char *path = NULL;

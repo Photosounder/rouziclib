@@ -26,6 +26,10 @@ uint32_t get_time_ms()
 #include <mach/mach_time.h>
 #endif
 
+#ifdef _WIN32
+#include <profileapi.h>
+#endif
+
 double get_time_hr()	// High-resolution timing
 {
 	static double tick_dur = 0.;
@@ -230,6 +234,10 @@ double parse_date_time_string_hr(const char *string)	// expected format is "YYYY
 	return (double) tt + sec;
 }
 
+#ifdef _WIN32
+#include <synchapi.h>
+#endif
+
 void sleep_ms(int ms)
 {
 	#ifdef _WIN32
@@ -257,6 +265,8 @@ typedef NTSTATUS (NTAPI *NtDelayExecution_func)(BOOLEAN Alertable, PLARGE_INTEGE
 NtDelayExecution_func NtDelayExecution;
 typedef NTSTATUS (NTAPI *ZwSetTimerResolution_func)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
 ZwSetTimerResolution_func ZwSetTimerResolution;
+
+#include <libloaderapi.h>
 #endif
 
 void sleep_hr(double t)

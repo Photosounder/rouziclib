@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)	// handleapi.h
 #include "../libraries/dirent.c"
 #endif
 

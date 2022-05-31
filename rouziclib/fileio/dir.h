@@ -2,11 +2,12 @@
 // DIR_CHAR, fs_file_t, fs_dir_t
 
 #ifdef _WIN32
-#include "../libraries/dirent.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
 #endif
+
+#include "../libraries/dirent.h"
 
 #define DIR_CHAR '\\'
 #else

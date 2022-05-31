@@ -41,47 +41,7 @@ extern "C" {
 #include <float.h>
 #include <limits.h>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define __IXMLDOMDocument_INTERFACE_DEFINED__	// exclude this stupid XML garbage which causes problems
-
-#define NOMINMAX	// avoids min/max macros
-
-#define NOGDICAPMASKS
-#define NOVIRTUALKEYCODES
-#define NOWINMESSAGES
-#define NOWINSTYLES
-#define NOSYSMETRICS
-#define NOMENUS
-#define NOICONS
-#define NOKEYSTATES
-#define NOSYSCOMMANDS
-#define NORASTEROPS
-#define NOSHOWWINDOW
-#define OEMRESOURCE
-#define NOATOM
-#define NOCLIPBOARD
-#define NOCOLOR
-#define NODRAWTEXT
-#define NOKERNEL
-#define NOMEMMGR
-#define NOMETAFILE
-#define NOOPENFILE
-#define NOSCROLL
-#define NOSERVICE
-#define NOSOUND
-#define NOTEXTMETRIC
-#define NOWH
-#define NOWINOFFSETS
-#define NOCOMM
-#define NOKANJI
-#define NOHELP
-#define NOPROFILER
-#define NODEFERWINDOWPOS
-#define NOMCX
-
-#include <windows.h>
-#endif
+#include "general/windows_includes.h"
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>

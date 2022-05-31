@@ -178,6 +178,20 @@ int remove_dir(const char *path)
 	return ret;
 }
 
+#ifdef _WIN32
+#ifndef SHSTDAPI
+#if defined(_SHELL32_)
+#define SHSTDAPI          STDAPI
+#define SHSTDAPI_(type)   STDAPI_(type)
+#else
+#define SHSTDAPI          EXTERN_C DECLSPEC_IMPORT HRESULT STDAPICALLTYPE
+#define SHSTDAPI_(type)   EXTERN_C DECLSPEC_IMPORT type STDAPICALLTYPE
+#endif
+#endif // SHSTDAPI
+
+SHSTDAPI_(HINSTANCE) ShellExecuteW(_In_opt_ HWND hwnd, _In_opt_ LPCWSTR lpOperation, _In_ LPCWSTR lpFile, _In_opt_ LPCWSTR lpParameters, _In_opt_ LPCWSTR lpDirectory, _In_ INT nShowCmd);
+#endif
+
 #ifndef __APPLE__
 void system_open(const char *path)
 {
@@ -202,6 +216,9 @@ void system_open_url(const char *url)
 #ifdef _WIN32
 #include <shtypes.h>
 typedef ULONG SFGAOF;
+
+SHSTDAPI SHParseDisplayName(_In_ PCWSTR pszName, _In_opt_ IBindCtx *pbc, _Outptr_ PIDLIST_ABSOLUTE *ppidl, _In_ SFGAOF sfgaoIn, _Out_opt_ SFGAOF *psfgaoOut);
+SHSTDAPI SHOpenFolderAndSelectItems(_In_ PCIDLIST_ABSOLUTE pidlFolder, UINT cidl, _In_reads_opt_(cidl) PCUITEMID_CHILD_ARRAY apidl, DWORD dwFlags);
 #endif
 
 void show_file_in_explorerW(const wchar_t *wpath)

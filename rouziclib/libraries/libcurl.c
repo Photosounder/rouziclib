@@ -1,6 +1,17 @@
 #ifdef RL_LIBCURL
 
-CURLcode curl_global_init_once(long flags)
+#ifdef _WIN32
+typedef UINT_PTR        SOCKET;
+#include <WinSock2.h>
+#endif
+
+#include <curl/curl.h>
+
+#ifdef _MSC_VER
+#pragma comment (lib, "libcurl.dll.a")
+#endif
+
+int curl_global_init_once(long flags)
 {
 	static int init=0;
 

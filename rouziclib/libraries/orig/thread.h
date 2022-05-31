@@ -594,7 +594,7 @@ struct thread_queue_t
     #pragma warning( push )
     #pragma warning( disable: 4668 ) // 'symbol' is not defined as a preprocessor macro, replacing with '0' for 'directives'
     #pragma warning( disable: 4255 )
-    #include <windows.h>
+//    #include <windows.h>
     #pragma warning( pop )
 
     // To set thread name

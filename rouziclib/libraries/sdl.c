@@ -1,5 +1,7 @@
 #ifdef RL_SDL
 
+#include <SDL_syswm.h>
+
 SDL_Rect make_sdl_rect(int x, int y, int w, int h)
 {
 	SDL_Rect rs;
