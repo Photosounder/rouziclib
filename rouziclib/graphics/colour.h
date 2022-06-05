@@ -50,6 +50,7 @@ extern frgb_t make_colour_frgb(const double r, const double g, const double b, c
 extern srgb_t make_colour_srgb_s(int r, int g, int b, int a);
 extern lrgb_t make_colour_srgb_l(int r, int g, int b, int a);
 extern frgb_t make_colour_srgb_f(int r, int g, int b, int a);
+extern srgb_t make_colour_f_srgb(float r, float g, float b, float a);
 extern lrgb_t make_grey_l(double v);
 extern frgb_t make_grey_f(double v);
 extern double frgb_to_grey_level(frgb_t p);

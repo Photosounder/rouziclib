@@ -67,6 +67,18 @@ frgb_t make_colour_srgb_f(int r, int g, int b, int a)
 	return lrgb_to_frgb(make_colour_srgb_l(r, g, b, a));
 }
 
+srgb_t make_colour_f_srgb(float r, float g, float b, float a)
+{
+	srgb_t s;
+
+	s.r = rangelimitf(fast_lsrgbf(r) * 255.f + 0.5f, 0.f, 255.f);
+	s.g = rangelimitf(fast_lsrgbf(g) * 255.f + 0.5f, 0.f, 255.f);
+	s.b = rangelimitf(fast_lsrgbf(b) * 255.f + 0.5f, 0.f, 255.f);
+	s.a = rangelimitf(fast_lsrgbf(a) * 255.f + 0.5f, 0.f, 255.f);
+
+	return s;
+}
+
 lrgb_t make_grey_l(double v)
 {
 	lrgb_t c;

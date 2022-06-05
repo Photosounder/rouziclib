@@ -53,3 +53,5 @@ extern xy_t pos_to_rect_ratio(xy_t pos, rect_t r);
 extern rect_t resize_rect_around_offset(rect_t r, xy_t dim1, xy_t offset);
 extern rect_t rect_boolean_intersection(rect_t a, rect_t b);
 extern recti_t recti_boolean_intersection(recti_t a, recti_t b);
+extern void rect_range_and_dim_to_scale_offset(rect_t range, xyi_t dim, xy_t *r_scale, xy_t *r_offset, int range_edge_is_pix_centre);
+extern void rect_range_and_dim_to_scale_offset_inv(rect_t range, xyi_t dim, xy_t *r_scale, xy_t *r_offset, int range_edge_is_pix_centre);
