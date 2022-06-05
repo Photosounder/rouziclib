@@ -54,6 +54,7 @@ thread.h:
 	v0.3, Nov 28, 2017
 	in thread_create() we need a #ifdef _MSC_VER to keep MinGW happy with __try and __except
 	:%s/\<thread_create\>/th_thread_create/g
+	comment out the '#include <windows.h>' line
 
 tinyexpr (not really needed anymore):
 	https://github.com/codeplea/tinyexpr/tree/logic

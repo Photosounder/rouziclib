@@ -3,7 +3,7 @@ int get_bit_32(const uint32_t word, const int pos)
 	return (word >> pos) & 1;
 }
 
-uint64_t get_bits_in_stream(uint8_t *stream, int64_t start_bit, int bit_count)
+uint64_t get_bits_in_stream(uint8_t *stream, size_t start_bit, int bit_count)
 {
 	uint64_t r=0, b, start_byte, actual_start_bit;
 	int bits_to_read, b_sh;
@@ -35,16 +35,16 @@ uint64_t get_bits_in_stream(uint8_t *stream, int64_t start_bit, int bit_count)
 	return r;
 }
 
-uint64_t get_bits_in_stream_inc(uint8_t *stream, int64_t *start_bit, int bit_count)
+uint64_t get_bits_in_stream_inc(uint8_t *stream, size_t *start_bit, int bit_count)
 {
 	uint64_t r = get_bits_in_stream(stream, *start_bit, bit_count);
 	*start_bit += bit_count;
 	return r;
 }
 
-void set_bits_in_stream(uint8_t *stream, int64_t start_bit, int bit_count, uint64_t b)
+void set_bits_in_stream(uint8_t *stream, size_t start_bit, int bit_count, uint64_t b)
 {
-	int64_t start_byte, actual_start_bit;
+	size_t start_byte, actual_start_bit;
 	int bits_to_write, b_sh;
 	uint8_t mask;
 
@@ -86,7 +86,7 @@ void set_bits_in_stream(uint8_t *stream, int64_t start_bit, int bit_count, uint6
 	}
 }
 
-void set_bits_in_stream_inc(uint8_t *stream, int64_t *start_bit, int bit_count, uint64_t b)
+void set_bits_in_stream_inc(uint8_t *stream, size_t *start_bit, int bit_count, uint64_t b)
 {
 	set_bits_in_stream(stream, *start_bit, bit_count, b);
 	*start_bit += bit_count;
