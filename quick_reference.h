@@ -57,16 +57,16 @@
 #define RL_LIBSNDFILE
 #define RL_LIBRAW
 #define RL_LIBJPEG
-#define RL_LIBCURL is defined
-#define RL_MINIAUDIO is defined
-#define RL_OPENAL is defined
+#define RL_LIBCURL
+#define RL_MINIAUDIO
+#define RL_OPENAL
 	// Include various libraries and the code that use them. MiniAudio is already part of rouziclib but is excluded by default due to code size.
 
 #define RL_ZLIB
 	// Includes Zlib. If not defined then Miniz is used instead
 
-#define RL_EXCL_FFTPACK is defined
-#define RL_EXCL_CFFTPACK is defined
+#define RL_EXCL_FFTPACK
+#define RL_EXCL_CFFTPACK
 	// Excludes FFT code due to size
 
 //**** Colour ****
@@ -626,11 +626,6 @@ void my_window_function(double *arg1, double *arg2)
 	// Atomic equivalent of if (v) v=0;
 		if (rl_atomic_get_and_set(&v, 0))
 
-//**** Network ****
-
-	// Getting a file from HTTP (needs #define RL_INCL_NETWORK and perhaps #define RL_LIBCURL)
-		data_size = http_get("http://www.charbase.com/images/glyph/11910", -1, ONE_RETRY, &data, &data_alloc);
-
 //**** Audio system ****
 
 	// Callback template
@@ -829,8 +824,8 @@ void my_window_function(double *arg1, double *arg2)
 	// Save sound (for debugging purposes) using an OS dialog
 		save_sound_fl32_file(save_file_dialog("WAVE file\1*.wav\1"), snd, sample_count, channels, samplerate, NULL);
 
-	// Print message to SDL message box (for debugging purposes)
-		sdl_box_printf("value = %d", value);
+	// Print message to SDL message box
+		sdl_box_printf("Message box title", "value = %d", value);
 
 	// Show file in Explorer (Windows only for now)
 		show_file_in_explorer(path);

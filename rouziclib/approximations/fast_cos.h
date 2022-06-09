@@ -43,5 +43,7 @@ extern xy_t fastcos_tr_d3_xy(xy_t v);
 #define fastsin_tr_d3	sin_tr
 #define fastsin_tr_d4	sin_tr
 #define fastsin_tr_d5	sin_tr
+#define fastcosf_d2	cosf
+#define fastsinf_d2	sinf
 
 #endif
