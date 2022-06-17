@@ -173,7 +173,7 @@ Contains often-needed comparison functions that like `strcmp()` can be used with
 * link:rouziclib/geometry[geometry/]
 
 ** link:rouziclib/geometry/rect.c[rect.c] / link:rouziclib/geometry/rect.h[rect.h] and link:rouziclib/geometry/rect_struct.h[rect_struct.h] +
-Vectors for rectangles, integer rectangles and triangles, and functions to create, transform or get information from such rectangles.
+Vectors for rectangles, integer rectangles and triangles, and functions to create, transform or get information from such rectangles. Also function to scale coordinates between pixel coordinates and the area rectangle the image fits into.
 
 ** link:rouziclib/geometry/intersection.c[intersection.c] / link:rouziclib/geometry/intersection.h[intersection.h] +
 Functions to computer intersections between lines, find the distance between a point and a line, find the segment of a line inside a rectangle, intersect rectangles, intersect a circle with a rectangle, find if a point is inside a rectangle or circle, or find the angular radius of a circle from a point.
