@@ -80,13 +80,15 @@ size_t *make_order_index_array(void *array, size_t *order, size_t elem_count, si
 
 void index_value_permutation(size_t *a, size_t n)
 {
-	size_t i, i1, i2;
+	size_t i, i1, i2, ic=0;
 
 start:
 	// Look for next cycle
-	for (i=0; i < n; i++)
-		if (a[i] != i && a[i] < n)
+	for (; ic < n; ic++)
+		if (a[ic] != ic && a[ic] < n)
 			break;
+	i = ic;
+	ic++;
 
 	// If a cycle was found
 	if (i < n)
