@@ -49,7 +49,7 @@ int cmp_array_entry(const size_t *a, const size_t *b)
 	return cmp_for_ordering(&array_to_order[*a * elem_size_to_order], &array_to_order[*b * elem_size_to_order]);
 }
 
-size_t *make_order_index_array(void *array, size_t *order, size_t elem_count, size_t elem_size, int (*cmp)(const void *, const void *))
+size_t *make_order_index_array(void *array, size_t *order, size_t elem_count, size_t elem_size, int (*cmp)(const void *, const void *), int permutate)
 {
 	// If order is provided by the caller it should have suitable contents, such as when updating an order
 
@@ -70,6 +70,10 @@ size_t *make_order_index_array(void *array, size_t *order, size_t elem_count, si
 
 	// Order the order array
 	qsort(order, elem_count, sizeof(size_t), cmp_array_entry);
+
+	// Permutate order so that order[i] gives the index to the entry in the unsorted array rather than the reverse
+	if (permutate)
+		index_value_permutation(order, elem_count);
 
 	return order;
 }
