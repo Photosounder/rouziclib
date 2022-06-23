@@ -851,6 +851,11 @@ void my_window_function(double *arg1, double *arg2)
 		{
 			ip = reverse_iterator_bits_2d(&i2, r.dim);
 
+	// Accessing an unsorted array in sorted order
+		size_t *sorted_order_index_array = make_order_index_array(some_unsorted_double_array, NULL, count, sizeof(double), cmp_double, 1);
+		for (i=0; i < count; i++)
+			some_unsorted_double_array[sorted_order_index_array[i]];
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments

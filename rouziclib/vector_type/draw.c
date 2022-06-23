@@ -303,6 +303,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 	}
 
 	off.x += base_off;
+	off_ls.x = off.x;
 
 	colm = colour;
 	if (drawline==0)
