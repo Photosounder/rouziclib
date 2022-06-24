@@ -173,8 +173,9 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 		mouse->u = zc->offset_u;
 	mouse->u_stored = mouse->u;			// store mouse->u before it gets changed by temporary zoom changes
 
-	if (mouse->b.clicks==1 && (mouse->b.lmb==2 || mouse->b.rmb==2))		// store the origin of a click
+	if (mouse->b.lmb==2 || mouse->b.rmb==2)		// store the origin of a click
 	{
+		// orig used to be set only by the first click but that's a problem in zoom-scroll mode if clicking on two different controls quickly enough for it to count as a double-click
 		mouse->b.orig = mouse->u;
 
 		if (mouse->mouse_focus_flag != 1)	// if the mouse focus is regained at the same time as the click this means drag and drop
