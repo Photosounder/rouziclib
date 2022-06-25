@@ -89,7 +89,7 @@ void drawq_run()
 	cl_int ret, randseed;
 	cl_event ev;
 	static int init=1;
-	size_t global_work_offset[2], global_work_size[2];
+	size_t global_work_offset[2], global_work_size[2], local_work_size[2];
 
 	if (fb.use_drawq==1)
 	{
@@ -190,9 +190,11 @@ void drawq_run()
 
 		global_work_offset[0] = 0;
 		global_work_offset[1] = 0;
-		global_work_size[0] = fb.w;
-		global_work_size[1] = fb.h;
-		ret = clEnqueueNDRangeKernel_wrap(fb.clctx.command_queue, fb.clctx.kernel, 2, global_work_offset, global_work_size, NULL, 0, NULL, &fb.clctx.ev);
+		global_work_size[0] = ceil_rshift(fb.w, fb.sector_size) << fb.sector_size;
+		global_work_size[1] = ceil_rshift(fb.h, fb.sector_size) << fb.sector_size;
+		local_work_size[0] = 1 << fb.sector_size;
+		local_work_size[1] = 1 << fb.sector_size;
+		ret = clEnqueueNDRangeKernel_wrap(fb.clctx.command_queue, fb.clctx.kernel, 2, global_work_offset, global_work_size, local_work_size, 0, NULL, &fb.clctx.ev);
 		CL_ERR_NORET("clEnqueueNDRangeKernel (in drawq_run)", ret);
 
 		ret = clFlush_wrap(fb.clctx.command_queue);

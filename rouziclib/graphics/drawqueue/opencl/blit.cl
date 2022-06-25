@@ -199,8 +199,8 @@ uint bits_to_mask(uint bits)	// 7 becomes 0x7F
 
 float bits_to_mul(uint bits)	// 7 becomes 127.
 {
-	//return (float) ((1ULL << bits) - 1);
-	return convert_float((int) ((1ULL << bits) - 1));
+	//return (float) ((1UL << bits) - 1);
+	return convert_float((int) ((1UL << bits) - 1));
 }
 
 float4 decompr_rgb(int bits_col, uchar3 c)

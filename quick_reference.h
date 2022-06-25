@@ -99,6 +99,10 @@
 		// pixel coordinates
 		draw_circle(HOLLOWCIRCLE, sc_xy(circle_centre), circle_radius, drawing_thickness, colour, blend_add, intensity);
 
+	// Full polygon
+		xy_t p[4] = {...};
+		draw_polygon_wc(p, 4, drawing_thickness, colour, intensity);
+
 	// Text label
 		// world coordinates
 		draw_label("Control", offset_scale_rect(box, offset, sm), col, ALIG_CENTRE | MONODIGITS);

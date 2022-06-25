@@ -406,7 +406,10 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	fb.w = dim.x;
 	fb.h = dim.y;
 
+	// Set max dimension used for allocation
 	fb.maxdim = sdl_screen_max_window_size();
+	if (fb.use_drawq == 1)
+		fb.maxdim = add_xyi(fb.maxdim, set_xyi(32));	// pad the dimensions for OpenCL due to work size rounding up
 
 	// FIXME SDL_WINDOW_MAXIMIZED flag should probably be dealt with because it doesn't work well with the maxdim initialisation
 
