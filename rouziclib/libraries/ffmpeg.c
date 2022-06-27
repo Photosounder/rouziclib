@@ -249,6 +249,9 @@ int ff_pix_fmt_to_buf_fmt(int pix_fmt)
 
 		case AV_PIX_FMT_YUV420P12LE:
 			return 12;
+
+		case AV_PIX_FMT_YUVJ420P:
+			return 15;
 	}
 
 	return -1;
@@ -266,6 +269,9 @@ int ff_buf_fmt_to_pix_fmt(int buf_fmt)
 
 		case 12:
 			return AV_PIX_FMT_YUV420P12LE;
+
+		case 15:
+			return AV_PIX_FMT_YUVJ420P;
 	}
 
 	return -1;
