@@ -34,7 +34,6 @@ C     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 		http://www.netlib.org/f2c/libf2c.zip
 */
 
-
 // silence compiler specific warnings
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wshift-op-parentheses"
@@ -52,6 +51,118 @@ C     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 #define min(a,b) ((a)<(b)?(a):(b))
 #endif
 
+// Prototypes for all the functions
+extern int xercon_f(int *inc, int *jump, int *n, int *lot);
+extern int c1f2kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1f2kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1f3kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1f3kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1f4kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1f4kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1f5kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1f5kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa);
+extern int c1fgkb_f(int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *in1, float *ch, float *ch1, int *in2, float *wa);
+extern int c1fgkf_f(int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *in1, float *ch, float *ch1, int *in2, float *wa);
+extern int c1fm1b_f(int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac);
+extern int c1fm1f_f(int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac);
+extern int cfft1b_f(int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cfft1f_f(int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cfft1i_f(int *n, float *wsave, int *lensav, int *ier);
+extern int cfft2b_f(int *ldim, int *l, int *m, fft_complexf_t *c__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cfft2f_f(int *ldim, int *l, int *m, fft_complexf_t *c__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cfft2i_f(int *l, int *m, float *wsave, int *lensav, int *ier);
+extern int cfftmb_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cfftmf_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cfftmi_f(int *n, float *wsave, int *lensav, int *ier);
+extern int cmf2kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmf2kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmf3kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmf3kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmf4kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmf4kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmf5kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmf5kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa);
+extern int cmfgkb_f(int *lot, int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *im1, int *in1, float *ch, float *ch1, int *im2, int *in2, float *wa);
+extern int cmfgkf_f(int *lot, int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *im1, int *in1, float *ch, float *ch1, int *im2, int *in2, float *wa);
+extern int cmfm1b_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac);
+extern int cmfm1f_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac);
+extern int cosq1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cosq1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cosq1i_f(int *n, float *wsave, int *lensav, int *ier);
+extern int cosqb1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier);
+extern int cosqf1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier);
+extern int cosqmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cosqmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cosqmi_f(int *n, float *wsave, int *lensav, int *ier);
+extern int cost1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cost1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int cost1i_f(int *n, float *wsave, int *lensav, int *ier);
+extern int costb1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier);
+extern int costf1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier);
+extern int costmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int costmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int costmi_f(int *n, float *wsave, int *lensav, int *ier);
+extern int factor_f(int *n, int *nf, float *fac);
+extern int mcfti1_f(int *n, float *wa, float *fnf, float *fac);
+extern int mcsqb1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *work, int *ier);
+extern int mcsqf1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *work, int *ier);
+extern int mcstb1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *work, int *ier);
+extern int mcstf1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *work, int *ier);
+extern int mradb2_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1);
+extern int mradb3_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2);
+extern int mradb4_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3);
+extern int mradb5_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3, float *wa4);
+extern int mradbg_f(int *m, int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *im1, int *in1, float *ch, float *ch2, int *im2, int *in2, float *wa);
+extern int mradf2_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1);
+extern int mradf3_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2);
+extern int mradf4_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3);
+extern int mradf5_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3, float *wa4);
+extern int mradfg_f(int *m, int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *im1, int *in1, float *ch, float *ch2, int *im2, int *in2, float *wa);
+extern int mrftb1_f(int *m, int *im, int *n, int *in, float *c__, float *ch, float *wa, float *fac);
+extern int mrftf1_f(int *m, int *im, int *n, int *in, float *c__, float *ch, float *wa, float *fac);
+extern int mrfti1_f(int *n, float *wa, float *fac);
+extern int msntb1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *xh, float *work, int *ier);
+extern int msntf1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *xh, float *work, int *ier);
+extern int r1f2kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1);
+extern int r1f2kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1);
+extern int r1f3kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2);
+extern int r1f3kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2);
+extern int r1f4kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3);
+extern int r1f4kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3);
+extern int r1f5kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3, float *wa4);
+extern int r1f5kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3, float *wa4);
+extern int r1fgkb_f(int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *in1, float *ch, float *ch2, int *in2, float *wa);
+extern int r1fgkf_f(int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *in1, float *ch, float *ch2, int *in2, float *wa);
+extern int r2w_f(int *ldr, int *ldw, int *l, int *m, float *r__, float *w);
+extern int rfft1b_f(int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int rfft1f_f(int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int rfft1i_f(int *n, float *wsave, int *lensav, int *ier);
+extern int rfft2b_f(int *ldim, int *l, int *m, float *r__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int rfft2f_f(int *ldim, int *l, int *m, float *r__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int rfft2i_f(int *l, int *m, float *wsave, int *lensav, int *ier);
+extern int rfftb1_f(int *n, int *in, float *c__, float *ch, float *wa, float *fac);
+extern int rfftf1_f(int *n, int *in, float *c__, float *ch, float *wa, float *fac);
+extern int rffti1_f(int *n, float *wa, float *fac);
+extern int rfftmb_f(int *lot, int *jump, int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int rfftmf_f(int *lot, int *jump, int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int rfftmi_f(int *n, float *wsave, int *lensav, int *ier);
+extern int sinq1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sinq1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sinq1i_f(int *n, float *wsave, int *lensav, int *ier);
+extern int sinqmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sinqmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sinqmi_f(int *n, float *wsave, int *lensav, int *ier);
+extern int sint1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sint1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sint1i_f(int *n, float *wsave, int *lensav, int *ier);
+extern int sintb1_f(int *n, int *inc, float *x, float *wsave, float *xh, float *work, int *ier);
+extern int sintf1_f(int *n, int *inc, float *x, float *wsave, float *xh, float *work, int *ier);
+extern int sintmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sintmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier);
+extern int sintmi_f(int *n, float *wsave, int *lensav, int *ier);
+extern int tables_f(int *ido, int *ip, float *wa);
+extern int w2r_f(int *ldr, int *ldw, int *l, int *m, float *r__, float *w);
+
 /* unused function, errors to be handled by return code */
 int xerfft_f(char *a, int *b, int c){
   return 0;
@@ -64,8 +175,7 @@ int xerfft_f(char *a, int *b, int c){
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f2kb_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f2kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -74,7 +184,6 @@ int xerfft_f(char *a, int *b, int c){
     /* Local variables */
      int i__, k;
      float ti2, tr2, chold1, chold2;
-
 
     /* Parameter adjustments */
     wa_dim1 = *ido;
@@ -163,8 +272,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f2kf_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f2kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -173,7 +281,6 @@ L102:
     /* Local variables */
      int i__, k;
      float sn, ti2, tr2, chold1, chold2;
-
 
     /* Parameter adjustments */
     wa_dim1 = *ido;
@@ -281,8 +388,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f3kb_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f3kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -411,8 +517,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f3kf_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f3kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -572,8 +677,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f4kb_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f4kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -583,7 +687,6 @@ L102:
      int i__, k;
      float ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, tr2,
 	    tr3, tr4;
-
 
 /* FFTPACK 5.1 auxiliary routine */
 
@@ -720,8 +823,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f4kf_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f4kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -731,7 +833,6 @@ L102:
      int i__, k;
      float sn, ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1,
 	    tr2, tr3, tr4;
-
 
 /* FFTPACK 5.1 auxiliary routine */
 
@@ -905,8 +1006,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f5kb_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f5kb_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -1113,8 +1213,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1f5kf_f(int *ido, int *l1, int *na, float *cc,
-	 int *in1, float *ch, int *in2, float *wa)
+/* Subroutine */ int c1f5kf_f(int *ido, int *l1, int *na, float *cc, int *in1, float *ch, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -1378,9 +1477,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1fgkb_f(int *ido, int *ip, int *l1, int *
-	lid, int *na, float *cc, float *cc1, int *in1, float *ch, float *
-	ch1, int *in2, float *wa)
+/* Subroutine */ int c1fgkb_f(int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *in1, float *ch, float *ch1, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_dim3, ch_offset, cc_dim1, cc_dim2, cc_dim3,
@@ -1392,7 +1489,6 @@ L102:
      float wai, war;
      int ipp2, idlj, ipph;
      float chold1, chold2;
-
 
 /* FFTPACK 5.1 auxiliary routine */
 
@@ -1618,9 +1714,7 @@ L136:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1fgkf_f(int *ido, int *ip, int *l1, int *
-	lid, int *na, float *cc, float *cc1, int *in1, float *ch, float *
-	ch1, int *in2, float *wa)
+/* Subroutine */ int c1fgkf_f(int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *in1, float *ch, float *ch1, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_dim3, ch_offset, cc_dim1, cc_dim2, cc_dim3,
@@ -1632,7 +1726,6 @@ L136:
      float sn, wai, war;
      int ipp2, idlj, ipph;
      float chold1, chold2;
-
 
 /* FFTPACK 5.1 auxiliary routine */
 
@@ -1899,8 +1992,7 @@ L136:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1fm1b_f(int *n, int *inc, fft_complexf_t *c__, float *ch,
-	 float *wa, float *fnf, float *fac)
+/* Subroutine */ int c1fm1b_f(int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac)
 {
     /* System generated locals */
     int i__1, i__2;
@@ -1908,15 +2000,6 @@ L136:
 
     /* Local variables */
      int k1, l1, l2, na, nf, ip, iw, lid, ido, nbr, inc2;
-    extern /* Subroutine */ int c1f2kb_f(int *, int *, int *, float
-	    *, int *, float *, int *, float *), c1f3kb_f(int *,
-	    int *, int *, float *, int *, float *, int *, float *
-	    ), c1f4kb_f(int *, int *, int *, float *, int *,
-	    float *, int *, float *), c1f5kb_f(int *, int *, int
-	    *, float *, int *, float *, int *, float *), c1fgkb_f(int
-	    *, int *, int *, int *, int *, float *, float *,
-	    int *, float *, float *, int *, float *);
-
 
 /* FFTPACK 5.1 auxiliary routine */
 
@@ -2010,8 +2093,7 @@ L120:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int c1fm1f_f(int *n, int *inc, fft_complexf_t *c__, float *ch,
-	 float *wa, float *fnf, float *fac)
+/* Subroutine */ int c1fm1f_f(int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac)
 {
     /* System generated locals */
     int i__1, i__2;
@@ -2019,15 +2101,6 @@ L120:
 
     /* Local variables */
      int k1, l1, l2, na, nf, ip, iw, lid, ido, nbr, inc2;
-    extern /* Subroutine */ int c1f2kf_f(int *, int *, int *, float
-	    *, int *, float *, int *, float *), c1f3kf_f(int *,
-	    int *, int *, float *, int *, float *, int *, float *
-	    ), c1f4kf_f(int *, int *, int *, float *, int *,
-	    float *, int *, float *), c1f5kf_f(int *, int *, int
-	    *, float *, int *, float *, int *, float *), c1fgkf_f(int
-	    *, int *, int *, int *, int *, float *, float *,
-	    int *, float *, float *, int *, float *);
-
 
 /* FFTPACK 5.1 auxiliary routine */
 
@@ -2121,16 +2194,11 @@ L120:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfft1b_f(int *n, int *inc, fft_complexf_t *c__, int *
-	lenc, float *wsave, int *lensav, float *work, int *lenwrk,
-	int *ier)
+/* Subroutine */ int cfft1b_f(int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
 
     /* Local variables */
      int iw1;
-    extern /* Subroutine */ int c1fm1b_f(int *, int *, fft_complexf_t *, float
-	    *, float *, float *, float *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --c__;
@@ -2169,16 +2237,11 @@ L120:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfft1f_f(int *n, int *inc, fft_complexf_t *c__, int *
-	lenc, float *wsave, int *lensav, float *work, int *lenwrk,
-	int *ier)
+/* Subroutine */ int cfft1f_f(int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
 
     /* Local variables */
      int iw1;
-    extern /* Subroutine */ int c1fm1f_f(int *, int *, fft_complexf_t *, float
-	    *, float *, float *, float *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --c__;
@@ -2217,15 +2280,11 @@ L120:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfft1i_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int cfft1i_f(int *n, float *wsave, int *lensav, int *ier)
 {
 
     /* Local variables */
      int iw1;
-    extern /* Subroutine */ int mcfti1_f(int *, float *, float *, float *),
-	    xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -2255,21 +2314,14 @@ L120:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfft2b_f(int *ldim, int *l, int *m, fft_complexf_t *
-	c__, float *wsave, int *lensav, float *work, int *lenwrk,
-	int *ier)
+/* Subroutine */ int cfft2b_f(int *ldim, int *l, int *m, fft_complexf_t *c__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int c_dim1, c_offset, i__1, i__2, i__3;
     int c__1 = 1;
 
-
     /* Local variables */
      int iw, ier1;
-    extern /* Subroutine */ int cfftmb_f(int *, int *, int *,
-	    int *, fft_complexf_t *, int *, float *, int *, float *,
-	    int *, int *), xerfft_f(char *, int *, int);
-
 
 /* Initialize error return */
 
@@ -2334,9 +2386,7 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfft2f_f(int *ldim, int *l, int *m, fft_complexf_t *
-	c__, float *wsave, int *lensav, float *work, int *lenwrk,
-	int *ier)
+/* Subroutine */ int cfft2f_f(int *ldim, int *l, int *m, fft_complexf_t *c__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int c_dim1, c_offset, i__1, i__2, i__3;
@@ -2344,13 +2394,8 @@ L100:
 
     /* Builtin functions */
 
-
     /* Local variables */
      int iw, ier1;
-    extern /* Subroutine */ int cfftmf_f(int *, int *, int *,
-	    int *, fft_complexf_t *, int *, float *, int *, float *,
-	    int *, int *), xerfft_f(char *, int *, int);
-
 
 /* Initialize error return */
 
@@ -2415,20 +2460,15 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfft2i_f(int *l, int *m, float *wsave, int *
-	lensav, int *ier)
+/* Subroutine */ int cfft2i_f(int *l, int *m, float *wsave, int *lensav, int *ier)
 {
     /* System generated locals */
     int i__1;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1;
-    extern /* Subroutine */ int cfftmi_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
 /* Initialize error return */
 
@@ -2471,20 +2511,12 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfftmb_f(int *lot, int *jump, int *n, int
-	*inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float
-	*work, int *lenwrk, int *ier)
+/* Subroutine */ int cfftmb_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
      int iw1;
-    extern /* Subroutine */ int cmfm1b_f(int *, int *, int *,
-	    int *, fft_complexf_t *, float *, float *, float *, float *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --c__;
@@ -2526,20 +2558,12 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfftmf_f(int *lot, int *jump, int *n, int
-	*inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float
-	*work, int *lenwrk, int *ier)
+/* Subroutine */ int cfftmf_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, int *lenc, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
      int iw1;
-    extern /* Subroutine */ int cmfm1f_f(int *, int *, int *,
-	    int *, fft_complexf_t *, float *, float *, float *, float *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --c__;
@@ -2581,17 +2605,12 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cfftmi_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int cfftmi_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
      int iw1;
-    extern /* Subroutine */ int mcfti1_f(int *, float *, float *, float *),
-	    xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -2620,9 +2639,7 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmf2kb_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf2kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim2, cc_dim3, cc_dim4, cc_offset, ch_dim2, ch_dim3, ch_offset,
@@ -2633,7 +2650,6 @@ L100:
      float ti2;
      int m2s;
      float tr2, chold1, chold2;
-
 
     /* Parameter adjustments */
     wa_dim1 = *ido;
@@ -2754,9 +2770,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmf2kf_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf2kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim2, cc_dim3, cc_dim4, cc_offset, ch_dim2, ch_dim3, ch_offset,
@@ -2769,7 +2783,6 @@ L102:
      float ti2;
      int m2s;
      float tr2, chold1, chold2;
-
 
     /* Parameter adjustments */
     wa_dim1 = *ido;
@@ -2919,9 +2932,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmf3kb_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf3kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -3098,9 +3109,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmf3kf_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf3kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -3322,9 +3331,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmf4kb_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf4kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim2, cc_dim3, cc_dim4, cc_offset, ch_dim2, ch_dim3, ch_offset,
@@ -3337,7 +3344,6 @@ L102:
      float cr3, cr2, cr4, ti1, ti2, ti3, ti4;
      int m2s;
      float tr1, tr2, tr3, tr4;
-
 
 /* FFTPACK 5.0f auxiliary routine */
 
@@ -3532,9 +3538,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmf4kf_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf4kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int cc_dim2, cc_dim3, cc_dim4, cc_offset, ch_dim2, ch_dim3, ch_offset,
@@ -3547,7 +3551,6 @@ L102:
      float cr3, cr2, cr4, ti1, ti2, ti3, ti4;
      int m2s;
      float tr1, tr2, tr3, tr4;
-
 
 /* FFTPACK 5.0f auxiliary routine */
 
@@ -3795,9 +3798,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmf5kb_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf5kb_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -4071,9 +4072,7 @@ L102:
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
 
-/* Subroutine */ int cmf5kf_f(int *lot, int *ido, int *l1, int
-	*na, float *cc, int *im1, int *in1, float *ch, int *im2,
-	int *in2, float *wa)
+/* Subroutine */ int cmf5kf_f(int *lot, int *ido, int *l1, int *na, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa)
 {
     /* Initialized data */
 
@@ -4417,10 +4416,7 @@ L102:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmfgkb_f(int *lot, int *ido, int *ip, int
-	*l1, int *lid, int *na, float *cc, float *cc1, int *im1,
-	int *in1, float *ch, float *ch1, int *im2, int *in2, float *
-	wa)
+/* Subroutine */ int cmfgkb_f(int *lot, int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *im1, int *in1, float *ch, float *ch1, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim2, ch_dim3, ch_dim4, ch_offset, cc_dim2, cc_dim3, cc_dim4,
@@ -4433,7 +4429,6 @@ L102:
      float wai, war;
      int ipp2, idlj, ipph;
      float chold1, chold2;
-
 
 /* FFTPACK 5.0f auxiliary routine */
 
@@ -4739,10 +4734,7 @@ L136:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmfgkf_f(int *lot, int *ido, int *ip, int
-	*l1, int *lid, int *na, float *cc, float *cc1, int *im1,
-	int *in1, float *ch, float *ch1, int *im2, int *in2, float *
-	wa)
+/* Subroutine */ int cmfgkf_f(int *lot, int *ido, int *ip, int *l1, int *lid, int *na, float *cc, float *cc1, int *im1, int *in1, float *ch, float *ch1, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim2, ch_dim3, ch_dim4, ch_offset, cc_dim2, cc_dim3, cc_dim4,
@@ -4757,7 +4749,6 @@ L136:
      float wai, war;
      int ipp2, idlj, ipph;
      float chold1, chold2;
-
 
 /* FFTPACK 5.0f auxiliary routine */
 
@@ -5122,8 +5113,7 @@ L136:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmfm1b_f(int *lot, int *jump, int *n, int
-	*inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac)
+/* Subroutine */ int cmfm1b_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac)
 {
     /* System generated locals */
     int i__1, i__2;
@@ -5131,18 +5121,6 @@ L136:
 
     /* Local variables */
      int k1, l1, l2, na, nf, ip, iw, lid, ido, nbr;
-    extern /* Subroutine */ int cmf2kb_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmf3kb_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmf4kb_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmf5kb_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmfgkb_f(int *, int *, int *,
-	    int *, int *, int *, float *, float *, int *,
-	    int *, float *, float *, int *, int *, float *);
-
 
 /* FFTPACK 5.0f auxiliary routine */
 
@@ -5235,8 +5213,7 @@ L120:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cmfm1f_f(int *lot, int *jump, int *n, int
-	*inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac)
+/* Subroutine */ int cmfm1f_f(int *lot, int *jump, int *n, int *inc, fft_complexf_t *c__, float *ch, float *wa, float *fnf, float *fac)
 {
     /* System generated locals */
     int i__1, i__2;
@@ -5244,18 +5221,6 @@ L120:
 
     /* Local variables */
      int k1, l1, l2, na, nf, ip, iw, lid, ido, nbr;
-    extern /* Subroutine */ int cmf2kf_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmf3kf_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmf4kf_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmf5kf_f(int *, int *, int *,
-	    int *, float *, int *, int *, float *, int *,
-	    int *, float *), cmfgkf_f(int *, int *, int *,
-	    int *, int *, int *, float *, float *, int *,
-	    int *, float *, float *, int *, int *, float *);
-
 
 /* FFTPACK 5.0f auxiliary routine */
 
@@ -5348,9 +5313,7 @@ L120:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosq1b_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int cosq1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
@@ -5360,11 +5323,7 @@ L120:
     /* Local variables */
      float x1;
      int ier1;
-    extern /* Subroutine */ int cosqb1_f(int *, int *, float *, float *,
-	    float *, int *);
      float ssqrt2;
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -5422,9 +5381,7 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosq1f_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int cosq1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
@@ -5434,11 +5391,7 @@ L300:
     /* Local variables */
      int ier1;
      float tsqx;
-    extern /* Subroutine */ int cosqf1_f(int *, int *, float *, float *,
-	    float *, int *);
      float ssqrt2;
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -5497,8 +5450,7 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosq1i_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int cosq1i_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* System generated locals */
     int i__1;
@@ -5509,9 +5461,6 @@ L300:
      int k;
      float fk, dt, pih;
      int ier1, lnsv;
-    extern /* Subroutine */ int rfft1i_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -5550,22 +5499,17 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosqb1_f(int *n, int *inc, float *x, float *wsave,
-	float *work, int *ier)
+/* Subroutine */ int cosqb1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int i__, k, kc, np2, ns2, ier1;
      float xim1;
      int modn, lenx, lnwk, lnsv;
-    extern /* Subroutine */ int rfft1b_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *), xerfft_f(char
-	    *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -5639,22 +5583,17 @@ L400:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosqf1_f(int *n, int *inc, float *x, float *wsave,
-	float *work, int *ier)
+/* Subroutine */ int cosqf1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int i__, k, kc, np2, ns2, ier1;
      float xim1;
      int modn, lenx, lnwk, lnsv;
-    extern /* Subroutine */ int rfft1f_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *), xerfft_f(char
-	    *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -5724,9 +5663,7 @@ L400:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosqmb_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int cosqmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1, i__2;
@@ -5737,12 +5674,7 @@ L400:
      int m;
      float x1;
      int lj, ier1;
-    extern /* Subroutine */ int mcsqb1_f(int *, int *, int *,
-	    int *, float *, float *, float *, int *);
      float ssqrt2;
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -5819,9 +5751,7 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosqmf_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int cosqmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1, i__2;
@@ -5831,12 +5761,7 @@ L300:
     /* Local variables */
      int m, lj, ier1;
      float tsqx;
-    extern /* Subroutine */ int mcsqf1_f(int *, int *, int *,
-	    int *, float *, float *, float *, int *);
      float ssqrt2;
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -5905,8 +5830,7 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cosqmi_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int cosqmi_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* System generated locals */
     int i__1;
@@ -5917,9 +5841,6 @@ L300:
      int k;
      float fk, dt, pih;
      int ier1, lnsv;
-    extern /* Subroutine */ int rfftmi_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -5959,21 +5880,15 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cost1b_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int cost1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1;
-    extern /* Subroutine */ int costb1_f(int *, int *, float *, float *,
-	    float *, int *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -6020,21 +5935,15 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cost1f_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int cost1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1;
-    extern /* Subroutine */ int costf1_f(int *, int *, float *, float *,
-	    float *, int *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -6081,8 +5990,7 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int cost1i_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int cost1i_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* System generated locals */
     int i__1;
@@ -6093,9 +6001,6 @@ L100:
      int k, kc;
      float fk, dt;
      int nm1, np1, ns2, ier1, lnsv;
-    extern /* Subroutine */ int rfft1i_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -6142,14 +6047,12 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int costb1_f(int *n, int *inc, float *x, float *wsave,
-	float *work, int *ier)
+/* Subroutine */ int costb1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
 
     /* Builtin functions */
-
 
     /* Local variables */
      int i__, k;
@@ -6164,9 +6067,6 @@ L300:
      float dsum;
      int lnwk, lnsv;
      float fnm1s2, fnm1s4;
-    extern /* Subroutine */ int rfft1f_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *), xerfft_f(char
-	    *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -6267,14 +6167,12 @@ L106:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int costf1_f(int *n, int *inc, float *x, float *wsave,
-	float *work, int *ier)
+/* Subroutine */ int costf1_f(int *n, int *inc, float *x, float *wsave, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
 
     /* Builtin functions */
-
 
     /* Local variables */
      int i__, k;
@@ -6290,9 +6188,6 @@ L106:
      int modn, lenx;
      float dsum;
      int lnwk, lnsv;
-    extern /* Subroutine */ int rfft1f_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *), xerfft_f(char
-	    *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -6392,23 +6287,15 @@ L200:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int costmb_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int costmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int iw1, ier1;
-    extern /* Subroutine */ int mcstb1_f(int *, int *, int *,
-	    int *, float *, float *, float *, float *, int *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -6458,23 +6345,15 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int costmf_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int costmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int iw1, ier1;
-    extern /* Subroutine */ int mcstf1_f(int *, int *, int *,
-	    int *, float *, float *, float *, float *, int *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -6524,8 +6403,7 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int costmi_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int costmi_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* System generated locals */
     int i__1;
@@ -6536,9 +6414,6 @@ L100:
      int k, kc;
      float fk, dt;
      int nm1, np1, ns2, ier1, lnsv;
-    extern /* Subroutine */ int rfftmi_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -6645,9 +6520,6 @@ L105:
 
     /* Local variables */
      int k1, l1, l2, nf, ip, iw, ido;
-    extern /* Subroutine */ int tables_f(int *, int *, float *),
-	    factor_f(int *, int *, float *);
-
 
     /* Parameter adjustments */
     --fac;
@@ -6678,22 +6550,17 @@ L105:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mcsqb1_f(int *lot, int *jump, int *n, int
-	*inc, float *x, float *wsave, float *work, int *ier)
+/* Subroutine */ int mcsqb1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, work_dim1, work_offset, i__1, i__2, i__3;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int i__, k, m, m1, kc, lj, np2, ns2, ier1;
      float xim1;
      int modn, lenx, lnwk, lnsv;
-    extern /* Subroutine */ int rfftmb_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *), xerfft_f(char *, int *, int);
 
     /* Parameter adjustments */
     work_dim1 = *lot;
@@ -6811,22 +6678,17 @@ L400:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mcsqf1_f(int *lot, int *jump, int *n, int
-	*inc, float *x, float *wsave, float *work, int *ier)
+/* Subroutine */ int mcsqf1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, work_dim1, work_offset, i__1, i__2, i__3;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int i__, k, m, m1, kc, lj, np2, ns2, ier1;
      float xim1;
      int modn, lenx, lnwk, lnsv;
-    extern /* Subroutine */ int rfftmf_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *), xerfft_f(char *, int *, int);
 
     /* Parameter adjustments */
     work_dim1 = *lot;
@@ -6936,15 +6798,12 @@ L400:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mcstb1_f(int *lot, int *jump, int *n, int
-	*inc, float *x, float *wsave, float *dsum, float *work, int *
-	ier)
+/* Subroutine */ int mcstb1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1, i__2, i__3;
 
     /* Builtin functions */
-
 
     /* Local variables */
      int i__, k, m, m1;
@@ -6957,9 +6816,6 @@ L400:
      float x1p3;
      int ier1, modn, lenx, lnwk, lnsv;
      float fnm1s2, fnm1s4;
-    extern /* Subroutine */ int rfftmf_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *), xerfft_f(char *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -7122,15 +6978,12 @@ L106:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mcstf1_f(int *lot, int *jump, int *n, int
-	*inc, float *x, float *wsave, float *dsum, float *work, int *
-	ier)
+/* Subroutine */ int mcstf1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1, i__2, i__3;
 
     /* Builtin functions */
-
 
     /* Local variables */
      int i__, k, m, m1;
@@ -7144,9 +6997,6 @@ L106:
      int ier1;
      float snm1;
      int modn, lenx, lnwk, lnsv;
-    extern /* Subroutine */ int rfftmf_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *), xerfft_f(char *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -7306,9 +7156,7 @@ L200:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradb2_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1)
+/* Subroutine */ int mradb2_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -7316,7 +7164,6 @@ L200:
 
     /* Local variables */
      int i__, k, m1, m2, ic, m1d, m2s, idp2;
-
 
     /* Parameter adjustments */
     --wa1;
@@ -7426,9 +7273,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradb3_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1, float *wa2)
+/* Subroutine */ int mradb3_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -7441,7 +7286,6 @@ L107:
      float arg;
      int idp2;
      float taui, taur;
-
 
     /* Parameter adjustments */
     --wa2;
@@ -7575,9 +7419,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradb4_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1, float *wa2, float *wa3)
+/* Subroutine */ int mradb4_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -7588,7 +7430,6 @@ L107:
     /* Local variables */
      int i__, k, m1, m2, ic, m1d, m2s, idp2;
      float sqrt2;
-
 
     /* Parameter adjustments */
     --wa3;
@@ -7785,9 +7626,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradb5_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1, float *wa2, float *wa3, float *wa4)
+/* Subroutine */ int mradb5_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3, float *wa4)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -7799,7 +7638,6 @@ L107:
      int i__, k, m1, m2, ic, m1d, m2s;
      float arg, ti11, ti12, tr11, tr12;
      int idp2;
-
 
     /* Parameter adjustments */
     --wa4;
@@ -8078,10 +7916,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradbg_f(int *m, int *ido, int *ip, int *
-	l1, int *idl1, float *cc, float *c1, float *c2, int *im1,
-	int *in1, float *ch, float *ch2, int *im2, int *in2, float *
-	wa)
+/* Subroutine */ int mradbg_f(int *m, int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *im1, int *in1, float *ch, float *ch2, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_dim3, ch_offset, cc_dim1, cc_dim2, cc_dim3,
@@ -8099,7 +7934,6 @@ L107:
      int m2s, nbd;
      float dcp, arg, dsp, tpi, ar1h, ar2h;
      int idp2, ipp2, idij, ipph;
-
 
     /* Parameter adjustments */
     --wa;
@@ -8572,9 +8406,7 @@ L143:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradf2_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1)
+/* Subroutine */ int mradf2_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_dim3, cc_offset,
@@ -8582,7 +8414,6 @@ L143:
 
     /* Local variables */
      int i__, k, m1, m2, ic, m1d, m2s, idp2;
-
 
     /* Parameter adjustments */
     --wa1;
@@ -8691,9 +8522,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradf3_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1, float *wa2)
+/* Subroutine */ int mradf3_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_dim3, cc_offset,
@@ -8706,7 +8535,6 @@ L107:
      float arg;
      int idp2;
      float taui, taur;
-
 
     /* Parameter adjustments */
     --wa2;
@@ -8852,9 +8680,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradf4_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1, float *wa2, float *wa3)
+/* Subroutine */ int mradf4_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -8865,7 +8691,6 @@ L107:
     /* Local variables */
      int i__, k, m1, m2, ic, m1d, m2s, idp2;
      float hsqt2;
-
 
     /* Parameter adjustments */
     --wa3;
@@ -9071,9 +8896,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradf5_f(int *m, int *ido, int *l1, float *cc,
-	int *im1, int *in1, float *ch, int *im2, int *in2,
-	float *wa1, float *wa2, float *wa3, float *wa4)
+/* Subroutine */ int mradf5_f(int *m, int *ido, int *l1, float *cc, int *im1, int *in1, float *ch, int *im2, int *in2, float *wa1, float *wa2, float *wa3, float *wa4)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -9085,7 +8908,6 @@ L107:
      int i__, k, m1, m2, ic, m1d, m2s;
      float arg, ti11, ti12, tr11, tr12;
      int idp2;
-
 
     /* Parameter adjustments */
     --wa4;
@@ -9415,10 +9237,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mradfg_f(int *m, int *ido, int *ip, int *
-	l1, int *idl1, float *cc, float *c1, float *c2, int *im1,
-	int *in1, float *ch, float *ch2, int *im2, int *in2, float *
-	wa)
+/* Subroutine */ int mradfg_f(int *m, int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *im1, int *in1, float *ch, float *ch2, int *im2, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_dim3, ch_offset, cc_dim1, cc_dim2, cc_dim3,
@@ -9436,7 +9255,6 @@ L107:
      int m2s, nbd;
      float dcp, arg, dsp, tpi, ar1h, ar2h;
      int idp2, ipp2, idij, ipph;
-
 
     /* Parameter adjustments */
     --wa;
@@ -9918,8 +9736,7 @@ L141:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mrftb1_f(int *m, int *im, int *n, int *in,
-	 float *c__, float *ch, float *wa, float *fac)
+/* Subroutine */ int mrftb1_f(int *m, int *im, int *n, int *in, float *c__, float *ch, float *wa, float *fac)
 {
     /* System generated locals */
     int ch_dim1, ch_offset, c_dim1, c_offset, i__1, i__2;
@@ -9931,18 +9748,6 @@ L141:
      float half;
      int modn;
      float halfm;
-    extern /* Subroutine */ int mradb2_f(int *, int *, int *, float
-	    *, int *, int *, float *, int *, int *, float *),
-	    mradb3_f(int *, int *, int *, float *, int *,
-	    int *, float *, int *, int *, float *, float *), mradb4_f(
-	    int *, int *, int *, float *, int *, int *,
-	    float *, int *, int *, float *, float *, float *), mradb5_f(
-	    int *, int *, int *, float *, int *, int *,
-	    float *, int *, int *, float *, float *, float *, float *),
-	    mradbg_f(int *, int *, int *, int *, int *,
-	    float *, float *, float *, int *, int *, float *, float *,
-	    int *, int *, float *);
-
 
     /* Parameter adjustments */
     ch_dim1 = *m;
@@ -10122,8 +9927,7 @@ L115:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int mrftf1_f(int *m, int *im, int *n, int *in,
-	 float *c__, float *ch, float *wa, float *fac)
+/* Subroutine */ int mrftf1_f(int *m, int *im, int *n, int *in, float *c__, float *ch, float *wa, float *fac)
 {
     /* System generated locals */
     int ch_dim1, ch_offset, c_dim1, c_offset, i__1, i__2;
@@ -10136,18 +9940,6 @@ L115:
      float tsn;
      int idl1, modn;
      float tsnm;
-    extern /* Subroutine */ int mradf2_f(int *, int *, int *, float
-	    *, int *, int *, float *, int *, int *, float *),
-	    mradf3_f(int *, int *, int *, float *, int *,
-	    int *, float *, int *, int *, float *, float *), mradf4_f(
-	    int *, int *, int *, float *, int *, int *,
-	    float *, int *, int *, float *, float *, float *), mradf5_f(
-	    int *, int *, int *, float *, int *, int *,
-	    float *, int *, int *, float *, float *, float *, float *),
-	    mradfg_f(int *, int *, int *, int *, int *,
-	    float *, float *, float *, int *, int *, float *, float *,
-	    int *, int *, float *);
-
 
     /* Parameter adjustments */
     ch_dim1 = *m;
@@ -10455,9 +10247,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int msntb1_f(int *lot, int *jump, int *n, int
-	*inc, float *x, float *wsave, float *dsum, float *xh, float *work,
-	int *ier)
+/* Subroutine */ int msntb1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *xh, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, xh_dim1, xh_offset, i__1, i__2, i__3;
@@ -10470,9 +10260,6 @@ L107:
      float t1, t2;
      int kc, lj, np1, ns2, ier1, modn, lnxh, lnwk, lnsv;
      float fnp1s4, xhold, srt3s2;
-    extern /* Subroutine */ int rfftmf_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *), xerfft_f(char *, int *, int);
 
     /* Parameter adjustments */
     xh_dim1 = *lot;
@@ -10611,9 +10398,7 @@ L200:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int msntf1_f(int *lot, int *jump, int *n, int
-	*inc, float *x, float *wsave, float *dsum, float *xh, float *work,
-	int *ier)
+/* Subroutine */ int msntf1_f(int *lot, int *jump, int *n, int *inc, float *x, float *wsave, float *dsum, float *xh, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, xh_dim1, xh_offset, i__1, i__2, i__3;
@@ -10626,9 +10411,6 @@ L200:
      float t1, t2;
      int kc, lj, np1, ns2, ier1, modn, lnxh, lnwk, lnsv;
      float sfnp1, xhold, ssqrt3;
-    extern /* Subroutine */ int rfftmf_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *), xerfft_f(char *, int *, int);
 
     /* Parameter adjustments */
     xh_dim1 = *lot;
@@ -10767,8 +10549,7 @@ L200:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f2kb_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1)
+/* Subroutine */ int r1f2kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -10776,7 +10557,6 @@ L200:
 
     /* Local variables */
      int i__, k, ic, idp2;
-
 
     /* Parameter adjustments */
     --wa1;
@@ -10862,8 +10642,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f2kf_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1)
+/* Subroutine */ int r1f2kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_dim3, cc_offset,
@@ -10871,7 +10650,6 @@ L107:
 
     /* Local variables */
      int i__, k, ic, idp2;
-
 
     /* Parameter adjustments */
     --wa1;
@@ -10957,8 +10735,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f3kb_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1, float *wa2)
+/* Subroutine */ int r1f3kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -10971,7 +10748,6 @@ L107:
      float arg;
      int idp2;
      float taui, taur;
-
 
     /* Parameter adjustments */
     --wa2;
@@ -11084,8 +10860,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f3kf_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1, float *wa2)
+/* Subroutine */ int r1f3kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_dim3, cc_offset,
@@ -11098,7 +10873,6 @@ L107:
      float arg;
      int idp2;
      float taui, taur;
-
 
     /* Parameter adjustments */
     --wa2;
@@ -11222,8 +10996,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f4kb_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3)
+/* Subroutine */ int r1f4kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -11234,7 +11007,6 @@ L107:
     /* Local variables */
      int i__, k, ic, idp2;
      float sqrt2;
-
 
     /* Parameter adjustments */
     --wa3;
@@ -11403,8 +11175,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f4kf_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3)
+/* Subroutine */ int r1f4kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -11415,7 +11186,6 @@ L107:
     /* Local variables */
      int i__, k, ic, idp2;
      float hsqt2;
-
 
     /* Parameter adjustments */
     --wa3;
@@ -11586,9 +11356,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f5kb_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3, float *
-	wa4)
+/* Subroutine */ int r1f5kb_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3, float *wa4)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_dim2, ch_dim3, ch_offset,
@@ -11600,7 +11368,6 @@ L107:
      int i__, k, ic;
      float arg, ti11, ti12, tr11, tr12;
      int idp2;
-
 
     /* Parameter adjustments */
     --wa4;
@@ -11850,9 +11617,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1f5kf_f(int *ido, int *l1, float *cc, int *
-	in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3, float *
-	wa4)
+/* Subroutine */ int r1f5kf_f(int *ido, int *l1, float *cc, int *in1, float *ch, int *in2, float *wa1, float *wa2, float *wa3, float *wa4)
 {
     /* System generated locals */
     int cc_dim1, cc_dim2, cc_dim3, cc_offset, ch_dim1, ch_dim2, ch_offset,
@@ -11864,7 +11629,6 @@ L107:
      int i__, k, ic;
      float arg, ti11, ti12, tr11, tr12;
      int idp2;
-
 
     /* Parameter adjustments */
     --wa4;
@@ -12160,9 +11924,7 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1fgkb_f(int *ido, int *ip, int *l1, int *
-	idl1, float *cc, float *c1, float *c2, int *in1, float *ch, float *ch2,
-	 int *in2, float *wa)
+/* Subroutine */ int r1fgkb_f(int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *in1, float *ch, float *ch2, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_dim3, ch_offset, cc_dim1, cc_dim2, cc_dim3,
@@ -12177,7 +11939,6 @@ L107:
      int nbd;
      float dcp, arg, dsp, tpi, ar1h, ar2h;
      int idp2, ipp2, idij, ipph;
-
 
     /* Parameter adjustments */
     --wa;
@@ -12540,9 +12301,7 @@ L143:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r1fgkf_f(int *ido, int *ip, int *l1, int *
-	idl1, float *cc, float *c1, float *c2, int *in1, float *ch, float *ch2,
-	 int *in2, float *wa)
+/* Subroutine */ int r1fgkf_f(int *ido, int *ip, int *l1, int *idl1, float *cc, float *c1, float *c2, int *in1, float *ch, float *ch2, int *in2, float *wa)
 {
     /* System generated locals */
     int ch_dim1, ch_dim2, ch_dim3, ch_offset, cc_dim1, cc_dim2, cc_dim3,
@@ -12557,7 +12316,6 @@ L143:
      int nbd;
      float dcp, arg, dsp, tpi, ar1h, ar2h;
      int idp2, ipp2, idij, ipph;
-
 
     /* Parameter adjustments */
     --wa;
@@ -12925,8 +12683,7 @@ L141:
 /*   AUTHORS:  PAUL N. SWARZTRAUBER AND RICHARD A. VALENT */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int r2w_f(int *ldr, int *ldw, int *l, int *m,
-	float *r__, float *w)
+/* Subroutine */ int r2w_f(int *ldr, int *ldw, int *l, int *m, float *r__, float *w)
 {
     /* System generated locals */
     int r_dim1, r_offset, w_dim1, w_offset, i__1, i__2;
@@ -12960,17 +12717,11 @@ L141:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfft1b_f(int *n, int *inc, float *r__, int *
-	lenr, float *wsave, int *lensav, float *work, int *lenwrk,
-	int *ier)
+/* Subroutine */ int rfft1b_f(int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
-    extern /* Subroutine */ int rfftb1_f(int *, int *, float *, float *,
-	    float *, float *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --r__;
@@ -13006,17 +12757,11 @@ L141:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfft1f_f(int *n, int *inc, float *r__, int *
-	lenr, float *wsave, int *lensav, float *work, int *lenwrk,
-	int *ier)
+/* Subroutine */ int rfft1f_f(int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
-    extern /* Subroutine */ int rfftf1_f(int *, int *, float *, float *,
-	    float *, float *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --r__;
@@ -13052,16 +12797,11 @@ L141:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfft1i_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int rfft1i_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
-    extern /* Subroutine */ int rffti1_f(int *, float *, float *), xerfft_f(
-	    char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -13089,9 +12829,7 @@ L141:
 /*   AUTHORS:  PAUL N. SWARZTRAUBER AND RICHARD A. VALENT */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfft2b_f(int *ldim, int *l, int *m, float *r__,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int rfft2b_f(int *ldim, int *l, int *m, float *r__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int r_dim1, r_offset, i__1, i__2, i__3;
@@ -13099,18 +12837,9 @@ L141:
 
     /* Builtin functions */
 
-
     /* Local variables */
      int i__, j;
-    extern /* Subroutine */ int r2w_f(int *, int *, int *, int
-	    *, float *, float *), w2r_f(int *, int *, int *, int
-	    *, float *, float *);
      int ldh, ldw, ldx, ier1, modl, modm, mmsav, lwsav, mwsav;
-    extern /* Subroutine */ int cfftmb_f(), rfftmb_f(int *, int *,
-	    int *, int *, float *, int *, float *, int *, float *
-	    , int *, int *), xerfft_f(char *, int *, int);
-
-
 
 /* INITIALIZE IER */
 
@@ -13229,7 +12958,6 @@ L141:
     rfftmb_f(m, ldim, l, &c__1, &r__[r_offset], &i__1, &wsave[1], &i__2, &work[
 	    1], lenwrk, &ier1);
 
-
 /*     PRINT*, 'BACKWARD TRANSFORM IN THE I DIRECTION' */
 /*     DO I=1,L */
 /*       PRINT*, (R(I,J),J=1,M) */
@@ -13259,9 +12987,7 @@ L100:
 /*   AUTHORS:  PAUL N. SWARZTRAUBER AND RICHARD A. VALENT */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfft2f_f(int *ldim, int *l, int *m, float *r__,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int rfft2f_f(int *ldim, int *l, int *m, float *r__, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int r_dim1, r_offset, i__1, i__2, i__3;
@@ -13269,18 +12995,9 @@ L100:
 
     /* Builtin functions */
 
-
     /* Local variables */
      int i__, j;
-    extern /* Subroutine */ int r2w_f(int *, int *, int *, int
-	    *, float *, float *), w2r_f(int *, int *, int *, int
-	    *, float *, float *);
      int ldh, ldw, ldx, ier1, modl, modm, mmsav, lwsav, mwsav;
-    extern /* Subroutine */ int cfftmf_f(), rfftmf_f(int *, int *,
-	    int *, int *, float *, int *, float *, int *, float *
-	    , int *, int *), xerfft_f(char *, int *, int);
-
-
 
 /* INITIALIZE IER */
 
@@ -13420,7 +13137,6 @@ L100:
 	goto L100;
     }
 
-
 L100:
     return 0;
 } /* rfft2f_ */
@@ -13432,18 +13148,12 @@ L100:
 /*   AUTHORS:  PAUL N. SWARZTRAUBER AND RICHARD A. VALENT */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfft2i_f(int *l, int *m, float *wsave, int *
-	lensav, int *ier)
+/* Subroutine */ int rfft2i_f(int *l, int *m, float *wsave, int *lensav, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1, mmsav, lwsav, mwsav;
-    extern /* Subroutine */ int cfftmi_f(int *, float *, int *, int
-	    *), rfftmi_f(int *, float *, int *, int *), xerfft_f(
-	    char *, int *, int);
-
 
 /* INITIALIZE IER */
 
@@ -13495,8 +13205,7 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfftb1_f(int *n, int *in, float *c__, float *ch,
-	float *wa, float *fac)
+/* Subroutine */ int rfftb1_f(int *n, int *in, float *c__, float *ch, float *wa, float *fac)
 {
     /* System generated locals */
     int c_dim1, c_offset, i__1;
@@ -13508,15 +13217,6 @@ L100:
      float half;
      int modn;
      float halfm;
-    extern /* Subroutine */ int r1f2kb_f(int *, int *, float *, int
-	    *, float *, int *, float *), r1f4kb_f(int *, int *, float
-	    *, int *, float *, int *, float *, float *, float *), r1f3kb_f(
-	    int *, int *, float *, int *, float *, int *, float *
-	    , float *), r1f5kb_f(int *, int *, float *, int *, float *
-	    , int *, float *, float *, float *, float *), r1fgkb_f(int *,
-	    int *, int *, int *, float *, float *, float *, int *
-	    , float *, float *, int *, float *);
-
 
     /* Parameter adjustments */
     --wa;
@@ -13674,8 +13374,7 @@ L115:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfftf1_f(int *n, int *in, float *c__, float *ch,
-	float *wa, float *fac)
+/* Subroutine */ int rfftf1_f(int *n, int *in, float *c__, float *ch, float *wa, float *fac)
 {
     /* System generated locals */
     int c_dim1, c_offset, i__1;
@@ -13688,15 +13387,6 @@ L115:
      float tsn;
      int idl1, modn;
      float tsnm;
-    extern /* Subroutine */ int r1f2kf_f(int *, int *, float *, int
-	    *, float *, int *, float *), r1f3kf_f(int *, int *, float
-	    *, int *, float *, int *, float *, float *), r1f4kf_f(int
-	    *, int *, float *, int *, float *, int *, float *, float *
-	    , float *), r1f5kf_f(int *, int *, float *, int *, float *
-	    , int *, float *, float *, float *, float *), r1fgkf_f(int *,
-	    int *, int *, int *, float *, float *, float *, int *
-	    , float *, float *, int *, float *);
-
 
     /* Parameter adjustments */
     --wa;
@@ -13964,19 +13654,11 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfftmb_f(int *lot, int *jump, int *n, int
-	*inc, float *r__, int *lenr, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int rfftmb_f(int *lot, int *jump, int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
-    extern /* Subroutine */ int mrftb1_f(int *, int *, int *,
-	    int *, float *, float *, float *, float *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --r__;
@@ -14015,19 +13697,11 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfftmf_f(int *lot, int *jump, int *n, int
-	*inc, float *r__, int *lenr, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int rfftmf_f(int *lot, int *jump, int *n, int *inc, float *r__, int *lenr, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
-    extern /* Subroutine */ int mrftf1_f(int *, int *, int *,
-	    int *, float *, float *, float *, float *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --r__;
@@ -14066,16 +13740,11 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int rfftmi_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int rfftmi_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
-    extern /* Subroutine */ int mrfti1_f(int *, float *, float *), xerfft_f(
-	    char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -14103,23 +13772,16 @@ L107:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sinq1b_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int sinq1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int k, kc, ns2, ier1;
      float xhold;
-    extern /* Subroutine */ int cosq1b_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *), xerfft_f(char
-	    *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14181,23 +13843,16 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sinq1f_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int sinq1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int k, kc, ns2, ier1;
      float xhold;
-    extern /* Subroutine */ int cosq1f_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *), xerfft_f(char
-	    *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14259,17 +13914,12 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sinq1i_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int sinq1i_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1;
-    extern /* Subroutine */ int cosq1i_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -14299,25 +13949,16 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sinqmb_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int sinqmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1, i__2, i__3;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int k, m, kc, lj, ns2, ier1;
      float xhold;
-    extern /* Subroutine */ int cosqmb_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14398,25 +14039,16 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sinqmf_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int sinqmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1, i__2, i__3;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int k, m, kc, lj, ns2, ier1;
      float xhold;
-    extern /* Subroutine */ int cosqmf_f(int *, int *, int *,
-	    int *, float *, int *, float *, int *, float *, int *
-	    , int *);
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14493,17 +14125,12 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sinqmi_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int sinqmi_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1;
-    extern /* Subroutine */ int cosqmi_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -14533,21 +14160,15 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sint1b_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int sint1b_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1;
-    extern /* Subroutine */ int sintb1_f(int *, int *, float *, float *,
-	    float *, float *, int *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14591,21 +14212,15 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sint1f_f(int *n, int *inc, float *x, int *lenx,
-	 float *wsave, int *lensav, float *work, int *lenwrk, int *
-	ier)
+/* Subroutine */ int sint1f_f(int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int ier1;
-    extern /* Subroutine */ int sintf1_f(int *, int *, float *, float *,
-	    float *, float *, int *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14647,8 +14262,7 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sint1i_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int sint1i_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* System generated locals */
     int i__1;
@@ -14659,9 +14273,6 @@ L100:
      int k;
      float dt;
      int np1, ns2, ier1, lnsv;
-    extern /* Subroutine */ int rfft1i_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -14704,8 +14315,7 @@ L300:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sintb1_f(int *n, int *inc, float *x, float *wsave,
-	float *xh, float *work, int *ier)
+/* Subroutine */ int sintb1_f(int *n, int *inc, float *x, float *wsave, float *xh, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
@@ -14720,9 +14330,6 @@ L300:
      float dsum;
      int lnxh, lnwk, lnsv;
      float fnp1s4, xhold, srt3s2;
-    extern /* Subroutine */ int rfft1f_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *), xerfft_f(char
-	    *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14808,8 +14415,7 @@ L200:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sintf1_f(int *n, int *inc, float *x, float *wsave,
-	float *xh, float *work, int *ier)
+/* Subroutine */ int sintf1_f(int *n, int *inc, float *x, float *wsave, float *xh, float *work, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset, i__1;
@@ -14824,10 +14430,7 @@ L200:
      float dsum;
      int lnxh, lnwk, lnsv;
      float sfnp1, xhold;
-    extern /* Subroutine */ int rfft1f_f(int *, int *, float *, int
-	    *, float *, int *, float *, int *, int *);
      float ssqrt3;
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14912,24 +14515,15 @@ L200:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sintmb_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int sintmb_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int iw1, iw2, ier1;
-    extern /* Subroutine */ int msntb1_f(int *, int *, int *,
-	    int *, float *, float *, float *, float *, float *, int *
-	    );
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -14980,24 +14574,15 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sintmf_f(int *lot, int *jump, int *n, int
-	*inc, float *x, int *lenx, float *wsave, int *lensav, float *
-	work, int *lenwrk, int *ier)
+/* Subroutine */ int sintmf_f(int *lot, int *jump, int *n, int *inc, float *x, int *lenx, float *wsave, int *lensav, float *work, int *lenwrk, int *ier)
 {
     /* System generated locals */
     int x_dim1, x_offset;
 
     /* Builtin functions */
 
-
     /* Local variables */
      int iw1, iw2, ier1;
-    extern /* Subroutine */ int msntf1_f(int *, int *, int *,
-	    int *, float *, float *, float *, float *, float *, int *
-	    );
-    extern int xercon_f(int *, int *, int *, int *);
-    extern /* Subroutine */ int xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     x_dim1 = *inc;
@@ -15047,8 +14632,7 @@ L100:
 /*   Authors:  Paul N. Swarztrauber and Richard A. Valent */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int sintmi_f(int *n, float *wsave, int *lensav,
-	int *ier)
+/* Subroutine */ int sintmi_f(int *n, float *wsave, int *lensav, int *ier)
 {
     /* System generated locals */
     int i__1;
@@ -15059,9 +14643,6 @@ L100:
      int k;
      float dt;
      int np1, ns2, ier1, lnsv;
-    extern /* Subroutine */ int rfftmi_f(int *, float *, int *, int
-	    *), xerfft_f(char *, int *, int);
-
 
     /* Parameter adjustments */
     --wsave;
@@ -15115,7 +14696,6 @@ L300:
      int i__, j;
      float tpi, arg1, arg2, arg3, arg4, argz;
 
-
     /* Parameter adjustments */
     wa_dim1 = *ido;
     wa_dim2 = *ip - 1;
@@ -15155,8 +14735,7 @@ L110:
 /*   AUTHORS:  PAUL N. SWARZTRAUBER AND RICHARD A. VALENT */
 
 /* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC */
-/* Subroutine */ int w2r_f(int *ldr, int *ldw, int *l, int *m,
-	float *r__, float *w)
+/* Subroutine */ int w2r_f(int *ldr, int *ldw, int *l, int *m, float *r__, float *w)
 {
     /* System generated locals */
     int r_dim1, r_offset, w_dim1, w_offset, i__1, i__2;
@@ -15197,7 +14776,6 @@ int xercon_f(int *inc, int *jump, int *n, int *lot)
 
     /* Local variables */
      int i__, j, lcm, jnew;
-
 
 /*     Definition: positive ints INC, JUMP, N and LOT are consistent */
 /*                                                            ---------- */

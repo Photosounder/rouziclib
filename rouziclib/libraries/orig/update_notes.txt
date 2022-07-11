@@ -16,6 +16,13 @@ cfftpack:
 	then turn real constants to float using :%s/\.[0-9]\+/&f/g then do :%s/FFTPACK 5.1f/FFTPACK 5.1/g
 	replaces instances of pi with 3.1415927f or 3.14159265358979323846
 	change the include guards in each header
+	delete extern declarations of functions inside functions using /extern.*[^;]$ and Shift-N Shift-J repeatedly then :%g/[^^]extern.*/d
+	make all function declarations take only one line using /^\/\* Subroutine \*\/ .*[^)]$ and Shift-N Shift-J repeatedly
+	remove spaces from those joined lines using :%s/\(^\/\* Subroutine .* \*\) \(.*\)/\1\2/
+	get all function prototypes using :%v/^\/\* Subroutine/d, copy them, cancel the deletion and paste them at the top
+	do s/\/\* Subroutine \*\/\(.*\)/extern\1; on all of them
+	add xercon to the prototypes
+	remove extra blank lines using :%s/\n\n\n/\r\r/g
 
 glew:
 	download source zip from http://glew.sourceforge.net/
