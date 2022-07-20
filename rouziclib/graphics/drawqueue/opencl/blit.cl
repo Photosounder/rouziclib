@@ -71,6 +71,20 @@ float4 read_float2_pixel(global float *im, int index)
 	index <<= 1;
 	pv.x = im[index];
 	pv.y = im[index+1];
+	pv.z = 0.f;
+	pv.w = 1.f;
+	return pv;
+}
+
+float4 read_float2_pixel_planar(global float *im, int2 im_dim, int2 i)
+{
+	int size_full = im_dim.x*im_dim.y;
+	int index = i.y * im_dim.x + i.x;
+	float4 pv = 0.f;
+
+	pv.x = im[index];
+	pv.y = im[index + size_full];
+	pv.z = 0.f;
 	pv.w = 1.f;
 	return pv;
 }
@@ -85,6 +99,20 @@ float4 read_float3_pixel(global float *im, int index)
 	pv.w = 1.f;
 	return pv;
 }
+
+float4 read_float3_pixel_planar(global float *im, int2 im_dim, int2 i)
+{
+	int size_full = im_dim.x*im_dim.y;
+	int index = i.y * im_dim.x + i.x;
+	float4 pv = 0.f;
+
+	pv.x = im[index];
+	pv.y = im[index + size_full];
+	pv.z = im[index + size_full*2];
+	pv.w = 1.f;
+	return pv;
+}
+
 
 float4 read_sqrgb_pixel(global uint *im, int index)
 {
@@ -413,6 +441,7 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, com
 			return read_compressed_texture1_pixel((global uchar *) im, im_dim, i, cd1);
 
 		case 31:	// 1 channel float
+		case 41:
 			return read_float1_pixel((global float *) im, i.y * im_dim.x + i.x);
 
 		case 32:	// 2 channel float
@@ -420,6 +449,12 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, com
 
 		case 33:	// 3 channel float
 			return read_float3_pixel((global float *) im, i.y * im_dim.x + i.x);
+
+		case 42:	// 2 channel float planar
+			return read_float2_pixel_planar((global float *) im, im_dim, i);
+
+		case 43:	// 3 channel float planar
+			return read_float3_pixel_planar((global float *) im, im_dim, i);
 	}
 
 	return 0.f;
