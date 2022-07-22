@@ -402,6 +402,12 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 
 	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
 
+	// DPI awareness
+	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+	#ifdef _WIN32
+	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+	#endif
+
 	// Window
 	fb.w = dim.x;
 	fb.h = dim.y;
@@ -412,12 +418,6 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		fb.maxdim = add_xyi(fb.maxdim, set_xyi(32));	// pad the dimensions for OpenCL due to work size rounding up
 
 	// FIXME SDL_WINDOW_MAXIMIZED flag should probably be dealt with because it doesn't work well with the maxdim initialisation
-
-	// DPI awareness
-	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
-	#ifdef _WIN32
-	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
-	#endif
 
 	fb.window = SDL_CreateWindow (	window_name,			// window title
 					-fb.maxdim.x-100,		// initial x position
