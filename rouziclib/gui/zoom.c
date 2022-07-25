@@ -271,6 +271,9 @@ void zoom_overlay_control(zoom_t *zc, int *flag_zoom_key)
 	xy_t move_vector=XY0;
 	double zoom_way = 0.;
 
+	if (mouse.window_minimised_flag > 0)
+		return;
+
 	// Overlay controls
 	if (zc->overlay_ctrl)
 	{

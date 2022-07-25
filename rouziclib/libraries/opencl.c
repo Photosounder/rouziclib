@@ -588,6 +588,9 @@ void dialog_cl_gl_interop_options()
 
 	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "CL/GL options");
 
+	if (mouse.window_minimised_flag > 0)
+		return;
+
 	// Window
 	static flwindow_t window={0};
 	flwindow_init_defaults(&window);

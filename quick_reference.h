@@ -241,6 +241,9 @@
 		gui_layout_init_pos_scale(&layout, neg_x(zc.limit_u), 1., XY0, 0);
 		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
 
+		if (mouse.window_minimised_flag > 0)
+			return;
+
 		static flwindow_t window={0};
 		flwindow_init_defaults(&window);
 		flwindow_init_pinned(&window);
@@ -344,6 +347,9 @@ void my_window_function(double *arg1, double *arg2)
 	layout.sm = 1.;
 	make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "my_window_function");
 
+	if (mouse.window_minimised_flag > 0)
+		return;
+
 	static flwindow_t window={0};
 	flwindow_init_defaults(&window);
 	window.bg_opacity = 0.94;
@@ -369,6 +375,9 @@ void my_window_function(double *arg1, double *arg2)
 			};
 
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Parent window layout");
+
+			if (mouse.window_minimised_flag > 0)
+				return;
 
 			// Window
 			flwindow_init_defaults(&window);
@@ -402,6 +411,9 @@ void my_window_function(double *arg1, double *arg2)
 			};
 
 			make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Child 1");
+
+			if (mouse.window_minimised_flag > 0)
+				return;
 
 			// Window
 			static flwindow_t window={0};
