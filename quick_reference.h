@@ -145,7 +145,7 @@
 
 	// Knob
 		// returns 2 if the value is being changed, 1 when the change is final
-		// knobf functions are knobf_linear, knobf_log, knobf_recip
+		// knobf functions are knobf_linear, knobf_log, knobf_recip, knobf_dboff, knobf_logoff, knobf_tan
 		static double value=NAN;
 		static knob_t value_knob={0};
 		if (value_knob.main_label==NULL)
@@ -822,15 +822,15 @@ void my_window_function(double *arg1, double *arg2)
 
 		// Getting and setting values
 		samplerate = pref_get_double(&pref_def, "Audio output:Sample rate", 44100, " Hz");
-		pref_set_double(&pref_def, "Audio output:Sample rate", samplerate, " Hz");
+		             pref_set_double(&pref_def, "Audio output:Sample rate", samplerate, " Hz");
 
 		// Strings
 		const char *driver_name = pref_get_string(&pref_def, "Audio output:Preferred driver", "directsound");
-		pref_set_string(&pref_def, "Audio output:Preferred driver", "winmm");
+		                          pref_set_string(&pref_def, "Audio output:Preferred driver", "winmm");
 
 		// On/off
 		key[livesynth_on] = pref_get_onoff(&pref_def, "Audio output:Live synthesis", 1);
-		pref_set_onoff(&pref_def, "Audio output:Live synthesis", key[livesynth_on]);
+		                    pref_set_onoff(&pref_def, "Audio output:Live synthesis", key[livesynth_on]);
 
 		// Two values
 		// the last parameter can be NULL if there is no suffix

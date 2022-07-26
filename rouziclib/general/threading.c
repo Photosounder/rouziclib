@@ -49,13 +49,28 @@ void thread_set_low_priority()
 {
 	#if defined( _WIN32 )
 
-	SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_LOWEST );
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_LOWEST);
 
 	#elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
 	nice(39);
 
 	#else 
+	#error Unknown platform.
+	#endif
+}
+
+int thread_mutex_trylock(thread_mutex_t *mutex)
+{
+	#if defined( _WIN32 )
+
+	return TryEnterCriticalSection((CRITICAL_SECTION *) mutex) != 0;
+
+	#elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
+
+	return pthread_mutex_trylock((pthread_mutex_t *) mutex) == 0;
+
+	#else
 	#error Unknown platform.
 	#endif
 }
@@ -135,6 +150,7 @@ int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value)
 void rl_mutex_init   (rl_mutex_t *mutex) { thread_mutex_init((thread_mutex_t *) mutex); }
 void rl_mutex_destroy(rl_mutex_t *mutex) { thread_mutex_term((thread_mutex_t *) mutex); }
 void rl_mutex_lock   (rl_mutex_t *mutex) { thread_mutex_lock((thread_mutex_t *) mutex); }
+int  rl_mutex_trylock(rl_mutex_t *mutex) { return thread_mutex_trylock((thread_mutex_t *) mutex); }
 void rl_mutex_unlock (rl_mutex_t *mutex) { thread_mutex_unlock((thread_mutex_t *) mutex); }
 
 #ifdef RL_THREADING_PLATFORM_FAKING

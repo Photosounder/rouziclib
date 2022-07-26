@@ -37,6 +37,8 @@ int ff_init_stream(ffstream_t *s, const int stream_type)	// returns 1 on success
 	// Load codec
 	s->codec_ctx = s->fmt_ctx->streams[s->stream_id]->codec;
 	s->codec = avcodec_find_decoder(s->codec_ctx->codec_id);
+	s->codec_ctx->thread_count = s->thread_count;
+	s->codec_ctx->thread_type = FF_THREAD_FRAME;
 
 	ret = avcodec_open2(s->codec_ctx, s->codec, NULL);
 	ffmpeg_retval(ret);
@@ -49,12 +51,13 @@ int ff_init_stream(ffstream_t *s, const int stream_type)	// returns 1 on success
 	return 1;
 }
 
-ffstream_t ff_load_stream_init(char const *path, const int stream_type)
+ffstream_t ff_load_stream_init(char const *path, const int stream_type, const int thread_count)
 {
 	int i, ret;
 	ffstream_t s={0};
 
 	s.stream_id = -1;
+	s.thread_count = thread_count;
 
 	if (path == NULL)
 		return s;
@@ -589,7 +592,7 @@ double ff_get_stream_duration(ffstream_t *s, const char *path, int stream_type)
 
 	if (s->fmt_ctx==NULL)
 	{
-		*s = ff_load_stream_init(path, stream_type);
+		*s = ff_load_stream_init(path, stream_type, 1);
 		if (s->stream_id == -1)
 			return NAN;
 	}
@@ -618,7 +621,7 @@ raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mo
 	// Init
 	if (s->fmt_ctx==NULL)
 	{
-		*s = ff_load_stream_init(path, AVMEDIA_TYPE_VIDEO);
+		*s = ff_load_stream_init(path, AVMEDIA_TYPE_VIDEO, 1);
 		if (s->stream_id == -1)
 			return im;
 	}
@@ -662,7 +665,7 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 	// Init
 	if (s->fmt_ctx==NULL)
 	{
-		*s = ff_load_stream_init(path, AVMEDIA_TYPE_AUDIO);
+		*s = ff_load_stream_init(path, AVMEDIA_TYPE_AUDIO, 1);
 		if (s->stream_id == -1)
 			return -1;
 

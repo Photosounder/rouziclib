@@ -29,7 +29,7 @@ typedef struct
 	AVCodecContext *codec_ctx;
 	AVCodec *codec;
 	AVFrame *frame;
-	int stream_id;
+	int stream_id, thread_count;
 
 	ffframe_info_t *frame_info;
 	int frame_count, frame_as;
@@ -38,7 +38,7 @@ typedef struct
 } ffstream_t;
 
 extern int ff_init_stream(ffstream_t *s, const int stream_type);
-extern ffstream_t ff_load_stream_init(char const *path, const int stream_type);
+extern ffstream_t ff_load_stream_init(char const *path, const int stream_type, const int thread_count);
 extern int ff_load_stream_packet(ffstream_t *s);
 extern void ffstream_close_free(ffstream_t *s);
 extern double ff_get_timestamp(ffstream_t *s, int64_t timestamp);
@@ -67,6 +67,6 @@ extern int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mo
 extern float *ff_load_audio_fl32_full(const char *path, size_t *sample_count, int *channels, int *samplerate);
 
 #define ff_load_video_next_raster(s, path, mode)	ff_load_video_raster(s, path, 0, 0., mode)
-#define ff_load_video_still(s, path, t, mode)	ff_load_video_raster(s, path, 1, t, mode)
+#define ff_load_video_still(s, path, t, mode)		ff_load_video_raster(s, path, 1, t, mode)
 
 #endif

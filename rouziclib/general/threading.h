@@ -44,6 +44,7 @@ typedef union
 extern void rl_mutex_init(rl_mutex_t *mutex);
 extern void rl_mutex_destroy(rl_mutex_t *mutex);
 extern void rl_mutex_lock(rl_mutex_t *mutex);
+extern  int rl_mutex_trylock(rl_mutex_t *mutex);
 extern void rl_mutex_unlock(rl_mutex_t *mutex);
 
 extern rl_mutex_t *rl_mutex_init_alloc();
