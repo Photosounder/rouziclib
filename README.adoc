@@ -322,6 +322,9 @@ Includes all the other .cl files and is compiled to link:rouziclib/graphics/draw
 **** link:rouziclib/graphics/drawqueue/opencl/drawrect.cl[drawrect.cl] +
 Draw full Gaussian-antialiased rectangles, either additively or with multiplication to make dark rectangles. Can also add a plain colour to a rendering sector which is used in optimising the drawing of the insides of full rectangles and circles far from the edges.
 
+**** link:rouziclib/graphics/drawqueue/opencl/drawtriangle.cl[drawtriangle.cl] +
+Draw full Gaussian-antialiased triangles or tetragons. It took me from 2014 to 2022 to come up with this brilliant algorithm. Have a look at link:https://www.shadertoy.com/view/fdffDS[this shader] to see what it does and how it works.
+
 **** link:rouziclib/graphics/drawqueue/opencl/gaussian.cl[gaussian.cl] +
 Fast error function (`erf()`) approximation.
 
