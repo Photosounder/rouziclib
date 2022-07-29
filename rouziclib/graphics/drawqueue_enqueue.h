@@ -11,15 +11,11 @@ enum dqnq_type	// entry types
 	DQNQT_RECT_FULL,
 	DQNQT_RECT_BLACK,
 	DQNQT_RECT_BLACK_INV,
-	DQNQT_PLAIN_FILL,
 	DQNQT_TRIANGLE,
 	DQNQT_TETRAGON,
-	DQNQT_GAIN,
-	DQNQT_GAIN_PARAB,
-	DQNQT_LUMA_COMPRESS,
+	DQNQT_EFFECT_NOARG,
+	DQNQT_EFFECT_FL1,
 	DQNQT_COL_MATRIX,
-	DQNQT_CLIP,
-	DQNQT_CLAMP,
 	DQNQT_CIRCLE_FULL,
 	DQNQT_CIRCLE_HOLLOW,
 	DQNQT_BLIT_BILINEAR,
@@ -41,4 +37,5 @@ extern void dqnq_reset();
 extern enum dqnq_type dqnq_read_type_id(volatile uint8_t *data, size_t *index);
 extern void dqnq_write_type_id(volatile uint8_t *entry, const enum dqnq_type type);
 extern volatile uint8_t *dqnq_new_entry(const enum dqnq_type type);
+extern void dqnq_finish_entry();
 extern int dqnq_thread(void *unused);

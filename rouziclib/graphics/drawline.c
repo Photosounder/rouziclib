@@ -463,6 +463,8 @@ void draw_line_thin_dqnq(xy_t p1, xy_t p2, double radius, frgb_t colour, const i
 	write_LE32(&p, float_as_u32(colour.g * intensity));
 	write_LE32(&p, float_as_u32(colour.b * intensity));
 	write_LE32(&p, float_as_u32(colour.a * intensity));
+
+	dqnq_finish_entry();
 }
 
 void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)

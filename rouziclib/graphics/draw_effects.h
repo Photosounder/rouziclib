@@ -1,3 +1,7 @@
+extern void draw_effect_noarg_dq(enum dq_type type);
+extern void draw_effect_arg_double_dq(enum dq_type type, double v);
+extern void draw_colour_matrix_dq(double *matrix);
+
 extern void draw_effect_noarg(enum dq_type type);
 extern void draw_effect_arg_double(enum dq_type type, double v);
 extern void draw_colour_matrix(double *matrix);

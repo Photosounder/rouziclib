@@ -225,6 +225,25 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 	}
 }
 
+void draw_rect_full_dqnq(rect_t box, double radius, frgb_t colour, double intensity)
+{
+	// Get pointer to data buffer
+	volatile uint8_t *entry = dqnq_new_entry(DQNQT_RECT_FULL);
+	uint8_t *p = (uint8_t *) entry;
+
+	// Write arguments to buffer
+	write_LE32(&p, float_as_u32(box.p0.x));
+	write_LE32(&p, float_as_u32(box.p0.y));
+	write_LE32(&p, float_as_u32(box.p1.x));
+	write_LE32(&p, float_as_u32(box.p1.y));
+	write_LE32(&p, float_as_u32(radius));
+	write_LE32(&p, float_as_u32(colour.r * intensity));
+	write_LE32(&p, float_as_u32(colour.g * intensity));
+	write_LE32(&p, float_as_u32(colour.b * intensity));
+
+	dqnq_finish_entry();
+}
+
 void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	if (fb->discard)
@@ -233,7 +252,10 @@ void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t 
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb->use_drawq)
-		draw_rect_full_dq(box, radius, col_to_frgb(colour), intensity);
+		if (fb->use_dqnq)
+			draw_rect_full_dqnq(box, radius, col_to_frgb(colour), intensity);
+		else
+			draw_rect_full_dq(box, radius, col_to_frgb(colour), intensity);
 	else
 		draw_rect_full_lrgb(box, radius, col_to_lrgb(colour), bf, intensity);
 }
@@ -273,6 +295,23 @@ void draw_black_rect_dq(rect_t box, double radius, double intensity)
 	// TODO clear lists in obscured sectors, don't add to empty sectors
 }
 
+void draw_black_rect_dqnq(rect_t box, double radius, double intensity)
+{
+	// Get pointer to data buffer
+	volatile uint8_t *entry = dqnq_new_entry(DQNQT_RECT_BLACK);
+	uint8_t *p = (uint8_t *) entry;
+
+	// Write arguments to buffer
+	write_LE32(&p, float_as_u32(box.p0.x));
+	write_LE32(&p, float_as_u32(box.p0.y));
+	write_LE32(&p, float_as_u32(box.p1.x));
+	write_LE32(&p, float_as_u32(box.p1.y));
+	write_LE32(&p, float_as_u32(radius));
+	write_LE32(&p, float_as_u32(intensity));
+
+	dqnq_finish_entry();
+}
+
 void draw_black_rect(rect_t box, double radius, double intensity)
 {
 	if (fb->discard)
@@ -281,7 +320,10 @@ void draw_black_rect(rect_t box, double radius, double intensity)
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb->use_drawq)
-		draw_black_rect_dq(box, radius, intensity);
+		if (fb->use_dqnq)
+			draw_black_rect_dqnq(box, radius, intensity);
+		else
+			draw_black_rect_dq(box, radius, intensity);
 	else
 		draw_rect_full_lrgb(box, radius, col_to_lrgb(make_grey(0.)), blend_alphablendfg, intensity);
 }
@@ -320,6 +362,23 @@ void draw_black_rect_inverted_dq(rect_t box, double radius, double intensity)
 			}
 }
 
+void draw_black_rect_inverted_dqnq(rect_t box, double radius, double intensity)
+{
+	// Get pointer to data buffer
+	volatile uint8_t *entry = dqnq_new_entry(DQNQT_RECT_BLACK_INV);
+	uint8_t *p = (uint8_t *) entry;
+
+	// Write arguments to buffer
+	write_LE32(&p, float_as_u32(box.p0.x));
+	write_LE32(&p, float_as_u32(box.p0.y));
+	write_LE32(&p, float_as_u32(box.p1.x));
+	write_LE32(&p, float_as_u32(box.p1.y));
+	write_LE32(&p, float_as_u32(radius));
+	write_LE32(&p, float_as_u32(intensity));
+
+	dqnq_finish_entry();
+}
+
 void draw_black_rect_inverted(rect_t box, double radius, double intensity)
 {
 	if (fb->discard)
@@ -328,6 +387,9 @@ void draw_black_rect_inverted(rect_t box, double radius, double intensity)
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb->use_drawq)
-		draw_black_rect_inverted_dq(box, radius, intensity);
+		if (fb->use_dqnq)
+			draw_black_rect_inverted_dqnq(box, radius, intensity);
+		else
+			draw_black_rect_inverted_dq(box, radius, intensity);
 	// TODO lrgb version
 }

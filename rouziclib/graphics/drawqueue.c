@@ -158,7 +158,8 @@ void drawq_run()
 	}
 
 	// Make entry list for each sector
-	drawq_compile_lists();
+	if (fb->use_dqnq == 0)
+		drawq_compile_lists();
 	fb->timing[fb->timing_index].dq_comp_end = get_time_hr();
 
 	if (fb->use_drawq==2)
@@ -536,7 +537,7 @@ void drawq_remove_prev_entry_for_sector(int32_t sector_id, int bracket_search, x
 	fprintf_rl(stderr, "Entry to remove for sector_id %d not found in drawq_remove_prev_entry_for_sector()\n", sector_id);
 }
 
-void drawq_bracket_open()
+void drawq_bracket_open_dq()
 {
 	int sector_id;
 	xyi_t ip, bb0, bb1;
@@ -564,7 +565,7 @@ void drawq_bracket_open()
 		}
 }
 
-void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are listed in drawqueue_enums.h
+void drawq_bracket_close_dq(enum dq_blend blending_mode)
 {
 	int sector_id;
 	int32_t *di;
@@ -599,4 +600,35 @@ void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are list
 			if (fb->pending_bracket[sector_id] < 0)
 				fb->pending_bracket[sector_id] = 0;
 		}
+}
+
+void drawq_bracket_close_dqnq(enum dq_blend blending_mode)
+{
+	// Get pointer to data buffer
+	volatile uint8_t *entry = dqnq_new_entry(DQNQT_BRACKET_CLOSE);
+	uint8_t *p = (uint8_t *) entry;
+
+	// Write arguments to buffer
+	write_LE32(&p, blending_mode);
+
+	dqnq_finish_entry();
+}
+
+void drawq_bracket_open()
+{
+	if (fb->use_dqnq)
+	{
+		dqnq_new_entry(DQNQT_BRACKET_OPEN);
+		dqnq_finish_entry();
+	}
+	else
+		drawq_bracket_open_dq();
+}
+
+void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are listed in drawqueue_enums.h
+{
+	if (fb->use_dqnq)
+		drawq_bracket_close_dqnq(blending_mode);
+	else
+		drawq_bracket_close_dq(blending_mode);
 }

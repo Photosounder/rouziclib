@@ -3,21 +3,17 @@ int32_t dqnqt_arg_size[DQNQT_COUNT] =
 	0,	// DQNQT_NOTYPE
 	0,	// DQNQT_BACK_TO_START
 	0,	// DQNQT_BRACKET_OPEN
-	0,	// DQNQT_BRACKET_CLOSE
+	4,	// DQNQT_BRACKET_CLOSE
 	52,	// DQNQT_LINE_THIN_ADD
-	0,	// DQNQT_POINT_ADD
-	0,	// DQNQT_RECT_FULL
-	0,	// DQNQT_RECT_BLACK
-	0,	// DQNQT_RECT_BLACK_INV
-	0,	// DQNQT_PLAIN_FILL
+	24,	// DQNQT_POINT_ADD
+	32,	// DQNQT_RECT_FULL
+	24,	// DQNQT_RECT_BLACK
+	24,	// DQNQT_RECT_BLACK_INV
 	0,	// DQNQT_TRIANGLE
 	0,	// DQNQT_TETRAGON
-	0,	// DQNQT_GAIN
-	0,	// DQNQT_GAIN_PARAB
-	0,	// DQNQT_LUMA_COMPRESS
-	0,	// DQNQT_COL_MATRIX
-	0,	// DQNQT_CLIP
-	0,	// DQNQT_CLAMP
+	4,	// DQNQT_EFFECT_NOARG
+	8,	// DQNQT_EFFECT_FL1
+	36,	// DQNQT_COL_MATRIX
 	0,	// DQNQT_CIRCLE_FULL
 	0,	// DQNQT_CIRCLE_HOLLOW
 	0,	// DQNQT_BLIT_BILINEAR
@@ -31,7 +27,7 @@ int32_t dqnqt_arg_size[DQNQT_COUNT] =
 
 void dqnq_init()
 {
-	fb->dqnq_data = calloc(fb->dqnq_as = 131072, 1);
+	fb->dqnq_data = calloc(fb->dqnq_as = 16*1024*1024, 1);
 	rl_sem_init(&fb->dqnq_read_sem, 0);
 	rl_sem_init(&fb->dqnq_end_sem, 0);
 	rl_mutex_init(&fb->dqnq_mutex);
@@ -95,6 +91,7 @@ volatile uint8_t *dqnq_new_entry(const enum dqnq_type type)
 		{
 			entry = dqnq_new_entry(DQNQT_BACK_TO_START);
 			dqnq_write_type_id(entry, DQNQT_BACK_TO_START);
+			dqnq_finish_entry();
 		}
 
 		// Go back to start
@@ -126,7 +123,7 @@ volatile uint8_t *dqnq_new_entry(const enum dqnq_type type)
 	dqnq_write_type_id(entry, type);
 
 	// Increment the writing position for next entry
-	rl_atomic_store_i32(&fb->dqnq_write_pos, write_pos1);
+	fb->dqnq_write_pos_next = write_pos1;
 
 	// Unblock the dqnq thread if it's waiting
 	if (rl_atomic_get_and_set(&fb->dqnq_read_wait_flag, 0))
@@ -134,6 +131,11 @@ volatile uint8_t *dqnq_new_entry(const enum dqnq_type type)
 
 	// Return the entry pointer after the type
 	return &entry[DQNQ_TYPE_SIZE];
+}
+
+void dqnq_finish_entry()
+{
+	rl_atomic_store_i32(&fb->dqnq_write_pos, fb->dqnq_write_pos_next);
 }
 
 int dqnq_thread(void *unused)
@@ -167,6 +169,7 @@ start:
 		// Unblock the main thread if it's waiting
 		if (rl_atomic_load_i32(&fb->dqnq_end_wait_flag) == 2)
 		{
+			drawq_compile_lists();
 			rl_atomic_store_i32(&fb->dqnq_end_wait_flag, 0);
 			rl_sem_post(&fb->dqnq_end_sem);
 		}
@@ -199,11 +202,29 @@ start:
 		switch (type)
 		{
 			case DQNQT_BACK_TO_START:
+			{
 				read_pos_next = 0;
 				read_pos = 0;
 				break;
+			}
+
+			case DQNQT_BRACKET_OPEN:
+			{
+				drawq_bracket_open_dq();
+				break;
+			}
+
+			case DQNQT_BRACKET_CLOSE:
+			{
+				int blending_mode;
+				blending_mode = read_LE32(&dp[read_pos], &read_pos);
+
+				drawq_bracket_close_dq(blending_mode);
+				break;
+			}
 
 			case DQNQT_LINE_THIN_ADD:
+			{
 				xy_t p1, p2; double radius; frgb_t colour;
 				p1.x = u64_as_double(read_LE64(&dp[read_pos], &read_pos));
 				p1.y = u64_as_double(read_LE64(&dp[read_pos], &read_pos));
@@ -217,10 +238,99 @@ start:
 
 				draw_line_thin_dq(p1, p2, radius, colour, 0, 1., 0);
 				break;
+			}
+
+			case DQNQT_POINT_ADD:
+			{
+				xy_t pos; double radius; frgb_t colour;
+				pos.x = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				pos.y = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				radius = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				colour.r = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				colour.g = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				colour.b = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+
+				draw_point_dq(pos, radius, colour, 1.);
+				break;
+			}
+
+			case DQNQT_RECT_FULL:
+			{
+				rect_t box; double radius; frgb_t colour;
+				box.p0.x = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p0.y = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p1.x = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p1.y = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				radius = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				colour.r = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				colour.g = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				colour.b = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				colour.a = 1.f;
+
+				draw_rect_full_dq(box, radius, colour, 1.);
+				break;
+			}
+
+			case DQNQT_RECT_BLACK:
+			{
+				rect_t box; double radius, intensity;
+				box.p0.x = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p0.y = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p1.x = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p1.y = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				radius = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				intensity = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+
+				draw_black_rect_dq(box, radius, intensity);
+				break;
+			}
+
+			case DQNQT_RECT_BLACK_INV:
+			{
+				rect_t box; double radius, intensity;
+				box.p0.x = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p0.y = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p1.x = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				box.p1.y = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				radius = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+				intensity = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+
+				draw_black_rect_inverted_dq(box, radius, intensity);
+				break;
+			}
+
+			case DQNQT_EFFECT_NOARG:
+			{
+				int32_t arg_type;
+				arg_type = read_LE32(&dp[read_pos], &read_pos);
+
+				draw_effect_noarg_dq(type);
+				break;
+			}
+
+			case DQNQT_EFFECT_FL1:
+			{
+				int32_t arg_type; double v;
+				arg_type = read_LE32(&dp[read_pos], &read_pos);
+				v = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+
+				draw_effect_arg_double_dq(type, v);
+				break;
+			}
+
+			case DQNQT_COL_MATRIX:
+			{
+				double matrix[9];
+				for (int i=0; i < 9; i++)
+					matrix[i] = u32_as_float(read_LE32(&dp[read_pos], &read_pos));
+
+				draw_colour_matrix_dq(matrix);
+				break;
+			}
 		}
 
 		// Debug measure to make sure the reported sizes are correct
-		if (read_pos != read_pos_next)
+		if (read_pos != read_pos_next && read_pos_next > 0)
 			fprintf_rl(stderr, "Discrepancy in dqnq_thread for type %d: %d bytes\n", type, (int) read_pos - read_pos_next);
 
 		// Iterate to the next entry's position

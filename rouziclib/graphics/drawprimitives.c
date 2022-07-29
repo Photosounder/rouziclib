@@ -560,6 +560,23 @@ void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 			drawq_add_sector_id(iy*fb->sector_w + ix);	// add sector reference
 }
 
+void draw_point_dqnq(xy_t pos, double radius, frgb_t colour, double intensity)
+{
+	// Get pointer to data buffer
+	volatile uint8_t *entry = dqnq_new_entry(DQNQT_POINT_ADD);
+	uint8_t *p = (uint8_t *) entry;
+
+	// Write arguments to buffer
+	write_LE32(&p, float_as_u32(pos.x));
+	write_LE32(&p, float_as_u32(pos.y));
+	write_LE32(&p, float_as_u32(radius));
+	write_LE32(&p, float_as_u32(colour.r * intensity));
+	write_LE32(&p, float_as_u32(colour.g * intensity));
+	write_LE32(&p, float_as_u32(colour.b * intensity));
+
+	dqnq_finish_entry();
+}
+
 void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	if (fb->discard)
@@ -568,7 +585,10 @@ void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, do
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
 
 	if (fb->use_drawq)
-		draw_point_dq(pos, radius, col_to_frgb(colour), intensity);
+		if (fb->use_dqnq)
+			draw_point_dqnq(pos, radius, col_to_frgb(colour), intensity);
+		else
+			draw_point_dq(pos, radius, col_to_frgb(colour), intensity);
 	else if (fb->r.use_frgb)
 		draw_point_frgb(pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
