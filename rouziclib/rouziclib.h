@@ -128,6 +128,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "graphics/drawrect.h"
 #include "graphics/drawprimitives.h"
 #include "graphics/drawqueue.h"
+#include "graphics/drawqueue_enqueue.h"
 #include "graphics/drawqueue/drawqueue_soft.h"
 #include "graphics/drawqueue/drawrect.h"
 #include "graphics/drawqueue/drawline.h"

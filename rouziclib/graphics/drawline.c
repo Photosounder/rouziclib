@@ -447,6 +447,24 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 	}
 }
 
+void draw_line_thin_dqnq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
+{
+	// Get pointer to data buffer
+	volatile uint8_t *entry = dqnq_new_entry(DQNQT_LINE_THIN_ADD);
+	uint8_t *p = (uint8_t *) entry;
+
+	// Write arguments to buffer
+	write_LE64(&p, double_as_u64(p1.x));
+	write_LE64(&p, double_as_u64(p1.y));
+	write_LE64(&p, double_as_u64(p2.x));
+	write_LE64(&p, double_as_u64(p2.y));
+	write_LE32(&p, float_as_u32(radius));
+	write_LE32(&p, float_as_u32(colour.r * intensity));
+	write_LE32(&p, float_as_u32(colour.g * intensity));
+	write_LE32(&p, float_as_u32(colour.b * intensity));
+	write_LE32(&p, float_as_u32(colour.a * intensity));
+}
+
 void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	if (fb.discard)
@@ -455,7 +473,10 @@ void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_f
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 0);	// adjusts the focus
 
 	if (fb.use_drawq)
-		draw_line_thin_dq(p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
+		if (fb.use_dqnq)
+			draw_line_thin_dqnq(p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
+		else
+			draw_line_thin_dq(p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
 	else if (fb.r.use_frgb)
 		draw_line_thin_frgb(p1, p2, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else

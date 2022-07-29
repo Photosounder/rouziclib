@@ -622,6 +622,7 @@ void my_window_function(double *arg1, double *arg2)
 
 		rl_mutex_init(&my_mutex);
 		rl_mutex_lock(&my_mutex);
+		if (rl_mutex_trylock(&my_mutex))
 		rl_mutex_unlock(&my_mutex);
 		rl_mutex_destroy(&my_mutex);
 
@@ -631,6 +632,15 @@ void my_window_function(double *arg1, double *arg2)
 		rl_mutex_lock(mutex_ptr);
 		rl_mutex_unlock(mutex_ptr);
 		rl_mutex_destroy_free(&mutex_ptr);
+
+	// Semaphores
+		rl_sem_t sem;
+
+		// Initialising with 1 makes it like a lockable mutex, using 0 makes it similar to being already locked
+		rl_sem_init(&sem, 1);
+		rl_sem_wait(&sem);
+		rl_sem_post(&sem);
+		rl_sem_destroy(&sem);
 
 	// Set priority for the current thread
 		rl_thread_set_priority_low();

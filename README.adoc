@@ -127,7 +127,7 @@ Functions that do nothing and say so when that's needed.
 Functions for hashing based on https://github.com/Cyan4973/xxHash/[xxHash]. I didn't like how big and complicated the original code was so I made a much smaller, simpler and more readable version in link:rouziclib/libraries/xxh64.c[xxh64.c].
 
 ** link:rouziclib/general/threading.c[threading.c] / link:rouziclib/general/threading.h[threading.h] +
-Multiplatform threading, mainly wrappers for https://github.com/mattiasgustavsson/libs/blob/main/thread.h[thread.h].
+Multiplatform threading (threads, mutexes, semaphores, atomics), including wrappers for https://github.com/mattiasgustavsson/libs/blob/main/thread.h[thread.h].
 
 ** link:rouziclib/general/intrinsics.c[intrinsics.c] / link:rouziclib/general/intrinsics.h[intrinsics.h] +
 Functions for testing Intel x86 CPU features at runtime, replacements for certain intrinsics that can be missing or inefficient, macros that simplify basic operations.
@@ -284,7 +284,10 @@ Draw Gaussian-antialiased full or dark rectangles.
 Draw Gaussian-antialiased circles (full or hollow), hollow rectangles and chamfered (angular) rectangles, rounded rectangles, dashed lines, Gaussian gradients and dots, hollow triangles, mouse cursors, as well as full triangles and concave tetragons.
 
 ** link:rouziclib/graphics/drawqueue.c[drawqueue.c] / link:rouziclib/graphics/drawqueue.h[drawqueue.h] +
-Drawing queue rendering system.
+Drawing queue rendering system. Instead of directly rasterising graphic primitives from the main thread, drawing commands are added to the drawing queue for later rendering, usually in OpenCL by the GPU, using multiple arrays that describe a grid containing each its own sequence of drawing instructions for a square area of pixels.
+
+** link:rouziclib/graphics/drawqueue_enqueue.c[drawqueue_enqueue.c] / link:rouziclib/graphics/drawqueue_enqueue.h[drawqueue_enqueue.h] +
+Optional part of the drawing queue system. Instead of directly queueing from the main thread, which can be rather time-consuming, this allows to enqueue simpler drawing commands (essentially a simple reflection of the arguments provided by the caller for each drawing function) that require practically no preprocessing from the main thread to be processed for addition to the drawing queue in another dedicated thread, the "dqnq thread".
 
 ** link:rouziclib/graphics/drawqueue[drawqueue/]
 

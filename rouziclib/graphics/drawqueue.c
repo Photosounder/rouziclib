@@ -19,6 +19,8 @@ void drawq_reinit()
 		cl_data_table_prune_unused();
 
 	fb.must_recalc_free_space = 1;
+
+	dqnq_reset();
 }
 
 void drawq_alloc()
@@ -60,6 +62,10 @@ ss_calc:
 	fb.sector_count = calloc (fb.max_sector_count, sizeof(int32_t));
 	fb.pending_bracket = calloc (fb.max_sector_count, sizeof(int32_t));
 
+	// Initialise dqnq
+	if (fb.dqnq_data == NULL)
+		dqnq_init();
+
 	drawq_reinit();
 }
 
@@ -93,6 +99,7 @@ void drawq_run()
 
 	if (fb.use_drawq==1)
 	{
+		// Init OpenCL program and kernel
 		if (init)
 		{
 			init=0;
@@ -109,6 +116,7 @@ void drawq_run()
 		if (fb.clctx.kernel==NULL)
 			return ;
 
+		// Interop synchronisation
 		#ifdef RL_OPENCL_GL
 		if (fb.opt_glfinish)
 		{
@@ -132,6 +140,22 @@ void drawq_run()
 	#endif
 
 	fb.timing[fb.timing_index].interop_sync_end = get_time_hr();
+
+	// Drawqueue-enqueue completion
+	if (fb.use_drawq && fb.use_dqnq)
+	{
+		//** Complete execution in the dqnq thread **
+
+		// Flag the dqnq thread to unblock this thread when it finishes processing all data
+		rl_atomic_store_i32(&fb.dqnq_end_wait_flag, 1);
+
+		// Unblock the dqnq thread if it's waiting
+		if (rl_atomic_get_and_set(&fb.dqnq_read_wait_flag, 0))
+			rl_sem_post(&fb.dqnq_read_sem);
+
+		// Wait for the dqnq thread to unblock this thread
+		rl_sem_wait(&fb.dqnq_end_sem);
+	}
 
 	// Make entry list for each sector
 	drawq_compile_lists();

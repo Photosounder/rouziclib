@@ -65,6 +65,7 @@
 #include "graphics/drawrect.c"
 #include "graphics/drawprimitives.c"
 #include "graphics/drawqueue.c"
+#include "graphics/drawqueue_enqueue.c"
 #include "graphics/drawqueue/drawqueue_soft.c"
 #include "graphics/drawqueue/drawrect.c"
 #include "graphics/drawqueue/drawline.c"
