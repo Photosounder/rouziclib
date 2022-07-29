@@ -779,19 +779,20 @@ void my_window_function(double *arg1, double *arg2)
 		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Video framebuffer layout");
 
 		init_tls_fb(xyi(960, 540));
-		ff_videnc_t d = ff_video_enc_init_file(path, fb.r.dim, 29.97, AV_CODEC_ID_H265, bit_depth, crf);
+		ff_videnc_t d = ff_video_enc_init_file(path, fb->r.dim, 29.97, AV_CODEC_ID_H265, bit_depth, crf);
 
 		for (...)
 		{
 			gui_printf_to_label(&layout, 20, 0, "%d", i);
 			draw_label_fromlayout(&layout, 20, ALIG_RIGHT | MONODIGITS);
 
-			ff_video_enc_write_raster(&d, &fb.r);
-			memset(fb.r.f, 0, mul_x_by_y_xyi(fb.r.dim)*sizeof(frgb_t));
+			ff_video_enc_write_raster(&d, &fb->r);
+			memset(fb->r.f, 0, mul_x_by_y_xyi(fb->r.dim)*sizeof(frgb_t));
 		}
 
 		ff_video_enc_finalise_file(&d);
-		free_raster(&fb.r);
+		free_raster(&fb->r);
+		free_null(&fb);
 
 	// FFTs
 		// Choose out_size this way
@@ -923,7 +924,7 @@ void my_window_function(double *arg1, double *arg2)
 
 	// Flashing in the taskbar through SDL
 		// SDL_FLASH_BRIEFLY can also be used, as well as SDL_FLASH_CANCEL to cancel
-		SDL_FlashWindow(fb.window, SDL_FLASH_UNTIL_FOCUSED);
+		SDL_FlashWindow(fb->window, SDL_FLASH_UNTIL_FOCUSED);
 
 // How to transition code
 	// 190610 transition that involves removing any 'fb' from any function call, making it a TLS global only
@@ -940,3 +941,7 @@ void my_window_function(double *arg1, double *arg2)
 	// 211116 transition of removing rect_t parent_area and int *wind_on in window functions
 	// remove the two first arguments and replace every instance with &cur_parent_area (rect_t) and cur_wind_on (int *) typically resulting in:
 		draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
+
+	// 220729 transition of making fb be a TLS global pointer
+	%s/\<fb\>\./fb->/g
+	// this means that calls to init_tls_fb() must now have a matching free_null(&fb);

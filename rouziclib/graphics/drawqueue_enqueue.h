@@ -41,4 +41,4 @@ extern void dqnq_reset();
 extern enum dqnq_type dqnq_read_type_id(volatile uint8_t *data, size_t *index);
 extern void dqnq_write_type_id(volatile uint8_t *entry, const enum dqnq_type type);
 extern volatile uint8_t *dqnq_new_entry(const enum dqnq_type type);
-extern int dqnq_thread(framebuffer_t *fb);
+extern int dqnq_thread(void *unused);

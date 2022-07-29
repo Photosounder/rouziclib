@@ -86,7 +86,7 @@ int draw_vector_char_lookahead(vector_font_t *font, uint32_t c, const char *stri
 	rect_t bound_box;
 
 	bound_box = make_rect_off( add_xy(p, *off), set_xy(24. * scale), xy(0.5, 0.5) );
-	if (check_box_box_intersection(fb.window_dl, bound_box)==0)
+	if (check_box_box_intersection(fb->window_dl, bound_box)==0)
 		onscreen = 0;
 
 	if (onscreen)
