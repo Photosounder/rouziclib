@@ -132,7 +132,11 @@ typedef struct
 	// Draw queue enqueue
 	volatile uint8_t *dqnq_data;			// circular buffer where drawing instructions are enqueued from the main thread and read by the dqnq thread
 	size_t dqnq_as;
-	volatile int32_t dqnq_read_pos, dqnq_write_pos;	// where the dqnq thread starts reading and where the main thread starts writing
+	volatile int32_t dqnq_read_pos;			// where the dqnq thread starts reading
+	int32_t dqnq_write_pos;				// where the main thread starts writing (only used by the main thread)
+	volatile int32_t dqnq_room_for_writing;		// how much room is left for writing
+	volatile int32_t dqnq_size_to_read;		// how much data is left to read
+	int32_t dqnq_wasted_room;			// how many bytes currently can't be used for writing at the end of the buffer
 	int32_t dqnq_write_pos_next;			// next position where the main thread will start writing
 	volatile int32_t dqnq_read_wait_flag;		// flag set by the dqnq thread to signal the main thread that it's waiting for more data
 	volatile int32_t dqnq_end_wait_flag;		// flag set by the main thread to signal the dqnq thread that it's waiting for the dqnq processing to end

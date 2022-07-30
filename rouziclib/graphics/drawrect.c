@@ -227,9 +227,10 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 
 void draw_rect_full_dqnq(rect_t box, double radius, frgb_t colour, double intensity)
 {
+	const enum dqnq_type type = DQNQT_RECT_FULL;
+
 	// Get pointer to data buffer
-	volatile uint8_t *entry = dqnq_new_entry(DQNQT_RECT_FULL);
-	uint8_t *p = (uint8_t *) entry;
+	uint8_t *p = (uint8_t *) dqnq_new_entry(type);
 
 	// Write arguments to buffer
 	write_LE32(&p, float_as_u32(box.p0.x));
@@ -241,7 +242,7 @@ void draw_rect_full_dqnq(rect_t box, double radius, frgb_t colour, double intens
 	write_LE32(&p, float_as_u32(colour.g * intensity));
 	write_LE32(&p, float_as_u32(colour.b * intensity));
 
-	dqnq_finish_entry();
+	dqnq_finish_entry(type);
 }
 
 void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t bf, double intensity)
@@ -297,9 +298,10 @@ void draw_black_rect_dq(rect_t box, double radius, double intensity)
 
 void draw_black_rect_dqnq(rect_t box, double radius, double intensity)
 {
+	const enum dqnq_type type = DQNQT_RECT_BLACK;
+
 	// Get pointer to data buffer
-	volatile uint8_t *entry = dqnq_new_entry(DQNQT_RECT_BLACK);
-	uint8_t *p = (uint8_t *) entry;
+	uint8_t *p = (uint8_t *) dqnq_new_entry(type);
 
 	// Write arguments to buffer
 	write_LE32(&p, float_as_u32(box.p0.x));
@@ -309,7 +311,7 @@ void draw_black_rect_dqnq(rect_t box, double radius, double intensity)
 	write_LE32(&p, float_as_u32(radius));
 	write_LE32(&p, float_as_u32(intensity));
 
-	dqnq_finish_entry();
+	dqnq_finish_entry(type);
 }
 
 void draw_black_rect(rect_t box, double radius, double intensity)
@@ -364,9 +366,10 @@ void draw_black_rect_inverted_dq(rect_t box, double radius, double intensity)
 
 void draw_black_rect_inverted_dqnq(rect_t box, double radius, double intensity)
 {
+	const enum dqnq_type type = DQNQT_RECT_BLACK_INV;
+
 	// Get pointer to data buffer
-	volatile uint8_t *entry = dqnq_new_entry(DQNQT_RECT_BLACK_INV);
-	uint8_t *p = (uint8_t *) entry;
+	uint8_t *p = (uint8_t *) dqnq_new_entry(type);
 
 	// Write arguments to buffer
 	write_LE32(&p, float_as_u32(box.p0.x));
@@ -376,7 +379,7 @@ void draw_black_rect_inverted_dqnq(rect_t box, double radius, double intensity)
 	write_LE32(&p, float_as_u32(radius));
 	write_LE32(&p, float_as_u32(intensity));
 
-	dqnq_finish_entry();
+	dqnq_finish_entry(type);
 }
 
 void draw_black_rect_inverted(rect_t box, double radius, double intensity)

@@ -158,8 +158,7 @@ void drawq_run()
 	}
 
 	// Make entry list for each sector
-	if (fb->use_dqnq == 0)
-		drawq_compile_lists();
+	drawq_compile_lists();
 	fb->timing[fb->timing_index].dq_comp_end = get_time_hr();
 
 	if (fb->use_drawq==2)
@@ -565,6 +564,16 @@ void drawq_bracket_open_dq()
 		}
 }
 
+void drawq_bracket_open_dqnq()
+{
+	const enum dqnq_type type = DQNQT_BRACKET_OPEN;
+
+	// Get pointer to data buffer
+	dqnq_new_entry(type);
+
+	dqnq_finish_entry(type);
+}
+
 void drawq_bracket_close_dq(enum dq_blend blending_mode)
 {
 	int sector_id;
@@ -604,23 +613,21 @@ void drawq_bracket_close_dq(enum dq_blend blending_mode)
 
 void drawq_bracket_close_dqnq(enum dq_blend blending_mode)
 {
+	const enum dqnq_type type = DQNQT_BRACKET_CLOSE;
+
 	// Get pointer to data buffer
-	volatile uint8_t *entry = dqnq_new_entry(DQNQT_BRACKET_CLOSE);
-	uint8_t *p = (uint8_t *) entry;
+	uint8_t *p = (uint8_t *) dqnq_new_entry(type);
 
 	// Write arguments to buffer
 	write_LE32(&p, blending_mode);
 
-	dqnq_finish_entry();
+	dqnq_finish_entry(type);
 }
 
 void drawq_bracket_open()
 {
 	if (fb->use_dqnq)
-	{
-		dqnq_new_entry(DQNQT_BRACKET_OPEN);
-		dqnq_finish_entry();
-	}
+		drawq_bracket_open_dqnq();
 	else
 		drawq_bracket_open_dq();
 }

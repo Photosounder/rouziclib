@@ -36,6 +36,7 @@ extern void dqnq_init();
 extern void dqnq_reset();
 extern enum dqnq_type dqnq_read_type_id(volatile uint8_t *data, size_t *index);
 extern void dqnq_write_type_id(volatile uint8_t *entry, const enum dqnq_type type);
+extern void dqnq_finish_entry(const enum dqnq_type type);
 extern volatile uint8_t *dqnq_new_entry(const enum dqnq_type type);
-extern void dqnq_finish_entry();
 extern int dqnq_thread(void *unused);
+extern void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos);

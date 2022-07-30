@@ -449,9 +449,10 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 
 void draw_line_thin_dqnq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
+	const enum dqnq_type type = DQNQT_LINE_THIN_ADD;
+
 	// Get pointer to data buffer
-	volatile uint8_t *entry = dqnq_new_entry(DQNQT_LINE_THIN_ADD);
-	uint8_t *p = (uint8_t *) entry;
+	uint8_t *p = (uint8_t *) dqnq_new_entry(type);
 
 	// Write arguments to buffer
 	write_LE64(&p, double_as_u64(p1.x));
@@ -464,7 +465,7 @@ void draw_line_thin_dqnq(xy_t p1, xy_t p2, double radius, frgb_t colour, const i
 	write_LE32(&p, float_as_u32(colour.b * intensity));
 	write_LE32(&p, float_as_u32(colour.a * intensity));
 
-	dqnq_finish_entry();
+	dqnq_finish_entry(type);
 }
 
 void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)

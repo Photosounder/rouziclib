@@ -562,9 +562,10 @@ void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 
 void draw_point_dqnq(xy_t pos, double radius, frgb_t colour, double intensity)
 {
+	const enum dqnq_type type = DQNQT_POINT_ADD;
+
 	// Get pointer to data buffer
-	volatile uint8_t *entry = dqnq_new_entry(DQNQT_POINT_ADD);
-	uint8_t *p = (uint8_t *) entry;
+	uint8_t *p = (uint8_t *) dqnq_new_entry(type);
 
 	// Write arguments to buffer
 	write_LE32(&p, float_as_u32(pos.x));
@@ -574,7 +575,7 @@ void draw_point_dqnq(xy_t pos, double radius, frgb_t colour, double intensity)
 	write_LE32(&p, float_as_u32(colour.g * intensity));
 	write_LE32(&p, float_as_u32(colour.b * intensity));
 
-	dqnq_finish_entry();
+	dqnq_finish_entry(type);
 }
 
 void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
