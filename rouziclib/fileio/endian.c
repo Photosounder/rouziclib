@@ -366,6 +366,12 @@ void print_BE64(uint8_t *buf, uint64_t data)
 		buf[7-i] = data >> (i<<3);
 }
 
+void write_byte8(uint8_t **p, uint8_t data)
+{
+	**p = data;
+	(*p) += sizeof(data);
+}
+
 void write_LE16(uint8_t **p, uint16_t data)
 {
 	print_LE16(*p, data);

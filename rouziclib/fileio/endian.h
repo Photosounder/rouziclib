@@ -48,6 +48,7 @@ extern void print_BE32(uint8_t *buf, uint32_t data);
 extern void print_BE64(uint8_t *buf, uint64_t data);
 
 // Like print but increment the pointer
+extern void write_byte8(uint8_t **p, uint8_t data);
 extern void write_LE16(uint8_t **p, uint16_t data);
 extern void write_LE32(uint8_t **p, uint32_t data);
 extern void write_LE64(uint8_t **p, uint64_t data);

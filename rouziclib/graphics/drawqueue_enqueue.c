@@ -14,8 +14,8 @@ int32_t dqnqt_arg_size[DQNQT_COUNT] =
 	4,	// DQNQT_EFFECT_NOARG
 	8,	// DQNQT_EFFECT_FL1
 	36,	// DQNQT_COL_MATRIX
-	0,	// DQNQT_CIRCLE_FULL
-	0,	// DQNQT_CIRCLE_HOLLOW
+	28,	// DQNQT_CIRCLE_FULL
+	28,	// DQNQT_CIRCLE_HOLLOW
 	0,	// DQNQT_BLIT_BILINEAR
 	0,	// DQNQT_BLIT_FLATTOP
 	0,	// DQNQT_BLIT_FLATTOP_ROT
@@ -23,11 +23,12 @@ int32_t dqnqt_arg_size[DQNQT_COUNT] =
 	0,	// DQNQT_BLIT_AANEAREST_ROT
 	0,	// DQNQT_BLIT_PHOTO
 	0,	// DQNQT_TEST1
+	40,	// DQNQT_VOBJ
 };
 
 void dqnq_init()
 {
-	fb->dqnq_data = calloc(fb->dqnq_as = 3072, 1);
+	fb->dqnq_data = calloc(fb->dqnq_as = 1024*1024, 1);
 	rl_sem_init(&fb->dqnq_read_sem, 0);
 	rl_sem_init(&fb->dqnq_end_sem, 0);
 	rl_mutex_init(&fb->dqnq_mutex);
@@ -283,6 +284,7 @@ void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos)
 			colour.r = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
 			colour.g = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
 			colour.b = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.a = 1.f;
 
 			draw_point_dq(pos, radius, colour, 1.);
 			break;
@@ -359,6 +361,40 @@ void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos)
 				matrix[i] = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
 
 			draw_colour_matrix_dq(matrix);
+			break;
+		}
+
+		case DQNQT_CIRCLE_FULL:
+		case DQNQT_CIRCLE_HOLLOW:
+		{
+			xy_t pos; double circrad, radius; frgb_t colour;
+			pos.x = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			pos.y = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			circrad = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			radius = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.r = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.g = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.b = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.a = 1.f;
+
+			draw_circle_dq(type == DQNQT_CIRCLE_FULL ? FULLCIRCLE : HOLLOWCIRCLE, pos, circrad, radius, colour, 1.);
+			break;
+		}
+
+		case DQNQT_VOBJ:
+		{
+			vobj_t *o; xy_t pos; double scale, line_thick; col_t colour;
+			o = (vobj_t *) read_LE64(&dp[*read_pos], read_pos);
+			pos.x = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			pos.y = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			scale = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			line_thick = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.r = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.g = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.b = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+			colour.a = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
+
+			draw_vobj_fullarg_dq(o, pos, set_xy(scale), 0., line_thick, colour);
 			break;
 		}
 	}

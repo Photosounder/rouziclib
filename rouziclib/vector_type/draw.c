@@ -25,7 +25,10 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 		else
 			fixoff -= l->bl;
 
-		draw_vobj(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
+		if (fb->use_dqnq)
+			draw_vobj_dqnq(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
+		else
+			draw_vobj(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
 	}
 
 	// Alias

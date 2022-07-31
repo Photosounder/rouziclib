@@ -147,6 +147,45 @@ void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radiu
 #endif
 }
 
+void draw_circle_dqnq(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, double intensity)
+{
+	enum dqnq_type type = circlemode == FULLCIRCLE ? DQNQT_CIRCLE_FULL : DQNQT_CIRCLE_HOLLOW;
+
+	// Get pointer to data buffer
+	uint8_t *p = (uint8_t *) dqnq_new_entry(type);
+
+	// Write arguments to buffer
+	write_LE32(&p, float_as_u32(pos.x));
+	write_LE32(&p, float_as_u32(pos.y));
+	write_LE32(&p, float_as_u32(circrad));
+	write_LE32(&p, float_as_u32(radius));
+	write_LE32(&p, float_as_u32(colour.r * intensity));
+	write_LE32(&p, float_as_u32(colour.g * intensity));
+	write_LE32(&p, float_as_u32(colour.b * intensity));
+
+	dqnq_finish_entry(type);
+}
+
+void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
+{
+	if (fb->discard)
+		return;
+
+	//if (circlemode!=HOLLOWCIRCLE)
+		radius = drawing_focus_adjust(focus_rlg, radius, circlemode==FULLCIRCLE ? NULL : &intensity, 0);	// adjusts the focus
+
+	/*if (circlemode==HOLLOWCIRCLE)
+		draw_circle_with_lines(pos, circrad, radius, colour, blend_add, intensity);
+	else*/
+		if (fb->use_drawq)
+			if (fb->use_dqnq)
+				draw_circle_dqnq(circlemode, pos, circrad, radius, col_to_frgb(colour), intensity);
+			else
+				draw_circle_dq(circlemode, pos, circrad, radius, col_to_frgb(colour), intensity);
+		else
+			draw_circle_lrgb(circlemode, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
+}
+
 void draw_circle_arc(xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	int i, count;
@@ -172,23 +211,6 @@ void draw_circle_arc(xy_t pos, xy_t circrad, double th0, double th1, double radi
 void draw_circle_with_lines(xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	draw_circle_arc(pos, set_xy(circrad), 0., 1., radius, colour, bf, intensity);
-}
-
-void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
-{
-	if (fb->discard)
-		return;
-
-	//if (circlemode!=HOLLOWCIRCLE)
-		radius = drawing_focus_adjust(focus_rlg, radius, circlemode==FULLCIRCLE ? NULL : &intensity, 0);	// adjusts the focus
-
-	/*if (circlemode==HOLLOWCIRCLE)
-		draw_circle_with_lines(pos, circrad, radius, colour, blend_add, intensity);
-	else*/
-		if (fb->use_drawq)
-			draw_circle_dq(circlemode, pos, circrad, radius, col_to_frgb(colour), intensity);
-		else
-			draw_circle_lrgb(circlemode, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
 }
 
 void draw_rect(rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity)

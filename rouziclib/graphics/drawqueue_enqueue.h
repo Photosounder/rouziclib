@@ -25,6 +25,7 @@ enum dqnq_type	// entry types
 	DQNQT_BLIT_AANEAREST_ROT,
 	DQNQT_BLIT_PHOTO,
 	DQNQT_TEST1,
+	DQNQT_VOBJ,
 
 	DQNQT_COUNT
 };
