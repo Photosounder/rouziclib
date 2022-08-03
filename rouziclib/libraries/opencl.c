@@ -614,7 +614,7 @@ void dialog_cl_gl_interop_options()
 
 	if (pattern_on)
 	{
-		static is=0;
+		static int is=0;
 		xy_t ip;
 
 		is = (is+1) % 9;

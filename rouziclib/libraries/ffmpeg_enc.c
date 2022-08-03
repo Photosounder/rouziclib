@@ -120,6 +120,8 @@ ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int 
 	d.frame->height = d.codec_ctx->height;
 	ret = av_image_alloc(d.frame->data, d.frame->linesize, d.codec_ctx->width, d.codec_ctx->height, d.codec_ctx->pix_fmt, 4);
 
+	d.packet = av_packet_alloc();
+
 	d.s16_buf = calloc(mul_x_by_y_xyi(dim) * 3, sizeof(uint16_t));
 
 	return d;
@@ -282,7 +284,6 @@ int ff_video_enc_write_raster(ff_videnc_t *d, raster_t *r)
 int ff_video_enc_write_frame(ff_videnc_t *d, AVFrame *frame)
 {
 	int ret;
-	AVPacket pkt={0};
 
 	// Set frame pts, monotonically increasing, starting from 0
 	if (frame)
@@ -299,12 +300,10 @@ int ff_video_enc_write_frame(ff_videnc_t *d, AVFrame *frame)
 		return -1;
 	}
 
-	av_init_packet(&pkt);
-
 	while (ret >= 0)
 	{
 		// Encode frame
-		ret = avcodec_receive_packet(d->codec_ctx, &pkt);
+		ret = avcodec_receive_packet(d->codec_ctx, d->packet);
 		ffmpeg_retval(ret);
 		if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF)
 		{
@@ -314,15 +313,15 @@ int ff_video_enc_write_frame(ff_videnc_t *d, AVFrame *frame)
 		}
 		else if (ret >= 0)
 		{
-			av_packet_rescale_ts(&pkt, d->codec_ctx->time_base, d->st->time_base);
-			pkt.stream_index = d->st->index;
+			av_packet_rescale_ts(d->packet, d->codec_ctx->time_base, d->st->time_base);
+			d->packet->stream_index = d->st->index;
 
 			// Write the compressed frame to the file
-			av_interleaved_write_frame(d->fmt_ctx, &pkt);
+			av_interleaved_write_frame(d->fmt_ctx, d->packet);
 		}
 	}
 
-	av_packet_unref(&pkt);
+	av_packet_unref(d->packet);
 
 	return ret == AVERROR_EOF;	// 0 on success
 }
@@ -344,6 +343,7 @@ void ff_video_enc_finalise_file(ff_videnc_t *d)
 	avformat_free_context(d->fmt_ctx);
 	av_freep(&d->frame->data[0]);
 	av_frame_free(&d->frame);
+	av_packet_free(&d->packet);
 
 	free_null(&d->s16_buf);
 

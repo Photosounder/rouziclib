@@ -62,6 +62,7 @@ thread.h:
 	in thread_create() we need a #ifdef _MSC_VER to keep MinGW happy with __try and __except
 	:%s/\<thread_create\>/th_thread_create/g
 	comment out the '#include <windows.h>' line
+	comment out the '#define _WINSOCKAPI_' line
 	put '#ifndef _CRT_SECURE_NO_WARNINGS' before '#define _CRT_SECURE_NO_WARNINGS'
 
 tinyexpr (not really needed anymore):

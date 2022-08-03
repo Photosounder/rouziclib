@@ -46,6 +46,9 @@ int ff_init_stream(ffstream_t *s, const int stream_type)	// returns 1 on success
 	// Frame
 	s->frame = av_frame_alloc();
 
+	// Packet allocation
+	s->packet = av_packet_alloc();
+
 	return 1;
 }
 
@@ -80,16 +83,13 @@ ffstream_t ff_load_stream_init(char const *path, const int stream_type, const in
 int ff_load_stream_packet(ffstream_t *s)
 {
 	int i, ret, result=0;
-	AVPacket packet={0};
 
-	av_init_packet(&packet);
-
-	while (av_read_frame(s->fmt_ctx, &packet)==0)				// get the next frame from the file
+	while (av_read_frame(s->fmt_ctx, s->packet)==0)				// get the next frame from the file
 	{
-		if (packet.stream_index == s->stream_id)			// check that it's the right stream
+		if (s->packet->stream_index == s->stream_id)			// check that it's the right stream
 		{
-			s->byte_pos = packet.pos;
-			ret = avcodec_send_packet(s->codec_ctx, &packet);	// supply raw packet data as input to a decoder
+			s->byte_pos = s->packet->pos;
+			ret = avcodec_send_packet(s->codec_ctx, s->packet);	// supply raw packet data as input to a decoder
 			if (ret != AVERROR_EOF)
 				ffmpeg_retval(ret);
 
@@ -101,7 +101,7 @@ int ff_load_stream_packet(ffstream_t *s)
 				result = 1;
 		}
 
-		av_packet_unref(&packet);
+		av_packet_unref(s->packet);
 
 		if (result)
 			break;
@@ -129,6 +129,7 @@ void ffstream_close_free(ffstream_t *s)
 {
 	free_null(&s->frame_info);
 	av_frame_free(&s->frame);
+	av_packet_free(&s->packet);
 	avcodec_close(s->codec_ctx);
 	avformat_close_input(&s->fmt_ctx);
 	memset(s, 0, sizeof(ffstream_t));
@@ -549,31 +550,6 @@ ffframe_info_t ff_make_frame_info(ffstream_t *s)
 	return fi;
 }
 
-void ff_make_frame_table(ffstream_t *s)
-{
-	int ret;
-	AVPacket packet={0};
-
-	av_init_packet(&packet);
-
-	while (av_read_frame(s->fmt_ctx, &packet)==0)				// get the next frame from the file
-	{
-		if (packet.stream_index == s->stream_id)			// check that it's the right stream
-		{
-			ret = avcodec_send_packet(s->codec_ctx, &packet);	// supply raw packet data as input to a decoder
-			ffmpeg_retval(ret);
-
-			ret = avcodec_receive_frame(s->codec_ctx, s->frame);	// return decoded output data (in frame) from a decoder
-			ffmpeg_retval(ret);
-
-			alloc_enough(&s->frame_info, s->frame_count+=1, &s->frame_as, sizeof(ffframe_info_t), 1.5);
-			s->frame_info[s->frame_count-1] = ff_make_frame_info(s);
-		}
-
-		av_packet_unref(&packet);
-	}
-}
-
 double ff_get_stream_duration(ffstream_t *s, const char *path, int stream_type)
 {
 	int i, ret;
@@ -690,70 +666,78 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 	// Convert frame data
 	if (ret)
 	{
+		int channels = s->frame->ch_layout.nb_channels;
+
 		// Enlarge the output buffer
-		buf_size = *buf_pos + s->frame->nb_samples * s->frame->channels;
+		buf_size = *buf_pos + s->frame->nb_samples * channels;
 		alloc_enough(bufp, buf_size, buf_as, sizeof(float), 1.5);
 
 		// Convert/copy samples
 		switch (s->codec_ctx->sample_fmt)
 		{
 			case AV_SAMPLE_FMT_U8:
-				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+				for (i=0; i < s->frame->nb_samples * channels; i++)
 					(*bufp)[*buf_pos + i] = ((int) ((uint8_t *)s->frame->data[0])[i] - 128) * 1.f/128.f;
 				break;
 
 			case AV_SAMPLE_FMT_U8P:
 				for (i=0; i < s->frame->nb_samples; i++)
-					for (ic=0; ic < s->frame->channels; ic++)
-						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((int) ((uint8_t *)s->frame->data[ic])[i] - 128) * 1.f/128.f;
+					for (ic=0; ic < channels; ic++)
+						(*bufp)[*buf_pos + i*channels + ic] = ((int) ((uint8_t *)s->frame->data[ic])[i] - 128) * 1.f/128.f;
 				break;
 
 			case AV_SAMPLE_FMT_S16:
-				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+				for (i=0; i < s->frame->nb_samples * channels; i++)
 					(*bufp)[*buf_pos + i] = ((int16_t *)s->frame->data[0])[i] * 1.f/32768.f;
 				break;
 
 			case AV_SAMPLE_FMT_S16P:
 				for (i=0; i < s->frame->nb_samples; i++)
-					for (ic=0; ic < s->frame->channels; ic++)
-						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((int16_t *)s->frame->data[ic])[i] * 1.f/32768.f;
+					for (ic=0; ic < channels; ic++)
+						(*bufp)[*buf_pos + i*channels + ic] = ((int16_t *)s->frame->data[ic])[i] * 1.f/32768.f;
 				break;
 
 			case AV_SAMPLE_FMT_S32:
-				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+				for (i=0; i < s->frame->nb_samples * channels; i++)
 					(*bufp)[*buf_pos + i] = ((int32_t *)s->frame->data[0])[i] * 1.f/2147483648.f;
 				break;
 
 			case AV_SAMPLE_FMT_S32P:
 				for (i=0; i < s->frame->nb_samples; i++)
-					for (ic=0; ic < s->frame->channels; ic++)
-						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((int32_t *)s->frame->data[ic])[i] * 1.f/2147483648.f;
+					for (ic=0; ic < channels; ic++)
+						(*bufp)[*buf_pos + i*channels + ic] = ((int32_t *)s->frame->data[ic])[i] * 1.f/2147483648.f;
 				break;
 
 			case AV_SAMPLE_FMT_FLT:
-				memcpy(&(*bufp)[*buf_pos], s->frame->data[0], s->frame->nb_samples * s->frame->channels * sizeof(float));
+				memcpy(&(*bufp)[*buf_pos], s->frame->data[0], s->frame->nb_samples * channels * sizeof(float));
 				break;
 
 			case AV_SAMPLE_FMT_FLTP:
 				for (i=0; i < s->frame->nb_samples; i++)
-					for (ic=0; ic < s->frame->channels; ic++)
-						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((float *)s->frame->data[ic])[i];
+					for (ic=0; ic < channels; ic++)
+						(*bufp)[*buf_pos + i*channels + ic] = ((float *)s->frame->data[ic])[i];
 				break;
 
 			case AV_SAMPLE_FMT_DBL:
-				for (i=0; i < s->frame->nb_samples * s->frame->channels; i++)
+				for (i=0; i < s->frame->nb_samples * channels; i++)
 					(*bufp)[*buf_pos + i] = ((double *)s->frame->data[0])[i];
 				break;
 
 			case AV_SAMPLE_FMT_DBLP:
 				for (i=0; i < s->frame->nb_samples; i++)
-					for (ic=0; ic < s->frame->channels; ic++)
-						(*bufp)[*buf_pos + i*s->frame->channels + ic] = ((double *)s->frame->data[ic])[i];
+					for (ic=0; ic < channels; ic++)
+						(*bufp)[*buf_pos + i*channels + ic] = ((double *)s->frame->data[ic])[i];
+				break;
+
+			case AV_SAMPLE_FMT_NONE:
+			case AV_SAMPLE_FMT_S64:
+			case AV_SAMPLE_FMT_S64P:
+			case AV_SAMPLE_FMT_NB:
 				break;
 		}
 
 		*buf_pos = buf_size;
-		return s->frame->nb_samples * s->frame->channels;
+		return s->frame->nb_samples * channels;
 	}
 
 	return -1;
@@ -772,7 +756,7 @@ float *ff_load_audio_fl32_full(const char *path, size_t *sample_count, int *chan
 
 		if (ret > -1)
 		{
-			*channels = s.frame->channels;
+			*channels = s.frame->ch_layout.nb_channels;
 			*samplerate = s.codec_ctx->sample_rate;
 		}
 	}

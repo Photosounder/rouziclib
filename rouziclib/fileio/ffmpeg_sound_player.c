@@ -37,7 +37,7 @@ loop_start:
 			goto loop_start;
 		}
 
-		if (abs(double_diff_ulp(data->speed, 1.)) < 100)
+		if (llabs(double_diff_ulp(data->speed, 1.)) < 100)
 		{
 			// Load the frame, either by seeking or sequentially
 			buf_pos = 0;
@@ -76,7 +76,7 @@ loop_start:
 
 			data->frame[ip].used = 1;
 			data->frame[ip].sample_count = sample_count;
-			data->frame[ip].channels = data->stream->frame->channels;
+			data->frame[ip].channels = data->stream->frame->ch_layout.nb_channels;
 			data->frame[ip].samplerate = data->stream->codec_ctx->sample_rate;
 			alloc_enough_and_copy(&data->frame[ip].buffer, buf, data->frame[ip].len = ret, &data->frame[ip].as, sizeof(float), 1.);
 			data->frame[ip].info = info;

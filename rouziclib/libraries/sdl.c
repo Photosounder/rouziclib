@@ -376,13 +376,13 @@ SDL_GLContext init_sdl_gl(SDL_Window *window)
 	return ctx;
 }
 
-// Things required by SetProcessDpiAwareness
+/*// Things required by SetProcessDpiAwareness
 #ifdef _WIN32
 #include <shellscalingapi.h>
 #ifdef _MSC_VER
 #pragma comment (lib, "Shcore.lib")
 #endif
-#endif
+#endif*/
 
 void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags)
 {
@@ -402,11 +402,11 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 
 	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
 
-	// DPI awareness
+	/*// DPI awareness
 	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 	#ifdef _WIN32
 	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
-	#endif
+	#endif*/
 
 	// Window
 	fb->w = dim.x;

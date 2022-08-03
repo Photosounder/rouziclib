@@ -340,7 +340,7 @@ void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos)
 			int32_t arg_type;
 			arg_type = read_LE32(&dp[*read_pos], read_pos);
 
-			draw_effect_noarg_dq(type);
+			draw_effect_noarg_dq(arg_type);
 			break;
 		}
 
@@ -350,7 +350,7 @@ void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos)
 			arg_type = read_LE32(&dp[*read_pos], read_pos);
 			v = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
 
-			draw_effect_arg_double_dq(type, v);
+			draw_effect_arg_double_dq(arg_type, v);
 			break;
 		}
 
@@ -397,5 +397,8 @@ void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos)
 			draw_vobj_fullarg_dq(o, pos, set_xy(scale), 0., line_thick, colour);
 			break;
 		}
+
+		default:
+			fprintf_rl(stderr, "Unhandled DQNQ type %d in dqnq_read_execute().\n", type);
 	}
 }
