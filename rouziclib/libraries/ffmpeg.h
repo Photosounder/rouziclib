@@ -27,7 +27,7 @@ typedef struct
 {
 	AVFormatContext *fmt_ctx;
 	AVCodecContext *codec_ctx;
-	AVCodec *codec;
+	const AVCodec *codec;
 	AVFrame *frame;
 	int stream_id, thread_count;
 

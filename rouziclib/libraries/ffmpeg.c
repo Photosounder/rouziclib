@@ -22,23 +22,21 @@ int ff_init_stream(ffstream_t *s, const int stream_type)	// returns 1 on success
 	int i, ret;
 
 	// Find stream
-	s->stream_id = -1;
-
-	for (i=0; i < s->fmt_ctx->nb_streams; i++)
-		if (s->fmt_ctx->streams[i]->codec->codec_type == stream_type)	// find the video stream
-		{
-			s->stream_id = i;
-			break;
-		}
+	s->stream_id = av_find_best_stream(s->fmt_ctx, stream_type, -1, -1, NULL, 0);
 
 	if (s->stream_id == -1)
 		return 0;
 
 	// Load codec
-	s->codec_ctx = s->fmt_ctx->streams[s->stream_id]->codec;
-	s->codec = avcodec_find_decoder(s->codec_ctx->codec_id);
+	s->codec = avcodec_find_decoder(s->fmt_ctx->streams[s->stream_id]->codecpar->codec_id);
+	s->codec_ctx = avcodec_alloc_context3(s->codec);
 	s->codec_ctx->thread_count = s->thread_count;
 	s->codec_ctx->thread_type = FF_THREAD_FRAME;
+
+	ret = avcodec_parameters_to_context(s->codec_ctx, s->fmt_ctx->streams[s->stream_id]->codecpar);
+	ffmpeg_retval(ret);
+	if (ret < 0)
+		return 0;
 
 	ret = avcodec_open2(s->codec_ctx, s->codec, NULL);
 	ffmpeg_retval(ret);
@@ -544,7 +542,7 @@ ffframe_info_t ff_make_frame_info(ffstream_t *s)
 	fi.pkt_pos = s->frame->pkt_pos;
 	fi.pts = s->frame->pkt_dts;
 	if (s->frame->pkt_dts == 0x8000000000000000)
-		fi.pts = s->frame->pkt_pts;
+		fi.pts = s->frame->pts;
 	fi.ts = ff_get_timestamp(s, fi.pts);
 	fi.ts_end = ff_get_timestamp(s, fi.pts + s->frame->pkt_duration);
 

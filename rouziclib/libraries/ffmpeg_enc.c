@@ -3,8 +3,8 @@
 ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int codec_id, int bit_depth, int crf)	// codec can be AV_CODEC_ID_H265
 {
 	int ret;
-	AVOutputFormat *fmt;
-	AVCodec *codec;
+	const AVOutputFormat *fmt;
+	const AVCodec *codec;
 	AVDictionary *fmt_opts=NULL;
 	ff_videnc_t d={0};
 	char str[32];
@@ -27,7 +27,7 @@ ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int 
 
 	// Set format header infos
 	d.fmt_ctx->oformat = fmt;
-	snprintf(d.fmt_ctx->filename, sizeof(d.fmt_ctx->filename), "%s", path);
+	snprintf(d.fmt_ctx->url, sizeof(d.fmt_ctx->url), "%s", path);
 
 	// Set format's private options to be passed to avformat_write_header()
 	ret = av_dict_set(&fmt_opts, "movflags", "faststart", 0);
@@ -54,7 +54,7 @@ ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int 
 		d.st->time_base = (AVRational) {1, nearbyint(fps)};
 
 	// Set codec parameters
-	d.codec_ctx = d.st->codec;
+	d.codec_ctx = avcodec_alloc_context3(codec);
 	d.codec_ctx->sample_fmt = codec->sample_fmts ?  codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
 	d.codec_ctx->width = dim.x;
 	d.codec_ctx->height = dim.y;
@@ -338,7 +338,7 @@ void ff_video_enc_finalise_file(ff_videnc_t *d)
 	}
 
 	av_write_trailer(d->fmt_ctx);
-	avcodec_close(d->st->codec);
+	avcodec_close(d->codec_ctx);
 	avio_close(d->fmt_ctx->pb);
 
 	avformat_free_context(d->fmt_ctx);
