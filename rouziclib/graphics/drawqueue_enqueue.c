@@ -383,7 +383,7 @@ void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos)
 
 		case DQNQT_VOBJ:
 		{
-			vobj_t *o; xy_t pos; double scale, line_thick; col_t colour;
+			vobj_t *o; xy_t pos; double scale, line_thick; frgb_t colour;
 			o = (vobj_t *) read_LE64(&dp[*read_pos], read_pos);
 			pos.x = u32_as_float(read_LE32(&dp[*read_pos], read_pos));
 			pos.y = u32_as_float(read_LE32(&dp[*read_pos], read_pos));

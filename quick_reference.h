@@ -60,7 +60,8 @@
 #define RL_LIBCURL
 #define RL_MINIAUDIO
 #define RL_OPENAL
-	// Include various libraries and the code that use them. MiniAudio is already part of rouziclib but is excluded by default due to code size.
+#define RL_TINYEXPR
+	// Include various libraries and the code that use them. MiniAudio is already part of rouziclib but is excluded by default due to code size and TinyExpr is optional due to rarely being used anymore.
 
 #define RL_ZLIB
 	// Includes Zlib. If not defined then Miniz is used instead

@@ -1,3 +1,5 @@
+#ifdef RL_TINYEXPR
+
 #define TE_POW_FROM_RIGHT
 #define TE_NAT_LOG
 #undef pi
@@ -40,3 +42,5 @@ int etoi(const char *expr)
 	int i = (int) nearbyint(d);
 	return i;
 }
+
+#endif

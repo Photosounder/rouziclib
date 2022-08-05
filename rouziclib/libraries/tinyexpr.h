@@ -1,3 +1,5 @@
+#ifdef RL_TINYEXPR
+
 #include "orig/tinyexpr.h"
 
 #define RL_EXPR_FUNC								\
@@ -35,3 +37,5 @@ extern double clamp_tefunc(double v);
 extern double sign_tefunc(double v);
 //#define etof(expr) te_interp(expr, NULL)
 extern int etoi(const char *expr);
+
+#endif

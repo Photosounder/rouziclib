@@ -230,7 +230,7 @@ void draw_vobj_fullarg(vobj_t *o, xy_t p, xy_t scale, double angle, double line_
 	}
 }
 
-void draw_vobj_fullarg_dq(vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, col_t colour)
+void draw_vobj_fullarg_dq(vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, frgb_t colour)
 {
 	int32_t i;
 	seg_t rs;
@@ -262,10 +262,11 @@ void draw_vobj_dqnq(vobj_t *o, xy_t pos, double scale, double angle, double line
 	write_LE32(&p, float_as_u32(pos.y));
 	write_LE32(&p, float_as_u32(scale));
 	write_LE32(&p, float_as_u32(line_thick));
-	write_LE32(&p, float_as_u32(colour.r));
-	write_LE32(&p, float_as_u32(colour.g));
-	write_LE32(&p, float_as_u32(colour.b));
-	write_LE32(&p, float_as_u32(colour.a));
+	frgb_t col = col_to_frgb(colour);
+	write_LE32(&p, float_as_u32(col.r));
+	write_LE32(&p, float_as_u32(col.g));
+	write_LE32(&p, float_as_u32(col.b));
+	write_LE32(&p, float_as_u32(col.a));
 
 	dqnq_finish_entry(type);
 }
