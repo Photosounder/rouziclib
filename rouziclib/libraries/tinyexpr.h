@@ -36,6 +36,6 @@ extern double max_tefunc(double a, double b);
 extern double clamp_tefunc(double v);
 extern double sign_tefunc(double v);
 //#define etof(expr) te_interp(expr, NULL)
-extern int etoi(const char *expr);
+//extern int etoi(const char *expr);
 
 #endif

@@ -420,14 +420,18 @@ void blit_scale_rotated(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_t r
 rect_t blit_in_rect_off_rotated(raster_t *raster, rect_t r, xy_t off, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
 {
 	xy_t pscale, pos;
-	rect_t image_frame = r;
+	rect_t image_frame;
 
+	// Make the image frame to fit the image into
 	if (keep_aspect_ratio)
-		image_frame = fit_rect_in_area( xyi_to_xy(raster->dim), image_frame, off );
+		image_frame = fit_rect_in_area( xyi_to_xy(raster->dim), r, off );
+	else
+		image_frame = r;
 
-	pscale = div_xy(get_rect_dim(image_frame), xyi_to_xy(raster->dim));
-	pos = mad_xy(pscale, set_xy(0.5), keep_aspect_ratio ? image_frame.p0 : rect_p01(image_frame));
+	// Calculate scale and offset
+	rect_range_and_dim_to_scale_offset(image_frame, raster->dim, &pscale, &pos, 0);
 
+	// Blit
 	blit_scale_rotated(raster, pscale, pos, angle, rot_centre, interp);
 
 	return wc_rect(image_frame);

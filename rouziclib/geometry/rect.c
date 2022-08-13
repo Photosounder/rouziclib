@@ -338,6 +338,11 @@ void rect_range_and_dim_to_scale_offset(rect_t range, xyi_t dim, xy_t *r_scale, 
 void rect_range_and_dim_to_scale_offset_inv(rect_t range, xyi_t dim, xy_t *r_scale, xy_t *r_offset, int range_edge_is_pix_centre)
 {
 	rect_range_and_dim_to_scale_offset(range, dim, r_scale, r_offset, range_edge_is_pix_centre);
-	*r_scale = inv_xy(*r_scale);
-	*r_offset = mul_xy(neg_xy(*r_offset), *r_scale);
+	inverse_scale_offset(r_scale, r_offset);
+}
+
+void inverse_scale_offset(xy_t *scale, xy_t *offset)
+{
+	*scale = inv_xy(*scale);
+	*offset = mul_xy(neg_xy(*offset), *scale);
 }

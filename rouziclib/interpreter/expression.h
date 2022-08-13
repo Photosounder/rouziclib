@@ -38,3 +38,4 @@ extern int rlip_expression_interp_mpfr(mpfr_t *result, const char *expression, b
 #endif
 
 #define etof(expr) rlip_expression_interp_double(expr, NULL)
+#define etoi(expr) ((int) nearbyint(rlip_expression_interp_double(expr, NULL)))
