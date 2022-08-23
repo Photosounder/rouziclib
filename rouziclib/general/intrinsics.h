@@ -86,3 +86,22 @@ extern __m128d _mm_i64sgather_pd(double const *base_addr, __m128i vindex); // SS
 #define _mm_cvtepu32_epi8(v)	_mm_shuffle_epi8(v, _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12, 8, 4, 0))
 
 #endif
+
+// _mm_pause() equivalent, adapted from https://github.com/libsdl-org/SDL/blob/main/include/SDL_atomic.h
+#if (defined(__GNUC__) || defined(__clang__)) && (defined(__i386__) || defined(__x86_64__))
+    #define rl_cpu_pause() __asm__ __volatile__("pause\n")  /* Some assemblers can't do REP NOP, so go with PAUSE. */
+#elif (defined(__arm__) && __ARM_ARCH__ >= 7) || defined(__aarch64__)
+    #define rl_cpu_pause() __asm__ __volatile__("yield" ::: "memory")
+#elif (defined(__powerpc__) || defined(__powerpc64__))
+    #define rl_cpu_pause() __asm__ __volatile__("or 27,27,27");
+#elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
+    #define rl_cpu_pause() _mm_pause()  /* this is actually "rep nop" and not a SIMD instruction. No inline asm in MSVC x86-64! */
+#elif defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
+    #define rl_cpu_pause() __yield()
+#elif defined(__WATCOMC__) && defined(__386__)
+    /* watcom assembler rejects PAUSE if CPU < i686, and it refuses REP NOP as an invalid combination. Hardcode the bytes.  */
+    extern __inline void rl_cpu_pause(void);
+    #pragma aux rl_cpu_pause = "db 0f3h,90h"
+#else
+    #define rl_cpu_pause()
+#endif

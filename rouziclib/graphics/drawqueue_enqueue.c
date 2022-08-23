@@ -130,6 +130,8 @@ volatile uint8_t *dqnq_new_entry(const enum dqnq_type type)
 			// Unblock the dqnq thread if it's waiting
 			if (rl_atomic_get_and_set(&fb->dqnq_read_wait_flag, 0))
 				rl_sem_post(&fb->dqnq_read_sem);
+
+			rl_cpu_pause();
 		}
 		else							// enough room
 			entry = &fb->dqnq_data[write_pos0];		// can start writing

@@ -65,7 +65,7 @@ char *open_file_dialog(const char *filter)
 	[keyWindow makeKeyAndOrderFront:nil];
 
 	#ifdef RL_SDL
-	SDL_RaiseWindow(fb.window);
+	SDL_RaiseWindow(fb->window);
 	#endif
 
 	return path;
@@ -91,7 +91,7 @@ char *save_file_dialog(const char *filter)	// the filter is the UTF-8 Windows fi
 	[keyWindow makeKeyAndOrderFront:nil];
 
 	#ifdef RL_SDL
-	SDL_RaiseWindow(fb.window);
+	SDL_RaiseWindow(fb->window);
 	#endif
 
 	return path;
