@@ -4,12 +4,20 @@
 #include "orig/clew.h"
 
 #ifdef RL_OPENCL_GL
-	#ifdef RL_BUILTIN_GLEW
+	// My minimal version of GLEW doesn't compile well on Linux, installing the package libglew-dev will have to do
+	#if defined(RL_BUILTIN_GLEW) && defined(__linux__)
+		#undef RL_BUILTIN_GLEW
+	#endif
+
+	#if defined(RL_BUILTIN_GLEW)
 		#define GLEW_STATIC
 		#include "glew_minimal.h"
 	#else
 		#ifdef _MSC_VER
 			#include <GL/glew.h>
+		#elif defined(__linux__)
+			#include <GL/glew.h>
+			#include <GL/glxew.h>
 		#endif
 	#endif
 

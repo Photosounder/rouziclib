@@ -64,6 +64,8 @@ thread.h:
 	comment out the '#include <windows.h>' line
 	comment out the '#define _WINSOCKAPI_' line
 	put '#ifndef _CRT_SECURE_NO_WARNINGS' before '#define _CRT_SECURE_NO_WARNINGS'
+	delete the pthread_setname_np call
+	comment out all the tls functions
 
 tinyexpr (not really needed anymore):
 	https://github.com/codeplea/tinyexpr/tree/logic
@@ -75,6 +77,7 @@ miniz:
 	https://github.com/richgel999/miniz/releases
 	release 2.2.0, Jun 27, 2021
 	only download miniz.[ch], the versions found in miniz-2.x.x.zip
+	in miniz.c comment out the useless warning at line 3089
 
 miniaudio:
 	https://github.com/mackron/miniaudio/blob/dev/miniaudio.h

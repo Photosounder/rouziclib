@@ -190,7 +190,7 @@ int32_t rl_atomic_load_i32(volatile int32_t *ptr)
 	return InterlockedCompareExchange(ptr, 0, 0);
 
 	#elif defined(NOT_WINDOWS)
-	return __atomic_load_n(ptr, __ATOMIC_ACQ_REL);
+	return __atomic_load_n(ptr, __ATOMIC_ACQUIRE);
 
 	#else
 	#error Unknown platform.
@@ -203,7 +203,7 @@ void rl_atomic_store_i32(volatile int32_t *ptr, int32_t value)
 	InterlockedExchange(ptr, value);
 
 	#elif defined(NOT_WINDOWS)
-	__atomic_store_n(ptr, value, __ATOMIC_ACQ_REL);
+	__atomic_store_n(ptr, value, __ATOMIC_RELEASE);
 
 	#else
 	#error Unknown platform.

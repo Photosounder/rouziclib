@@ -711,10 +711,6 @@ thread_ptr_t th_thread_create( int (*thread_proc)( void* ), void* user_data, cha
         if( 0 != pthread_create( &thread, NULL, ( void* (*)( void * ) ) thread_proc, user_data ) )
             return NULL;
 
-        #if !defined( __APPLE__ ) // max doesn't support pthread_setname_np. alternatives?
-            if( name ) pthread_setname_np( thread, name );
-        #endif
-
         return (thread_ptr_t) thread;
     
     #else 
@@ -1298,6 +1294,8 @@ void thread_timer_wait( thread_timer_t* timer, THREAD_U64 nanoseconds )
     }
 
 
+// I don't need this plus it causes problems on Linux
+#if 0
 thread_tls_t thread_tls_create( void )
     {
     #if defined( _WIN32 )
@@ -1368,6 +1366,7 @@ void* thread_tls_get( thread_tls_t tls )
         #error Unknown platform.
     #endif
     }
+#endif
 
 
 void thread_queue_init( thread_queue_t* queue, int size, void** values, int count )

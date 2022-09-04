@@ -327,7 +327,7 @@ char *make_cl_filecache_path(clctx_t *c, const char *src, const char *compil_opt
 
 	// Hash to find binary program file
 	hash = cl_make_program_and_device_hash(c, src, compil_opt);
-	sprintf(name, "OpenCL cached program %llx.bin", hash);
+	sprintf(name, "OpenCL cached program %" PRIx64 ".bin", hash);
 	return make_appdata_path("rouziclib", name, 1);
 }
 
