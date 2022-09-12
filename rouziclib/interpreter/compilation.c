@@ -477,7 +477,10 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 				buffer_t expr_rlip = expression_to_rlip_listing(p, "", "exprd_", s1, 0, ed->comp_log, 0);
 				if (expr_rlip.len == 0)
 				{
-					bufprintf(ed->comp_log, "The above error comes from the expression in line %d: '%s'\n", il, line[il]);
+					char red_str[8];
+					sprint_unicode(red_str, sc_red);
+					bufprintf(ed->comp_log, "%sThe above error comes from the expression in line %d: '%s'\n", red_str, il, line[il]);
+
 					free_buf(&expr_rlip);
 					goto invalid_prog;
 				}
