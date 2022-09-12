@@ -424,7 +424,15 @@ rect_t blit_in_rect_off_rotated(raster_t *raster, rect_t r, xy_t off, int keep_a
 
 	// Make the image frame to fit the image into
 	if (keep_aspect_ratio)
+	{
 		image_frame = fit_rect_in_area( xyi_to_xy(raster->dim), r, off );
+
+		// Rectify the order of the coordinates if necessary
+		if (r.p0.x > r.p1.x)
+			swap_double(&image_frame.p0.x, &image_frame.p1.x);
+		if (r.p0.y > r.p1.y)
+			swap_double(&image_frame.p0.y, &image_frame.p1.y);
+	}
 	else
 		image_frame = r;
 
