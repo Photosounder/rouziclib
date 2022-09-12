@@ -405,6 +405,8 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 {
 	int i, io, ir, il, ret, linecount, n, add_var_type, dest_ir, ret_cmd_done=0, cmd_found, fwd_jumps=0;
 	char **line = arrayise_text(make_string_copy(source), &linecount);
+	void **to_free=NULL;
+	size_t to_free_count=0, to_free_as=0;
 	rlip_t data={0};
 	rlip_data_t extra_data={0}, *ed=&extra_data;
 	char *p, s0[32], s1[32], s2[32], s3[32], cmd_arg_type[16];
@@ -441,6 +443,62 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 		if (ed->d->rf.var_init)
 			for (i=0; i < ret_count; i++)
 				ed->d->rf.var_init(&ed->d->return_real[i]);
+	}
+
+	// Expand expressions into inserted RLIP lines
+	for (il=0; il < linecount; il++)
+	{
+		// Look for a line that starts with "expr"
+		s0[0] = '\0';
+		p = line[il];
+		n = 0;
+		sscanf(p, "%30s %n", s0, &n);
+		p = &p[n];
+
+		if (strcmp(s0, "expr")==0)
+		{
+			// Read result variable assignment/declaration as string
+			s1[0] = '\0';
+			n = 0;
+			sscanf(p, "%30[^=] = %n", s1, &n);
+			p = &p[n];
+
+			// Remove the expected trailing space
+			size_t s1_len = strlen(s1);
+			if (s1_len > 0)
+				if (s1[s1_len-1] == ' ')
+					s1[s1_len-1] = '\0';
+
+			if (n)
+			{
+				int expr_linecount=0;
+
+				// Expand expression
+				buffer_t expr_rlip = expression_to_rlip_listing(p, "", "exprd_", s1, 0, ed->comp_log, 0);
+				if (expr_rlip.len == 0)
+				{
+					free_buf(&expr_rlip);
+					goto invalid_prog;
+				}
+				char **expr_line = arrayise_text(expr_rlip.buf, &expr_linecount);
+
+				// Insert new lines into RLIP listing line array
+				size_t as = linecount, prev_linecount = linecount;
+				alloc_enough((void **) &line, linecount+=expr_linecount-1, &as, sizeof(void *), 1.5);		// expand the line array
+				memmove(&line[il+expr_linecount], &line[il+1], (prev_linecount-(il+1)) * sizeof(void *));	// move the lines of the original listing that follow
+				memcpy(&line[il], expr_line, expr_linecount * sizeof(void *));
+
+				// Add buffer to be freed at the end of the compilation
+				alloc_enough((void **) &to_free, to_free_count+=1, &to_free_as, sizeof(void *), 1.5);
+				to_free[to_free_count-1] = expr_line[0];
+				free(expr_line);
+			}
+			else
+			{
+				bufprintf(ed->comp_log, "Malformed expression in line %d: '%s'\n", il, line[il]);
+				goto invalid_prog;
+			}
+		}
 	}
 
 	// Parse lines and compile them into opcodes
@@ -1007,6 +1065,7 @@ invalid_prog:
 
 	// Free stuff
 	free_2d(line, 1);
+	free_2d(to_free, to_free_count);
 
 	for (i=0; i < ed->reg_count; i++)
 	{

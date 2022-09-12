@@ -22,7 +22,7 @@ void sym_move(symbol_data_t *sym, size_t *sym_count, int dst, int src)
 			sym[is].match -= src - dst;
 }
 
-void print_any_var(buffer_t *prog, symbol_data_t *sym)
+void print_any_var(buffer_t *prog, symbol_data_t *sym, const char *var_prefix)
 {
 	// Print value or variable as it was written
 	if (sym->type == sym_value || sym->type == sym_variable)
@@ -30,7 +30,7 @@ void print_any_var(buffer_t *prog, symbol_data_t *sym)
 
 	// Print result variable
 	else if (sym->type == sym_result_real || sym->type == sym_result_int)
-		bufprintf(prog, " %c%d", sym->type == sym_result_real ? 'v' : 'i', sym->result_id);
+		bufprintf(prog, " %s%c%d", var_prefix, sym->type == sym_result_real ? 'v' : 'i', sym->result_id);
 }
 
 symbol_data_t *expression_to_symbol_list(const char *expression, buffer_t *comp_log, int verbose, int *max_depth, size_t *sym_count, size_t *sym_as)
@@ -314,10 +314,10 @@ loop_start:
 	return sym;
 }
 
-buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, int use_real, buffer_t *comp_log, int verbose)
+buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, const char *var_prefix, const char *result_var, int use_real, buffer_t *comp_log, int verbose)
 {
 	buffer_t prog_s={0}, *prog=&prog_s;
-	int i, is, max_depth=0;
+	int i, is, max_depth=0, result_var_written=0;
 	symbol_data_t *sym=NULL;
 	size_t sym_count=0, sym_as=0;
 	char red_str[8], grey_str[8];
@@ -358,12 +358,18 @@ buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suff
 				// Pick result ID
 				result_id = find_res_taken(res_taken_r, res_taken_count);
 
-				// Print start of command
-				bufprintf(prog, "%c v%d = %.*s%s", var_decl, result_id, sym[is].p_len, sym[is].p, cmd_suffix);
+				// Print start of command	
+				if (id==0 && sym_count<=4 && result_var)	// if it's the last command and we end by storing in a variable
+				{
+					bufprintf(prog, "%s = %.*s%s", result_var, sym[is].p_len, sym[is].p, cmd_suffix);
+					result_var_written = 1;
+				}
+				else
+					bufprintf(prog, "%c %sv%d = %.*s%s", var_decl, var_prefix, result_id, sym[is].p_len, sym[is].p, cmd_suffix);
 
 				// Go through all arguments and print them
 				for (i = is+1; i <= sym[is].match; i++)
-					print_any_var(prog, &sym[i]);
+					print_any_var(prog, &sym[i], var_prefix);
 				bufprintf(prog, "\n");
 
 				// Remove everything that was just used from the sym array
@@ -462,9 +468,9 @@ prio_loop_start:
 					int result_id2 = find_res_taken(res_taken_r, res_taken_count);
 
 					// Print neg command
-					bufprintf(prog, "%c v%d = %s%s 0", var_decl, result_id2, sym[is].p[1] == '-' ? "sub" : "add", cmd_suffix);
+					bufprintf(prog, "%c %sv%d = %s%s 0", var_decl, var_prefix, result_id2, sym[is].p[1] == '-' ? "sub" : "add", cmd_suffix);
 					i = is+1;
-					print_any_var(prog, &sym[i]);
+					print_any_var(prog, &sym[i], var_prefix);
 					bufprintf(prog, "\n");
 
 					// Replace input with result
@@ -475,15 +481,21 @@ prio_loop_start:
 				}
 
 			// Print start of command
-			if (is_comparison)
-				bufprintf(prog, "i i%d = %s", result_id, identified_cmd);
+			if (id==0 && sym_count<=3 && result_var)	// if it's the last command and we end by storing in a variable
+			{
+				bufprintf(prog, "%s = %s%s", result_var, identified_cmd, is_comparison ? "" : cmd_suffix);
+				result_var_written = 1;
+			}
 			else
-				bufprintf(prog, "%c v%d = %s%s", var_decl, result_id, identified_cmd, cmd_suffix);
+				if (is_comparison)
+					bufprintf(prog, "i i%d = %s", result_id, identified_cmd);
+				else
+					bufprintf(prog, "%c %sv%d = %s%s", var_decl, var_prefix, result_id, identified_cmd, cmd_suffix);
 
 			// Go through all two arguments and print them
 			for (i = is-1; i <= is+1; i+=2)
 			{
-				print_any_var(prog, &sym[i]);
+				print_any_var(prog, &sym[i], var_prefix);
 
 				// Print comparison operator
 				if (is_comparison && i == is-1)
@@ -510,9 +522,18 @@ prio_loop_start:
 	}
 
 	// Print return value
-	bufprintf(prog, "%s", use_real ? "return_real" : "return");
-	print_any_var(prog, &sym[0]);
-	bufprintf(prog, "\n");
+	if (result_var == NULL)			// only use the return command if the listing doesn't end with storing in a result variable
+	{
+		bufprintf(prog, "%s", use_real ? "return_real" : "return");
+		print_any_var(prog, &sym[0], var_prefix);
+		bufprintf(prog, "\n");
+	}
+	else if (result_var_written == 0)	// if we must store in a result variable but this hasn't been done yet
+	{
+		bufprintf(prog, "%s =", result_var);
+		print_any_var(prog, &sym[0], var_prefix);
+		bufprintf(prog, "\n");
+	}
 
 	if (0)
 	{
@@ -537,9 +558,9 @@ rlip_t rlip_expression_compile(const char *expression, rlip_inputs_t *inputs, in
 
 	// Expression to listing
 	if (real)
-		listing = expression_to_rlip_listing(expression, "_", 1, comp_log, 0);
+		listing = expression_to_rlip_listing(expression, "_", "", NULL, 1, comp_log, 0);
 	else
-		listing = expression_to_rlip_listing(expression, "", 0, comp_log, 0);
+		listing = expression_to_rlip_listing(expression, "", "", NULL, 0, comp_log, 0);
 
 	// Listing to opcodes
 	if (listing.len)
@@ -552,7 +573,7 @@ rlip_t rlip_expression_compile(const char *expression, rlip_inputs_t *inputs, in
 double rlip_expression_interp_double(const char *expression, buffer_t *comp_log)
 {
 	// Expression to listing
-	buffer_t listing = expression_to_rlip_listing(expression, "", 0, comp_log, 0);
+	buffer_t listing = expression_to_rlip_listing(expression, "", "", NULL, 0, comp_log, 0);
 	if (listing.len == 0)
 	{
 		free_buf(&listing);
@@ -598,7 +619,7 @@ int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_in
 		return 0;
 
 	// Expression to listing
-	buffer_t listing = expression_to_rlip_listing(expression, "_", 1, comp_log, 0);
+	buffer_t listing = expression_to_rlip_listing(expression, "_", "", NULL, 1, comp_log, 0);
 	if (listing.len == 0)
 	{
 		free_buf(&listing);

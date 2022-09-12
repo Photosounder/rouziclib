@@ -26,7 +26,7 @@ typedef struct
 } symbol_data_t;
 
 extern symbol_data_t *expression_to_symbol_list(const char *expression, buffer_t *comp_log, int verbose, int *max_depth, size_t *sym_count, size_t *sym_as);
-extern buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, int use_real, buffer_t *comp_log, int verbose);
+extern buffer_t expression_to_rlip_listing(const char *expression, const char *cmd_suffix, const char *var_prefix, const char *result_var, int use_real, buffer_t *comp_log, int verbose);
 extern rlip_t rlip_expression_compile(const char *expression, rlip_inputs_t *inputs, int input_count, int real, buffer_t *comp_log);
 extern double rlip_expression_interp_double(const char *expression, buffer_t *comp_log);
 extern int rlip_expression_interp_real(uint8_t *result, const char *expression, rlip_inputs_t *inputs, int input_count, buffer_t *comp_log);
