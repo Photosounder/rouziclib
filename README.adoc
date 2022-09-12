@@ -807,6 +807,15 @@ if cond1 goto loop_start
 
 - Other commands start directly with the command name, like the statement `if <condition integer variable> goto <location>`, or the mandatory `return <variables>` command as well as the commands of convenience `set0 <variable>` or `inc1 <variable>`, both of which have the distinction of having the operand type depend on the type of the variable, since there is only one variable that is both the source and the destination.
 
+- When a line starts with `expr` the rest of the line is treated as an expression, turned into RLIP commands which are then inserted into the RLIP listing at the start of the compilation. So for instance you can write `expr d v = 0.5+0.5cos(x/(2*pi))` which will be internally replaced by the following lines:
+```
+d exprd_v0 = mul 2 pi
+d exprd_v0 = div x exprd_v0
+d exprd_v0 = cos exprd_v0
+d exprd_v0 = mul 0.5 exprd_v0
+d v = add 0.5 exprd_v0
+```
+
 - Unrecognised lines are just ignored, as are things that follow the expected number of arguments, so we can have comment lines or comments appended to regular lines.
 
 The link:rouziclib/interpreter/execution.c[execution code] makes it fairly clear what each operand does and how it is used in code.
