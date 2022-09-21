@@ -186,8 +186,8 @@ cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform)
 	#else				// Linux
 	cl_context_properties properties[] =
 	{
-		CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
-		CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
+		//CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
+		//CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
 		CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
 		0
 	};

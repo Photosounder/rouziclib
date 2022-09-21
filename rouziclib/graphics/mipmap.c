@@ -719,11 +719,35 @@ void free_mipmap_level(mipmap_level_t *ml)
 	if (ml->r == NULL)
 		return;
 
-	//for (i=0; i < mul_x_by_y_xyi(ml->tilecount); i++)
-	//	free_raster(&ml->r[i]);
-	free_raster(&ml->r[0]);		// contiguous allocation
+	// Dereference each tile and free the contiguous array
+	for (i = mul_x_by_y_xyi(ml->tilecount)-1; i >= 0; i--)
+	{
+		void **ptr;
+
+		ptr = get_raster_buffer_ptr(&ml->r[i]);
+
+		// For each tile dereference or free every possible buffer
+		while (ptr)
+		{
+			// Remove reference from cl data table
+			#ifdef RL_OPENCL
+			cl_data_table_remove_entry_by_host_ptr(*ptr);
+			#endif
+
+			// Free the contiguous array which is at the first tile
+			if (i == 0)
+				free_null(ptr);
+			else
+				*ptr = NULL;	// otherwise null it so we can check for other buffers
+
+			ptr = get_raster_buffer_ptr(&ml->r[i]);
+		}
+	}
+
+	// Free the array of raster structs
 	free(ml->r);
 
+	// Blank out the mipmap level
 	memset(ml, 0, sizeof(mipmap_level_t));
 }
 
