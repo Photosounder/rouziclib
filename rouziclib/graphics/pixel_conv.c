@@ -115,8 +115,31 @@ __m128 _mm_get_raster_pixel_sqrgb_to_ps(raster_t *r, const size_t index)
 #endif
 
 // Convert from frgb
+
+#ifdef RL_INTEL_INTR
+#ifdef __GNUC__
+__attribute__((__target__("ssse3")))
+#endif
+lrgb_t frgb_to_lrgb_sse(frgb_t cf)
+{
+	lrgb_t l;
+
+	// Convert to integer by floating-point addition and bitwise masking
+	__m128 f = _mm_clamp_ps(_mm_load_ps((float *) &cf));			// clamp
+	f = _mm_add_ps(f, _mm_set_ps1( 1L<<(23-LBD) ));				// add 256.f to make the mantissa contain the final result
+	f = _mm_and_ps(f, _mm_castsi128_ps(_mm_set1_epi32(0x007FFFFF)));	// mask
+
+	// Store mantissas in lrgb
+	__m128i lv = _mm_cvtepu32_epi16(_mm_castps_si128(f));			// put mantissas in 16-bit ints, SSSE3
+	_mm_storeu_si64(&l, lv);						// store the 4 16-bit ints in the result
+
+	return l;
+}
+#endif
+
 lrgb_t frgb_to_lrgb(frgb_t cf)
 {
+#ifndef RL_INTEL_INTR
 	lrgb_t c;
 
 	c.r = MINN(1., cf.r) * ONEF + 0.5;
@@ -125,6 +148,9 @@ lrgb_t frgb_to_lrgb(frgb_t cf)
 	c.a = MINN(1., cf.a) * ONEF + 0.5;
 
 	return c;
+#else
+	return frgb_to_lrgb_sse(cf);
+#endif
 }
 
 srgb_t frgb_to_srgb(frgb_t cf)
@@ -170,8 +196,8 @@ void _mm_set_raster_pixel_ps_to_lrgb(raster_t *r, const size_t index, __m128 f)
 	f = _mm_mul_ps(f, _mm_set_ps1(ONEF));
 
 	// Convert from float to lrgb
-	lv = _mm_cvtps_epi32(f);	// floats to 32-bit integers
-	lv = _mm_cvtepu32_epi16(lv);
+	lv = _mm_cvtps_epi32(f);		// floats to 32-bit integers
+	lv = _mm_cvtepu32_epi16(lv);		// SSSE3
 	_mm_storeu_si64(&r->l[index], lv);
 }
 
