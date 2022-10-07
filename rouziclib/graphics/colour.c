@@ -726,10 +726,16 @@ frgb_t mul_scalar_frgb(frgb_t a, float m)
 
 frgb_t mul_scalar_frgba(frgb_t a, float m)
 {
+#ifndef RL_INTEL_INTR
 	a.r *= m;
 	a.g *= m;
 	a.b *= m;
 	a.a *= m;
+#else
+	__m128 f = _mm_load_ps((float *) &a);
+	f = _mm_mul_ps(f, _mm_set_ps1(m));
+	_mm_storeu_ps((float *) &a, f);
+#endif
 
 	return a;
 }
@@ -754,10 +760,16 @@ frgb_t func1_frgb(frgb_t a, float (*f)(float))
 
 frgb_t clamp_frgba(frgb_t a)
 {
+#ifndef RL_INTEL_INTR
 	a.r = rangelimitf(a.r, 0.f, 1.f);
 	a.g = rangelimitf(a.g, 0.f, 1.f);
 	a.b = rangelimitf(a.b, 0.f, 1.f);
 	a.a = rangelimitf(a.a, 0.f, 1.f);
+#else
+	__m128 f = _mm_load_ps((float *) &a);
+	f = _mm_clamp_ps(f);
+	_mm_storeu_ps((float *) &a, f);
+#endif
 
 	return a;
 }

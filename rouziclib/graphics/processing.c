@@ -163,7 +163,7 @@ void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const 
 	flattop_param_t param={0}, *p = &param;
 
 	if (dst==NULL || src==NULL || channels > 4)
-		return ;
+		return;
 
 	param = flattop_init_param(dst_dim, src_dim, pscale, pos);
 
@@ -175,6 +175,7 @@ void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const 
 
 			memset(sumf, 0, channels*sizeof(float));		// blank the new sum pixel
 
+			// Calculate pixel value to add
 			for (p->jp.y = p->jstart.y; p->jp.y < p->jstop.y; p->jp.y++)
 			{
 				flattop_calc_weight_y(p);
@@ -189,6 +190,7 @@ void blit_scale_float(void *dst, xyi_t dst_dim, void *src, xyi_t src_dim, const 
 				}
 			}
 
+			// Add pixel to destination
 			dst_p = get_pix_f(dst, dst_dim, p->ip, channels);	// get the pixel pointer
 			for (ic=0; ic < channels; ic++)
 				dst_p[ic] += sumf[ic];

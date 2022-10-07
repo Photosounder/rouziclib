@@ -31,11 +31,11 @@ static int check_f16c()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_F
 static int check_avx()   { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_AVX);	return v; }
 static int check_avx2()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_AVX2);	return v; }
 
-#if (defined(_M_AMD64) || defined(_M_X64) || defined(__amd64) ) && !defined(__x86_64__)
+#if ( defined(_M_AMD64) || defined(__amd64) ) && !defined(__x86_64__)
 	#define __x86_64__
 #endif
 
-#if defined(__SSE__) || defined(__SSE2__) || defined(__x86_64__)
+#if defined(__SSE__) || defined(__SSE2__) || defined(__x86_64__) || _M_IX86_FP>0
 
 #include <immintrin.h>
 #ifdef _MSC_VER

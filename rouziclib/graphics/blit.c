@@ -136,104 +136,51 @@ void blit_scale_nearest(raster_t r, xy_t pos, xy_t ipscale, xyi_t start, xyi_t s
 
 void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 {
-	int32_t i, ic, iy, ix, jx, jy;
-	xyi_t start, stop, jstart, jstop;
-	float sumf[4];
-	xy_t p0, p1, pin, kr0, ikr0, kr1, ipscale = inv_xy(pscale), iw;
-	int32_t nsx, nsy;	// number of samples to get
-	double iw_xy;
-	interp_param_t param_x, param_y;
+	int i, ic;
+	float *dst_p, *src_p, sumf[4];
+	frgb_t pv;
+	double interp_weight;
+	flattop_param_t param={0}, *p = &param;
 
-	if (r.l==NULL && r.sq==NULL)
-		return ;
+	if (r.l==NULL && r.sq==NULL && r.f==NULL)
+		return;
 
-	switch (interp)
+	param = flattop_init_param(fb->r.dim, r.dim, pscale, pos);
+
+	for (p->ip.y = p->start.y; p->ip.y < p->stop.y; p->ip.y++)
 	{
-		case NEAREST_INTERP:
-			kr1 = set_xy(0.5);	// kernel radiuses at the rescaled level
-			break;
-
-		case LINEAR_INTERP:
-			kr1 = set_xy(1.0);
-			break;
-
-		case GAUSSIAN_INTERP:
-			kr1 = set_xy(2.4);	// pretty arbitrary
-			break;
-	}
-
-	kr0 = kr1;				// kernel radiuses at the unscaled level
-	if (pscale.x < 1.)
-		kr0.x *= ipscale.x;
-
-	if (pscale.y < 1.)
-		kr0.y *= ipscale.y;
-
-	ikr0 = inv_xy(kr0);			// ikr0 = ]0 , 1]
-
-	param_x = calc_interp_param_modlin(ikr0.x);
-	param_y = calc_interp_param_modlin(ikr0.y);
-
-	nsx = kr0.x * 2.;			// number of input samples necessary for each pixel
-	nsy = kr0.y * 2.;
-
-	// find start and stop indices
-	p0 = mad_xy(pscale, neg_xy(kr1), pos);
-	p1 = mad_xy(pscale, add_xy(kr1, xy(r.dim.x-1, r.dim.y-1)), pos);
-
-	start.x = MAXN(0, floor(MINN(p0.x, p1.x)));
-	start.y = MAXN(0, floor(MINN(p0.y, p1.y)));
-	stop.x = MINN(fb->r.dim.x, ceil(MAXN(p0.x, p1.x)+1));	// not sure about the logic of the +1 but it works with LINEAR_INTERP
-	stop.y = MINN(fb->r.dim.y, ceil(MAXN(p0.y, p1.y)+1));
-
-	if (nsx*nsy == 1)		// if unfiltered nearest neighbour (only 1 pixel in -> 1 pixel out)
-	{
-		blit_scale_nearest(r, pos, ipscale, start, stop);
-	}
-	else
-	{
-		for (iy=start.y; iy<stop.y; iy++)
+		for (p->ip.x = p->start.x; p->ip.x < p->stop.x; p->ip.x++)
 		{
-			pin.y = ((double) iy - pos.y) * ipscale.y;
-			jstart.y = floor(pin.y - kr0.y)+1;		if (jstart.y < 0) jstart.y = 0;
-			jstop.y = ceil(pin.y + kr0.y);			if (jstop.y > r.dim.y) jstop.y = r.dim.y;
+			flattop_calc_j_bounds(p, pos);
 
-			for (ix=start.x; ix<stop.x; ix++)
+			// Start from the framebuffer's pixel value
+			*((frgb_t *)(&sumf)) = lrgb_to_frgb(fb->r.l[p->ip.y*fb->r.dim.x + p->ip.x]);
+
+			// Calculate pixel value to add
+			for (p->jp.y = p->jstart.y; p->jp.y < p->jstop.y; p->jp.y++)
 			{
-				pin.x = ((double) ix - pos.x) * ipscale.x;
-				jstart.x = floor(pin.x - kr0.x)+1;	if (jstart.x < 0) jstart.x = 0;
-				jstop.x = ceil(pin.x + kr0.x);		if (jstop.x > r.dim.x) jstop.x = r.dim.x;
-				//jstop.x = jstart.x + nsx;	if (jstop.x > r.dim.x) jstop.x = r.dim.x;
+				flattop_calc_weight_y(p);
 
-				memset(sumf, 0, 4*sizeof(float));		// blank the new sum pixel
-
-				for (jy=jstart.y; jy<jstop.y; jy++)
+				for (p->jp.x = p->jstart.x; p->jp.x < p->jstop.x; p->jp.x++)
 				{
-					iw.y = param_y.func((double) jy - pin.y, ikr0.y, param_y);
+					i = p->jp.y * r.dim.x + p->jp.x;
+					interp_weight = flattop_calc_weight(p);
 
-					for (jx=jstart.x; jx<jstop.x; jx++)
-					{
-						iw.x = param_x.func((double) jx - pin.x, ikr0.x, param_x);
-						iw_xy = iw.x * iw.y;		// interpolation weight
-						i = jy * r.dim.x + jx;
+					// Read and convert input pixel
+					if (r.sq)
+						pv = sqrgb_to_frgb(r.sq[i]);
+					else if (r.f)
+						pv = clamp_frgba(r.f[i]);
+					else
+						pv = lrgb_to_frgb(r.l[i]);
 
-						if (r.sq)
-						{
-							*((frgb_t *)(&sumf)) = add_frgba(*((frgb_t *)(&sumf)), mul_scalar_frgba(sqrgb_to_frgb(r.sq[i]), ONEF*iw_xy));
-						}
-						else
-						{
-							for (ic=0; ic<3; ic++)
-							{
-								sumf[ic] += ((uint16_t *) &r.l[i])[ic] * iw_xy;
-							}
-						}
-					}
+					// Multiply pixel value by interpolation weight and add to sum
+					*((frgb_t *)(&sumf)) = add_frgba(*((frgb_t *)(&sumf)), mul_scalar_frgba(pv, interp_weight));
 				}
-
-				for (ic=0; ic<3; ic++)
-					((uint16_t *) &fb->r.l[iy*fb->r.dim.x + ix])[ic] = ((uint16_t *) &fb->r.l[iy*fb->r.dim.x + ix])[ic] + (uint16_t) (sumf[ic] + 0.5f);
 			}
+
+			// Write pixel to destination
+			fb->r.l[p->ip.y*fb->r.dim.x + p->ip.x] = frgb_to_lrgb(*((frgb_t *)(&sumf)));
 		}
 	}
 }
