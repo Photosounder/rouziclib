@@ -20,7 +20,8 @@ void drawq_reinit()
 
 	fb->must_recalc_free_space = 1;
 
-	dqnq_reset();
+	if (fb->use_dqnq)
+		dqnq_reset();
 }
 
 void drawq_alloc()
@@ -63,7 +64,7 @@ ss_calc:
 	fb->pending_bracket = calloc (fb->max_sector_count, sizeof(int32_t));
 
 	// Initialise dqnq
-	if (fb->dqnq_data == NULL)
+	if (fb->dqnq_data == NULL && fb->use_dqnq)
 		dqnq_init();
 
 	drawq_reinit();
