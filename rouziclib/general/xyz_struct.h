@@ -5,6 +5,11 @@ typedef struct
 
 typedef struct
 {
+	float x, y;
+} xyf_t;
+
+typedef struct
+{
 	int x, y;
 } xyi_t;
 

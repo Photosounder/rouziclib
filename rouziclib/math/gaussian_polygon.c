@@ -62,6 +62,13 @@ double **erf_polygon_ref_polynomial(xyi_t deg2d, xy_t range, int opt_transformat
 				v = div_qq(v, x2);
 			}
 
+			if (opt_transformation == 3)
+			{
+				x2 = sq_q(x);
+				v = div_qq(v, x2);
+				v = div_qq(v, slope);
+			}
+
 			// Store
 			im[id.y][i] = v.hi;
 		}

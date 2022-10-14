@@ -446,25 +446,9 @@ int drawq_get_bounding_box(rect_t box, xy_t rad, recti_t *bbi)
 
 int drawq_get_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi)
 {
-	int i;
-	rect_t bb, fb_box = rect(XY0, xy(fb->w-1, fb->h-1));
-
-	// Calculate the bounding box
-	bb.p0 = ceil_xy(sub_xy(p[0], rad));
-	bb.p1 = floor_xy(add_xy(p[0], rad));
-	for (i=1; i < p_count; i++)
-	{
-		bb.p0 = min_xy(bb.p0, ceil_xy(sub_xy(p[i], rad)));
-		bb.p1 = max_xy(bb.p1, floor_xy(add_xy(p[i], rad)));
-	}
-
-	// Check against framebuffer boundaries
-	if (check_box_box_intersection(bb, fb_box)==0)
+	if (get_bounding_box_for_polygon(p, p_count, rad, bbi) == 0)
 		return 0;
 
-	// Convert to sector coordinates
-	bbi->p0 = xy_to_xyi(max_xy(bb.p0, fb_box.p0));
-	bbi->p1 = xy_to_xyi(min_xy(bb.p1, fb_box.p1));
 	*bbi = rshift_recti(*bbi, fb->sector_size);
 
 	return 1;

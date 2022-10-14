@@ -11,6 +11,7 @@
 #define zyx(z, y, x)	xyz(x, y, z)
 
 extern xy_t xy(const double x, const double y);
+extern xyf_t xyf(const float x, const float y);
 extern xyz_t xyz(const double x, const double y, const double z);
 extern xyi_t xyi(const int x, const int y);
 extern xyq_t xyq(const ddouble_t x, const ddouble_t y);
@@ -26,6 +27,7 @@ extern xyi_t xy_to_xyi(const xy_t in);
 extern xy_t xyq_to_xy(const xyq_t in);
 extern xyq_t xy_to_xyq(const xy_t in);
 extern xy_t set_xy(const double v);
+extern xyf_t set_xyf(const float v);
 extern xyz_t set_xyz(const double v);
 extern xyi_t set_xyi(const int v);
 extern xyq_t set_xyq(const ddouble_t v);
@@ -40,12 +42,15 @@ extern int equal_xyi(const xyi_t a, const xyi_t b);
 extern int equal_xyq(const xyq_t a, const xyq_t b);
 extern int equal_ulp_xy(const xy_t a, const xy_t b, const int64_t ulp_tolerance);
 extern xy_t add_xy(xy_t a, xy_t b);
+extern xyf_t add_xyf(xyf_t a, xyf_t b);
 extern xyz_t add_xyz(xyz_t a, xyz_t b);
 extern xyi_t add_xyi(xyi_t a, xyi_t b);
 extern xy_t sub_xy(xy_t a, xy_t b);
+extern xyf_t sub_xyf(xyf_t a, xyf_t b);
 extern xyz_t sub_xyz(xyz_t a, xyz_t b);
 extern xyi_t sub_xyi(xyi_t a, xyi_t b);
 extern xy_t mul_xy(xy_t a, xy_t b);
+extern xyf_t mul_xyf(xyf_t a, xyf_t b);
 extern xyz_t mul_xyz(xyz_t a, xyz_t b);
 extern xyi_t mul_xyi(xyi_t a, xyi_t b);
 extern xy_t div_xy(xy_t a, xy_t b);

@@ -198,6 +198,9 @@ Mainly triangle functions.
 ** link:rouziclib/math/functions.c[functions.c] / link:rouziclib/math/functions.h[functions.h] +
 Basic math functions, the inverse error function, the integral of the error function, functions to find a value or interpolated value from an array of 2D points.
 
+** link:rouziclib/math/cpu_functions.c[cpu_functions.c] / link:rouziclib/math/cpu_functions.h[cpu_functions.h] +
+Provides access to CPU functions such as x86's RSQRT and functions for refining the results.
+
 ** link:rouziclib/math/ieee754.c[ieee754.c] / link:rouziclib/math/ieee754.h[ieee754.h] +
 IEEE-754 floating point manipulation, fractional part calculation and dealing with numbers at the level of https://en.wikipedia.org/wiki/Unit_in_the_last_place[units of least precision] to guarantee incrementation or make floating point comparisons that take a degree of error into account.
 
@@ -283,8 +286,11 @@ Draw Gaussian-antialiased thin lines and Gaussian dots. Also contains a generic 
 ** link:rouziclib/graphics/drawrect.c[drawrect.c] / link:rouziclib/graphics/drawrect.h[drawrect.h] +
 Draw Gaussian-antialiased full or dark rectangles.
 
+** link:rouziclib/graphics/drawpolygon.c[drawpolygon.c] / link:rouziclib/graphics/drawpolygon.h[drawpolygon.h] +
+Draw Gaussian-antialiased full concave or convex polygons.
+
 ** link:rouziclib/graphics/drawprimitives.c[drawprimitives.c] / link:rouziclib/graphics/drawprimitives.h[drawprimitives.h] +
-Draw Gaussian-antialiased circles (full or hollow), hollow rectangles and chamfered (angular) rectangles, rounded rectangles, dashed lines, Gaussian gradients and dots, hollow triangles, mouse cursors, as well as full triangles and concave tetragons.
+Draw Gaussian-antialiased circles (full or hollow), hollow rectangles and chamfered (angular) rectangles, rounded rectangles, dashed lines, Gaussian gradients and dots, hollow triangles and mouse cursors.
 
 ** link:rouziclib/graphics/drawqueue.c[drawqueue.c] / link:rouziclib/graphics/drawqueue.h[drawqueue.h] +
 Drawing queue rendering system. Instead of directly rasterising graphic primitives from the main thread, drawing commands are added to the drawing queue for later rendering, usually in OpenCL by the GPU, using multiple arrays that describe a grid containing each its own sequence of drawing instructions for a square area of pixels.

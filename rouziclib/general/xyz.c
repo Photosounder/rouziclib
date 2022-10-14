@@ -7,6 +7,15 @@ xy_t xy(const double x, const double y)
 	return out;
 }
 
+xyf_t xyf(const float x, const float y)
+{
+	xyf_t out;
+
+	out.x = x;
+	out.y = y;
+	return out;
+}
+
 xyz_t xyz(const double x, const double y, const double z)
 {
 	xyz_t out;
@@ -130,6 +139,11 @@ xy_t set_xy(const double v)
 	return xy(v, v);
 }
 
+xyf_t set_xyf(const float v)
+{
+	return xyf(v, v);
+}
+
 xyz_t set_xyz(const double v)
 {
 	return xyz(v, v, v);
@@ -203,6 +217,13 @@ xy_t add_xy(xy_t a, xy_t b)
 	return a;
 }
 
+xyf_t add_xyf(xyf_t a, xyf_t b)
+{
+	a.x += b.x;
+	a.y += b.y;
+	return a;
+}
+
 xyz_t add_xyz(xyz_t a, xyz_t b)
 {
 	a.x += b.x;
@@ -225,6 +246,13 @@ xy_t sub_xy(xy_t a, xy_t b)
 	return a;
 }
 
+xyf_t sub_xyf(xyf_t a, xyf_t b)
+{
+	a.x -= b.x;
+	a.y -= b.y;
+	return a;
+}
+
 xyz_t sub_xyz(xyz_t a, xyz_t b)
 {
 	a.x -= b.x;
@@ -241,6 +269,13 @@ xyi_t sub_xyi(xyi_t a, xyi_t b)
 }
 
 xy_t mul_xy(xy_t a, xy_t b)
+{
+	a.x *= b.x;
+	a.y *= b.y;
+	return a;
+}
+
+xyf_t mul_xyf(xyf_t a, xyf_t b)
 {
 	a.x *= b.x;
 	a.y *= b.y;

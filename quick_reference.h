@@ -926,6 +926,23 @@ void my_window_function(double *arg1, double *arg2)
 	// Flashing in the taskbar through SDL
 		// SDL_FLASH_BRIEFLY can also be used, as well as SDL_FLASH_CANCEL to cancel
 		SDL_FlashWindow(fb->window, SDL_FLASH_UNTIL_FOCUSED);
+	
+	// Print UTF-8 to the console
+		#ifdef _WIN32
+		SetConsoleOutputCP(CP_UTF8);
+		SetConsoleCP(CP_UTF8);
+		#endif
+
+	// Print block elements (lvl is between 1 and 8)
+		fprintf_rl(stdout, "\342\226%c", 0200+lvl);
+
+	// Set console colours, see https://www.nayab.xyz/linux/escapecodes
+		fprintf_rl(stdout, "\033[0;32m");	// green
+		fprintf_rl(stdout, "\033[0m");		// reset colour
+
+	// Convert between float and __m128
+		__m128 vf = _mm_load_ps((float *) &cf);
+		_mm_storeu_ps((float *) &cf, vf);
 
 // How to transition code
 	// 190610 transition that involves removing any 'fb' from any function call, making it a TLS global only
