@@ -1,1 +1,4 @@
-
+*.c linguist-language=C
+*.h linguist-language=C
+*.m linguist-language=Objective-C
+*.js linguist-language=JavaScript
