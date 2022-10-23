@@ -69,6 +69,24 @@ void xyq_to_v(xyq_t a, ddouble_t *v1, ddouble_t *v2)
 	*v2 = a.y;
 }
 
+xy_t xyf_to_xy(const xyf_t in)
+{
+	xy_t out;
+
+	out.x = in.x;
+	out.y = in.y;
+	return out;
+}
+
+xyf_t xy_to_xyf(const xy_t in)
+{
+	xyf_t out;
+
+	out.x = in.x;
+	out.y = in.y;
+	return out;
+}
+
 xy_t xyz_to_xy(const xyz_t in)
 {
 	xy_t out;
@@ -318,6 +336,13 @@ xy_t div_xy_0(xy_t a, xy_t b)
 	return a;
 }
 
+xyf_t div_xyf(xyf_t a, xyf_t b)
+{
+	a.x /= b.x;
+	a.y /= b.y;
+	return a;
+}
+
 xyz_t div_xyz(xyz_t a, xyz_t b)
 {
 	a.x /= b.x;
@@ -412,6 +437,28 @@ xyz_t neg_z_xyz(xyz_t a)
 	return a;
 }
 
+xy_t abs_xy(xy_t a)
+{
+	ffabs(&a.x);
+	ffabs(&a.y);
+	return a;
+}
+
+xyf_t abs_xyf(xyf_t a)
+{
+	ffabsf(&a.x);
+	ffabsf(&a.y);
+	return a;
+}
+
+xyz_t abs_xyz(xyz_t a)
+{
+	ffabs(&a.x);
+	ffabs(&a.y);
+	ffabs(&a.z);
+	return a;
+}
+
 xy_t sign_xy(xy_t a)
 {
 	a.x = sign(a.x);
@@ -455,6 +502,13 @@ xyi_t cmp_ge_xyi(xyi_t a, xyi_t b)
 }
 
 xy_t func1_xy(xy_t a, double (*f)(double))
+{
+	a.x = f(a.x);
+	a.y = f(a.y);
+	return a;
+}
+
+xyf_t func1_xyf(xyf_t a, float (*f)(float))
 {
 	a.x = f(a.x);
 	a.y = f(a.y);

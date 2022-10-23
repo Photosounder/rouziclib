@@ -1,5 +1,6 @@
-/*float erf_right_triangle_acute_integral(float x, float y)
+float erf_right_triangle_acute_integral(float x, float y)
 {
+	return 0.1f;
 	float x2 = x*x, y2 = y*y;
 	float v = (((((-1.6663128e-05f*y2 + 5.104393e-06f)*x2 +
 			0.0005496131f*y2 - 5.30433e-05f)*x2 +
@@ -7,7 +8,33 @@
 			(-0.003881739f*y2 + 0.0523013844f)*y2 + 0.04582956f)*x2 +
 			((-0.00368418f*y2 + 0.03692744f)*y2 - 0.1996548f)*y2 - 0.50360028f)*x2 +
 			((-0.0012717f*y2 - 0.0101518f)*y2 + 0.0109084f)*y2 - 1.836892f;
-	return native_exp(v) * x2 * y;	// 25 FR
+	return expf(v) * x2 * y;
+}
+
+float fast_atan2pi_unitrange(float x)
+{
+	float x2 = x*x;
+	return (((-0.00609f*x2 + 0.023075f)*x2 - 0.051014f)*x2 + 0.15901703f)*x;
+}
+
+float erf_fastf(float x)
+{
+	float y, xa;
+
+	// Prepare x
+	xa = fabsf(x);
+	xa = MINN(xa, 4.45f);
+
+	y = ((((-0.001133515f*xa + 0.00830125f)*xa - 0.003218f)*xa - 0.06928657f)*xa - 0.14108256f)*xa + 1.f;
+
+	// (1 - poly(min(abs(x), 4.45))^c1) * sign(x)
+	y *= y;
+	y *= y;
+	y *= y;
+	y = 1.f - y;
+	y = sign_multiplyf(y, x);
+
+	return y;
 }
 
 float calc_right_triangle_pixel_weight(xyf_t rp)
@@ -16,34 +43,44 @@ float calc_right_triangle_pixel_weight(xyf_t rp)
 	int use_obtuse;
 	float slope, acute, obtuse;
 
-	rpa = fabs(rp);
-
-	// Pick method
+	rpa = abs_xyf(rp);
 	use_obtuse = rpa.y > rpa.x;
-	if (use_obtuse)			// if we use the obtuse method
+
+	// If the edge is beyond 3 units, use the atan approximation
+	if (rpa.x >= 3.f)
 	{
-		// Swap axes
-		float t = rp.x;
-		rp.x = rp.y;
-		rp.y = t;
+		if (use_obtuse)
+			return sign_multiplyf(0.25f - fast_atan2pi_unitrange(rpa.x/rpa.y), xor_float(rp.x, rp.y));
+		else
+			return fast_atan2pi_unitrange(rp.y/rp.x);
+		//return fast_atan2pi_unitrange(rpa.y * sse_rcpf_newton1(rpa.x));
 	}
 
-	// Prepare the arguments (slope and clamped x)
-	slope = fabs(rp.x) < 1e-5f ? 0.f : rp.y / rp.x;
-	slope = clamp(slope, -1.f, 1.f);
-	rp.x = clamp(rp.x, -3.f, 3.f);
+	// Pick method
+	if (use_obtuse)				// if we use the obtuse method
+		swap_float(&rp.x, &rp.y);	// swap axes
+
+	// Calculate slope
+	slope = fabsf(rp.x) < 1e-5f ? 0.f : rp.y / rp.x;
+	rp.x = rangelimitf(rp.x, -3.f, 3.f);
 
 	acute = erf_right_triangle_acute_integral(rp.x, slope);
-	obtuse = 0.25f * erf_fast(rp.y) * erf_fast(rp.x) - acute;
-	acute = copysign(acute, slope);
-	obtuse = copysign(obtuse, slope);
 
-	return use_obtuse ? obtuse : acute;
+	if (use_obtuse)
+	{
+		obtuse = 0.25f * erf_fastf(rp.y) * erf_fastf(rp.x) - acute;
+		obtuse = copysignf(obtuse, slope);
+		return obtuse;
+	}
+
+	acute = copysignf(acute, slope);
+
+	return acute;
 }
 
-float fast_normalise(xyf_t v)
+xyf_t fast_normalise(xyf_t v)
 {
-	return mul_xyf(v, set_xyf(sse_rsqrt_newton1(v.x*v.x+v.y*v.y)));
+	return mul_xyf(v, set_xyf(sse_rsqrtf_newton1(v.x*v.x+v.y*v.y)));
 }
 
 float calc_subtriangle_pixel_weight(xyf_t p0, xyf_t p1)
@@ -52,7 +89,7 @@ float calc_subtriangle_pixel_weight(xyf_t p0, xyf_t p1)
 	float weight;
 
 	// Rotate points
-	rot = fast_normalise(p1 - p0);
+	rot = fast_normalise(sub_xyf(p1, p0));
 	r0.x = rot.x*p0.y - rot.y*p0.x;
 	r0.y = rot.x*p0.x + rot.y*p0.y;
 	r1.x = r0.x;
@@ -63,14 +100,15 @@ float calc_subtriangle_pixel_weight(xyf_t p0, xyf_t p1)
 	weight -= calc_right_triangle_pixel_weight(r0);
 
 	return weight;
-}*/
+}
 
 void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, double intensity)
 {
 	int i;
 	float rad, weight;
 	xyi_t ip;
-	xy_t pf, p0, p1;
+	xy_t pf;
+	xyf_t p0, p1;
 	static _Thread_local xy_t *pl=NULL;
 	static _Thread_local size_t pl_as=0;
 
@@ -83,7 +121,7 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 
 	// Prepare parameters
 	colour = mul_scalar_lrgb(colour, intensity*ONEF+0.5);
-	rad = rad = 1./radius;
+	rad = 1./radius;
 
 	// Scale polygon points
 	alloc_enough(&pl, p_count, &pl_as, sizeof(xy_t), 1.0);
@@ -100,14 +138,16 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 			pf.x = ip.x * rad;
 
 			// Calculate weight for each subtriangle
-			weight = 0.;
-			p0 = sub_xy(pl[p_count-1], pf);
+			weight = 0.f;
+			p0 = xy_to_xyf(sub_xy(pl[p_count-1], pf));
 			for (i=0; i < p_count; i++)
 			{
-				p1 = sub_xy(pl[i], pf);
-				//weight += calc_subtriangle_pixel_weight(p0, p1);
+				p1 = xy_to_xyf(sub_xy(pl[i], pf));
+				weight += calc_subtriangle_pixel_weight(p0, p1);
 				p0 = p1;
 			}
+
+			weight = MAXN(0.f, -weight);
 
 			// Apply weight to colour
 			blend_add(&fb->r.l[ip.y*fb->w+ip.x], colour, 32768.f*weight);

@@ -19,6 +19,8 @@ extern void xy_to_v(xy_t a, double *v1, double *v2);
 extern void xyz_to_v(xyz_t a, double *v1, double *v2, double *v3);
 extern void xyi_to_v(xyi_t a, int *v1, int *v2);
 extern void xyq_to_v(xyq_t a, ddouble_t *v1, ddouble_t *v2);
+extern xy_t xyf_to_xy(const xyf_t in);
+extern xyf_t xy_to_xyf(const xy_t in);
 extern xy_t xyz_to_xy(const xyz_t in);
 extern xyz_t xy_to_xyz(const xy_t in);
 extern xy_t xyi_to_xy(const xyi_t in);
@@ -55,6 +57,7 @@ extern xyz_t mul_xyz(xyz_t a, xyz_t b);
 extern xyi_t mul_xyi(xyi_t a, xyi_t b);
 extern xy_t div_xy(xy_t a, xy_t b);
 extern xy_t div_xy_0(xy_t a, xy_t b);
+extern xyf_t div_xyf(xyf_t a, xyf_t b);
 extern xyz_t div_xyz(xyz_t a, xyz_t b);
 extern xyi_t div_xyi(xyi_t a, xyi_t b);
 extern xyi_t div_round_up_xyi(xyi_t a, xyi_t b);
@@ -69,6 +72,9 @@ extern xy_t neg_y(xy_t a);
 extern xyz_t neg_x_xyz(xyz_t a);
 extern xyz_t neg_y_xyz(xyz_t a);
 extern xyz_t neg_z_xyz(xyz_t a);
+extern xy_t abs_xy(xy_t a);
+extern xyf_t abs_xyf(xyf_t a);
+extern xyz_t abs_xyz(xyz_t a);
 extern xy_t sign_xy(xy_t a);
 extern xyz_t sign_xyz(xyz_t a);
 extern int isnan_xy(xy_t a);
@@ -77,8 +83,6 @@ extern int isfinite_xy(xy_t a);
 extern int isfinite_xyz(xyz_t a);
 extern xyi_t cmp_ge_xyi(xyi_t a, xyi_t b);
 
-#define abs_xy(a)	func1_xy(a, fabs)
-#define abs_xyz(a)	func1_xyz(a, fabs)
 #define abs_xyi(a)	func1_xyi(a, abs)
 #define sqrt_xy(a)	func1_xy(a, sqrt)
 #define cos_xy(a)	func1_xy(a, cos)
@@ -92,6 +96,7 @@ extern xyi_t cmp_ge_xyi(xyi_t a, xyi_t b);
 #define sq_xyz(a)	func1_xyz(a, sq)
 #define xy_to_xyi_round(a)  xy_to_xyi(nearbyint_xy(a))
 extern xy_t func1_xy(xy_t a, double (*f)(double));
+extern xyf_t func1_xyf(xyf_t a, float (*f)(float));
 extern xyz_t func1_xyz(xyz_t a, double (*f)(double));
 extern xyi_t func1_xyi(xyi_t a, int (*f)(int));
 extern xyq_t func1_xyq(xyq_t a, ddouble_t (*f)(ddouble_t));

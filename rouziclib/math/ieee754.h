@@ -1,6 +1,10 @@
 // x = |x| for floats/doubles (makes the sign bit be 0 by binary masking), in-place
-#define	ffabsf(x)	(*((uint32_t *) (x)) &= 0x7FFFFFFF)
-#define	ffabs(x)	(*((uint64_t *) (x)) &= 0x7FFFFFFFFFFFFFFF)
+#define	ffabsf(x)	(*((uint32_t *) (x)) &= 0x7FFFFFFFUL)
+#define	ffabs(x)	(*((uint64_t *) (x)) &= 0x7FFFFFFFFFFFFFFFULL)
+
+// Replace standard calls due to MSVC retardation (their fabsf calls fabs...)
+#define fabsf fast_absf
+#define fabs fast_abs
 
 extern float u32_as_float(const uint32_t i);
 extern double u64_as_double(const uint64_t i);
@@ -22,3 +26,9 @@ extern xy_t get_fractional_part_positive_xy(xy_t f);
 extern double double_add_ulp(double x, int ulp);
 extern int64_t double_diff_ulp(double a, double b);
 extern double double_increment_minulp(double v0, double inc);
+extern double sign_multiply(double v, double s);
+extern float sign_multiplyf(float v, float s);
+extern double xor_double(double a, double b);
+extern float xor_float(float a, float b);
+extern double fast_abs(double x);
+extern float fast_absf(float x);

@@ -1,4 +1,3 @@
-#ifndef RL_EXCL_APPROX
 #ifdef RL_INTEL_INTR
 
 __m128i _mm_index_from_vom_ps(__m128 x, const float offset, const uint32_t mask)	// make index from value+offset&mask
@@ -65,6 +64,30 @@ __m128d _mm_eval_poly_d3_lut_pd(__m128d x, const double *lut, __m128i index)
 	return r;
 }
 
+#ifndef RL_EXCL_APPROX
+
+__m128d _mm_fastcos_tr_d3(__m128d x)	// max error: 1.88958e-009
+{
+	static const double lut[] = 
+	#include "tables/fastcos_d3.h"		// 3 kB
+	const int ish = 32+17-lutsp-2;		// the -2 is for the *4 index multiplication
+	__m128i lutind;
+
+	// x = ]-inf , +inf[ --> x = [0 , 1]
+	x = _mm_get_fractional_part_positive(x);
+
+	// Add offset and mask mantissa
+	lutind = _mm_castpd_si128(_mm_and_pd(_mm_add_pd(x, _mm_set1_pd(2.)), _mm_castsi128_pd(_mm_set1_epi64x(0x000FF00000000000ULL))));
+
+	// Shift mantissa to make index (premultiplied by 4)
+	lutind = _mm_srli_epi64(lutind, ish);
+
+	return _mm_eval_poly_d3_lut_pd(x, lut, lutind);
+}
+
+#endif
+
+
 __m128 _mm_gaussian_d1_ps(__m128 x) 	// runs in 8 cycles
 {
 	#include "tables/fastgauss_d1.h"	// contains the LUT, offset and limit
@@ -109,25 +132,4 @@ __m128 _mm_frgb_to_srgb(__m128 x)	// output is [0.f , 1.f]
 	r = _mm_eval_poly_d2_lut_ps(x, lut, index);
 	return r;
 }
-
-__m128d _mm_fastcos_tr_d3(__m128d x)	// max error: 1.88958e-009
-{
-	static const double lut[] = 
-	#include "tables/fastcos_d3.h"		// 3 kB
-	const int ish = 32+17-lutsp-2;		// the -2 is for the *4 index multiplication
-	__m128i lutind;
-
-	// x = ]-inf , +inf[ --> x = [0 , 1]
-	x = _mm_get_fractional_part_positive(x);
-
-	// Add offset and mask mantissa
-	lutind = _mm_castpd_si128(_mm_and_pd(_mm_add_pd(x, _mm_set1_pd(2.)), _mm_castsi128_pd(_mm_set1_epi64x(0x000FF00000000000ULL))));
-
-	// Shift mantissa to make index (premultiplied by 4)
-	lutind = _mm_srli_epi64(lutind, ish);
-
-	return _mm_eval_poly_d3_lut_pd(x, lut, lutind);
-}
-
-#endif
 #endif

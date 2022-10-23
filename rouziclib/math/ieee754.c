@@ -162,3 +162,51 @@ double double_increment_minulp(double v0, double inc)	// guarantees a minimal in
 
 	return v1;
 }
+
+double sign_multiply(double v, double s)	// like v *= sign(s)
+{
+	uint64_t vi = *(uint64_t *) &v;
+	uint64_t si = *(uint64_t *) &s;
+
+	vi ^= si & 0x8000000000000000ULL;
+	return *(double *) &vi;
+}
+
+float sign_multiplyf(float v, float s)		// like v *= sign(s)
+{
+	uint32_t vi = *(uint32_t *) &v;
+	uint32_t si = *(uint32_t *) &s;
+
+	vi ^= si & 0x80000000UL;
+	return *(float *) &vi;
+}
+
+double xor_double(double a, double b)		// used to quickly give the sign of a*b and a/b
+{
+	uint64_t ai = *(uint64_t *) &a;
+	uint64_t bi = *(uint64_t *) &b;
+
+	ai ^= bi;
+	return *(double *) &ai;
+}
+
+float xor_float(float a, float b)		// used to quickly give the sign of a*b and a/b
+{
+	uint32_t ai = *(uint32_t *) &a;
+	uint32_t bi = *(uint32_t *) &b;
+
+	ai ^= bi;
+	return *(float *) &ai;
+}
+
+double fast_abs(double x)
+{
+	*((uint64_t *) &x) &= 0x7FFFFFFFFFFFFFFFULL;
+	return x;
+}
+
+float fast_absf(float x)
+{
+	*((uint32_t *) &x) &= 0x7FFFFFFFUL;
+	return x;
+}
