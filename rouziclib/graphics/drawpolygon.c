@@ -1,6 +1,5 @@
 float erf_right_triangle_acute_integral(float x, float y)
 {
-	return 0.1f;
 	float x2 = x*x, y2 = y*y;
 	float v = (((((-1.6663128e-05f*y2 + 5.104393e-06f)*x2 +
 			0.0005496131f*y2 - 5.30433e-05f)*x2 +
@@ -102,9 +101,13 @@ float calc_subtriangle_pixel_weight(xyf_t p0, xyf_t p1)
 	return weight;
 }
 
+#if defined(RL_INTEL_INTR) && defined(__GNUC__)
+__attribute__((__target__("sse4.1")))
+#endif
 void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, double intensity)
 {
 	int i;
+	size_t fbi;
 	float rad, weight;
 	xyi_t ip;
 	xy_t pf;
@@ -123,6 +126,10 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 	colour = mul_scalar_lrgb(colour, intensity*ONEF+0.5);
 	rad = 1./radius;
 
+	#ifdef RL_INTEL_INTR
+	__m128i col_xmm = _mm_set_epi32(0, colour.b, colour.g, colour.r);		
+	#endif
+
 	// Scale polygon points
 	alloc_enough(&pl, p_count, &pl_as, sizeof(xy_t), 1.0);
 
@@ -132,8 +139,9 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 	// Go through all pixels
 	for (ip.y=bbi.p0.y; ip.y < bbi.p1.y; ip.y++)
 	{
+		fbi = ip.y*fb->w + bbi.p0.x;
 		pf.y = ip.y * rad;
-		for (ip.x=bbi.p0.x; ip.x < bbi.p1.x; ip.x++)
+		for (ip.x=bbi.p0.x; ip.x < bbi.p1.x; ip.x++, fbi++)
 		{
 			pf.x = ip.x * rad;
 
@@ -148,9 +156,31 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 			}
 
 			weight = MAXN(0.f, -weight);
+			int weight_fp = float_to_fixedpoint_15(weight);
 
 			// Apply weight to colour
-			blend_add(&fb->r.l[ip.y*fb->w+ip.x], colour, 32768.f*weight);
+
+			#ifndef RL_INTEL_INTR
+
+			blend_add(&fb->r.l[fbi], colour, weight_fp);
+
+			#else
+
+			// Put the background pixel and the weight in xmm registers
+			lrgb_t bg = fb->r.l[fbi];
+			__m128i bg_xmm = _mm_set_epi32(0, bg.b, bg.g, bg.r);
+			__m128i weight_xmm = _mm_set1_epi32(weight_fp);
+
+			// Multiply, shift and add
+			__m128i res_xmm = _mm_mullo_epi32(col_xmm, weight_xmm);		// SSE4.1
+			res_xmm = _mm_srli_epi32(res_xmm, 15);
+			res_xmm = _mm_add_epi32(res_xmm, bg_xmm);
+
+			// Convert from 32-bit integers to 16-bit
+			res_xmm = _mm_cvtepu32_epi16(res_xmm);		// SSSE3
+			_mm_storeu_si64(&fb->r.l[fbi], res_xmm);	// store the 4 16-bit ints in the result
+
+			#endif
 		}
 	}
 }

@@ -32,3 +32,4 @@ extern double xor_double(double a, double b);
 extern float xor_float(float a, float b);
 extern double fast_abs(double x);
 extern float fast_absf(float x);
+extern uint32_t float_to_fixedpoint_15(float x);
