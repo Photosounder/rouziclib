@@ -30,3 +30,4 @@ extern void parse_xy_array_file(char *path, xy_t **xy_array, size_t *xy_array_si
 extern char *xml_copy_field_string(const char *parent_start, const char *parent_end, const char *tag_start, const char *tag_end);
 extern double xml_copy_field_number(const char *parent_start, const char *parent_end, const char *tag_start);
 extern double parse_music_note(const char *string);
+extern void number_list_string_to_array(const char *str, double **array, size_t *count, size_t *alloc_count);

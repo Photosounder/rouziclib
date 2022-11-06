@@ -263,7 +263,7 @@ void cfft_1D_c2c_fft(cfft_plan_t *plan, void *array, const size_t elemsize, int 
 
 void cfft_1D_r2c_padded_fft(cfft_plan_t *plan, void *in, size_t in_elemsize, void **pout, const size_t out_elemsize, size_t *out_as, int in_n, int out_n)	// every arg besides in and *_n can be uninitialised
 {
-	cfft_copy_r2c_pad(in, in_elemsize, pout, out_elemsize, out_as, xyi(in_n, 1), xyi(out_n, 1));	// 2D real -> 2D complex and padded
+	cfft_copy_r2c_pad(in, in_elemsize, pout, out_elemsize, out_as, xyi(in_n, 1), xyi(out_n, 1));	// 1D real -> 1D complex and padded
 
 	cfft_1D_c2c_fft(plan, *pout, out_elemsize, out_n);
 }

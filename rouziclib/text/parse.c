@@ -486,3 +486,32 @@ double parse_music_note(const char *string)	// parse a note string into a number
 
 	return NAN;
 }
+
+void number_list_string_to_array(const char *str, double **array, size_t *count, size_t *alloc_count)
+{
+	const char *p, *p_next;
+	double v;
+
+	// Init
+	*count = 0;
+	p = str;
+
+	// Go through the string to find numbers
+	while (p[0] != '\0')
+	{
+		// Try to read a number at p
+		v = strtod(p, &p_next);
+
+		// Increment if there is no number
+		if (p == p_next)
+			p = &p[1];
+
+		// Add the number to the array if it was found
+		else
+		{
+			p = p_next;
+			alloc_enough(array, *count+=1, alloc_count, sizeof(double), 1.2);
+			(*array)[*count-1] = v;
+		}
+	}
+}
