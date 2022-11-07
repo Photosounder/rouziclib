@@ -210,7 +210,7 @@ void drawq_run()
 		ret = clSetKernelArg_wrap(fb->clctx.kernel, 3, sizeof(cl_mem), &fb->data_cl);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->data_cl)", ret);
 		ret = clSetKernelArg_wrap(fb->clctx.kernel, 4, sizeof(cl_mem), &fb->cl_srgb);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->cl_srgb)", ret);
 		ret = clSetKernelArg_wrap(fb->clctx.kernel, 5, sizeof(cl_int), &fb->sector_w);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_w)", ret);
-		ret = clSetKernelArg_wrap(fb->clctx.kernel, 6, sizeof(cl_int), &fb->sector_size);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_size)", ret);
+		ret = clSetKernelArg_wrap(fb->clctx.kernel, 6, sizeof(cl_int), &fb->sector_size);	CL_ERR_NORET("clSetKernelArg (in drawq_run, for fb->sector_size)", ret);
 		ret = clSetKernelArg_wrap(fb->clctx.kernel, 7, sizeof(cl_int), &randseed);		CL_ERR_NORET("clSetKernelArg (in drawq_run, for randseed)", ret);
 
 		global_work_offset[0] = 0;
@@ -219,6 +219,19 @@ void drawq_run()
 		global_work_size[1] = ceil_rshift(fb->h, fb->sector_size) << fb->sector_size;
 		local_work_size[0] = 1 << fb->sector_size;
 		local_work_size[1] = 1 << fb->sector_size;
+
+		// Check that local_work_size is of correct size
+workgroup_size_check:
+		size_t wg_size;
+		ret = clGetDeviceInfo(fb->clctx.device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &wg_size, NULL);
+
+		if (local_work_size[0] * local_work_size[1] > wg_size)
+		{
+			local_work_size[0] >>= 1;
+			local_work_size[1] >>= 1;
+			goto workgroup_size_check;
+		}
+
 		ret = clEnqueueNDRangeKernel_wrap(fb->clctx.command_queue, fb->clctx.kernel, 2, global_work_offset, global_work_size, local_work_size, 0, NULL, &fb->clctx.ev);
 		CL_ERR_NORET("clEnqueueNDRangeKernel (in drawq_run)", ret);
 

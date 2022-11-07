@@ -500,7 +500,7 @@ void number_list_string_to_array(const char *str, double **array, size_t *count,
 	while (p[0] != '\0')
 	{
 		// Try to read a number at p
-		v = strtod(p, &p_next);
+		v = strtod(p, (char **) &p_next);
 
 		// Increment if there is no number
 		if (p == p_next)
