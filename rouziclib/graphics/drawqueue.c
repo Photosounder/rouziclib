@@ -221,15 +221,13 @@ void drawq_run()
 		local_work_size[1] = 1 << fb->sector_size;
 
 		// Check that local_work_size is of correct size
-workgroup_size_check:
 		size_t wg_size;
 		ret = clGetDeviceInfo(fb->clctx.device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &wg_size, NULL);
 
-		if (local_work_size[0] * local_work_size[1] > wg_size)
+		while (local_work_size[0] * local_work_size[1] > wg_size)
 		{
 			local_work_size[0] >>= 1;
 			local_work_size[1] >>= 1;
-			goto workgroup_size_check;
 		}
 
 		ret = clEnqueueNDRangeKernel_wrap(fb->clctx.command_queue, fb->clctx.kernel, 2, global_work_offset, global_work_size, local_work_size, 0, NULL, &fb->clctx.ev);
