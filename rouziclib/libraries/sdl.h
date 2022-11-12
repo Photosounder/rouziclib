@@ -5,9 +5,9 @@
 #pragma comment (lib, "SDL2main.lib")
 #endif
 
-#include <SDL.h>
-#include <SDL_audio.h>
-#include <SDL_opengl.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_audio.h>
+#include <SDL2/SDL_opengl.h>
 
 typedef struct
 {
