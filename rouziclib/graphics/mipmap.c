@@ -23,6 +23,41 @@ void alloc_mipmap_level(mipmap_level_t *ml, xyi_t fulldim, xyi_t tilesize, const
 		}
 }
 
+mipmap_t alloc_mipmap(raster_t r, xyi_t tilesize, xyi_t mindim, const int mode)
+{
+	int i;
+	mipmap_t m={0};
+
+	// Init mipmap structure
+	m.fulldim = r.dim;
+	m.lvl_count = 1. + log2(max_of_xy(div_xy(xyi_to_xy(m.fulldim), xyi_to_xy(mindim))));
+	m.lvl_count = MAXN(m.lvl_count, 1);
+	m.lvl = calloc(m.lvl_count, sizeof(mipmap_level_t));
+	m.total_bytes = m.lvl_count * sizeof(mipmap_level_t);
+	mipmap_set_functions(&m, mode);
+
+	// Allocate the first level, a tiled copy of the original
+	m.lvl[0].scale = set_xy(1.);
+	alloc_mipmap_level(&m.lvl[0], m.fulldim, tilesize, mode);
+	m.total_bytes += m.lvl[0].total_bytes;
+
+	// Allocate all levels
+	for (i=1; i < m.lvl_count; i++)
+	{
+		m.lvl[i].fulldim = div_round_up_xyi(m.lvl[i-1].fulldim, set_xyi(2));
+		m.lvl[i].scale = mul_xy(m.lvl[i-1].scale, set_xy(2.));
+		alloc_mipmap_level(&m.lvl[i], m.lvl[i].fulldim, tilesize, mode);
+		m.total_bytes += m.lvl[i].total_bytes;
+	}
+
+	return m;
+}
+
+mipmap_t alloc_mipmap_defaults(raster_t r, const int mode)
+{
+	return alloc_mipmap(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
+}
+
 void *get_tile_pixel_ptr(mipmap_level_t ml, xyi_t pos, const int mode)
 {
 	xyi_t ti, pt;
@@ -225,37 +260,6 @@ void tile_downscale_box_2x2(mipmap_level_t ml0, mipmap_level_t ml1, const int mo
 			}
 		}
 	}
-}
-
-mipmap_t raster_to_tiled_mipmaps_fast(raster_t r, xyi_t tilesize, xyi_t mindim, const int mode)
-{
-	int i;
-	mipmap_t m={0};
-
-	m.fulldim = r.dim;
-	m.lvl_count = 1. + log2(max_of_xy(div_xy(xyi_to_xy(m.fulldim), xyi_to_xy(mindim))));
-	m.lvl_count = MAXN(m.lvl_count, 1);
-	m.lvl = calloc(m.lvl_count, sizeof(mipmap_level_t));
-	m.total_bytes = m.lvl_count * sizeof(mipmap_level_t);
-
-	// the first level is a tiled copy of the original
-	m.lvl[0].scale = set_xy(1.);
-	alloc_mipmap_level(&m.lvl[0], m.fulldim, tilesize, mode);
-	m.total_bytes += m.lvl[0].total_bytes;
-	copy_from_raster_to_tiles(r, m.lvl[0], mode);
-
-	for (i=1; i < m.lvl_count; i++)
-	{
-		m.lvl[i].fulldim = div_round_up_xyi(m.lvl[i-1].fulldim, set_xyi(2));
-		m.lvl[i].scale = mul_xy(m.lvl[i-1].scale, set_xy(2.));
-		alloc_mipmap_level(&m.lvl[i], m.lvl[i].fulldim, tilesize, mode);
-		m.total_bytes += m.lvl[i].total_bytes;
-
-		//tile_downscale_fast_box(m.lvl[i-1], m.lvl[i], set_xyi(2));
-		tile_downscale_box_2x2(m.lvl[i-1], m.lvl[i], mode);
-	}
-
-	return m;
 }
 
 #ifdef RL_INTEL_INTR
@@ -555,41 +559,14 @@ __m128 mipmap_make_edge_pixel_recursively(mipmap_t *m, const int il0, const xyi_
 	return pix0;
 }
 
-mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_t mindim, const int mode)
+void update_mipmap_sublevels_fast_backwards(mipmap_t m)
 {
-	int i, start_lvl=0, final_lvl;
-	mipmap_t m={0};
+	int i;
 	xyi_t ip, ipt, ir, fast_dim;
 	__m128 pv;
 
-	// Init mipmap structure
-	m.fulldim = r.dim;
-	m.lvl_count = 1. + log2(max_of_xy(div_xy(xyi_to_xy(m.fulldim), xyi_to_xy(mindim))));
-	m.lvl_count = MAXN(m.lvl_count, 1);
-	final_lvl = m.lvl_count-1;
-	m.lvl = calloc(m.lvl_count, sizeof(mipmap_level_t));
-	m.total_bytes = m.lvl_count * sizeof(mipmap_level_t);
-	mipmap_set_functions(&m, mode);
-
-	// Make the first level, a tiled copy of the original
-	m.lvl[0].scale = set_xy(1.);
-	alloc_mipmap_level(&m.lvl[0], m.fulldim, tilesize, mode);
-	m.total_bytes += m.lvl[0].total_bytes;
-	copy_from_raster_to_tiles(r, m.lvl[0], mode);
-
-	if (m.lvl_count==0)
-		return m;
-
-	// Allocate all levels
-	for (i=1; i < m.lvl_count; i++)
-	{
-		m.lvl[i].fulldim = div_round_up_xyi(m.lvl[i-1].fulldim, set_xyi(2));
-		m.lvl[i].scale = mul_xy(m.lvl[i-1].scale, set_xy(2.));
-		alloc_mipmap_level(&m.lvl[i], m.lvl[i].fulldim, tilesize, mode);
-		m.total_bytes += m.lvl[i].total_bytes;
-	}
-
 	// Select a level to start from
+	int start_lvl=0;
 	fast_dim = m.fulldim;
 	for (i=m.lvl_count-1; i > 0; i--)
 	{
@@ -665,6 +642,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 	}
 
 	// Collect the pixels for the remaining levels
+	int final_lvl = m.lvl_count-1;
 	if (final_lvl > start_lvl)
 	for (ir.y=0, ip.y=0, ipt.y=0; ip.y < m.lvl[final_lvl].fulldim.y; ip.y++, ipt.y++)
 	{
@@ -686,20 +664,48 @@ mipmap_t raster_to_tiled_mipmaps_fast_backwards(raster_t r, xyi_t tilesize, xyi_
 			mipmap_make_edge_pixel_recursively(&m, final_lvl, ir, ipt, start_lvl);
 		}
 	}
-
-	return m;
 }
 
 #endif
 
-mipmap_t raster_to_tiled_mipmaps_fast_defaults(raster_t r, const int mode)
+void update_mipmap_sublevels_fast(mipmap_t m, const int mode)
 {
+	// Do it the SSE4.1 way if possible
 	#ifdef RL_INTEL_INTR
 	if (check_ssse3() && check_sse41())
-		return raster_to_tiled_mipmaps_fast_backwards(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
+	{
+		update_mipmap_sublevels_fast_backwards(m);
+		return;
+	}
 	#endif
 
-	return raster_to_tiled_mipmaps_fast(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
+	// Make the other levels
+	for (int i=1; i < m.lvl_count; i++)
+		tile_downscale_box_2x2(m.lvl[i-1], m.lvl[i], mode);
+		//tile_downscale_fast_box(m.lvl[i-1], m.lvl[i], set_xyi(2));
+}
+
+void update_raster_to_mipmap_fast(mipmap_t m, raster_t r, const int mode)
+{
+	// Set the first level, a tiled copy of the original
+	copy_from_raster_to_tiles(r, m.lvl[0], mode);
+
+	// Update other levels
+	update_mipmap_sublevels_fast(m, mode);
+}
+
+mipmap_t raster_to_tiled_mipmaps_fast_defaults(raster_t r, const int mode)
+{
+	int i;
+	mipmap_t m;
+
+	// Alloc entire mipmap
+	m = alloc_mipmap(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
+
+	// Process the mipmap
+	update_raster_to_mipmap_fast(m, r, mode);
+
+	return m;
 }
 
 mipmap_t raster_to_mipmap_then_free(raster_t *r, const int mode)
@@ -719,20 +725,18 @@ void free_mipmap_level(mipmap_level_t *ml)
 	if (ml->r == NULL)
 		return;
 
-	// Dereference each tile and free the contiguous array
+	// Unreference each tile and free the contiguous array
 	for (i = mul_x_by_y_xyi(ml->tilecount)-1; i >= 0; i--)
 	{
 		void **ptr;
 
 		ptr = get_raster_buffer_ptr(&ml->r[i]);
 
-		// For each tile dereference or free every possible buffer
+		// For each tile unreference or free every possible buffer
 		while (ptr)
 		{
 			// Remove reference from cl data table
-			#ifdef RL_OPENCL
 			cl_data_table_remove_entry_by_host_ptr(*ptr);
-			#endif
 
 			// Free the contiguous array which is at the first tile
 			if (i == 0)
@@ -787,6 +791,26 @@ void remove_mipmap_levels_above_dim(mipmap_t *m, xyi_t dim)
 			m->total_bytes -= m->lvl[i].total_bytes;
 			free_mipmap_level(&m->lvl[i]);
 		}
+}
+
+void cl_unref_mipmap_level(mipmap_level_t *ml, const int mode)
+{
+	int i;
+
+	if (ml->r == NULL)
+		return;
+
+	// Unreference each tile
+	for (i=0; i < mul_x_by_y_xyi(ml->tilecount); i++)
+		cl_data_table_remove_entry_by_host_ptr(get_raster_buffer_for_mode(ml->r[i], mode));
+}
+
+void cl_unref_mipmap(mipmap_t m, const int mode)
+{
+	int i;
+
+	for (i=0; i < m.lvl_count; i++)
+		cl_unref_mipmap_level(&m.lvl[i], mode);
 }
 
 void blit_mipmap_rotated(mipmap_t m, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)

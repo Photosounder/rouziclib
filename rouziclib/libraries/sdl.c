@@ -34,7 +34,7 @@ int sdl_get_window_hz(SDL_Window *window)
 int sdl_vsync_sleep(SDL_Window *window, uint32_t time_last_vsync)
 {
 	int hz = sdl_get_window_hz(window);				// refresh rate (e.g. 60 Hz)
-	int ms = (100000 / hz - 60) / 100;	// total time needed (e.g. 60 Hz -> 16 ms)
+	int ms = (100000 / hz - 60) / 100;				// total time needed (e.g. 60 Hz -> 16 ms)
 	int elapsed = SDL_GetTicks() - time_last_vsync;			// ms since last vsync
 	int delay = ms - elapsed;
 
@@ -977,8 +977,10 @@ void rl_sdl_standard_main_loop(sdl_main_param_t param)
 
 		param.func();
 
+		#ifndef HIDE_GUI_TOOLBAR
 		if (param.gui_toolbar)
 			gui_layout_edit_toolbar(mouse.key_state[RL_SCANCODE_F6]==2);
+		#endif
 		window_manager();
 
 		mousecursor_logic_and_draw();

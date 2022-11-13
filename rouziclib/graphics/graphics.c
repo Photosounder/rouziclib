@@ -237,9 +237,7 @@ void free_raster(raster_t *r)
 
 	while (ptr)	// free every possible buffer
 	{
-		#ifdef RL_OPENCL
 		cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table
-		#endif
 
 		free_null(ptr);
 
@@ -251,7 +249,6 @@ void free_raster(raster_t *r)
 
 void cl_unref_raster(raster_t *r)
 {
-	#ifdef RL_OPENCL
 	void **ptr;
 
 	ptr = get_raster_buffer_ptr(r);
@@ -260,7 +257,6 @@ void cl_unref_raster(raster_t *r)
 		return;
 
 	cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table
-	#endif
 }
 
 framebuffer_t *init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode)
