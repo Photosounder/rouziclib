@@ -1,4 +1,6 @@
 typedef double (*knob_func_t)(double, double, double, double *, const int);
+typedef void (*knob_print_func_t)(char *, void *, double);
+typedef double (*knob_parse_func_t)(const char *, void *);
 
 typedef struct
 {
@@ -7,6 +9,8 @@ typedef struct
 	double min, max, default_value, arg[4];
 	textedit_t edit;
 	int edit_open, circular, arg_count;
+	knob_print_func_t display_print_func, editor_print_func;
+	knob_parse_func_t parse_func;
 } knob_t;
 
 typedef struct

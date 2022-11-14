@@ -1066,7 +1066,7 @@ char *gui_layout_make_code_for_unimp_elem(gui_layout_t *layout)
 					break;
 
 				case gui_type_selmenu:
-					sprintf_realloc(&str, &str_as, 1, "\tgui_layout_selmenu_set_count(count, &layout, %d);\n\tif (ctrl_selmenu_fromlayout(&layout, %d))\n\t{\n\t\tsel_index = get_selmenu_selid_fromlayout(&layout, %d);\n\t}\n\n\tfor (i=0; i < count; i++)\n\t\tdraw_selmenu_entry_fromlayout(i, menu_label[i], &layout, %d);", id, id, id, id);
+					sprintf_realloc(&str, &str_as, 1, "\tgui_layout_selmenu_set_count(count, &layout, %d);\n\tif (ctrl_selmenu_fromlayout(&layout, %d))\n\t{\n\t\tsel_index = get_selmenu_selid_fromlayout(&layout, %d);\n\t}\n\n\tfor (i=0; i < count; i++)\n\t\tdraw_selmenu_entry_fromlayout(i, menu_label[i], &layout, %d);\n", id, id, id, id);
 					break;
 			}
 		}

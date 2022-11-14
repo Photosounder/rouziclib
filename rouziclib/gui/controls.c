@@ -353,7 +353,13 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		if (knob_state.rightclick && knob->edit_open==0)
 		{
 			knob->edit_open = 1;
-			sprintf(str, "%.10g", v);
+
+			// Print editor value
+			if (knob->editor_print_func)
+				knob->editor_print_func(str, knob, v);
+			else
+				sprintf(str, "%.10g", v);
+
 			textedit_set_new_text(&knob->edit, str);
 			knob->edit.rect_brightness = 0.125;
 			cur_textedit = &knob->edit;
@@ -396,8 +402,13 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	// Draw knob
 	intensity *= intensity_scaling(total_scale, 24.);
 
-	// Draw value
-	sprintf(str, knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
+	// Print value
+	if (knob->display_print_func)
+		knob->display_print_func(str, knob, v);
+	else
+		sprintf(str, knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
+
+	// Draw value string
 	if (knob->edit_open==0)
 		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 	else
@@ -406,7 +417,12 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 		if (ret==1 || ret==2 || ret==3)
 		{
-			v = etof(knob->edit.string);
+			// Parse editor string into value
+			if (knob->parse_func)
+				v = knob->parse_func(knob->edit.string, knob);
+			else
+				v = etof(knob->edit.string);
+
 			if (isnan(v))
 				v = knob->default_value;
 
