@@ -38,7 +38,7 @@ int xy_array_to_bezier_seg_array(xy_t *pa, int p_count, bezier_seg_t **bap, size
 
 	// Make the first handle point to the second handle
 	ba[0].p1 = mix_xy(ba[0].p0, ba[0].p2, set_xy(0.5));
-	// and the last handle point the the penultimate handle
+	// and the last handle point to the penultimate handle
 	i = b_count-1;
 	ba[i].p2 = mix_xy(ba[i].p3, ba[i].p1, set_xy(0.5));
 

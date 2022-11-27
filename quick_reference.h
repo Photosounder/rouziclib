@@ -95,6 +95,7 @@
 		draw_rect(sc_rect(box), drawing_thickness, colour, blend_add, intensity);
 		draw_rect_full(sc_rect(box), drawing_thickness, colour, blend_add, intensity);
 		draw_black_rect(sc_rect(box), drawing_thickness, intensity);
+		draw_black_rect_inverted(sc_rect(box), drawing_thickness, 1.);
 
 	// Circle (HOLLOWCIRCLE or FULLCIRCLE)
 		// pixel coordinates
@@ -473,6 +474,7 @@ void my_window_function(double *arg1, double *arg2)
 
 	// Displaying
 		// penultimate argument set to 1 keeps the pixel aspect ratio
+		// last argument can be LINEAR_INTERP or AA_NEAREST_INTERP
 		blit_in_rect(&r, sc_rect(image_frame), 1, LINEAR_INTERP);
 		blit_mipmap_in_rect(image_mm, sc_rect(image_frame), 1, LINEAR_INTERP);
 
@@ -943,6 +945,10 @@ void my_window_function(double *arg1, double *arg2)
 	// Convert between float and __m128
 		__m128 vf = _mm_load_ps((float *) &cf);
 		_mm_storeu_ps((float *) &cf, vf);
+
+	// Enums, named but without typedef
+		enum my_enum_name { zero, one };
+		enum my_enum_name my_var = zero;
 
 // How to transition code
 	// 190610 transition that involves removing any 'fb' from any function call, making it a TLS global only
