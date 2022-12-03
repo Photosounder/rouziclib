@@ -14,6 +14,8 @@ typedef struct
 {
 	uint8_t *buf;
 	size_t as, len;		// len for strings excludes the nul end character
+	size_t read_pos;	// only used by fread_buffer()
+	char *write_dest;	// only used by fopen_buffer() and fclose_buffer()
 } buffer_t;
 
 typedef struct

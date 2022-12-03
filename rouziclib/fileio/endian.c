@@ -3,7 +3,7 @@
 uint8_t fread_byte8(FILE *file)
 {
 	uint8_t	b;
-	fread(&b, 1, 1, file);
+	fread_override(&b, 1, 1, file);
 	return b;
 }
 
@@ -11,13 +11,13 @@ uint16_t fread_LE16(FILE *file)
 {
 #ifdef ASS_LE
 	uint16_t v;
-	fread(&v, sizeof(v), 1, file);
+	fread_override(&v, sizeof(v), 1, file);
 	return v;
 #else
 	uint8_t	b0, b1;
 
-	fread(&b0, 1, 1, file);
-	fread(&b1, 1, 1, file);
+	fread_override(&b0, 1, 1, file);
+	fread_override(&b1, 1, 1, file);
 
 	return (uint16_t) (b1<<8) | b0;
 #endif
@@ -27,8 +27,8 @@ uint16_t fread_BE16(FILE *file)
 {
 	uint8_t	b0, b1;
 
-	fread(&b1, 1, 1, file);
-	fread(&b0, 1, 1, file);
+	fread_override(&b1, 1, 1, file);
+	fread_override(&b0, 1, 1, file);
 
 	return (uint16_t) (b1<<8) | b0;
 }
@@ -37,7 +37,7 @@ uint32_t fread_LE32(FILE *file)
 {
 #ifdef ASS_LE
 	uint32_t v;
-	fread(&v, sizeof(v), 1, file);
+	fread_override(&v, sizeof(v), 1, file);
 	return v;
 #else
 	uint16_t b0, b1;
@@ -63,7 +63,7 @@ uint64_t fread_LE64(FILE *file)
 {
 #ifdef ASS_LE
 	uint64_t v;
-	fread(&v, sizeof(v), 1, file);
+	fread_override(&v, sizeof(v), 1, file);
 	return v;
 #else
 	uint32_t b0, b1;
@@ -88,20 +88,20 @@ uint64_t fread_BE64(FILE *file)
 // File write
 void fwrite_byte8(FILE *file, uint8_t s)
 {
-	fwrite(&s, 1, 1, file);
+	fwrite_override(&s, 1, 1, file);
 }
 
 void fwrite_LE16(FILE *file, uint16_t s)
 {
 #ifdef ASS_LE
-	fwrite(&s, sizeof(s), 1, file);
+	fwrite_override(&s, sizeof(s), 1, file);
 #else
 	uint8_t byte;
 
 	byte = s;
-	fwrite(&byte, 1, 1, file);
+	fwrite_override(&byte, 1, 1, file);
 	byte = s >> 8;
-	fwrite(&byte, 1, 1, file);
+	fwrite_override(&byte, 1, 1, file);
 #endif
 }
 
@@ -110,15 +110,15 @@ void fwrite_BE16(FILE *file, uint16_t s)
 	uint8_t byte;
 
 	byte = s >> 8;
-	fwrite(&byte, 1, 1, file);
+	fwrite_override(&byte, 1, 1, file);
 	byte = s;
-	fwrite(&byte, 1, 1, file);
+	fwrite_override(&byte, 1, 1, file);
 }
 
 void fwrite_LE32(FILE *file, uint32_t w)
 {
 #ifdef ASS_LE
-	fwrite(&w, sizeof(w), 1, file);
+	fwrite_override(&w, sizeof(w), 1, file);
 #else
 	fwrite_LE16(file, w);
 	fwrite_LE16(file, w >> 16);
@@ -134,7 +134,7 @@ void fwrite_BE32(FILE *file, uint32_t w)
 void fwrite_LE64(FILE *file, uint64_t w)
 {
 #ifdef ASS_LE
-	fwrite(&w, sizeof(w), 1, file);
+	fwrite_override(&w, sizeof(w), 1, file);
 #else
 	fwrite_LE32(file, w);
 	fwrite_LE32(file, w >> 32);

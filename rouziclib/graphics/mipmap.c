@@ -917,7 +917,7 @@ void fwrite_mipmap(FILE *file, mipmap_t m)
 
 			// Write pixel data buffer
 			void *p = get_raster_buffer_for_mode(r, mode);
-			fwrite(p, get_raster_mode_elem_size(mode), mode == IMAGE_USE_BUF ? r.buf_size : mul_x_by_y_xyi(r.dim), file);
+			fwrite_override(p, get_raster_mode_elem_size(mode), mode == IMAGE_USE_BUF ? r.buf_size : mul_x_by_y_xyi(r.dim), file);
 		}
 	}
 }
@@ -977,7 +977,7 @@ mipmap_t fread_mipmap(FILE *file)
 
 			// Read pixel data buffer
 			int elem_size = get_raster_mode_elem_size(mode);
-			fread(ptr, elem_size, mode == IMAGE_USE_BUF ? r.buf_size : mul_x_by_y_xyi(r.dim), file);
+			fread_override(ptr, elem_size, mode == IMAGE_USE_BUF ? r.buf_size : mul_x_by_y_xyi(r.dim), file);
 
 			m.lvl[il].r[ir] = r;
 			if (mode == IMAGE_USE_BUF)

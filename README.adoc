@@ -482,6 +482,9 @@ Read, set or manipulate bits in a bit stream. Also https://stackoverflow.com/que
 ** link:rouziclib/fileio/open.c[open.c] / link:rouziclib/fileio/open.h[open.h] +
 `fopen()` wrapper that takes UTF-8 paths, with another version that can create any folder needed to make the file being opened writable, query a file's size, load a file into memory, optionally with conversion of DOS line endings, save a whole buffer or string or array of strings to file, count lines in a text file, check if a file or folder exists.
 
+** link:rouziclib/fileio/io_override.c[io_override.c] / link:rouziclib/fileio/io_override.h[io_override.h] +
+By appending `_override` to standard functions `fopen`, `fclose`, `fread`, `fwrite`, we can switch between using `FILE` streams and using `buffer_t` generic buffers without changing code, so a same function can work on either type by having either `io_override_set_FILE()` or `io_override_set_buffer()` called first.
+
 ** link:rouziclib/fileio/endian.c[endian.c] / link:rouziclib/fileio/endian.h[endian.h] +
 Functions to load or write 8 to 64 bit integers in little or big endian to and from memory, file or generic buffer. By default to speed things up the platform is assumed to be little endian, this can be changed by defining `RL_DONT_ASSUME_LITTLE_ENDIAN`.
 

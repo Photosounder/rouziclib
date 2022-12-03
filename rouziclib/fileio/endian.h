@@ -18,7 +18,6 @@ extern void fwrite_BE32(FILE *file, uint32_t w);
 extern void fwrite_LE64(FILE *file, uint64_t w);
 extern void fwrite_BE64(FILE *file, uint64_t w);
 
-
 // Read from a buffer
 extern uint8_t read_byte8(const void *ptr, size_t *index);
 extern int32_t read_byte8s(const void *ptr, size_t *index);

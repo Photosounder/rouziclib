@@ -71,6 +71,9 @@ void buf_alloc_enough(buffer_t *s, size_t req_size)
 
 void free_buf(buffer_t *s)
 {
+	if (s==NULL)
+		return ;
+
 	free(s->buf);
 	memset(s, 0, sizeof(buffer_t));
 }

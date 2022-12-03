@@ -117,6 +117,7 @@
 
 #include "fileio/bits.c"
 #include "fileio/open.c"
+#include "fileio/io_override.c"
 #include "fileio/endian.c"
 #include "fileio/image.c"
 #include "fileio/image_bmp.c"
