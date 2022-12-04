@@ -20,7 +20,7 @@ size_t fwrite_buffer(const void *ptr, size_t size, size_t nmemb, void *stream)
 	return nmemb;
 }
 
-void *fopen_buffer(const char *path, const char *mode)	// only works for "rb" mode
+void *fopen_buffer(const char *path, const char *mode)	// only works for "rb" and "wb" modes
 {
 	buffer_t *s;
 
