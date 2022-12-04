@@ -700,7 +700,7 @@ mipmap_t raster_to_tiled_mipmaps_fast_defaults(raster_t r, const int mode)
 	mipmap_t m;
 
 	// Alloc entire mipmap
-	m = alloc_mipmap(r, set_xyi(MIPMAP_TILE_SIZE), set_xyi(MIPMAP_MIN_SIZE), mode);
+	m = alloc_mipmap_defaults(r, mode);
 
 	// Process the mipmap
 	update_raster_to_mipmap_fast(m, r, mode);

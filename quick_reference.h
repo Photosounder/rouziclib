@@ -231,6 +231,9 @@
 		window.bg_opacity = 0.94;
 		window.shadow_strength = 0.5*window.bg_opacity;
 
+		// The dark background can be rendered even when the window isn't detached which is needed if there might be something drawn beneath the undetached window
+		window.draw_bg_always = 1;
+
 		// Example of window-defining elem
 		"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
 
