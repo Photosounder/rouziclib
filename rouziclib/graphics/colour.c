@@ -112,6 +112,9 @@ double Lab_L_to_linear(double t)
 {
 	const double stn=6./29.;
 
+	if (t <= 0.)
+		return 0.;
+
 	t = (t+0.16) * (1./1.16);
 
 	if (t > stn)
@@ -131,6 +134,9 @@ frgb_t Lab_L_to_linear_f(frgb_t c)
 
 double linear_to_Lab_L(double t)
 {
+	if (t < 1.782165379e-18)	// done to avoid returning -2.8e-17 around 0
+		return 0.;
+
 	const double thr = 6./29., thr3 = thr*thr*thr;
 
 	if (t > thr3)
