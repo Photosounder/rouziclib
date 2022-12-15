@@ -20,8 +20,8 @@ int xy_array_to_bezier_seg_array(xy_t *pa, int p_count, bezier_seg_t **bap, size
 	// Handle the one segment case
 	if (b_count == 1)
 	{
-		ba[i].p1 = mix_xy(pa[0], pa[1], set_xy(1./3.));
-		ba[i].p2 = mix_xy(pa[1], pa[0], set_xy(1./3.));
+		ba[0].p1 = mix_xy(pa[0], pa[1], set_xy(1./3.));
+		ba[0].p2 = mix_xy(pa[1], pa[0], set_xy(1./3.));
 		return b_count;
 	}
 

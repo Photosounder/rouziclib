@@ -261,8 +261,15 @@ ctrl_button_state_t proc_mouse_circular_ctrl(xy_t *pos, double radius, mouse_t m
 
 	butt = proc_mouse_circ_ctrl_lrmb(*pos, radius, mouse, dragged)[0];
 
+	// Update position when dragged
 	if (butt.down)
+	{
 		*pos = add_xy(*pos, sub_xy(mouse.u, mouse.prev_u));	// TODO maybe replicate changes done in proc_mouse_draggable_ctrl()
+
+		// If the cursor is outside of the circle move it
+		if (hypot_xy2(mouse.u, *pos) > sq(radius))
+			*pos = mouse.u;
+	}
 
 	return butt;
 }

@@ -509,16 +509,18 @@ int ctrl_draggable(ctrl_drag_state_t *state)
 	return ret;
 }
 
-int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_id, int *dragged, ctrl_button_state_t *butt_state_ptr)
+int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_id, int *dragged, ctrl_button_state_t *butt_state_ptr, rect_t pos_area)
 {
 	int ret=0;
 	double total_scale = radius*zc.scrscale;
 	rect_t box;
 	ctrl_button_state_t butt_state={0};
 
+	// Quit if control is too small and not being dragged
 	if (total_scale < 0.2 && *dragged != cur_id)
 		return -10;
 
+	// Quit if control is off-screen and not being dragged
 	box = make_rect_off( *pos, set_xy(2.*radius), xy(0.5, 0.5) );
 	if (check_box_on_screen(box)==0 && *dragged != cur_id)
 		return -10;
@@ -527,12 +529,21 @@ int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_i
 	{
 		butt_state = proc_mouse_circular_ctrl(pos, radius, mouse, *dragged == cur_id);
 
+		// Limit pos to the pos_area
+		if (isfinite(pos_area.p0.x)) pos->x = MAXN(pos->x, pos_area.p0.x);
+		if (isfinite(pos_area.p1.x)) pos->x = MINN(pos->x, pos_area.p1.x);
+		if (isfinite(pos_area.p0.y)) pos->y = MAXN(pos->y, pos_area.p0.y);
+		if (isfinite(pos_area.p1.y)) pos->y = MINN(pos->y, pos_area.p1.y);
+
 		if (butt_state.once)
 		{
 			ret = 1;
 			*dragged = cur_id;
 			*sel_id = cur_id;
 		}
+
+		if (butt_state.down)
+			ret = 3;
 
 		if (butt_state.uponce)
 		{
@@ -554,7 +565,7 @@ int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_i
 	return ret;
 }
 
-int ctrl_draggable_circle(xy_t *pos, double radius, int *sel_id, int cur_id, int *dragged, col_t colour)
+int ctrl_draggable_circle(xy_t *pos, double radius, int *sel_id, int cur_id, int *dragged, col_t colour, rect_t pos_area)
 {
 	int ret;
 	double total_scale = radius*zc.scrscale;
@@ -562,7 +573,7 @@ int ctrl_draggable_circle(xy_t *pos, double radius, int *sel_id, int cur_id, int
 	rect_t box;
 	ctrl_button_state_t butt_state={0};
 
-	ret = ctrl_draggable_circle_invis(pos, radius, sel_id, cur_id, dragged, &butt_state);
+	ret = ctrl_draggable_circle_invis(pos, radius, sel_id, cur_id, dragged, &butt_state, pos_area);
 	if (ret == -10)
 		return 0;
 
