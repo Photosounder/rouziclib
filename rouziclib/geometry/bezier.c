@@ -105,7 +105,7 @@ int cmp_bezier_seg_by_x(const bezier_seg_t *a, const bezier_seg_t *b)	// bezier_
 	return -1;
 }
 
-double bezier_seg_array_eval_x(bezier_seg_t *ba, int b_count, double x)
+double bezier_seg_array_eval_x(bezier_seg_t *ba, int b_count, double x, int ret_nan)
 {
 	int i;
 	double t, tc;
@@ -116,7 +116,12 @@ double bezier_seg_array_eval_x(bezier_seg_t *ba, int b_count, double x)
 	i = array_find_index_by_cmp(&v, ba, b_count, sizeof(bezier_seg_t), cmp_bezier_seg_by_x);
 
 	if (x < ba[i].p0.x || x > ba[i].p3.x)
-		return NAN;
+		if (ret_nan)
+			return NAN;
+		else if (x < ba[i].p0.x)
+			return ba[i].p0.y;
+		else
+			return ba[i].p3.y;
 
 	// Find t from x
 	t = bezier_seg_x_to_t(ba[i], x);
