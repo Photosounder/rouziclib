@@ -40,7 +40,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 
 	// Fit an undetached window into its parent area if it exists
 	if (parent_area)
-		if (*diag_on!=1 || w->init==0)
+		if ((diag_on && *diag_on!=1) || w->init==0)
 			fit_sublayout_into_area(*parent_area, layout, id, w->parent_fit_offset, 1);
 
 	w->init = 1;
@@ -62,7 +62,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	ctrl_drag_set_dim(&w->bar_drag, get_rect_dim(bar_area_os));
 	ctrl_draggable(&w->bar_drag);
 	layout->offset = add_xy(layout->offset, w->bar_drag.offset);
-	if (w->bar_drag.down && parent_area)			// detach the title bar is being dragged
+	if (w->bar_drag.down && parent_area && diag_on)			// detach the title bar is being dragged
 		*diag_on = 1;
 
 	// Prevent the bar from being out of the screen when pinned
@@ -85,7 +85,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 		bao_scaling = 12. / (get_rect_dim(bao_moved).y * zc.scrscale);
 		layout->sm *= MAXN(1., bao_scaling);
 
-		if (parent_area)
+		if (parent_area && diag_on)
 			*diag_on = 1;		// this means the dialog is detached
 	}
 
@@ -117,7 +117,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 			layout->offset = fit_into_area(area_os, area, 0., &layout->sm);
 
 			// Detach if detachable
-			if (parent_area)
+			if (parent_area && diag_on)
 				*diag_on = 1;
 		}
 	}
@@ -140,9 +140,8 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	}
 	else
 	{
-		if (diag_on)
-			if (*diag_on)
-				close_on = 1;
+		if (diag_on && *diag_on)
+			close_on = 1;
 	}
 
 	// close button
@@ -157,9 +156,8 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 
 	// Drawing
 	int draw_bg = 1;
-	if (diag_on)
-		if (*diag_on == 0 && w->draw_bg_always == 0)
-			draw_bg = 0;
+	if (diag_on && *diag_on == 0 && w->draw_bg_always == 0)
+		draw_bg = 0;
 
 	if (draw_bg)
 	{
