@@ -273,7 +273,7 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 	if (buffer_size == 0)
 		return 0;
 
-	// check the provided table index
+	// Check the provided table index
 	if (table_index)
 	{
 		i = *table_index;
@@ -286,7 +286,7 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 		}
 	}
 
-	// check hash table
+	// Check hash table FIXME unused
 	hash = get_pointer_hash(buffer) & ht_mask;
 
 	if (fb->hash_table.elem==NULL)	// alloc hash table
@@ -295,7 +295,7 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 		alloc_enough(&fb->hash_table.overflow, 16, &fb->hash_table.overflow_as, sizeof(hash_table_elem_t), 2.);
 	}
 
-	// find if buffer is already in the table
+	// Find if buffer is already in the table
 	for (i=0; i < fb->data_alloc_table_count; i++)
 	{
 		if (fb->data_alloc_table[i].host_ptr==buffer)	// if it's there
