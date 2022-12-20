@@ -53,7 +53,7 @@ typedef struct
 typedef struct
 {
 	mipmap_level_t *lvl;
-	int lvl_count;
+	int lvl_count, base_lvl;
 	xyi_t fulldim;
 	size_t total_bytes;
 	#ifdef RL_INTEL_INTR

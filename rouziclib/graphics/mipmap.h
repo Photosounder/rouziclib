@@ -10,6 +10,7 @@ extern frgb_t get_tile_pixel(mipmap_level_t ml, xyi_t pos);
 extern void set_tile_pixel(mipmap_level_t ml, xyi_t pos, frgb_t pv);
 extern void mipmap_set_functions(mipmap_t *m, const int mode);	// SSSE3
 extern void copy_from_raster_to_tiles(raster_t r, mipmap_level_t ml, const int mode);
+extern raster_t mipmap_level_to_raster(mipmap_level_t ml, const int mode);
 extern void tile_downscale_fast_box(mipmap_level_t r0, mipmap_level_t r1, const xyi_t ratio);
 extern void tile_downscale_box_2x2(mipmap_level_t ml0, mipmap_level_t ml1, const int mode);
 
@@ -25,6 +26,8 @@ extern void remove_mipmap_levels_above_dim(mipmap_t *m, xyi_t dim);
 extern void cl_unref_mipmap_level(mipmap_level_t *ml, const int mode);
 extern void cl_unref_mipmap(mipmap_t m, const int mode);
 
+extern int mipmap_pick_level(mipmap_t m, xy_t pscale);
+extern void blit_mipmap_level_rotated(mipmap_level_t *ml, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp);
 extern void blit_mipmap_rotated(mipmap_t m, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp);
 extern rect_t blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp);
 

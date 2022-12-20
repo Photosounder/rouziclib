@@ -116,12 +116,13 @@ void copy_from_raster_to_tiles(raster_t r, mipmap_level_t ml, const int mode)
 	uint8_t *buf = get_raster_buffer_for_mode(r, mode);
 
 	for (it.y=0; it.y < ml.tilecount.y; it.y++)
-		for (it.x=0; it.x < ml.tilecount.x; it.x++)	// this copies a rect from the raster into the matching tile, line by line
+		for (it.x=0; it.x < ml.tilecount.x; it.x++)
 		{
 			tilestart = mul_xyi(ml.tiledim, it);
 			rdim = get_dim_of_tile(ml.fulldim, ml.tiledim, it);
 
-			for (iy=0; iy<rdim.y; iy++)
+			// Copy lines from raster to matching tile
+			for (iy=0; iy < rdim.y; iy++)
 			{
 				pstart = add_xyi(tilestart, xyi(0, iy));
 				pp = get_tile_pixel_ptr(ml, pstart, mode);
@@ -129,6 +130,36 @@ void copy_from_raster_to_tiles(raster_t r, mipmap_level_t ml, const int mode)
 				memcpy(pp, &buf[(pstart.y*r.dim.x + pstart.x)*pix_size], rdim.x*pix_size);
 			}
 		}
+}
+
+raster_t mipmap_level_to_raster(mipmap_level_t ml, const int mode)
+{
+	raster_t r;
+	xyi_t it, rdim, tilestart, pstart;
+	int iy;
+	frgb_t *pp;
+	size_t pix_size = get_raster_mode_elem_size(mode);
+
+	r = make_raster(NULL, ml.fulldim, XYI0, mode);
+	uint8_t *buf = get_raster_buffer_for_mode(r, mode);
+
+	for (it.y=0; it.y < ml.tilecount.y; it.y++)
+		for (it.x=0; it.x < ml.tilecount.x; it.x++)
+		{
+			tilestart = mul_xyi(ml.tiledim, it);
+			rdim = get_dim_of_tile(ml.fulldim, ml.tiledim, it);
+
+			// Copy lines from tile to raster
+			for (iy=0; iy < rdim.y; iy++)
+			{
+				pstart = add_xyi(tilestart, xyi(0, iy));
+				pp = get_tile_pixel_ptr(ml, pstart, mode);
+
+				memcpy(&buf[(pstart.y*r.dim.x + pstart.x)*pix_size], pp, rdim.x*pix_size);
+			}
+		}
+
+	return r;
 }
 
 /*void tile_downscale_fast_box(mipmap_level_t ml0, mipmap_level_t ml1, const xyi_t ratio)
@@ -672,7 +703,7 @@ void update_mipmap_sublevels_fast(mipmap_t m, const int mode)
 {
 	// Do it the SSE4.1 way if possible
 	#ifdef RL_INTEL_INTR
-	if (check_ssse3() && check_sse41())
+	if (check_ssse3() && check_sse41() && m.base_lvl == 0)
 	{
 		update_mipmap_sublevels_fast_backwards(m);
 		return;
@@ -680,7 +711,7 @@ void update_mipmap_sublevels_fast(mipmap_t m, const int mode)
 	#endif
 
 	// Make the other levels
-	for (int i=1; i < m.lvl_count; i++)
+	for (int i = m.base_lvl + 1; i < m.lvl_count; i++)
 		tile_downscale_box_2x2(m.lvl[i-1], m.lvl[i], mode);
 		//tile_downscale_fast_box(m.lvl[i-1], m.lvl[i], set_xyi(2));
 }
@@ -813,27 +844,63 @@ void cl_unref_mipmap(mipmap_t m, const int mode)
 		cl_unref_mipmap_level(&m.lvl[i], mode);
 }
 
+int mipmap_pick_level(mipmap_t m, xy_t pscale)
+{
+	int i, level;
+	xy_t pscale_inv = inv_xy(pscale);
+	mipmap_level_t *ml;
+
+	// Init level
+	ml = &m.lvl[0];
+	if (ml->r)
+		level = 0;
+	else
+		level = -1;	// indicate that so far there's no valid level selected
+
+	// Find the right mipmap level
+	for (i=1; i < m.lvl_count; i++)
+		if (m.lvl[i].r)			// skip over any lower level that have might been removed to save memory
+			if ((m.lvl[i].scale.x <= pscale_inv.x && m.lvl[i].scale.y <= pscale_inv.y) || ml->r==NULL || level < m.base_lvl)
+			{
+				ml = &m.lvl[i];
+				level = i;
+			}
+			else
+				break;
+
+	return level;
+}
+
+void blit_mipmap_level_rotated(mipmap_level_t *ml, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)
+{
+	int i;
+	xyi_t it;
+	xy_t ml_scale;
+
+	// Calculate on-screen scale and position
+	ml_scale = mul_xy(ml->scale, pscale);
+	pos = sub_xy( mad_xy(ml_scale, set_xy(0.5), pos) , mul_xy(pscale, set_xy(0.5)) );	// add an offset necessary for higher mipmap levels
+
+	// Blit tiles
+	for (it.y=0; it.y < ml->tilecount.y; it.y++)
+		for (it.x=0; it.x < ml->tilecount.x; it.x++)
+			blit_scale_rotated(&ml->r[it.y*ml->tilecount.x + it.x], ml_scale, mad_xy(ml_scale, xyi_to_xy(mul_xyi(it, ml->tiledim)), pos), angle, rot_centre, interp);
+}
+
 void blit_mipmap_rotated(mipmap_t m, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)
 {
 	int i;
 	xyi_t it;
-	xy_t pscale_inv = inv_xy(pscale), ml_scale;
-	mipmap_level_t *ml = &m.lvl[0];
+	xy_t ml_scale;
+	mipmap_level_t *ml;
 
-	// find the right mipmap level
-	for (i=1; i < m.lvl_count; i++)
-		if (m.lvl[i].r)			// skip over any lower level that have might been removed to save memory
-			if ((m.lvl[i].scale.x <= pscale_inv.x && m.lvl[i].scale.y <= pscale_inv.y) || ml->r==NULL)
-				ml = &m.lvl[i];
-			else
-				break;
+	// Find the right mipmap level
+	i = mipmap_pick_level(m, pscale);
+	if (i == -1)
+		return;
 
-	ml_scale = mul_xy(ml->scale, pscale);
-	pos = sub_xy( mad_xy(ml_scale, set_xy(0.5), pos) , mul_xy(pscale, set_xy(0.5)) );	// add an offset necessary for higher mipmap levels
-
-	for (it.y=0; it.y < ml->tilecount.y; it.y++)
-		for (it.x=0; it.x < ml->tilecount.x; it.x++)
-			blit_scale_rotated(&ml->r[it.y*ml->tilecount.x + it.x], ml_scale, mad_xy(ml_scale, xyi_to_xy(mul_xyi(it, ml->tiledim)), pos), angle, rot_centre, interp);
+	// Blit chosen level
+	blit_mipmap_level_rotated(&m.lvl[i], pscale, pos, angle, rot_centre, interp);
 }
 
 rect_t blit_mipmap_in_rect_rotated(mipmap_t m, rect_t r, int keep_aspect_ratio, double angle, xy_t rot_centre, int interp)
