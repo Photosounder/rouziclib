@@ -1,5 +1,6 @@
 _Thread_local fread_func_t fread_override = (fread_func_t) fread;
 _Thread_local fwrite_func_t fwrite_override = (fwrite_func_t) fwrite;
+_Thread_local fprintf_func_t fprintf_override = (fprintf_func_t) fprintf;
 _Thread_local fopen_func_t fopen_override = (fopen_func_t) fopen_utf8;
 _Thread_local fclose_func_t fclose_override = (fclose_func_t) fclose;
 
@@ -65,6 +66,7 @@ void io_override_set_FILE()
 	// Set the function points to those of the FILE type
 	fread_override  = (fread_func_t)  fread;
 	fwrite_override = (fwrite_func_t) fwrite;
+	fprintf_override = (fprintf_func_t) fprintf;
 	fopen_override  = (fopen_func_t)  fopen_utf8;
 	fclose_override = (fclose_func_t) fclose;
 }
@@ -74,6 +76,7 @@ void io_override_set_buffer()
 	// Set the function points to those of the generic buffer type
 	fread_override  = fread_buffer;
 	fwrite_override = fwrite_buffer;
+	fprintf_override = (fprintf_func_t) bufprintf;
 	fopen_override  = fopen_buffer;
 	fclose_override = fclose_buffer;
 }

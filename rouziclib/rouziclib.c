@@ -121,6 +121,7 @@
 #include "fileio/endian.c"
 #include "fileio/image.c"
 #include "fileio/image_bmp.c"
+#include "fileio/write_icc.c"
 #include "fileio/image_tiff.c"
 #include "fileio/image_tiff_lzw.c"
 #include "fileio/image_fts.c"

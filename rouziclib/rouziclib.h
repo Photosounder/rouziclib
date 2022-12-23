@@ -184,6 +184,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/endian.h"
 #include "fileio/image.h"
 #include "fileio/image_bmp.h"
+#include "fileio/write_icc.h"
 #include "fileio/image_tiff.h"
 #include "fileio/image_tiff_lzw.h"
 #include "fileio/image_fts.h"

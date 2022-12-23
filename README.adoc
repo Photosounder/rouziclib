@@ -494,6 +494,9 @@ Convert images between different pixel formats, load and save images and image t
 ** link:rouziclib/fileio/image_bmp.c[image_bmp.c] / link:rouziclib/fileio/image_bmp.h[image_bmp.h] +
 Save BMP images.
 
+** link:rouziclib/fileio/write_icc.c[write_icc.c] / link:rouziclib/fileio/write_icc.h[write_icc.h] +
+Write an ICC profile to file. Currently only does linear sRGB.
+
 ** link:rouziclib/fileio/image_tiff.c[image_tiff.c] / link:rouziclib/fileio/image_tiff.h[image_tiff.h] +
 Load TIFF files in 8, 16 and 32-bit bits per channel, with either no compression or LZW compression. Save images to 32-bit per channel TIFF files.
 
