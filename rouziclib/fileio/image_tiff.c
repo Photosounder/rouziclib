@@ -544,7 +544,7 @@ int save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int out
 	write_tiff_ifd_entry(file, &misc_start, 283, 5, 1, 0);				// y resolution
 	write_tiff_ifd_entry(file, &misc_start, 296, 3, 1, 2);				// resolution units (inches)
 	write_tiff_ifd_entry(file, &misc_start, 339, 3, out_chan, sample_format);	// sample format
-	write_tiff_ifd_entry(file, &misc_start, 34675, 7, get_icc_profile_size(), 0);	// ICC profile (linear)
+	write_tiff_ifd_entry(file, &misc_start, 34675, 7, get_icc_profile_size(out_chan), 0);	// ICC profile (linear)
 
 	fwrite_LE32(file, 0);	// index of next IFD
 
@@ -565,7 +565,7 @@ int save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int out
 			fwrite_LE16(file, sample_format);
 
 	// Write ICC profile
-	write_icc_linear_profile(file);
+	write_icc_linear_profile(file, out_chan);
 
 	fclose(file);
 
