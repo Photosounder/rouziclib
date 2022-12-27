@@ -5,6 +5,7 @@
 // ctrl_button_state_t, ctrl_knob_state_t, ctrl_drag_state_t, ctrl_selectmenu_state_t, ctrl_id_t, ctrl_resize_rect_t
 
 extern int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr);
+extern ctrl_button_state_t ctrl_button_polygon_invis(xy_t *p, int p_count);
 extern int ctrl_button_chamf(const uint8_t *name, rect_t box, col_t colour);
 extern ctrl_button_state_t ctrl_button_chamf_state(const uint8_t *name, rect_t box, col_t colour);
 extern int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour);

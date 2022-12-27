@@ -5,3 +5,5 @@ extern void swap_i32(int32_t *a, int32_t *b);
 extern void swap_int(int *a, int *b);
 extern void swap_ptr(void **a, void **b);
 extern void swap_char(char *a, char *b);
+extern void swap_byte(uint8_t *a, uint8_t *b);
+extern void swap_mem(void *a, void *b, size_t size);

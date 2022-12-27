@@ -53,3 +53,28 @@ void swap_char(char *a, char *b)
 	*a = *b;
 	*b = c;
 }
+
+void swap_byte(uint8_t *a, uint8_t *b)
+{
+	uint8_t c = *a;
+
+	*a = *b;
+	*b = c;
+}
+
+void swap_mem(void *a, void *b, size_t size)
+{
+	size_t i;
+
+	// Swap 4 bytes at a time
+	for (i=0; i <= size-4; i+=4)
+		swap_i32((int32_t *) a+i, (int32_t *) b+i);
+
+	// Return if there aren't any trailing bytes
+	if (i == size)
+		return;
+
+	// Swap remaining bytes
+	for (; i < size; i++)
+		swap_byte((uint8_t *) a+i, (uint8_t *) b+i);
+}

@@ -6,26 +6,30 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 	if (butt_state_ptr)
 		*butt_state_ptr = butt_state;
 
-	if (total_scale < 3.)	// return if the button is too small
+	// Return if the button is too small
+	if (total_scale < 3.)
 	{
 		if (butt_state_ptr)
 			butt_state_ptr->too_small = 1;
 		return 0;
 	}
 
-	// return if the button is off-screen
+	// If the button is off-screen
 	if (check_box_on_screen(box)==0)
 	{
 		if (butt_state_ptr)
 			butt_state_ptr->out_of_screen = 1;
 
-		if (mouse.b.lmb < 1)					// return if there's no click
+		// Return if there's no click
+		if (mouse.b.lmb < 1)
 			return 0;
 
-		if (check_point_within_box(mouse.b.orig, box)==0)	// return if there's no held click originating from it
+		// Return if there's no held click originating from it
+		if (check_point_within_box(mouse.b.orig, box)==0)
 			return 0;
 	}
 
+	// Identify and process the control if the window is in focus
 	if (zc.mouse->window_focus_flag > 0)
 		butt_state = proc_mouse_rect_ctrl(box, *zc.mouse);
 
@@ -33,6 +37,25 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 		*butt_state_ptr = butt_state;
 
 	return butt_state.uponce;
+}
+
+ctrl_button_state_t ctrl_button_polygon_invis(xy_t *p, int p_count)
+{
+	mouse_ctrl_id_t ctrl_id_save;
+	rect_t box = get_bounding_box_for_polygon(p, p_count);
+	ctrl_button_state_t butt_state={0};
+
+	// Save the ctrl_id state so it can be restored
+	ctrl_id_save = *mouse.ctrl_id;
+
+	// Process control
+	ctrl_button_invis(box, &butt_state);
+	swap_mem(&ctrl_id_save, mouse.ctrl_id, sizeof(mouse_ctrl_id_t));	// restore the state as if the control didn't exist
+
+	if (butt_state.too_small || butt_state.out_of_screen)
+		return butt_state;
+
+	return butt_state;
 }
 
 ctrl_button_state_t ctrl_button_chamf_state(const uint8_t *name, rect_t box, col_t colour)

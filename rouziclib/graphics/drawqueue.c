@@ -457,7 +457,7 @@ int drawq_get_bounding_box(rect_t box, xy_t rad, recti_t *bbi)
 
 int drawq_get_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi)
 {
-	if (get_bounding_box_for_polygon(p, p_count, rad, bbi) == 0)
+	if (get_dq_bounding_box_for_polygon(p, p_count, rad, bbi) == 0)
 		return 0;
 
 	*bbi = rshift_recti(*bbi, fb->sector_size);

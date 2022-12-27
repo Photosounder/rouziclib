@@ -119,7 +119,7 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 	recti_t bbi;
 	double grad = 3. * radius;
 
-	if (get_bounding_box_for_polygon(p, p_count, set_xy(grad), &bbi) == 0)
+	if (get_dq_bounding_box_for_polygon(p, p_count, set_xy(grad), &bbi) == 0)
 		return;
 
 	// Prepare parameters
@@ -219,19 +219,30 @@ void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, double 
 			drawq_add_sector_id(ip.y*fb->sector_w + ip.x);	// add sector reference
 }
 
-int get_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi)
+rect_t get_bounding_box_for_polygon(xy_t *p, int p_count)
+{
+	int i;
+	rect_t bb;
+
+	// Calculate the bounding box
+	bb.p0 = p[0];
+	bb.p1 = p[0];
+	for (i=1; i < p_count; i++)
+	{
+		bb.p0 = min_xy(bb.p0, p[i]);
+		bb.p1 = max_xy(bb.p1, p[i]);
+	}
+
+	return bb;
+}
+
+int get_dq_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi)
 {
 	int i;
 	rect_t bb, fb_box = rect(XY0, xy(fb->w-1, fb->h-1));
 
 	// Calculate the bounding box
-	bb.p0 = ceil_xy(sub_xy(p[0], rad));
-	bb.p1 = floor_xy(add_xy(p[0], rad));
-	for (i=1; i < p_count; i++)
-	{
-		bb.p0 = min_xy(bb.p0, ceil_xy(sub_xy(p[i], rad)));
-		bb.p1 = max_xy(bb.p1, floor_xy(add_xy(p[i], rad)));
-	}
+	bb = get_bounding_box_for_polygon(p, p_count);
 
 	// Check against framebuffer boundaries
 	if (check_box_box_intersection(bb, fb_box)==0)
