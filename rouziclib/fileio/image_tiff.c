@@ -467,10 +467,12 @@ void write_tiff_ifd_entry(FILE *file, size_t *misc_start, int tag, int type, uin
 {
 	int i, val_size, write_count;
 
+	// Write tag, type and count
 	fwrite_LE16(file, tag);
 	fwrite_LE16(file, type);
 	fwrite_LE32(file, count);
 
+	// If the value data takes more than 4 bytes we write the offset to the data
 	val_size = count * tiff_tag_type_size(type);
 	if (val_size > 4)
 	{
@@ -481,6 +483,7 @@ void write_tiff_ifd_entry(FILE *file, size_t *misc_start, int tag, int type, uin
 	else
 		write_count = count;
 
+	// Write the value or offset to the value data
 	for (i=0; i < write_count; i++)
 	{
 		if (val_size > 4)
@@ -493,13 +496,14 @@ void write_tiff_ifd_entry(FILE *file, size_t *misc_start, int tag, int type, uin
 			fwrite_byte8(file, value);
 	}
 
-	for (i=val_size; i < 4; i++)	// zero padding
+	// Zero padding if the value took less than 4 bytes
+	for (i=val_size; i < 4; i++)
 		fwrite_byte8(file, 0);
 }
 
 int tiff_store_pixels_last = 1;
 
-uint32_t tiff_calc_strip_offset(uint32_t data_start, int out_chan)
+uint32_t tiff_calc_strip_offset(uint32_t data_start, int out_chan, int strip_count)
 {
 	int offset;
 
@@ -512,6 +516,12 @@ uint32_t tiff_calc_strip_offset(uint32_t data_start, int out_chan)
 		{
 			offset += 2*out_chan;			// bpc
 			offset += 2*out_chan;			// sample format
+		}
+
+		if (strip_count > 1)
+		{
+			offset += 4*strip_count;		// strip offsets
+			offset += 4*strip_count;		// strip byte count
 		}
 
 		offset += get_icc_profile_size(out_chan);	// ICC profile
@@ -528,6 +538,9 @@ int save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int out
 	size_t i, pix_count, ifd_index, misc_start;
 	uint64_t pix_data_size;
 	int ic, byte_depth, sample_format;
+	
+	uint32_t strip_size, strip_size2, row_size;
+	int32_t row_count, row_count2;
 
 	if (im==NULL || is0_xyi(dim))
 		return 0;
@@ -559,20 +572,42 @@ int save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int out
 				fwrite(&im[i*in_chan], out_chan, sizeof(float), file);
 
 	// IFD
-	const int entry_count = 14;	// increment this number if adding an entry
+	int strip_count = (pix_data_size >> 32) == 1 ? 2 : 1;				// 2 strips if between 4 GB and 8 GB
+	const int entry_count = 14;							// increment this number if adding an entry
 	misc_start = ifd_index+2 + entry_count*12 + 4;
-	uint32_t strip_offset = tiff_calc_strip_offset(misc_start, out_chan);
+	uint32_t strip_offset = tiff_calc_strip_offset(misc_start, out_chan, strip_count);
+
+	if (strip_count == 2)
+	{
+		row_size = dim.x * out_chan * byte_depth;
+
+		// Choose row count for the strips
+		row_count = (0xFFFFFFFFUL - strip_offset) / row_size;
+		if (row_count >= dim.y)
+			row_count = dim.y / 2;
+		row_count2 = dim.y - row_count;
+
+		// Size in bytes of each strip
+		strip_size = row_count * row_size;
+		strip_size2 = row_count2 * row_size;
+	}
+	else
+		row_count = dim.y;
+
 	fwrite_LE16(file, entry_count);		// entry count
 	write_tiff_ifd_entry(file, &misc_start, 256, 4, 1, dim.x);
 	write_tiff_ifd_entry(file, &misc_start, 257, 4, 1, dim.y);
-	write_tiff_ifd_entry(file, &misc_start, 258, 3, out_chan, bpc);			// assumes <= 4 channels
+	write_tiff_ifd_entry(file, &misc_start, 258, 3, out_chan, bpc);			// bpc
 	write_tiff_ifd_entry(file, &misc_start, 259, 3, 1, 1);				// compression (uncompressed)
 	write_tiff_ifd_entry(file, &misc_start, 262, 3, 1, out_chan==1 ? 1 : 2);	// photometric (1 is grey, 2 is RGB)
-	write_tiff_ifd_entry(file, &misc_start, 273, 4, 1, strip_offset);		// strip offsets (only one)
+
+	write_tiff_ifd_entry(file, &misc_start, 273, 4, strip_count, strip_offset);	// strip offsets (only one)
 	write_tiff_ifd_entry(file, &misc_start, 277, 3, 1, out_chan);			// samples per pixel
-	write_tiff_ifd_entry(file, &misc_start, 278, 4, 1, dim.y);			// rows per strip
-	uint32_t strip_size = pix_data_size >> 32 ? 0 : pix_data_size;	// try to get away with a strip size of 0 if > 4 GB
-	write_tiff_ifd_entry(file, &misc_start, 279, 4, 1, strip_size);			// strip byte count
+	write_tiff_ifd_entry(file, &misc_start, 278, 4, 1, row_count);			// rows per strip
+	if (strip_count == 1)
+		strip_size = pix_data_size >> 32 ? 0 : pix_data_size;			// set strip size of 0 if > 4 GB
+	write_tiff_ifd_entry(file, &misc_start, 279, 4, strip_count, strip_size);	// strip byte count
+
 	write_tiff_ifd_entry(file, &misc_start, 282, 5, 1, 0);				// x resolution
 	write_tiff_ifd_entry(file, &misc_start, 283, 5, 1, 0);				// y resolution
 	write_tiff_ifd_entry(file, &misc_start, 296, 3, 1, 2);				// resolution units (inches)
@@ -581,23 +616,34 @@ int save_image_tiff(const char *path, float *im, xyi_t dim, int in_chan, int out
 
 	fwrite_LE32(file, 0);	// index of next IFD
 
-	// Write the bpc
+	// Write the bpc (tag 258)
 	if (out_chan*tiff_tag_type_size(3) > 4)
 		for (i=0; i < out_chan; i++)
 			fwrite_LE16(file, bpc);
 
-	// Write x/y resolution, 72/1 dpi
+	if (strip_count == 2)
+	{
+		// Write strip offsets (tag 273)
+		fwrite_LE32(file, strip_offset);
+		fwrite_LE32(file, strip_offset + strip_size);
+
+		// Write strip byte count (tag 279)
+		fwrite_LE32(file, strip_size);
+		fwrite_LE32(file, strip_size2);
+	}
+
+	// Write x/y resolution, 72/1 dpi (tags 282 and 283)
 	fwrite_LE32(file, 72);
 	fwrite_LE32(file, 1);
 	fwrite_LE32(file, 72);
 	fwrite_LE32(file, 1);
 
-	// Write the sample format
+	// Write the sample format (tag 339)
 	if (out_chan*tiff_tag_type_size(3) > 4)
 		for (i=0; i < out_chan; i++)
 			fwrite_LE16(file, sample_format);
 
-	// Write ICC profile
+	// Write ICC profile (tag 34675)
 	write_icc_linear_profile(file, out_chan);
 
 	// Write pixel data

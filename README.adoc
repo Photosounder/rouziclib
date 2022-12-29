@@ -498,7 +498,7 @@ Save BMP images.
 Write an ICC profile to file. Currently only does linear sRGB and greyscale.
 
 ** link:rouziclib/fileio/image_tiff.c[image_tiff.c] / link:rouziclib/fileio/image_tiff.h[image_tiff.h] +
-Load TIFF files in 8, 16 and 32-bit bits per channel, with either no compression or LZW compression. Save images to 32-bit per channel TIFF files.
+Load TIFF files in 8, 16 and 32-bit bits per channel, with either no compression or LZW compression. Save images to 32-bit per channel TIFF files, uses a couple of different methods to make TIFF files (non-BigTIFF) up to 8 GB that open with almost any program (even though in theory TIFF supports only 4 GB) or TIFF files even larger than 8 GB that open with many other programs (such as Photoshop or GIMP).
 
 ** link:rouziclib/fileio/image_tiff_lzw.c[image_tiff_lzw.c] / link:rouziclib/fileio/image_tiff_lzw.h[image_tiff_lzw.h] +
 TIFF LZW decoder.
