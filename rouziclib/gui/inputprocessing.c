@@ -126,6 +126,43 @@ ctrl_button_state_t *proc_mouse_rect_ctrl_lrmb(rect_t box, mouse_t mouse)
 	return state;
 }
 
+ctrl_button_state_t *proc_mouse_polygon_ctrl_lrmb(rect_t box, xy_t *p, int p_count, mouse_t mouse)
+{
+	mouse_ctrl_id_t ctrl_id_save;
+	static ctrl_button_state_t state[2];
+	int ret, cur_point_within_box, orig_point_within_box;
+
+	memset(state, 0, sizeof(state));
+
+	// Save the ctrl_id state so it can be restored
+	ctrl_id_save = *mouse.ctrl_id;
+
+	// Identify control by its bounding box
+	ret = check_ctrl_id_rect(box, mouse);
+
+	// Check whether mouse cursor and click origin are inside the polygon
+	orig_point_within_box = check_point_within_box(mouse.b.orig, box);
+	if (orig_point_within_box)
+		orig_point_within_box = fabs(calc_sharp_polygon_pixel_weight(mouse.b.orig, p, p_count)) > 0.5;
+	cur_point_within_box = check_point_within_box(mouse.u, box);
+	if (cur_point_within_box)
+		cur_point_within_box = fabs(calc_sharp_polygon_pixel_weight(mouse.u, p, p_count)) > 0.5;
+
+	// Restore ctrl_id to its old state if both points are outside the polygon
+	if (orig_point_within_box==0 && cur_point_within_box==0)
+		*mouse.ctrl_id = ctrl_id_save;
+
+	// Return if the control wasn't identified as the active one
+	if (ret == 0)
+		return state;
+
+	// Process the button states
+	proc_mouse_ctrl_button(mouse.b.lmb, mouse.b.clicks, &state[0], cur_point_within_box, orig_point_within_box);
+	proc_mouse_ctrl_button(mouse.b.rmb, mouse.b.clicks, &state[1], cur_point_within_box, orig_point_within_box);
+
+	return state;
+}
+
 ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, mouse_t mouse, const int check_bypass)
 {
 	static ctrl_button_state_t state[2];

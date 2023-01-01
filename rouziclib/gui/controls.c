@@ -1,4 +1,4 @@
-int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
+int ctrl_button_invis_box_or_polygon(rect_t box, xy_t *p, int p_count, ctrl_button_state_t *butt_state_ptr)
 {
 	double total_scale = rect_min_side(box)*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
@@ -31,7 +31,10 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 
 	// Identify and process the control if the window is in focus
 	if (zc.mouse->window_focus_flag > 0)
-		butt_state = proc_mouse_rect_ctrl(box, *zc.mouse);
+		if (p)
+			butt_state = proc_mouse_polygon_ctrl_lrmb(box, p, p_count, *zc.mouse)[0];
+		else
+			butt_state = proc_mouse_rect_ctrl(box, *zc.mouse);
 
 	if (butt_state_ptr)
 		*butt_state_ptr = butt_state;
@@ -39,22 +42,15 @@ int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
 	return butt_state.uponce;
 }
 
+int ctrl_button_invis(rect_t box, ctrl_button_state_t *butt_state_ptr)
+{
+	return ctrl_button_invis_box_or_polygon(box, NULL, 0, butt_state_ptr);
+}
+
 ctrl_button_state_t ctrl_button_polygon_invis(xy_t *p, int p_count)
 {
-	mouse_ctrl_id_t ctrl_id_save;
-	rect_t box = get_bounding_box_for_polygon(p, p_count);
 	ctrl_button_state_t butt_state={0};
-
-	// Save the ctrl_id state so it can be restored
-	ctrl_id_save = *mouse.ctrl_id;
-
-	// Process control
-	ctrl_button_invis(box, &butt_state);
-	swap_mem(&ctrl_id_save, mouse.ctrl_id, sizeof(mouse_ctrl_id_t));	// restore the state as if the control didn't exist
-
-	if (butt_state.too_small || butt_state.out_of_screen)
-		return butt_state;
-
+	ctrl_button_invis_box_or_polygon(get_bounding_box_for_polygon(p, p_count), p, p_count, &butt_state);
 	return butt_state;
 }
 
