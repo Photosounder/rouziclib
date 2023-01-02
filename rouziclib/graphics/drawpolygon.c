@@ -243,6 +243,7 @@ int get_dq_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi
 
 	// Calculate the bounding box
 	bb = get_bounding_box_for_polygon(p, p_count);
+	bb = rect_add_margin(bb, rad);
 
 	// Check against framebuffer boundaries
 	if (check_box_box_intersection(bb, fb_box)==0)
