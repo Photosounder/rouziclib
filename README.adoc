@@ -138,6 +138,9 @@ Windows-only functions to generate a minidump file in case the program crashes.
 ** link:rouziclib/general/audio.c[audio.c] / link:rouziclib/general/audio.h[audio.h] +
 Audio system that can call multiple callbacks, mix their outputs, register them, deregister and stop running them automatically.
 
+** link:rouziclib/general/midi.c[midi.c] / link:rouziclib/general/midi.h[midi.h] +
+MIDI device input on Windows.
+
 ** link:rouziclib/general/structs.h[structs.h] +
 Generic buffer structure and generic lookup table structure.
 

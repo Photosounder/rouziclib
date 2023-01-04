@@ -83,6 +83,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "general/hashing.h"
 #include "general/crash_dump.h"			// used if RL_CRASHDUMP is defined
 #include "general/audio.h"
+#include "general/midi.h"
 
 #include "memory/alloc.h"
 #include "memory/fill.h"
