@@ -142,6 +142,8 @@ ctrl_button_state_t *proc_mouse_polygon_ctrl_lrmb(rect_t box, xy_t *p, int p_cou
 
 	// Check whether mouse cursor and click origin are inside the polygon
 	orig_point_within_box = check_point_within_box(mouse.b.orig, box);
+	if (mouse.b.lmb == -1 && mouse.b.rmb == -1)	// if there's no mouse button being clicked
+		orig_point_within_box = 0;		// then the origin doesn't count
 	if (orig_point_within_box)
 		orig_point_within_box = fabs(calc_sharp_polygon_pixel_weight(mouse.b.orig, p, p_count)) > 0.5;
 	cur_point_within_box = check_point_within_box(mouse.u, box);
