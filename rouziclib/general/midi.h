@@ -8,5 +8,6 @@ typedef struct
 } midiin_dev_t;
 
 extern int init_midi_input_device(int dev_id, midiin_dev_t *dev, buffer_t *err_log, void *callback_func, void *callback_data);
+extern void close_midi_input_device(midiin_dev_t *dev);
 
 #endif

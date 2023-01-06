@@ -30,7 +30,7 @@ int init_midi_input_device(int dev_id, midiin_dev_t *dev, buffer_t *err_log, voi
 	}
 
 	// Prepare header (buffer to store stuff)
-	dev->header.dwBufferLength = 2048;
+	dev->header.dwBufferLength = 1024;
 	dev->header.lpData = calloc(dev->header.dwBufferLength, 1);
 	ret = midiInPrepareHeader(dev->handle, &dev->header, sizeof(MIDIHDR));
 	if (ret != MMSYSERR_NOERROR)
@@ -56,5 +56,13 @@ int init_midi_input_device(int dev_id, midiin_dev_t *dev, buffer_t *err_log, voi
 	}
 
 	return 1;
+}
+
+void close_midi_input_device(midiin_dev_t *dev)
+{
+	midiInStop(dev->handle);
+	midiInReset(dev->handle);
+	midiInClose(dev->handle);
+	midiInUnprepareHeader(dev->handle, &dev->header, sizeof(MIDIHDR));
 }
 #endif
