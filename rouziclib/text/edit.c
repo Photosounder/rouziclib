@@ -499,7 +499,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 		// Text stats
 		int nlines = 0;
-		double maxwidth = find_string_maxwidth_and_nlines(font, te->string, ALIG_LEFT, &nlines, 1) + 4.;
+		double maxwidth = find_string_maxwidth_and_nlines(font, te->string, te->draw_string_mode, &nlines, 1) + 4.;
 		// FIXME scroll_limit.x seems too small when the lines are long
 		xy_t scroll_limit = xy(maxwidth, (double) nlines * LINEVSPACING);
 
