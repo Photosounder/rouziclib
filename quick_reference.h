@@ -341,6 +341,9 @@
 	// Window functions are registered like this
 		window_register(1, my_window_function, NULL, gui_layout_elem_comp_area_os(&layout, 100, XY0), &diag_on, 2, &arg1, &arg2);
 
+		// or like this if the window is always floating and its position self-defined
+		window_register(1, my_window_function, NULL, RECTNAN, NULL, 2, &arg1, &arg2);
+
 	// Registered window function template with parent area
 void my_window_function(double *arg1, double *arg2)
 {
