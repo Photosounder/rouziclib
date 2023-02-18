@@ -20,6 +20,7 @@ extern ddouble_t div_dq(double a, ddouble_t b);
 extern ddouble_t add_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t sub_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t mul_qq(ddouble_t a, ddouble_t b);
+extern ddouble_t mul_qq_quick(ddouble_t a, ddouble_t b);
 extern ddouble_t mad_qqq(ddouble_t a, ddouble_t b, ddouble_t c);
 extern ddouble_t div_qq(ddouble_t a, ddouble_t b);
 extern ddouble_t neg_q(ddouble_t a);

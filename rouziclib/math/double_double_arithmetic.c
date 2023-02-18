@@ -145,6 +145,17 @@ ddouble_t mul_qq(ddouble_t a, ddouble_t b)
 	return r;
 }
 
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
+ddouble_t mul_qq_quick(ddouble_t a, ddouble_t b)
+{
+	ddouble_t c = mul_dd_q(a.hi, b.hi);
+	c.lo = fma(a.hi, b.lo, c.lo);
+	c.lo = fma(a.lo, b.hi, c.lo);
+	return add_dd_q_quick(c.hi, c.lo);
+}
+
 ddouble_t mad_qqq(ddouble_t a, ddouble_t b, ddouble_t c)
 {
 	return add_qq(mul_qq(a, b), c);

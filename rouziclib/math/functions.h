@@ -24,6 +24,7 @@ extern int32_t rangelimit_i32(int32_t x, int32_t min, int32_t max);
 extern void minmax_double(double *a, double *b);
 extern void minmax_i32(int32_t *a, int32_t *b);
 extern double normalised_notation_split(double number, double *m);
+extern int count_decimal_places(double v);
 extern double fabs_min(double a, double b);
 extern double fabs_max(double a, double b);
 extern int ceil_rshift(int v, int sh);

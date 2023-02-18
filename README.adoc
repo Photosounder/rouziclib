@@ -199,7 +199,7 @@ Mainly triangle functions.
 * link:rouziclib/math[math/]
 
 ** link:rouziclib/math/functions.c[functions.c] / link:rouziclib/math/functions.h[functions.h] +
-Basic math functions, the inverse error function, the integral of the error function, functions to find a value or interpolated value from an array of 2D points.
+Basic math functions, normalised notation split, counting decimal places, the inverse error function, the integral of the error function, functions to find a value or interpolated value from an array of 2D points.
 
 ** link:rouziclib/math/cpu_functions.c[cpu_functions.c] / link:rouziclib/math/cpu_functions.h[cpu_functions.h] +
 Provides access to CPU functions such as x86's RSQRT and functions for refining the results.

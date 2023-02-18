@@ -49,7 +49,7 @@ char *bufnprintf(buffer_t *s, size_t n, const char *format, ...) 	// like fprint
 	return s->buf;
 }
 
-char *bufwrite(buffer_t *s, uint8_t *ptr, size_t size)		// like fwrite except for a buffer_t
+char *bufwrite(buffer_t *s, const uint8_t *ptr, size_t size)		// like fwrite except for a buffer_t
 {
 	if (s==NULL)
 		return NULL;
@@ -104,6 +104,18 @@ buffer_t *append_buf(buffer_t *a, buffer_t *b)		// append b to a
 	a->len += b->len;
 
 	return a;
+}
+
+buffer_t buf_string_copy(const char *src)
+{
+	buffer_t dst={0};
+
+	if (src==NULL)
+		return dst;
+
+	bufwrite(&dst, src, strlen(src));
+
+	return dst;
 }
 
 buffer_t buf_copy_part(buffer_t src, size_t start, size_t len)

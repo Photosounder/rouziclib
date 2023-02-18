@@ -434,7 +434,7 @@ void my_window_function(double *arg1, double *arg2)
 
 //**** Keyboard input ****
 
-	// Get state by scancode
+	// Get state by scancode (see general/keyboard_struct.h)
 		// 0 = nothing, 1 = down, 2 = newly down, 3 = repeated down event
 		mouse.key_state[RL_SCANCODE_?]
 		// and by name (see https://wiki.libsdl.org/SDL_Keycode for names)
@@ -600,6 +600,7 @@ void my_window_function(double *arg1, double *arg2)
 		buf = buf_load_raw_file(path)		= load_raw_file(path, ...)
 		buf = buf_load_raw_file_dos_conv(path)	= load_raw_file_dos_conv(path, ...)
 		buf_save_raw_file(&buf, path, "wb")	= save_raw_file(...)
+		buf_string_copy(string)			= make_string_copy(string)
 
 //**** Threading ****
 

@@ -168,6 +168,21 @@ double normalised_notation_split(double number, double *m)	// splits number into
 	return vexp;
 }
 
+int count_decimal_places(double v)
+{
+    int i;
+    double m=1.;
+
+    for (i=0; i < 310; i++)
+    {
+        if (labs(double_diff_ulp(v, nearbyint(v*m)/m)) < 2)
+            return i;
+        m *= 10.;
+    }
+
+    return -1;
+}
+
 double fabs_min(double a, double b)
 {
 	if (sign(a) != sign(b))

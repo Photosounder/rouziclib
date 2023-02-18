@@ -372,7 +372,8 @@ cl_int build_cl_program_filecache(clctx_t *c, cl_program *program, const char *s
 	if (binary_loaded == 0)
 	{
 		// Get the binary
-		ret = clGetProgramInfo(*program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &buf.len, NULL);
+		size_t param_value_size_ret;
+		ret = clGetProgramInfo(*program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &buf.len, &param_value_size_ret);
 		CL_ERR_RET("clGetProgramInfo (in build_cl_program_filecache)", ret);
 		buf_alloc_enough(&buf, buf.len+1);
 		ret = clGetProgramInfo(*program, CL_PROGRAM_BINARIES, sizeof(char *), &buf.buf, NULL);
