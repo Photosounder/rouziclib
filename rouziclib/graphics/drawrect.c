@@ -47,7 +47,7 @@ void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, double intensit
 	for (ip.y=bbi.p0.y; ip.y<=bbi.p1.y; ip.y++)
 		for (ip.x=bbi.p0.x; ip.x<=bbi.p1.x; ip.x++)
 			if (check_point_within_box_int(ip, fri)!=1)			// if we're not inside the plain fill area
-				drawq_add_sector_id(ip.y*fb->sector_w + ip.x);	// add sector reference
+				drawq_add_sector_id(ip.y*fb->sector_w + ip.x);		// add sector reference
 
 	if (fri.p0.x == -1)
 		return ;
@@ -63,7 +63,7 @@ void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, double intensit
 	for (ip.y=fri.p0.y; ip.y<=fri.p1.y; ip.y++)
 		for (ip.x=fri.p0.x; ip.x<=fri.p1.x; ip.x++)
 			if (check_point_within_box_int(xyi(ip.x, ip.y), fri)==1)	// if we're inside the plain fill area
-				drawq_add_sector_id(ip.y*fb->sector_w + ip.x);	// add sector reference
+				drawq_add_sector_id(ip.y*fb->sector_w + ip.x);		// add sector reference
 }
 
 void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_func_t bf, double intensity)

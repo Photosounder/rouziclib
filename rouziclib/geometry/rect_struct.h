@@ -17,3 +17,5 @@ typedef struct
 {
 	xy_t a, b, c;
 } triangle_t;
+
+#define line_t rect_t

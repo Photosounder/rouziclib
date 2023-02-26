@@ -70,6 +70,7 @@ extern lrgb_t make_colour_hsl_l(double H, double S, double L, int huemode, int s
 extern frgb_t make_colour_hsl_f(double H, double S, double L, int huemode, int secboost);
 extern lrgb_t make_colour_hsl_cw_l(double Wr, double Wg, double Wb, double H, double S, double L, int huemode, int secboost);
 extern frgb_t make_colour_hsl_cw_f(double Wr, double Wg, double Wb, double H, double S, double L, int huemode, int secboost);
+extern xyz_t w3_hsl_to_srgb8(double hue, double sat, double light);
 extern double get_lrgb_channel(lrgb_t col, int ch);
 extern double get_frgb_channel(frgb_t col, int ch);
 extern void set_lrgb_channel(lrgb_t *col, int ch, double value);

@@ -327,6 +327,44 @@ frgb_t make_colour_hsl_f(double H, double S, double L, int huemode, int secboost
 	return make_colour_hsl_cw_f(WEIGHT_R, WEIGHT_G, WEIGHT_B, H, S, L, huemode, secboost);
 }
 
+// adapted from https://www.w3schools.com/lib/w3color.js
+double w3_hueToRgb(double t1, double t2, double hue)
+{
+	hue = rangewrap(hue, 0., 6.);
+
+	if (hue < 1.)
+		return (t2 - t1) * hue + t1;
+
+	if (hue < 3.)
+		return t2;
+
+	if (hue < 4.)
+		return (t2 - t1) * (4. - hue) + t1;
+	
+	return t1;
+}
+
+xyz_t w3_hsl_to_srgb8(double hue, double sat, double light)	// hue is degrees, sat and light are in [0 , 1]
+{
+	xyz_t rgb;
+	double t1, t2;
+
+	hue /= 60.;
+
+	if (light <= 0.5)
+		t2 = light * (sat + 1.);
+	else
+		t2 = light + sat - (light * sat);
+
+	t1 = light * 2. - t2;
+
+	rgb.x = w3_hueToRgb(t1, t2, hue + 2.) * 255.;
+	rgb.y = w3_hueToRgb(t1, t2, hue) * 255.;
+	rgb.z = w3_hueToRgb(t1, t2, hue - 2.) * 255.;
+
+	return rgb;
+}
+
 double get_lrgb_channel(lrgb_t col, int ch)
 {
 	double l=0.;
