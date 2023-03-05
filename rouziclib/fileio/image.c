@@ -29,7 +29,7 @@ void convert_image_srgb8_fullarg(raster_t *im, const uint8_t *data, const int mo
 			im->f = calloc(pix_count, sizeof(frgb_t));
 
 		for (i=0; i < pix_count*4; i++)
-			((float *) im->f)[i] = s8lrgb(data[i]);
+			((float *) im->f)[i] = lut.flut[data[i]];
 	}
 
 	if (mode & IMAGE_USE_SQRGB)

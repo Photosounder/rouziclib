@@ -432,6 +432,35 @@ void my_window_function(double *arg1, double *arg2)
 		// A child window can be made to not always be above its parents by using a condition to setting its parent
 		window_set_parent(child1_func, NULL, child1_detach ? NULL : parent_window_function, NULL);
 
+
+	// Typical options window
+	void some_options_window(double *value)
+	{
+		static gui_layout_t layout={0};
+		const char *layout_src[] = {
+			"elem 0", "type none", "label Options", "pos	-0;6	1", "dim	3	3;6", "off	0	1", "",
+			"elem 10", "type knob", "label Value", "knob 0 0 1 linear", "pos	0	0", "dim	2	2", "off	0	1", "",	
+		};
+
+		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Options window");
+
+		if (mouse.window_minimised_flag > 0)
+			return;
+
+		// Window
+		static flwindow_t window={0};
+		flwindow_init_defaults(&window);
+		flwindow_init_pinned(&window);
+		draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
+
+		// Controls
+		ctrl_knob_fromlayout(value, &layout, 10);
+	}
+
+	static int options_detach=0;
+	static double knob_value = NAN;
+	window_register(1, some_options_window, NULL, make_rect_off(xy(-16., 9.), xy(3, 3.5), xy(0., 1.)), &options_detach, 1, &knob_value);
+
 //**** Keyboard input ****
 
 	// Get state by scancode (see general/keyboard_struct.h)
@@ -487,6 +516,7 @@ void my_window_function(double *arg1, double *arg2)
 	// Updating
 		// if a raster's contents are updated the drawqueue data copy of the new contents can be triggered before blitting like this:
 		cl_unref_raster(&r);
+		cl_unref_mipmap(image_mm, IMAGE_USE_FRGB);
 
 //**** Layout ****
 
