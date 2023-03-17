@@ -145,3 +145,34 @@ int cmp_xy_by_x(const xy_t *a, const xy_t *b)	// xy comparison function (for qso
 	if (a->x == b->x) return 0;
 	return -1;
 }
+
+int strcmp_logical(const char *a, const char *b)
+{
+	while (1)
+	{
+		// End when one string ends
+		if ((*a & *b) == 0)
+			return *a - *b;
+
+		// Compare numbers
+		if (isdigit(*a) && isdigit(*b))
+		{
+			char *end_a, *end_b;
+			long int av = strtol(a, &end_a, 10);
+			long int bv = strtol(b, &end_b, 10);
+
+			if (av != bv)
+				return av - bv;
+
+			a = end_a;
+			b = end_b;
+		}
+
+		// Compare characters
+		if (*a != *b)
+			return *a - *b;
+
+		a++;
+		b++;
+	}
+}

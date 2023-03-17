@@ -181,6 +181,29 @@ void free_dir(fs_dir_t *dir)
 	if (dir->subfile) free (dir->subfile);	dir->subfile = NULL;
 }
 
+int cmp_fs_file(const fs_file_t *a, const fs_file_t *b)
+{
+	return strcmp_logical(a->name, b->name);
+}
+
+int cmp_fs_dir(const fs_dir_t *a, const fs_dir_t *b)
+{
+	return strcmp_logical(a->name, b->name);
+}
+
+void sort_dir_logical(fs_dir_t *dir)
+{
+	int i;
+
+	// Sort files
+	qsort(dir->subfile, dir->subfile_count, sizeof(fs_file_t), cmp_fs_file);
+
+	// Sort subdirs
+	qsort(dir->subdir, dir->subdir_count, sizeof(fs_dir_t), cmp_fs_dir);
+	for (i=0; i < dir->subdir_count; i++)
+		sort_dir_logical(&dir->subdir[i]);
+}
+
 void export_subfiles_to_file(FILE *file, fs_dir_t *dir, const int indent, const int path_full)
 {
 	int i, j;

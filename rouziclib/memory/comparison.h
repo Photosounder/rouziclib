@@ -7,3 +7,4 @@ extern int cmp_uint64(const uint64_t *a, const uint64_t *b);
 extern int cmp_uint64_inv(const uint64_t *a, const uint64_t *b);
 extern int cmp_double(const double *a, const double *b);
 extern int cmp_xy_by_x(const xy_t *a, const xy_t *b);
+extern int strcmp_logical(const char *a, const char *b);
