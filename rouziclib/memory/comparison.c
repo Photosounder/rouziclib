@@ -117,7 +117,16 @@ start:
 
 int cmp_int(const int *a, const int *b)
 {
-	return *a - *b;
+	if (*a > *b) return 1;
+	if (*a == *b) return 0;
+	return -1;
+}
+
+int cmp_uint8(const uint8_t *a, const uint8_t *b)
+{
+	if (*a > *b) return 1;
+	if (*a == *b) return 0;
+	return -1;
 }
 
 int cmp_uint64(const uint64_t *a, const uint64_t *b)
@@ -152,25 +161,25 @@ int strcmp_logical(const char *a, const char *b)
 	{
 		// End when one string ends
 		if ((*a & *b) == 0)
-			return *a - *b;
+			return cmp_uint8((const uint8_t *) a, (const uint8_t *) b);
 
 		// Compare numbers
 		if (isdigit(*a) && isdigit(*b))
 		{
 			char *end_a, *end_b;
-			long int av = strtol(a, &end_a, 10);
-			long int bv = strtol(b, &end_b, 10);
+			double av = strtod(a, &end_a);
+			double bv = strtod(b, &end_b);
 
 			if (av != bv)
-				return av - bv;
+				return cmp_double(&av, &bv);
 
-			a = end_a;
-			b = end_b;
+			a = end_a - 1;
+			b = end_b - 1;
 		}
 
 		// Compare characters
-		if (*a != *b)
-			return *a - *b;
+		else if (*a != *b)
+			return cmp_uint8((const uint8_t *) a, (const uint8_t *) b);
 
 		a++;
 		b++;

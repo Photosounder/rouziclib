@@ -3,6 +3,7 @@ extern size_t *make_order_index_array(void *array, size_t *order, size_t elem_co
 extern void index_value_permutation(size_t *a, size_t n);
 
 extern int cmp_int(const int *a, const int *b);
+extern int cmp_uint8(const uint8_t *a, const uint8_t *b);
 extern int cmp_uint64(const uint64_t *a, const uint64_t *b);
 extern int cmp_uint64_inv(const uint64_t *a, const uint64_t *b);
 extern int cmp_double(const double *a, const double *b);
