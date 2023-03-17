@@ -97,6 +97,10 @@ typedef struct
 	int srgb_order;		// channel order of the sRGB output
 	int64_t frame_count;	// count main loop iterations
 
+	// Scaled display
+	xyi_t real_dim;		// actual dimension of the window before scaling (r.dim is scaled)
+	int pixel_scale, pixel_scale_prev;
+
 	#ifdef RL_SDL
 	void *window;
 	void *renderer;

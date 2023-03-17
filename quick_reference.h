@@ -791,6 +791,7 @@ void my_window_function(double *arg1, double *arg2)
 		// This loads a folder, the 3rd argument is -1 for full tree loading, 0 for excluding subfolders, >0 for a given depth level
 		fs_dir_t dir={0};
 		load_dir_depth(dir_path, &dir, 0);
+		sort_dir_logical(&dir);
 		free_dir(&dir);
 		// Go through each file of a subfolder and create the full path
 		for (i=0; i < dir.subfile_count; i++)

@@ -199,7 +199,7 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	}
 
 	if (mouse->warp==0)
-		mouse->a = xyi_to_xy(sub_xyi(mpos, wr.p0));
+		mouse->a = div_xy(xyi_to_xy(sub_xyi(mpos, wr.p0)), set_xy(fb->pixel_scale));
 
 	if (mouse->mouse_focus_flag <= 0)	// only process global buttons if the mouse is outside the window
 	{
@@ -306,7 +306,7 @@ void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event)
 
 void sdl_set_mouse_pos_screen(xy_t pos)
 {
-	SDL_WarpMouseInWindow(NULL, nearbyint(pos.x), nearbyint(pos.y));
+	SDL_WarpMouseInWindow(NULL, nearbyint(pos.x*fb->pixel_scale), nearbyint(pos.y*fb->pixel_scale));
 }
 
 void sdl_set_mouse_pos_world(xy_t world_pos)
@@ -407,6 +407,9 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	#ifdef _WIN32
 	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 	#endif*/
+
+	if (fb->pixel_scale == 0)
+		fb->pixel_scale = 1;
 
 	// Window
 	fb->w = dim.x;
@@ -543,9 +546,10 @@ int sdl_handle_window_resize(zoom_t *zc)
 
 	SDL_GetWindowSize(fb->window, &w, &h);
 
-	if (fb->w == w && fb->h == h)
+	if (fb->w == w && fb->h == h && fb->pixel_scale == fb->pixel_scale_prev)
 		return 0;
 
+	// Finish drawqueue processing
 	#ifdef RL_OPENCL_GL
 	if (fb->use_drawq==1)
 		clFinish_wrap(fb->clctx.command_queue);	// wait for end of queue
@@ -554,10 +558,19 @@ int sdl_handle_window_resize(zoom_t *zc)
 	if (fb->use_drawq==2)
 		drawq_soft_finish();
 
+	// Set new dimensions
 	fb->w = w;
 	fb->h = h;
 	fb->r.dim = xyi(fb->w, fb->h);
 
+	// Handle pixel scale
+	fb->pixel_scale_prev = fb->pixel_scale;
+	fb->real_dim = fb->r.dim;
+	fb->r.dim = idiv_ceil_xyi(fb->r.dim, set_xyi(fb->pixel_scale));
+	fb->w = fb->r.dim.x;
+	fb->h = fb->r.dim.y;
+
+	// Remake texture
 	int remake_tex = 1;
 	#ifdef RL_OPENCL_GL
 	if (fb->use_drawq==1)
@@ -585,6 +598,7 @@ int sdl_handle_window_resize(zoom_t *zc)
 		SDL_UnlockTexture(fb->texture);
 	}
 
+	// Recalc screen limits
 	calc_screen_limits(zc);
 
 	return 1;
@@ -618,16 +632,16 @@ void sdl_flip_fb()
 			}
 
 			#ifdef RL_OPENCL_GL
-			float hoff = 2. * (fb->h - fb->maxdim.y) / (double) fb->maxdim.y;
+			float tscale = 1.f / (float) fb->pixel_scale;
+			float hoff = 2. * (fb->real_dim.y - fb->maxdim.y) / (double) fb->maxdim.y;
 			glLoadIdentity();             // Reset the projection matrix
 			glViewport(0, 0, fb->maxdim.x, fb->maxdim.y);
 
 			glBegin(GL_QUADS);
-			float tscale = 1.f;
-			glTexCoord2f(0.f, 0.f);			glVertex2f(-1., 1.+hoff);
-			glTexCoord2f(tscale*1.f, 0.f);		glVertex2f(1., 1.+hoff);
-			glTexCoord2f(tscale*1.f, tscale*1.f);	glVertex2f(1., -1.+hoff);
-			glTexCoord2f(0.f, tscale*1.f);		glVertex2f(-1., -1.+hoff);
+			glTexCoord2f(0.f, 0.f);		glVertex2f(-1., 1.+hoff);
+			glTexCoord2f(tscale, 0.f);	glVertex2f(1., 1.+hoff);
+			glTexCoord2f(tscale, tscale);	glVertex2f(1., -1.+hoff);
+			glTexCoord2f(0.f, tscale);	glVertex2f(-1., -1.+hoff);
 			glEnd();
 
 			SDL_GL_SwapWindow(fb->window);

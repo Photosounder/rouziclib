@@ -663,17 +663,19 @@ void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, cons
 void draw_mousecursor(xy_t pos)
 {
 	col_t col = make_grey(0.5), colb = make_grey(0.);
-	double sc = zc.iscrscale * 16.;
+	double pix_scale = sqrt(fb->pixel_scale);
+	double sc = zc.iscrscale * 16. * pix_scale;
 	triangle_t tr;
 
 	if (mouse.mouse_focus_flag < 0)	// if mouse is out of window
 		return ;
 
+	// Out of focus diamond cursor
 	if (mouse.window_focus_flag < 0 && mouse.mouse_focus_flag > 0)	// if the window is out of focus but mouse is over the window
 	{
 		double d;
 
-		d = zc.iscrscale * (32. - sqrt(2.));
+		d = zc.iscrscale * (32. - sqrt(2.)) * pix_scale;
 		drawq_bracket_open();
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
@@ -681,7 +683,7 @@ void draw_mousecursor(xy_t pos)
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, colb, blend_alphablendfg, 2./3.);
 		drawq_bracket_close(DQB_BLEND);
 
-		d = zc.iscrscale * 32.;
+		d = zc.iscrscale * 32. * pix_scale;
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(d, 0.))), drawing_thickness, col, cur_blend, 1.);
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., -d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, col, cur_blend, 1.);
 		draw_line_thin(sc_xy(add_xy(pos, xy(0., d))), sc_xy(add_xy(pos, xy(-d, 0.))), drawing_thickness, col, cur_blend, 1.);
@@ -692,12 +694,13 @@ void draw_mousecursor(xy_t pos)
 	if (mouse.showcursor)
 		return ;
 
+	// Triangle mouse cursor
 	tr.a = sc_xy(pos);
 	tr.b = sc_xy(add_xy(pos, xy(0.*sc, -1.*sc)));
 	tr.c = sc_xy(add_xy(pos, xy(0.64*sc, -0.76837*sc)));
 
 	drawq_bracket_open();
-	draw_triangle_thin(triangle_dilate(tr, -1.), drawing_thickness, colb, blend_alphablendfg, 2./3.);
+	draw_triangle_thin(triangle_dilate(tr, -1.*pix_scale), drawing_thickness, colb, blend_alphablendfg, 2./3.);
 	drawq_bracket_close(DQB_BLEND);
 
 	draw_triangle_thin(tr, drawing_thickness, col, cur_blend, 1.);

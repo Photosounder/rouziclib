@@ -616,6 +616,13 @@ xyi_t ceil_rshift_xyi(xyi_t a, int sh)
 	return a;
 }
 
+xyi_t idiv_ceil_xyi(xyi_t a, xyi_t b)
+{
+	a.x = idiv_ceil(a.x, b.x);
+	a.y = idiv_ceil(a.y, b.y);
+	return a;
+}
+
 xyi_t and_xyi(xyi_t a, int mask)
 {
 	a.x &= mask;

@@ -303,7 +303,6 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	int ret, val_set_by_edit=0;
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	double total_scale = scale*zc.scrscale;
 	ctrl_knob_state_t knob_state={0};
 	char str[64];
 	double v=NAN, t, t_off=0., th;
@@ -345,7 +344,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (v_orig)
 		*v_orig = v;
 
-	if (total_scale < 1.)
+	if (scale*zc.scrscale < 1.)
 		return 0;
 
 	if (check_box_on_screen(rect_size_mul(box, set_xy(1.2)))==0)	// box is extended so that it covers the whole label
@@ -419,7 +418,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		v = knob->func(t, knob->min, knob->max, knob->arg, 0);
 
 	// Draw knob
-	intensity *= intensity_scaling(total_scale, 24.);
+	intensity *= intensity_scaling(scale*zc.scrscale, 24.);
 
 	// Print value
 	if (knob->display_print_func)
@@ -429,7 +428,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	// Draw value string
 	if (knob->edit_open==0)
-		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale_raw, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 	else
 	{
 		ret = ctrl_textedit(&knob->edit, gui_layout_elem_comp_area_os(&layout, 10, XY0), colour);
@@ -466,7 +465,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	draw_string_bestfit(font, knob->unit_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 31 : 30, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
 	// Draw arc circle
-	draw_circle_arc(sc_xy(centre), set_xy(0.5*total_scale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
+	draw_circle_arc(sc_xy(centre), set_xy(0.5*scale*zc.scrscale_raw), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
 
 	if (knob->circular)
 		th = t * -2.*pi;

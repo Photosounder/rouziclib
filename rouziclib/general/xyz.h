@@ -129,6 +129,7 @@ extern xyq_t func3_xyq(xyq_t a, xyq_t b, xyq_t c, ddouble_t (*f)(ddouble_t,ddoub
 extern xyi_t lshift_xyi(xyi_t a, int sh);
 extern xyi_t rshift_xyi(xyi_t a, int sh);
 extern xyi_t ceil_rshift_xyi(xyi_t a, int sh);
+extern xyi_t idiv_ceil_xyi(xyi_t a, xyi_t b);
 extern xyi_t and_xyi(xyi_t a, int mask);
 
 extern xy_t min_xy(xy_t a, xy_t b);
