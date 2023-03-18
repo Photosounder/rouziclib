@@ -700,7 +700,7 @@ void draw_mousecursor(xy_t pos)
 	tr.c = sc_xy(add_xy(pos, xy(0.64*sc, -0.76837*sc)));
 
 	drawq_bracket_open();
-	draw_triangle_thin(triangle_dilate(tr, -1.*pix_scale), drawing_thickness, colb, blend_alphablendfg, 2./3.);
+	draw_triangle_thin(triangle_dilate(tr, -1./fb->pixel_scale), drawing_thickness, colb, blend_alphablendfg, 2./3.);
 	drawq_bracket_close(DQB_BLEND);
 
 	draw_triangle_thin(tr, drawing_thickness, col, cur_blend, 1.);

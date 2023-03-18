@@ -400,7 +400,6 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	int ret;
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 	rect_t boxb;
 
@@ -409,7 +408,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 	textedit_prev_next_logic(te);
 
-	if (total_scale < 1.)
+	if (scale*zc.scrscale < 1.)
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
@@ -476,7 +475,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	te->cur_screen_pos_prev = te->cur_screen_pos;
 
 	//**** Draw ****
-	intensity *= intensity_scaling(total_scale, 24.);
+	intensity *= intensity_scaling(scale*zc.scrscale, 24.);
 	// TODO maybe don't draw anything if off screen
 
 	if (te->scroll_mode)
@@ -616,7 +615,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		pos = mad_xy(add_xy(neg_y(te->scroll_pos), xy(2., -8.)), set_xy(scale), pos);
 
 		drawq_bracket_open();	// FIXME brackets are not portable
-		draw_string(font, te->string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
+		draw_string(font, te->string, sc_xy(pos), scale*zc.scrscale_raw, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
 		draw_black_rect_inverted(sc_rect(text_area), drawing_thickness, 1.);
 		drawq_bracket_close(DQB_ADD);
 
@@ -643,9 +642,9 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		}
 	}
 	else
-		draw_string_bestfit_asis(font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
-	//draw_string_bestfit(font, te->string, sc_rect(box), 0., te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
-	//draw_string_fixed_thresh(font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*total_scale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_string_bestfit_asis(font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*scale*zc.scrscale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
+	//draw_string_bestfit(font, te->string, sc_rect(box), 0., te->max_scale*0.1*scale*zc.scrscale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
+	//draw_string_fixed_thresh(font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*scale*zc.scrscale, colour, intensity, drawing_thickness, ALIG_LEFT, NULL);
 
 	// Rectangle frame drawing
 	if (te->rect_brightness > 0.)
