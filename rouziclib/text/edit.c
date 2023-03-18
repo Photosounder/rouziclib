@@ -615,7 +615,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		pos = mad_xy(add_xy(neg_y(te->scroll_pos), xy(2., -8.)), set_xy(scale), pos);
 
 		drawq_bracket_open();	// FIXME brackets are not portable
-		draw_string(font, te->string, sc_xy(pos), scale*zc.scrscale_raw, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
+		draw_string(font, te->string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, te->draw_string_mode, NULL);
 		draw_black_rect_inverted(sc_rect(text_area), drawing_thickness, 1.);
 		drawq_bracket_close(DQB_ADD);
 

@@ -7,7 +7,7 @@ int ctrl_button_invis_box_or_polygon(rect_t box, xy_t *p, int p_count, ctrl_butt
 		*butt_state_ptr = butt_state;
 
 	// Return if the button is too small
-	if (total_scale < 3.)
+	if (total_scale < 3./fb->pixel_scale)
 	{
 		if (butt_state_ptr)
 			butt_state_ptr->too_small = 1;
@@ -151,21 +151,20 @@ int ctrl_radio(int state, const uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 
 	ctrl_button_invis(box, &butt_state);
 	if (butt_state.too_small || butt_state.out_of_screen)
 		return 0;
 
-	intensity *= intensity_scaling(total_scale, 24.);
+	intensity *= intensity_scaling(scale*zc.scrscale, 24.);
 
 	if (butt_state.over && butt_state.down==0)
 		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
 
-	draw_circle(HOLLOWCIRCLE, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 0.3*total_scale, drawing_thickness, colour, cur_blend, intensity);
+	draw_circle(HOLLOWCIRCLE, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 0.3*scale*zc.scrscale, drawing_thickness, colour, cur_blend, intensity);
 	if (state)
-		draw_circle(FULLCIRCLE, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 7./12.*0.3*total_scale, drawing_thickness, colour, cur_blend, 1.);
+		draw_circle(FULLCIRCLE, sc_xy(add_xy(box.p0, xy(0.5*scale, 0.5*scale))), 7./12.*0.3*scale*zc.scrscale, drawing_thickness, colour, cur_blend, 1.);
 
 	if (name)
 	{
@@ -344,7 +343,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (v_orig)
 		*v_orig = v;
 
-	if (scale*zc.scrscale < 1.)
+	if (scale*zc.scrscale < 3./fb->pixel_scale)
 		return 0;
 
 	if (check_box_on_screen(rect_size_mul(box, set_xy(1.2)))==0)	// box is extended so that it covers the whole label
@@ -428,7 +427,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	// Draw value string
 	if (knob->edit_open==0)
-		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale_raw, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 	else
 	{
 		ret = ctrl_textedit(&knob->edit, gui_layout_elem_comp_area_os(&layout, 10, XY0), colour);
@@ -465,7 +464,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	draw_string_bestfit(font, knob->unit_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 31 : 30, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 
 	// Draw arc circle
-	draw_circle_arc(sc_xy(centre), set_xy(0.5*scale*zc.scrscale_raw), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
+	draw_circle_arc(sc_xy(centre), set_xy(0.5*scale*zc.scrscale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
 
 	if (knob->circular)
 		th = t * -2.*pi;
@@ -513,7 +512,7 @@ int ctrl_draggable(ctrl_drag_state_t *state)
 	double total_scale = min_of_xy(state->dim)*zc.scrscale;
 	rect_t box;
 
-	if (total_scale < 3. && state->down==0)
+	if (total_scale < 3./fb->pixel_scale && state->down==0)
 		return 0;
 
 	box = make_rect_off( state->pos, state->dim, xy(0.5, 0.5) );
@@ -535,7 +534,7 @@ int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_i
 	ctrl_button_state_t butt_state={0};
 
 	// Quit if control is too small and not being dragged
-	if (total_scale < 0.2 && *dragged != cur_id)
+	if (total_scale < 0.2/fb->pixel_scale && *dragged != cur_id)
 		return -10;
 
 	// Quit if control is off-screen and not being dragged
@@ -673,7 +672,7 @@ int ctrl_resizing_rect(ctrl_resize_rect_t *state, rect_t *box)
 	double aspect_ratio, cdim;
 	rect_t cbox;
 
-	if (total_scale < 3. && state->dragged==0)
+	if (total_scale < 3./fb->pixel_scale && state->dragged==0)
 		return 0;
 
 	aspect_ratio = min_of_xy(dim) / max_of_xy(dim);

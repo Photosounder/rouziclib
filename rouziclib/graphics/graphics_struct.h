@@ -99,7 +99,7 @@ typedef struct
 
 	// Scaled display
 	xyi_t real_dim;		// actual dimension of the window before scaling (r.dim is scaled)
-	int pixel_scale, pixel_scale_prev;
+	int pixel_scale, pixel_scale_new, pixel_scale_oldframe;
 
 	#ifdef RL_SDL
 	void *window;

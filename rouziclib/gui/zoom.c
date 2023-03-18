@@ -15,13 +15,13 @@ double to_screen_coord_x(zoom_t zc, double x)
 {
 	x -= zc.offset_u.x;
 
-	return x * zc.scrscale_raw + 0.5*(double)fb->w - 0.5;
+	return x * zc.scrscale + 0.5*(double)fb->w - 0.5;
 }
 
 double to_screen_coord_y(zoom_t zc, double y)
 {
 	y -= zc.offset_u.y;
-	return -y * zc.scrscale_raw + 0.5*(double)fb->h - 0.5;
+	return -y * zc.scrscale + 0.5*(double)fb->h - 0.5;
 }
 
 xy_t to_screen_coord_xy(zoom_t zc, xy_t p)
@@ -31,12 +31,12 @@ xy_t to_screen_coord_xy(zoom_t zc, xy_t p)
 
 double to_world_coord_x(zoom_t zc, double x)
 {
-	return (x - 0.5*(double)fb->w + 0.5) * zc.iscrscale_raw + zc.offset_u.x;
+	return (x - 0.5*(double)fb->w + 0.5) * zc.iscrscale + zc.offset_u.x;
 }
 
 double to_world_coord_y(zoom_t zc, double y)
 {
-	return -(y - 0.5*(double)fb->h + 0.5) * zc.iscrscale_raw + zc.offset_u.y;
+	return -(y - 0.5*(double)fb->h + 0.5) * zc.iscrscale + zc.offset_u.y;
 }
 
 xy_t to_world_coord_xy(zoom_t zc, xy_t p)
@@ -142,21 +142,19 @@ void calc_screen_limits(zoom_t *zc)
 	zc->offset_u = xyq_to_xy(zc->offset_uq);
 	#endif
 
-	if (3*fb->w > 3*fb->h)					// if widescreen (more than 3:3 (formerly 4:3))
-		zc->scrscale_raw = (double) fb->h / 18.;	// for 1920x1080 srcscale would be 60
+	if (3*fb->w > 3*fb->h)				// if widescreen (more than 3:3 (formerly 4:3))
+		zc->scrscale = (double) fb->h / 18.;	// for 1920x1080 srcscale would be 60
 	else
-		zc->scrscale_raw = (double) fb->w / 18.;
+		zc->scrscale = (double) fb->w / 18.;
 
-	zc->limit_u = mul_xy(xy(fb->w, fb->h), set_xy(0.5/zc->scrscale_raw));
+	zc->limit_u = mul_xy(xy(fb->w, fb->h), set_xy(0.5/zc->scrscale));
 
-	zc->scrscale_raw *= zc->zoomscale;
-	zc->iscrscale_raw = 1. / zc->scrscale_raw;
-	zc->scrscale = zc->scrscale_raw * fb->pixel_scale;
+	zc->scrscale *= zc->zoomscale;
 	zc->iscrscale = 1. / zc->scrscale;
 
-	zc->drawlim_u = set_xy(zc->iscrscale_raw * GAUSSRAD_HQ * zc->drawing_thickness);
+	zc->drawlim_u = set_xy(zc->iscrscale * GAUSSRAD_HQ * zc->drawing_thickness);
 
-	xy_t dim = mul_xy(xy(fb->w, fb->h), set_xy(0.5*zc->iscrscale_raw));
+	xy_t dim = mul_xy(xy(fb->w, fb->h), set_xy(0.5*zc->iscrscale));
 	zc->corners.p0 = sub_xy(zc->offset_u, dim);
 	zc->corners.p1 = add_xy(zc->offset_u, dim);
 	zc->corners_dl.p0 = sub_xy(zc->corners.p0, zc->drawlim_u);

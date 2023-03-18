@@ -546,7 +546,7 @@ int sdl_handle_window_resize(zoom_t *zc)
 
 	SDL_GetWindowSize(fb->window, &w, &h);
 
-	if (fb->w == w && fb->h == h && fb->pixel_scale == fb->pixel_scale_prev)
+	if (fb->w == w && fb->h == h && fb->pixel_scale == fb->pixel_scale_new)
 		return 0;
 
 	// Finish drawqueue processing
@@ -564,7 +564,10 @@ int sdl_handle_window_resize(zoom_t *zc)
 	fb->r.dim = xyi(fb->w, fb->h);
 
 	// Handle pixel scale
-	fb->pixel_scale_prev = fb->pixel_scale;
+	if (fb->pixel_scale_new == 0)
+		fb->pixel_scale_new = fb->pixel_scale;
+	else
+		fb->pixel_scale = fb->pixel_scale_new;
 	fb->real_dim = fb->r.dim;
 	fb->r.dim = idiv_ceil_xyi(fb->r.dim, set_xyi(fb->pixel_scale));
 	fb->w = fb->r.dim.x;
@@ -632,7 +635,10 @@ void sdl_flip_fb()
 			}
 
 			#ifdef RL_OPENCL_GL
-			float tscale = 1.f / (float) fb->pixel_scale;
+			if (fb->pixel_scale_oldframe == 0)
+				fb->pixel_scale_oldframe = fb->pixel_scale;
+			float tscale = 1.f / (float) fb->pixel_scale_oldframe;
+			fb->pixel_scale_oldframe = fb->pixel_scale;
 			float hoff = 2. * (fb->real_dim.y - fb->maxdim.y) / (double) fb->maxdim.y;
 			glLoadIdentity();             // Reset the projection matrix
 			glViewport(0, 0, fb->maxdim.x, fb->maxdim.y);

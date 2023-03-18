@@ -2,7 +2,7 @@
 
 typedef struct
 {
-	double zoomscale, scrscale, iscrscale, scrscale_raw, iscrscale_raw;
+	double zoomscale, scrscale, iscrscale;
 	xy_t limit_u, drawlim_u, offset_u;
 	xyq_t offset_uq;
 	rect_t corners, corners_dl;

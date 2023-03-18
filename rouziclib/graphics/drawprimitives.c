@@ -663,7 +663,7 @@ void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, cons
 void draw_mousecursor(xy_t pos)
 {
 	col_t col = make_grey(0.5), colb = make_grey(0.);
-	double pix_scale = sqrt(fb->pixel_scale);
+	double pix_scale = 1. / sqrt(fb->pixel_scale);
 	double sc = zc.iscrscale * 16. * pix_scale;
 	triangle_t tr;
 

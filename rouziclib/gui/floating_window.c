@@ -82,7 +82,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 		layout->sm *= MINN(1., bao_scaling);
 
 		// Adjust scaling if the bar is smaller than 12 px
-		bao_scaling = 12. / (get_rect_dim(bao_moved).y * zc.scrscale);
+		bao_scaling = 12. / (get_rect_dim(bao_moved).y * zc.scrscale*fb->pixel_scale);
 		layout->sm *= MAXN(1., bao_scaling);
 
 		if (parent_area && diag_on)
@@ -103,7 +103,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 		{
 			xy_t corner_pos, min_corner_pos, new_dim;
 			double min_height;
-			min_height = zc.iscrscale * 12. * get_rect_dim(area).y / w->bar_height;	// min bar height of 12 px
+			min_height = 12. * get_rect_dim(area).y / (w->bar_height * zc.scrscale*fb->pixel_scale);	// min bar height of 12 px
 			min_corner_pos = add_xy(rect_p01(area_os), xy(min_height * div_x_by_y_xy(get_rect_dim(area)), -min_height));
 
 			corner_pos = rect_p10(make_rect_off(w->corner_drag.pos, get_rect_dim(corner_area_os), xy(0.5, 0.5)));
@@ -162,7 +162,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	if (draw_bg)
 	{
 		if (w->shadow_strength)
-			draw_black_rect(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*get_rect_dim(area_os).y / 24., drawing_thickness), w->shadow_strength);	// shadow
+			draw_black_rect(sc_rect(rect_move(area_os, mul_xy(xy(2., -3.), set_xy(get_rect_dim(area_os).y / 108.)))), hypot(zc.scrscale*fb->pixel_scale*get_rect_dim(area_os).y / 24., drawing_thickness), w->shadow_strength);	// shadow
 		draw_black_rect(sc_rect(area_os), drawing_thickness, w->bg_opacity);		// black out the background
 	}
 
@@ -195,7 +195,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	{
 		corner_area_os = make_rect_off( rect_p10(area_os), set_xy(get_rect_dim(bar_area_os).y * 6./12.), xy(1., 0.) );
 
-		int hover = check_point_within_box(mouse.u, corner_area_os) || w->corner_drag.down;
+		int hover = w->corner_drag.over || w->corner_drag.down;
 
 		corner_area_os = get_subdiv_area(corner_area_os, set_xy(8./12.), set_xy(0.5));
 		draw_line_thin(sc_xy(corner_area_os.p0), sc_xy(corner_area_os.p1), drawing_thickness, GUI_COL_DEF, blend_add, hover ? 0.5 : 0.25);
