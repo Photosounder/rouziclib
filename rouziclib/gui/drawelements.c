@@ -1,3 +1,8 @@
+double rect_ctrl_intensity_scale(rect_t box)
+{
+	return intensity_scaling(sqrt(mul_x_by_y_xy(get_rect_dim(box)))*zc.scrscale, sqrt(12.*24.));
+}
+
 void draw_titled_roundrect_frame(xy_t pos, double radius, xy_t c, xy_t space, lrgb_t colour, const blend_func_t bf)
 {
 	xy_t fr;
@@ -17,10 +22,10 @@ void draw_label(const uint8_t *label, rect_t box, col_t colour, const int mode)
 {
 	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
 
-	if (total_scale < 1.)
+	if (total_scale < 1./fb->pixel_scale)
 		return ;
 
-	intensity = intensity_scaling(total_scale, 24.);
+	intensity = rect_ctrl_intensity_scale(box);
 
 	//box.p0.x += 2.*scale/LINEVSPACING;
 	//box.p1.x -= 2.*scale/LINEVSPACING;
@@ -32,7 +37,7 @@ void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int m
 {
 	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
 
-	if (total_scale < 1.)
+	if (total_scale < 1./fb->pixel_scale)
 		return ;
 
 	intensity = intensity_scaling(total_scale, 24.);
@@ -76,7 +81,7 @@ void draw_unit_grid_level(xy_t offset, double sm, double scale, col_t colour)
 	xy_t start, end;
 	rect_t corners;
 
-	size_px = sm * scale * zc.scrscale;
+	size_px = sm * scale * zc.scrscale * fb->pixel_scale;
 	if (size_px < 7.)
 		return ;
 

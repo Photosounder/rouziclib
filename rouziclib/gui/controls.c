@@ -67,7 +67,7 @@ ctrl_button_state_t ctrl_button_chamf_state(const uint8_t *name, rect_t box, col
 	if (butt_state.too_small || butt_state.out_of_screen)
 		return butt_state;
 
-	intensity *= intensity_scaling(total_scale, 48.);
+	intensity *= rect_ctrl_intensity_scale(box);
 
 	draw_rect_chamfer(sc_rect(box), drawing_thickness, colour, cur_blend, 0.5*intensity, 1./12.);
 
@@ -102,7 +102,7 @@ int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour)
 	if (butt_state.too_small || butt_state.out_of_screen)
 		return 0;
 
-	intensity *= intensity_scaling(total_scale, 24.);
+	intensity *= rect_ctrl_intensity_scale(box);
 
 	if (butt_state.over && butt_state.down==0)
 		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
@@ -157,7 +157,7 @@ int ctrl_radio(int state, const uint8_t *name, rect_t box, col_t colour)
 	if (butt_state.too_small || butt_state.out_of_screen)
 		return 0;
 
-	intensity *= intensity_scaling(scale*zc.scrscale, 24.);
+	intensity *= rect_ctrl_intensity_scale(box);
 
 	if (butt_state.over && butt_state.down==0)
 		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
@@ -209,7 +209,7 @@ int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 		over_something = 1;
 
 	// Draw top control box
-	intensity *= intensity_scaling(total_scale, 24.);
+	intensity *= rect_ctrl_intensity_scale(box);
 	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, intensity);
 	draw_label("\363\260\204\200", make_rect_off(box.p1, set_xy(rect_min_side(box)), xy(1., 1.)), colour, ALIG_CENTRE);	// check mark
 

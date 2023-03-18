@@ -1,3 +1,4 @@
+extern double rect_ctrl_intensity_scale(rect_t box);
 extern void draw_titled_roundrect_frame(xy_t pos, double radius, xy_t c, xy_t space, lrgb_t colour, const blend_func_t bf);
 extern void draw_label(const uint8_t *label, rect_t box, col_t colour, const int mode);
 extern void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int mode, double thresh);
