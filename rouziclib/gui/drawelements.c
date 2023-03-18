@@ -30,7 +30,7 @@ void draw_label(const uint8_t *label, rect_t box, col_t colour, const int mode)
 	//box.p0.x += 2.*scale/LINEVSPACING;
 	//box.p1.x -= 2.*scale/LINEVSPACING;
 
-	draw_string_bestfit(font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
+	draw_string_bestfit(font, label, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, mode, NULL);
 }
 
 void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
@@ -45,7 +45,7 @@ void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int m
 	//box.p0.x += 2.*scale/LINEVSPACING;
 	//box.p1.x -= 2.*scale/LINEVSPACING;
 
-	draw_string_fixed_thresh(font, label, sc_rect(box), thresh, 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, mode, NULL);
+	draw_string_fixed_thresh(font, label, sc_rect(box), thresh, 1e30*zc.scrscale, colour, 1., drawing_thickness, mode, NULL);
 }
 
 void draw_text_at_scale(const uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
@@ -57,7 +57,7 @@ void draw_text_at_scale(const uint8_t *label, rect_t box, col_t colour, const in
 
 	intensity = intensity_scaling(scale, 3.);
 
-	draw_string(font, label, add_xy(xy(0., 8*scale), sc_xy(rect_p01(box))), scale, colour, intensity, drawing_thickness, mode, NULL);
+	draw_string(font, label, add_xy(xy(0., 8*scale), sc_xy(rect_p01(box))), scale, colour, 1., drawing_thickness, mode, NULL);
 }
 
 void display_dialog_enclosing_frame(rect_t box_os, double scale, char *label, col_t colour)
@@ -71,7 +71,7 @@ void display_dialog_enclosing_frame(rect_t box_os, double scale, char *label, co
 
 	label_box = rect_size_mul(box_os, set_xy(1. - 16./144.));
 
-	draw_string_bestfit(font, label, label_box, 0., 1e30, colour, intensity * (0.5+0.5*erf((0.75-scale)*6.)), drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, label, label_box, 0., 1e30, colour, 1. * (0.5+0.5*erf((0.75-scale)*6.)), drawing_thickness, ALIG_CENTRE, NULL);
 }
 
 void draw_unit_grid_level(xy_t offset, double sm, double scale, col_t colour)

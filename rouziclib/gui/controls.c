@@ -81,7 +81,7 @@ ctrl_button_state_t ctrl_button_chamf_state(const uint8_t *name, rect_t box, col
 
 	dim = get_rect_dim(box);
 	box = rect_add_margin(box, xy(MINN(-dim.x/10., -dim.y/6.), -dim.y/6.));
-	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE, NULL);
 
 	return butt_state;
 }
@@ -112,12 +112,12 @@ int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour)
 
 	box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
 	if (state)
-		draw_string_bestfit(font, (*state==1) ? "\xE2\x98\x91" : (*state==0) ? "\xE2\x98\x90" : "\xF3\xB2\x98\x92", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_string_bestfit(font, (*state==1) ? "\xE2\x98\x91" : (*state==0) ? "\xE2\x98\x90" : "\xF3\xB2\x98\x92", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 	else
-		draw_string_bestfit(font, "\xE2\x98\x90", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_string_bestfit(font, "\xE2\x98\x90", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 
 	box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
-	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 
 	return butt_state.uponce;
 }
@@ -142,7 +142,7 @@ ctrl_button_state_t ctrl_checkbox_pin(int *state, rect_t box, col_t colour)
 		*state = (*state & 1) ^ 1;
 
 	box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
-	draw_string_bestfit(font, (*state) ? "\xE2\x98\x91\302\240\360\237\223\214" : "\xE2\x98\x90\302\240\360\237\223\214", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+	draw_string_bestfit(font, (*state) ? "\xE2\x98\x91\302\240\360\237\223\214" : "\xE2\x98\x90\302\240\360\237\223\214", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 
 	return butt_state;
 }
@@ -170,7 +170,7 @@ int ctrl_radio(int state, const uint8_t *name, rect_t box, col_t colour)
 	{
 		box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
 		box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
-		draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_LEFT, NULL);
+		draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 	}
 
 	return butt_state.uponce;
@@ -427,7 +427,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	// Draw value string
 	if (knob->edit_open==0)
-		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 	else
 	{
 		ret = ctrl_textedit(&knob->edit, gui_layout_elem_comp_area_os(&layout, 10, XY0), colour);
@@ -458,10 +458,10 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	}
 
 	// Draw bottom label
-	draw_string_bestfit(font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE, NULL);
 
 	// Draw units label
-	draw_string_bestfit(font, knob->unit_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 31 : 30, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1.*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	draw_string_bestfit(font, knob->unit_label, sc_rect(gui_layout_elem_comp_area_os(&layout, knob->circular ? 31 : 30, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE, NULL);
 
 	// Draw arc circle
 	draw_circle_arc(sc_xy(centre), set_xy(0.5*scale*zc.scrscale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);

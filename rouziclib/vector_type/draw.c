@@ -278,7 +278,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 		drawline = 1;
 
 	if (recur==0)
-		intensity *= intensity_scaling(scale, 1.);
+		intensity *= intensity_scaling(scale, 2.);
 
 	if (((mode&3)!=ALIG_LEFT && bidi!=-2) || ((mode&3)!=ALIG_RIGHT && bidi==-2))
 	{
