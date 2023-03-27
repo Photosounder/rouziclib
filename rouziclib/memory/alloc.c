@@ -1,4 +1,4 @@
-size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio)	// increases a buffer's size to accomodate for the requested count if necessary
+size_t alloc_enough_pattern(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio, uint8_t pattern)
 {
 	size_t newsize;
 	void *p;
@@ -17,8 +17,8 @@ size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, siz
 		else
 			*buffer = p;
 
-		// Blank the new bytes
-		memset(&((uint8_t *)(*buffer))[alloc_count * size_elem], 0, (newsize-alloc_count) * size_elem);
+		// Set the new bytes
+		memset(&((uint8_t *)(*buffer))[alloc_count * size_elem], pattern, (newsize-alloc_count) * size_elem);
 
 		alloc_count = newsize;
 	}
@@ -39,11 +39,11 @@ size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_coun
 	if (needed_count > alloc_count && mutex)
 	{
 		rl_mutex_lock(mutex);
-		alloc_count = alloc_enough2(buffer, needed_count, alloc_count, size_elem, inc_ratio);
+		alloc_count = alloc_enough_pattern(buffer, needed_count, alloc_count, size_elem, inc_ratio, 0x00);
 		rl_mutex_unlock(mutex);
 	}
 	else
-		alloc_count = alloc_enough2(buffer, needed_count, alloc_count, size_elem, inc_ratio);
+		alloc_count = alloc_enough_pattern(buffer, needed_count, alloc_count, size_elem, inc_ratio, 0x00);
 
 	return alloc_count;
 }

@@ -4,7 +4,7 @@ typedef struct
 	size_t len, as;
 } alloc_list_t;
 
-extern size_t alloc_enough2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio);
+extern size_t alloc_enough_pattern(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio, uint8_t pattern);
 extern size_t alloc_enough_and_copy2(void **buffer, void *copy_src, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio);
 extern size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio, rl_mutex_t *mutex);
 extern void free_null(void **ptr);
@@ -25,6 +25,6 @@ extern void *calloc_list(size_t nitems, size_t size, alloc_list_t *list);
 extern void free_alloc_list(alloc_list_t *list);
 
 // alloc_count was originally a pointer, however callers sent a mix of int and size_t which was a problem
-#define alloc_enough(b, nc, acp, se, ir)	(*acp) = alloc_enough2(b, nc, (*acp), se, ir)
+#define alloc_enough(b, nc, acp, se, ir)	(*acp) = alloc_enough_pattern(b, nc, (*acp), se, ir, 0)
 #define alloc_enough_and_copy(b, cs, nc, acp, se, ir)	(*acp) = alloc_enough_and_copy2(b, cs, nc, (*acp), se, ir)
 #define alloc_enough_mutex(b, nc, acp, se, ir, m)	(*acp) = alloc_enough_mutex2(b, nc, (*acp), se, ir, m)

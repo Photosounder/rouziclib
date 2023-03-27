@@ -175,7 +175,7 @@ int count_decimal_places(double v)
 
     for (i=0; i < 310; i++)
     {
-        if (labs(double_diff_ulp(v, nearbyint(v*m)/m)) < 2)
+        if (llabs(double_diff_ulp(v, nearbyint(v*m)/m)) < 2)
             return i;
         m *= 10.;
     }

@@ -595,6 +595,7 @@ void my_window_function(double *arg1, double *arg2)
 	// Alloc more in an array if needed
 		alloc_enough(&array, needed_count, &alloc_count, size_elem, inc_ratio);
 		alloc_enough(&array, count+=1, &alloc_count, size_elem, inc_ratio);
+		alloc_count = alloc_enough_pattern(&array, needed_count, alloc_count, size_elem, inc_ratio, 0xFF);
 		// This one protects the realloc with a mutex only if needed
 		alloc_enough_mutex(&array, count+=1, &alloc_count, size_elem, inc_ratio, &my_mutex);
 		// This one does a copy of a source array
