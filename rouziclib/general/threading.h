@@ -11,7 +11,7 @@
     #define _Thread_local __thread
 #endif
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__wasi__)
     #define NOT_WINDOWS
     #include <errno.h>
     #include <unistd.h>

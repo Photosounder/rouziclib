@@ -1,4 +1,4 @@
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined (__wasi__)
 #define RL_THREADING_PLATFORM_FAKING
 #define __APPLE__
 #endif
@@ -21,6 +21,15 @@ WINBASEAPI _Ret_maybenull_ HANDLE WINAPI CreateSemaphoreA( _In_opt_ LPSECURITY_A
 
 // winerror.h
 #define ERROR_TIMEOUT                    1460L
+#endif
+
+// WASI lacks much of the pthread stuff
+#ifdef __wasi__
+#define pthread_exit(a)			(void)0
+#define sched_get_priority_min(a)	(int)0
+#define pthread_setschedparam(a,b,c)	(void)0
+#define nice(a)				(void)0
+struct sched_param { int sched_priority; };
 #endif
 
 #define THREAD_U64 uint64_t

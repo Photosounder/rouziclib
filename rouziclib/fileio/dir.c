@@ -330,7 +330,7 @@ void get_volumes_path()
 #endif
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
 #include <sys/statvfs.h>
 #endif
 
@@ -350,6 +350,10 @@ int64_t get_volume_free_space(const char *path)
 	}
 
 	return free_space;
+
+#elif defined(__wasi__)
+	return -1;
+
 #else
 	struct statvfs stats;
 

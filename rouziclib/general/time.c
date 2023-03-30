@@ -49,7 +49,11 @@ double get_time_hr()	// High-resolution timing
 
 		#else
 		struct timespec rate;
+		#ifdef __wasi__
+		clock_getres(CLOCK_MONOTONIC, &rate);
+		#else
 		clock_getres(CLOCK_MONOTONIC_RAW, &rate);
+		#endif
 		tick_dur = 1e-9 * (double) rate.tv_nsec;
 
 		#endif
@@ -69,7 +73,11 @@ double get_time_hr()	// High-resolution timing
 
 	#else
 	struct timespec now;
+	#ifdef __wasi__
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	#else
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	#endif
 	return (double) ((uint64_t) now.tv_sec*1000000000LL + now.tv_nsec) * tick_dur;
 	#endif
 }
