@@ -86,11 +86,13 @@ EM_JS(void, em_browser_toggle_fullscreen, (int state),
 
 void em_fit_canvas_to_innerwindow()
 {
+#ifdef RL_SDL
 	if (fb->fullscreen_on)
 		return ;
 
 	SDL_SetWindowSize(fb->window, MINN(fb->maxdim.x, EM_ASM_INT((return window.innerWidth;))), MINN(fb->maxdim.y, EM_ASM_INT((return window.innerHeight;))));
 	sdl_handle_window_resize(&zc);
+#endif
 }
 
 EM_JS(void, em_enumerate_av_devices, (),

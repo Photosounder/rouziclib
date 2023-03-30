@@ -162,16 +162,14 @@ void fileball_extract_z_mem_to_path(buffer_t *zball, const char *extract_path)
 
 	gz_decompress(zball->buf, zball->len, &ball.buf, &ball.len);	// decompress zball into ball
 	fileball_extract_mem_to_path(&ball, extract_path);		// extract files to path
-	free(ball.buf);
+	free_buf(&ball);
 }
 
 void fileball_extract_z_file_to_path(const char *in_path, const char *extract_path)
 {
-	buffer_t zball={0};
-
-	zball.buf = load_raw_file(in_path, &zball.len);
+	buffer_t zball = buf_load_raw_file(in_path);
 	fileball_extract_z_mem_to_path(&zball, extract_path);
-	free(zball.buf);
+	free_buf(&zball);
 }
 
 fileball_t fileball_extract_z_mem_to_struct(buffer_t *zball)
