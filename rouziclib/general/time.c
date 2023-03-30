@@ -42,7 +42,7 @@ double get_time_hr()	// High-resolution timing
 		QueryPerformanceFrequency(&rate);
 		tick_dur = 1. / (double) rate.QuadPart;
 
-		#elif __APPLE__
+		#elif defined(__APPLE__)
 		mach_timebase_info_data_t rate_nsec;
 		mach_timebase_info(&rate_nsec);
 		tick_dur = 1e-9 * (double) rate_nsec.numer / (double) rate_nsec.denom;
@@ -64,10 +64,10 @@ double get_time_hr()	// High-resolution timing
 	QueryPerformanceCounter(&now);
 	return (double) now.QuadPart * tick_dur;
 
-	#elif __APPLE__
+	#elif defined(__APPLE__)
 	return (double) mach_absolute_time() * tick_dur;
 
-	#elif __EMSCRIPTEN__
+	#elif defined (__EMSCRIPTEN__)
 	return emscripten_get_now() * 1e-3;
 	//return (double) get_time_ms() * 1e-3;		// Emscripten doesn't work well with my clock_gettime() code below
 
