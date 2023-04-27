@@ -47,13 +47,13 @@ char *remove_name_from_path(char *dirpath, const char *fullpath)	// removes the 
 	return dirpath;
 }
 
-char *remove_extension_from_path(char *dirpath, const char *fullpath)
+char *remove_extension_from_path(char *truncpath, const char *fullpath)
 {
 	char *p;
 	int len;
 
-	if (dirpath)
-		dirpath[0] = '\0';
+	if (truncpath)
+		truncpath[0] = '\0';
 
 	if (fullpath==NULL)
 	{
@@ -67,13 +67,13 @@ char *remove_extension_from_path(char *dirpath, const char *fullpath)
 
 	len = p - fullpath;
 
-	if (dirpath==NULL)
-		dirpath = calloc(len + 1, sizeof(char));
+	if (truncpath==NULL)
+		truncpath = calloc(len + 1, sizeof(char));
 
-	memcpy(dirpath, fullpath, len);
-	dirpath[len] = 0;
+	memcpy(truncpath, fullpath, len);
+	truncpath[len] = 0;
 
-	return dirpath;
+	return truncpath;
 }
 
 const char *get_filename_from_path(const char *fullpath)	// returns a pointer to the filename in the path

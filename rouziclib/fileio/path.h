@@ -1,6 +1,6 @@
 extern const char *find_last_dirchar(const char *path, int ignore_trailing);
 extern char *remove_name_from_path(char *dirpath, const char *fullpath);
-extern char *remove_extension_from_path(char *dirpath, const char *fullpath);
+extern char *remove_extension_from_path(char *truncpath, const char *fullpath);
 extern const char *get_filename_from_path(const char *fullpath);
 extern char *append_name_to_path(char *dest, const char *path, const char *name);
 extern char *extract_file_extension(const char *path, char *ext);

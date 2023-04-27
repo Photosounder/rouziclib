@@ -1,6 +1,6 @@
 // Avoids optimising away certain crucial operations when /fp:fast or -ffast-math are specified
 // Works on MSVC and Clang, not on GCC
-#ifndef _gcc_
+#if !defined(_gcc_) && !defined(__wasm)
 #pragma float_control(push)
 #pragma float_control(precise, on)
 #endif
@@ -222,7 +222,7 @@ ddouble_t mul_qd_simple(ddouble_t a, double m)	// multiplier must only change th
 	return a;
 }
 
-#ifndef _gcc_
+#if !defined(_gcc_) && !defined(__wasm)
 #pragma float_control(pop)
 #endif
 

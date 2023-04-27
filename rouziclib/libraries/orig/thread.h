@@ -616,6 +616,8 @@ struct thread_queue_t
     #include <pthread.h>
     #include <sys/time.h>
 
+    #elif defined (__wasi__)
+
 #else 
     #error Unknown platform.
 #endif
@@ -636,6 +638,10 @@ thread_id_t thread_current_thread_id( void )
     
         return (void*) pthread_self();
 
+    #elif defined (__wasi__)
+
+	return NULL;
+
     #else 
         #error Unknown platform.
     #endif
@@ -651,6 +657,8 @@ void thread_yield( void )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
     
         sched_yield();
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -667,6 +675,8 @@ void thread_exit( int return_code )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
     
         pthread_exit( (void*)(uintptr_t) return_code );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -712,6 +722,10 @@ thread_ptr_t th_thread_create( int (*thread_proc)( void* ), void* user_data, cha
             return NULL;
 
         return (thread_ptr_t) thread;
+
+    #elif defined (__wasi__)
+
+	return NULL;
     
     #else 
         #error Unknown platform.
@@ -729,6 +743,8 @@ void thread_destroy( thread_ptr_t thread )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         pthread_join( (pthread_t) thread, NULL );
+
+    #elif defined (__wasi__)
 
     #else 
         #error Unknown platform.
@@ -751,6 +767,10 @@ int thread_join( thread_ptr_t thread )
         pthread_join( (pthread_t) thread, &retval );
         return (int)(uintptr_t) retval;
 
+    #elif defined (__wasi__)
+
+	return -1;
+
     #else 
         #error Unknown platform.
     #endif
@@ -769,6 +789,8 @@ void thread_set_high_priority( void )
         memset( &sp, 0, sizeof( sp ) );
         sp.sched_priority = sched_get_priority_min( SCHED_RR );
         pthread_setschedparam( pthread_self(), SCHED_RR, &sp);
+
+    #elif defined (__wasi__)
 
     #else 
         #error Unknown platform.
@@ -794,6 +816,8 @@ void thread_mutex_init( thread_mutex_t* mutex )
         struct x { char thread_mutex_type_too_small : ( sizeof( thread_mutex_t ) < sizeof( pthread_mutex_t ) ? 0 : 1 ); };
 
         pthread_mutex_init( (pthread_mutex_t*) mutex, NULL );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -810,6 +834,8 @@ void thread_mutex_term( thread_mutex_t* mutex )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         pthread_mutex_destroy( (pthread_mutex_t*) mutex );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -826,7 +852,9 @@ void thread_mutex_lock( thread_mutex_t* mutex )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         pthread_mutex_lock( (pthread_mutex_t*) mutex );
-    
+
+    #elif defined (__wasi__)
+
     #else 
         #error Unknown platform.
     #endif
@@ -842,6 +870,8 @@ void thread_mutex_unlock( thread_mutex_t* mutex )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         pthread_mutex_unlock( (pthread_mutex_t*) mutex );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -866,6 +896,8 @@ struct thread_internal_signal_t
         pthread_mutex_t mutex;
         pthread_cond_t condition;
         int value;
+
+    #elif defined (__wasi__)
 
     #else 
         #error Unknown platform.
@@ -898,6 +930,8 @@ void thread_signal_init( thread_signal_t* signal )
         pthread_mutex_init( &internal->mutex, NULL );
         pthread_cond_init( &internal->condition, NULL );
         internal->value = 0;
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -921,6 +955,8 @@ void thread_signal_init( thread_signal_t* signal )
 
         pthread_mutex_destroy( &internal->mutex );
         pthread_cond_destroy( &internal->condition );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -949,6 +985,8 @@ void thread_signal_raise( thread_signal_t* signal )
         internal->value = 1;
         pthread_mutex_unlock( &internal->mutex );
         pthread_cond_signal( &internal->condition );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -1007,7 +1045,11 @@ int thread_signal_wait( thread_signal_t* signal, int timeout_ms )
         if( !timed_out ) internal->value = 0;
         pthread_mutex_unlock( &internal->mutex );
         return !timed_out;
+
+    #elif defined (__wasi__)
     
+	return -1;
+
     #else 
         #error Unknown platform.
     #endif
@@ -1023,6 +1065,10 @@ int thread_atomic_int_load( thread_atomic_int_t* atomic )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         return (int)__sync_fetch_and_add( &atomic->i, 0 );
+
+    #elif defined (__wasi__)
+
+	return -1;
     
     #else 
         #error Unknown platform.
@@ -1040,6 +1086,8 @@ void thread_atomic_int_store( thread_atomic_int_t* atomic, int desired )
 
         __sync_lock_test_and_set( &atomic->i, desired );
         __sync_lock_release( &atomic->i );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -1056,6 +1104,10 @@ int thread_atomic_int_inc( thread_atomic_int_t* atomic )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         return (int)__sync_fetch_and_add( &atomic->i, 1 );
+
+    #elif defined (__wasi__)
+
+	return -1;
     
     #else 
         #error Unknown platform.
@@ -1073,6 +1125,10 @@ int thread_atomic_int_dec( thread_atomic_int_t* atomic )
 
         return (int)__sync_fetch_and_sub( &atomic->i, 1 );
 
+    #elif defined (__wasi__)
+
+	return -1;
+
     #else 
         #error Unknown platform.
     #endif
@@ -1088,6 +1144,10 @@ int thread_atomic_int_add( thread_atomic_int_t* atomic, int value )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         return (int)__sync_fetch_and_add( &atomic->i, value );
+
+    #elif defined (__wasi__)
+
+	return -1;
     
     #else 
         #error Unknown platform.
@@ -1104,6 +1164,10 @@ int thread_atomic_int_sub( thread_atomic_int_t* atomic, int value )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         return (int)__sync_fetch_and_sub( &atomic->i, value );
+
+    #elif defined (__wasi__)
+
+	return -1;
 
     #else 
         #error Unknown platform.
@@ -1122,6 +1186,10 @@ int thread_atomic_int_swap( thread_atomic_int_t* atomic, int desired )
         int old = (int)__sync_lock_test_and_set( &atomic->i, desired );
         __sync_lock_release( &atomic->i );
         return old;
+
+    #elif defined (__wasi__)
+
+	return -1;
     
     #else 
         #error Unknown platform.
@@ -1138,6 +1206,10 @@ int thread_atomic_int_compare_and_swap( thread_atomic_int_t* atomic, int expecte
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         return (int)__sync_val_compare_and_swap( &atomic->i, expected, desired );
+
+    #elif defined (__wasi__)
+
+	return -1;
     
     #else 
         #error Unknown platform.
@@ -1154,6 +1226,10 @@ void* thread_atomic_ptr_load( thread_atomic_ptr_t* atomic )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         return __sync_fetch_and_add( &atomic->ptr, 0 );
+
+    #elif defined (__wasi__)
+
+	return NULL;
     
     #else 
         #error Unknown platform.
@@ -1177,6 +1253,8 @@ void thread_atomic_ptr_store( thread_atomic_ptr_t* atomic, void* desired )
 
         __sync_lock_test_and_set( &atomic->ptr, desired );
         __sync_lock_release( &atomic->ptr );
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -1200,6 +1278,10 @@ void* thread_atomic_ptr_swap( thread_atomic_ptr_t* atomic, void* desired )
         void* old = __sync_lock_test_and_set( &atomic->ptr, desired );
         __sync_lock_release( &atomic->ptr );
         return old;
+
+    #elif defined (__wasi__)
+
+	return NULL;
     
     #else 
         #error Unknown platform.
@@ -1216,6 +1298,10 @@ void* thread_atomic_ptr_compare_and_swap( thread_atomic_ptr_t* atomic, void* exp
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         return __sync_val_compare_and_swap( &atomic->ptr, expected, desired );
+
+    #elif defined (__wasi__)
+
+	return NULL;
 
     #else 
         #error Unknown platform.
@@ -1243,6 +1329,8 @@ void thread_timer_init( thread_timer_t* timer )
 
         // Nothing
 
+    #elif defined (__wasi__)
+
     #else 
         #error Unknown platform.
     #endif
@@ -1262,6 +1350,8 @@ void thread_timer_term( thread_timer_t* timer )
     #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
 
         // Nothing
+
+    #elif defined (__wasi__)
     
     #else 
         #error Unknown platform.
@@ -1279,7 +1369,7 @@ void thread_timer_wait( thread_timer_t* timer, THREAD_U64 nanoseconds )
         (void) b;
         WaitForSingleObject( *(HANDLE*)timer, INFINITE ); 
     
-    #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ )
+    #elif defined( __linux__ ) || defined( __APPLE__ ) || defined( __ANDROID__ ) || defined ( __wasi__ )
 
         struct timespec rem;
         struct timespec req;

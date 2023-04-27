@@ -10,6 +10,7 @@ extern void font_remove_letter(vector_font_t *font, uint32_t cp);
 extern void add_codepoint_letter_lut_reference(vector_font_t *font);
 extern void process_glyphdata(vector_font_t *font, letter_t *l, glyphdata_t *gd);
 extern void make_glyph_vobj(letter_t *l, glyphdata_t *gd);
+extern void make_fallback_font(vector_font_t *font);
 extern void process_one_glyph(vector_font_t *font, int i);
 extern vector_font_t *make_font(char *index_path);
 extern vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename);

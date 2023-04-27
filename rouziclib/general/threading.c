@@ -1,4 +1,4 @@
-#if defined(__EMSCRIPTEN__) || defined (__wasi__)
+#if defined(__EMSCRIPTEN__)
 #define RL_THREADING_PLATFORM_FAKING
 #define __APPLE__
 #endif
@@ -29,6 +29,7 @@ WINBASEAPI _Ret_maybenull_ HANDLE WINAPI CreateSemaphoreA( _In_opt_ LPSECURITY_A
 #define sched_get_priority_min(a)	(int)0
 #define pthread_setschedparam(a,b,c)	(void)0
 #define nice(a)				(void)0
+#define sem_post(a)			(void)0
 struct sched_param { int sched_priority; };
 #endif
 
@@ -40,6 +41,9 @@ int rl_thread_detach(rl_thread_t thread)
 {
 	#ifdef _WIN32
 	return CloseHandle((HANDLE) thread) != 0;
+
+	#elif defined (__wasi__)
+	return -1;
 
 	#elif defined(NOT_WINDOWS)
 	return pthread_detach((pthread_t) thread) == 0;
@@ -105,6 +109,8 @@ void rl_sem_init(rl_sem_t *sem, int value)
 	#ifdef _WIN32
 	*sem = CreateSemaphore(NULL, value, INT_MAX, NULL);
 
+	#elif defined (__wasi__)
+
 	#elif defined(NOT_WINDOWS)
 	sem_init(sem, 0, value);
 
@@ -117,6 +123,8 @@ void rl_sem_destroy(rl_sem_t *sem)
 {
 	#ifdef _WIN32
 	CloseHandle(*sem);
+
+	#elif defined (__wasi__)
 
 	#elif defined(NOT_WINDOWS)
 	sem_destroy(sem);
@@ -131,6 +139,8 @@ void rl_sem_wait(rl_sem_t *sem)
 	#ifdef _WIN32
 	WaitForSingleObject(*sem, INFINITE);
 
+	#elif defined (__wasi__)
+
 	#elif defined(NOT_WINDOWS)
 	sem_wait(sem);
 
@@ -143,6 +153,8 @@ void rl_sem_post(rl_sem_t *sem)
 {
 	#ifdef _WIN32
 	ReleaseSemaphore(*sem, 1, NULL);
+
+	#elif defined (__wasi__)
 
 	#elif defined(NOT_WINDOWS)
 	sem_post(sem);
@@ -158,6 +170,9 @@ int thread_mutex_trylock(thread_mutex_t *mutex)
 {
 	#ifdef _WIN32
 	return TryEnterCriticalSection((CRITICAL_SECTION *) mutex) != 0;
+
+	#elif defined (__wasi__)
+	return -1;
 
 	#elif defined(NOT_WINDOWS)
 	return pthread_mutex_trylock((pthread_mutex_t *) mutex) == 0;
@@ -198,6 +213,9 @@ int32_t rl_atomic_load_i32(volatile int32_t *ptr)
 	#ifdef _WIN32
 	return InterlockedCompareExchange(ptr, 0, 0);
 
+	#elif defined (__wasi__)
+	return -1;
+
 	#elif defined(NOT_WINDOWS)
 	return __atomic_load_n(ptr, __ATOMIC_ACQUIRE);
 
@@ -210,6 +228,8 @@ void rl_atomic_store_i32(volatile int32_t *ptr, int32_t value)
 {
 	#ifdef _WIN32
 	InterlockedExchange(ptr, value);
+
+	#elif defined (__wasi__)
 
 	#elif defined(NOT_WINDOWS)
 	__atomic_store_n(ptr, value, __ATOMIC_RELEASE);
@@ -224,6 +244,9 @@ int32_t rl_atomic_add_i32(volatile int32_t *ptr, int32_t value)
 	#ifdef _WIN32
 	return InterlockedExchangeAdd(ptr, value);
 
+	#elif defined (__wasi__)
+	return -1;
+
 	#elif defined(NOT_WINDOWS)
 	return __atomic_add_fetch(ptr, value, __ATOMIC_ACQ_REL);
 
@@ -236,6 +259,9 @@ int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value)
 {
 	#ifdef _WIN32
 	return InterlockedExchange(ptr, new_value);
+
+	#elif defined (__wasi__)
+	return -1;
 
 	#elif defined(NOT_WINDOWS)
 	return __atomic_exchange_n(ptr, new_value, __ATOMIC_ACQ_REL);
