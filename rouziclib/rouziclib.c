@@ -144,6 +144,10 @@
 #include "interpreter/decompilation.c"
 #include "interpreter/expression.c"
 
+#ifdef RL_WAHE
+#include "wahe/wahe.c"
+#endif
+
 #include "libraries/opencl.c"
 #include "libraries/sdl.c"
 #include "libraries/vulkan.c"

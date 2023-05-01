@@ -208,6 +208,10 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "interpreter/real_functions.h"
 #include "interpreter/expression.h"
 
+#ifdef RL_WAHE
+#include "wahe/wahe.h"
+#endif
+
 #include "libraries/opencl.h"		// used if RL_OPENCL is defined
 #include "libraries/sdl.h"		// used if RL_SDL is defined
 #include "libraries/vulkan.h"		// used if RL_VULKAN is defined

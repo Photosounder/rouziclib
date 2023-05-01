@@ -566,6 +566,11 @@ This defines the custom real arithmetic options. To define each format structure
 ** link:rouziclib/interpreter/expression.c[expression.c] / link:rouziclib/interpreter/expression.h[expression.h] +
 This turns mathematical expressions into RLIP programs. This serves as a replacement for the more limited https://github.com/codeplea/tinyexpr[TinyExpr].
 
+* link:rouziclib/wahe[wahe/]
+
+** link:rouziclib/wahe/wahe.c[wahe.c] / link:rouziclib/wahe/expression.h[wahe.h] +
+**W**eb**A**ssembly **H**ost **E**nvironment.
+
 * link:rouziclib/libraries[libraries/]
 
 ** link:rouziclib/libraries/opencl.c[opencl.c] / link:rouziclib/libraries/opencl.h[opencl.h] and link:rouziclib/libraries/opencl_struct.h[opencl_struct.h] +

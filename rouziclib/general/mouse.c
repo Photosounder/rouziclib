@@ -40,7 +40,6 @@ void mouse_pre_event_proc(mouse_t *mouse)
 	flag_update(mouse->window_focus_flag);
 	flag_update(mouse->window_minimised_flag);
 	flag_update(mouse->mouse_focus_flag);
-	mouse->d = XY0;
 }
 
 void mouse_button_event(int *mb, mousebut_flags_t *flags, int way)
