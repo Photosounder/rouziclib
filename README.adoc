@@ -568,7 +568,7 @@ This turns mathematical expressions into RLIP programs. This serves as a replace
 
 * link:rouziclib/wahe[wahe/]
 
-** link:rouziclib/wahe/wahe.c[wahe.c] / link:rouziclib/wahe/expression.h[wahe.h] +
+** link:rouziclib/wahe/wahe.c[wahe.c] / link:rouziclib/wahe/wahe.h[wahe.h] +
 **W**eb**A**ssembly **H**ost **E**nvironment.
 
 * link:rouziclib/libraries[libraries/]

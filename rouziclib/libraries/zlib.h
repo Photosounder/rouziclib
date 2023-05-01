@@ -12,6 +12,9 @@
 #define MINIZ_UNALIGNED_USE_MEMCPY
 #include "orig/miniz.h"
 
+#undef alloc_func
+#undef free_func
+
 #endif
 
 extern int gz_decompress(const uint8_t *src, const size_t src_len, uint8_t **dst, size_t *dst_alloc);
