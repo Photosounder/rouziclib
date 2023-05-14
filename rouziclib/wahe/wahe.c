@@ -94,7 +94,7 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	// Check result type
 	if (ret[0].kind != ctx->address_type)
 	{
-		fprintf_rl(stderr, "call_module_malloc() expected a type %s result\n", ctx->address_type==0 ? "int32_t" : "int64_t");
+		fprintf_rl(stderr, "call_module_malloc() expected a type %s result\n", ctx->address_type==WASMTIME_I32 ? "int32_t" : "int64_t");
 		return 0;
 	}
 
@@ -105,22 +105,64 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	return wasmtime_val_get_address(ret[0]);
 }
 
-void call_module_draw(wahe_module_t *ctx, size_t raster_address_for_wasm, xyi_t r_dim)
+void call_module_free(wahe_module_t *ctx, size_t address)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
-	wasmtime_val_t param[3];
+	wasmtime_val_t param[1];
 
 	// Set params
-	param[0].kind = ctx->address_type;
-	param[0].of.i32 = raster_address_for_wasm;
-	param[1].kind = WASMTIME_I32;
-	param[1].of.i32 = r_dim.x;
-	param[2].kind = WASMTIME_I32;
-	param[2].of.i32 = r_dim.y;
+	param[0] = wasmtime_val_set_address(ctx, address);
 
 	// Call the function
-	error = wasmtime_func_call(ctx->context, &ctx->draw_func, param, 3, NULL, 0, &trap);
+	error = wasmtime_func_call(ctx->context, &ctx->free_func, param, 1, NULL, 0, &trap);
+	if (error || trap)
+	{
+		fprintf_rl(stderr, "call_module_free(ctx, %zu) failed\n", address);
+		fprint_wasmtime_error(error, trap);
+		return;
+	}
+}
+
+int wahe_pixel_format_to_raster_mode(const char *name)
+{
+	if (strcmp(name, "RGBA UQ1.15 linear") == 0)
+		return IMAGE_USE_LRGB;
+
+	if (strcmp(name, "RGBA float linear") == 0)
+		return IMAGE_USE_FRGB;
+
+	if (strcmp(name, "RGBA 8 sRGB") == 0)
+		return IMAGE_USE_SRGB;
+
+	if (strcmp(name, "RGB 10-12-10 sqrt") == 0)
+		return IMAGE_USE_SQRGB;
+
+	return IMAGE_USE_BUF;
+}
+
+int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
+{
+	wasmtime_error_t *error;
+	wasm_trap_t *trap = NULL;
+	wasmtime_val_t ret[1], param[2];
+
+	// Write message to send
+	if (ctx->draw_msg_addr == 0)
+		ctx->draw_msg_addr = call_module_malloc(ctx, 50);
+	
+	sprintf(&ctx->memory_ptr[ctx->draw_msg_addr], "Recommended resolution %dx%d", recommended_resolution.x, recommended_resolution.y);
+
+	// Allocate space for return message pointer
+	if (ctx->draw_ret_msg_addr_ptr == 0)
+		ctx->draw_ret_msg_addr_ptr = call_module_malloc(ctx, ctx->address_type == WASMTIME_I32 ? sizeof(int32_t) : sizeof(int64_t));
+
+	// Set params
+	param[0] = wasmtime_val_set_address(ctx, ctx->draw_msg_addr);
+	param[1] = wasmtime_val_set_address(ctx, ctx->draw_ret_msg_addr_ptr);
+
+	// Call the function
+	error = wasmtime_func_call(ctx->context, &ctx->draw_func, param, 2, ret, 1, &trap);
 
 	// Update memory pointer
 	wasmtime_linker_get_memory(ctx);
@@ -130,24 +172,50 @@ void call_module_draw(wahe_module_t *ctx, size_t raster_address_for_wasm, xyi_t 
 	{
 		fprintf_rl(stderr, "call_module_draw() failed\n");
 		fprint_wasmtime_error(error, trap);
-		return;
+		return -1;
 	}
+
+	// Make the pointer to the return message
+	size_t draw_ret_msg_addr;
+	if (ctx->address_type == WASMTIME_I32)
+		draw_ret_msg_addr = *((int32_t *) &ctx->memory_ptr[ctx->draw_ret_msg_addr_ptr]);
+	else
+		draw_ret_msg_addr = *((int64_t *) &ctx->memory_ptr[ctx->draw_ret_msg_addr_ptr]);
+	char *message = &ctx->memory_ptr[draw_ret_msg_addr];
+
+	// Parse the return message
+	int ret_mode = get_raster_mode(ctx->fb);
+	for (const char *line = message; line; line = strstr_after(line, "\n"))
+	{
+		char a[32];
+
+		if (sscanf(line, "Pixel format: %[^\n]", a) == 1)
+			ret_mode = wahe_pixel_format_to_raster_mode(a);
+
+		sscanf(line, "Framebuffer address %zi", &ctx->raster_address);
+		sscanf(line, "Framebuffer resolution %dx%d", &ctx->fb.dim.x, &ctx->fb.dim.y);
+	}
+
+	// Update host-side raster for module framebuffer
+	ctx->fb = make_raster(&ctx->memory_ptr[ctx->raster_address], ctx->fb.dim, ctx->fb.dim, ret_mode);
+
+	// The return value indicates whether or not the framebuffer was updated
+	return ret[0].of.i32;
 }
 
-void call_module_user_input(wahe_module_t *ctx, size_t message_offset, int free_message)
+void call_module_user_input(wahe_module_t *ctx, size_t message_offset, size_t data_offset, size_t data_len)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
-	wasmtime_val_t param[2];
+	wasmtime_val_t param[3];
 
 	// Set params
-	param[0].kind = ctx->address_type;
-	param[0].of.i32 = message_offset;
-	param[1].kind = WASMTIME_I32;
-	param[1].of.i32 = free_message;
+	param[0] = wasmtime_val_set_address(ctx, message_offset);
+	param[1] = wasmtime_val_set_address(ctx, data_offset);
+	param[2] = wasmtime_val_set_address(ctx, data_len);
 
 	// Call the function
-	error = wasmtime_func_call(ctx->context, &ctx->user_input_func, param, 2, NULL, 0, &trap);
+	error = wasmtime_func_call(ctx->context, &ctx->user_input_func, param, 3, NULL, 0, &trap);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_user_input() failed\n");
@@ -281,7 +349,7 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 	wasmtime_linker_get_func(ctx, "malloc", &ctx->malloc_func, -1);
 	wasmtime_linker_get_func(ctx, "realloc", &ctx->realloc_func, -1);
 	wasmtime_linker_get_func(ctx, "free", &ctx->free_func, -1);
-	wasmtime_linker_get_func(ctx, "module_draw_lrgb", &ctx->draw_func, 1);
+	wasmtime_linker_get_func(ctx, "module_draw", &ctx->draw_func, 1);
 	wasmtime_linker_get_func(ctx, "module_user_input", &ctx->user_input_func, 1);
 
 	// Get pointer to linear memory

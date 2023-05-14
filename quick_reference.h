@@ -925,6 +925,9 @@ void my_window_function(double *arg1, double *arg2)
 		for (i=0; i < count; i++)
 			some_unsorted_double_array[sorted_order_index_array[i]];
 
+	// Go through each line in a string
+		for (const char *line = message; line; line = strstr_after(line, "\n"))
+
 //**** C syntax I can't ever remember ****
 
 	// Function pointers as function arguments

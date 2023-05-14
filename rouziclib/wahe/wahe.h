@@ -18,6 +18,10 @@ typedef struct
 	wasmtime_func_t malloc_func, realloc_func, free_func, draw_func, user_input_func;
 
 	textedit_t input_te;
+
+	// Draw-specific
+	raster_t fb;
+	size_t raster_address, draw_msg_addr, draw_ret_msg_addr_ptr;
 	rect_t fb_rect;
 } wahe_module_t;
 
@@ -26,8 +30,10 @@ extern int wasmtime_linker_get_func(wahe_module_t *ctx, const char *func_name, w
 extern wasmtime_val_t wasmtime_val_set_address(wahe_module_t *ctx, size_t address);
 extern size_t wasmtime_val_get_address(wasmtime_val_t val);
 extern size_t call_module_malloc(wahe_module_t *ctx, size_t size);
-extern void call_module_draw(wahe_module_t *ctx, size_t raster_address_for_wasm, xyi_t r_dim);
-extern void call_module_user_input(wahe_module_t *ctx, size_t message_offset, int free_message);
+extern void call_module_free(wahe_module_t *ctx, size_t address);
+extern int wahe_pixel_format_to_raster_mode(const char *name);
+extern int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution);
+extern void call_module_user_input(wahe_module_t *ctx, size_t message_offset, size_t data_offset, size_t data_len);
 
 extern size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...);
 extern int is_wasmtime_func_found(wasmtime_func_t func);
