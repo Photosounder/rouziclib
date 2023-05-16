@@ -21,7 +21,7 @@ typedef struct
 
 	// Draw-specific
 	raster_t fb;
-	size_t raster_address, draw_msg_addr, draw_ret_msg_addr_ptr;
+	size_t raster_address, raster_size, draw_msg_addr, draw_ret_msg_addr_ptr;
 	rect_t fb_rect;
 } wahe_module_t;
 

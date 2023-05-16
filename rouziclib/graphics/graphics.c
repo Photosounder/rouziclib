@@ -155,6 +155,20 @@ int get_raster_mode(raster_t r)
 	return -1;
 }
 
+size_t get_raster_buffer_size(raster_t r)
+{
+	size_t pix_count = mul_x_by_y_xyi(r.dim);
+
+	if (r.srgb)	return pix_count*sizeof(srgb_t);
+	if (r.l)	return pix_count*sizeof(lrgb_t);
+	if (r.f)	return pix_count*sizeof(frgb_t);
+	if (r.sq)	return pix_count*sizeof(sqrgb_t);
+	if (r.buf)	return r.buf_size;
+
+	return 0;
+}
+
+
 srgb_t get_raster_pixel_in_srgb(raster_t r, const size_t index)
 {
 	srgb_t s={0};

@@ -192,7 +192,7 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 		if (sscanf(line, "Pixel format: %[^\n]", a) == 1)
 			ret_mode = wahe_pixel_format_to_raster_mode(a);
 
-		sscanf(line, "Framebuffer address %zi", &ctx->raster_address);
+		sscanf(line, "Framebuffer location: %zu bytes at %zi", &ctx->raster_size, &ctx->raster_address);
 		sscanf(line, "Framebuffer resolution %dx%d", &ctx->fb.dim.x, &ctx->fb.dim.y);
 	}
 
