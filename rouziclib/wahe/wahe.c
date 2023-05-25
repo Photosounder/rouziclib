@@ -124,6 +124,59 @@ void call_module_free(wahe_module_t *ctx, size_t address)
 	}
 }
 
+void call_module_init(wahe_module_t *ctx)
+{
+	wasmtime_error_t *error;
+	wasm_trap_t *trap = NULL;
+
+	if (ctx->init_func.store_id == 0)
+		return;
+
+	// Call the function
+	error = wasmtime_func_call(ctx->context, &ctx->init_func, NULL, 0, NULL, 0, &trap);
+	if (error || trap)
+	{
+		fprintf_rl(stderr, "call_module_init() failed\n");
+		fprint_wasmtime_error(error, trap);
+		return;
+	}
+
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+}
+
+size_t call_module_save_state(wahe_module_t *ctx)
+{
+	wasmtime_error_t *error;
+	wasm_trap_t *trap = NULL;
+	wasmtime_val_t ret[1];
+
+	if (ctx->save_state_func.store_id == 0)
+		return 0;
+
+	// Call the function
+	error = wasmtime_func_call(ctx->context, &ctx->save_state_func, NULL, 0, ret, 1, &trap);
+	if (error || trap)
+	{
+		fprintf_rl(stderr, "call_module_save_state() failed\n");
+		fprint_wasmtime_error(error, trap);
+		return 0;
+	}
+
+	// Check result type
+	if (ret[0].kind != ctx->address_type)
+	{
+		fprintf_rl(stderr, "call_module_save_state() expected a type %s result\n", ctx->address_type==WASMTIME_I32 ? "int32_t" : "int64_t");
+		return 0;
+	}
+
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+
+	// Return result
+	return wasmtime_val_get_address(ret[0]);
+}
+
 int wahe_pixel_format_to_raster_mode(const char *name)
 {
 	if (strcmp(name, "RGBA UQ1.15 linear") == 0)
@@ -145,7 +198,10 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
-	wasmtime_val_t ret[1], param[2];
+	wasmtime_val_t ret[1], param[1];
+
+	if (ctx->draw_func.store_id == 0)
+		return -1;
 
 	// Write message to send
 	if (ctx->draw_msg_addr == 0)
@@ -153,21 +209,11 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 	
 	sprintf(&ctx->memory_ptr[ctx->draw_msg_addr], "Recommended resolution %dx%d", recommended_resolution.x, recommended_resolution.y);
 
-	// Allocate space for return message pointer
-	if (ctx->draw_ret_msg_addr_ptr == 0)
-		ctx->draw_ret_msg_addr_ptr = call_module_malloc(ctx, ctx->address_type == WASMTIME_I32 ? sizeof(int32_t) : sizeof(int64_t));
-
 	// Set params
 	param[0] = wasmtime_val_set_address(ctx, ctx->draw_msg_addr);
-	param[1] = wasmtime_val_set_address(ctx, ctx->draw_ret_msg_addr_ptr);
 
 	// Call the function
-	error = wasmtime_func_call(ctx->context, &ctx->draw_func, param, 2, ret, 1, &trap);
-
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-
-	// Handle function call problems
+	error = wasmtime_func_call(ctx->context, &ctx->draw_func, param, 1, ret, 1, &trap);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_draw() failed\n");
@@ -175,53 +221,67 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 		return -1;
 	}
 
-	// Make the pointer to the return message
-	size_t draw_ret_msg_addr;
-	if (ctx->address_type == WASMTIME_I32)
-		draw_ret_msg_addr = *((int32_t *) &ctx->memory_ptr[ctx->draw_ret_msg_addr_ptr]);
-	else
-		draw_ret_msg_addr = *((int64_t *) &ctx->memory_ptr[ctx->draw_ret_msg_addr_ptr]);
-	char *message = &ctx->memory_ptr[draw_ret_msg_addr];
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
 
 	// Parse the return message
-	int ret_mode = get_raster_mode(ctx->fb);
-	for (const char *line = message; line; line = strstr_after(line, "\n"))
+	if (wasmtime_val_get_address(ret[0]))
 	{
-		char a[32];
+		int ret_mode = get_raster_mode(ctx->fb);
 
-		if (sscanf(line, "Pixel format: %[^\n]", a) == 1)
-			ret_mode = wahe_pixel_format_to_raster_mode(a);
+		// Get the message address and make pointer to the message
+		ctx->draw_ret_msg_addr = wasmtime_val_get_address(ret[0]);
+		char *message = &ctx->memory_ptr[ctx->draw_ret_msg_addr];
 
-		sscanf(line, "Framebuffer location: %zu bytes at %zi", &ctx->raster_size, &ctx->raster_address);
-		sscanf(line, "Framebuffer resolution %dx%d", &ctx->fb.dim.x, &ctx->fb.dim.y);
+		// Parse each line of the message
+		for (const char *line = message; line; line = strstr_after(line, "\n"))
+		{
+			char a[32];
+
+			if (sscanf(line, "Pixel format: %[^\n]", a) == 1)
+				ret_mode = wahe_pixel_format_to_raster_mode(a);
+
+			sscanf(line, "Framebuffer location: %zu bytes at %zi", &ctx->raster_size, &ctx->raster_address);
+			sscanf(line, "Framebuffer resolution %dx%d", &ctx->fb.dim.x, &ctx->fb.dim.y);
+		}
+
+		// Update the host-side raster for the module framebuffer
+		ctx->fb = make_raster(&ctx->memory_ptr[ctx->raster_address], ctx->fb.dim, ctx->fb.dim, ret_mode);
 	}
 
-	// Update host-side raster for module framebuffer
-	ctx->fb = make_raster(&ctx->memory_ptr[ctx->raster_address], ctx->fb.dim, ctx->fb.dim, ret_mode);
-
 	// The return value indicates whether or not the framebuffer was updated
-	return ret[0].of.i32;
+	return wasmtime_val_get_address(ret[0]) != 0;
 }
 
-void call_module_user_input(wahe_module_t *ctx, size_t message_offset, size_t data_offset, size_t data_len)
+char *call_module_message_input(wahe_module_t *ctx, size_t message_offset)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
-	wasmtime_val_t param[3];
+	wasmtime_val_t ret[1], param[1];
+
+	if (ctx->input_func.store_id == 0)
+		return NULL;
 
 	// Set params
 	param[0] = wasmtime_val_set_address(ctx, message_offset);
-	param[1] = wasmtime_val_set_address(ctx, data_offset);
-	param[2] = wasmtime_val_set_address(ctx, data_len);
 
 	// Call the function
-	error = wasmtime_func_call(ctx->context, &ctx->user_input_func, param, 3, NULL, 0, &trap);
+	error = wasmtime_func_call(ctx->context, &ctx->input_func, param, 1, ret, 1, &trap);
 	if (error || trap)
 	{
-		fprintf_rl(stderr, "call_module_user_input() failed\n");
+		fprintf_rl(stderr, "call_module_message_input() failed\n");
 		fprint_wasmtime_error(error, trap);
-		return;
+		return NULL;
 	}
+
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+
+	// Return pointer to return message
+	if (wasmtime_val_get_address(ret[0]))
+		return (char *) &ctx->memory_ptr[wasmtime_val_get_address(ret[0])];
+	else
+		return NULL;
 }
 
 size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...)
@@ -325,9 +385,17 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 
 	// Initialise callbacks (host functions called from WASM module)
 	func_type = wasm_functype_new_1_0(wasm_valtype_new_i32());
-	wasmtime_func_t print_func;
+	error = wasmtime_linker_define_func(ctx->linker, "env", strlen("env"), "wahe_print", strlen("wahe_print"), func_type, wahe_print, ctx, NULL);
+	if (error)
+	{
+		fprintf_rl(stderr, "Error defining callback in wasmtime_linker_define_func()\n");
+		fprint_wasmtime_error(error, NULL);
+		return;
+	}
+	wasm_functype_delete(func_type);
 
-	error = wasmtime_linker_define_func(ctx->linker, "env", 3, "wahe_print", strlen("wahe_print"), func_type, wahe_print, ctx, NULL);
+	func_type = wasm_functype_new_1_1(wasm_valtype_new_i32(), wasm_valtype_new_i32());
+	error = wasmtime_linker_define_func(ctx->linker, "env", strlen("env"), "wahe_run_command", strlen("wahe_run_command"), func_type, wahe_run_command, ctx, NULL);
 	if (error)
 	{
 		fprintf_rl(stderr, "Error defining callback in wasmtime_linker_define_func()\n");
@@ -349,8 +417,10 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 	wasmtime_linker_get_func(ctx, "malloc", &ctx->malloc_func, -1);
 	wasmtime_linker_get_func(ctx, "realloc", &ctx->realloc_func, -1);
 	wasmtime_linker_get_func(ctx, "free", &ctx->free_func, -1);
+	wasmtime_linker_get_func(ctx, "module_init", &ctx->init_func, 1);
+	wasmtime_linker_get_func(ctx, "module_save_state", &ctx->save_state_func, 1);
 	wasmtime_linker_get_func(ctx, "module_draw", &ctx->draw_func, 1);
-	wasmtime_linker_get_func(ctx, "module_user_input", &ctx->user_input_func, 1);
+	wasmtime_linker_get_func(ctx, "module_message_input", &ctx->input_func, 1);
 
 	// Get pointer to linear memory
 	wasmtime_linker_get_memory(ctx);
@@ -360,15 +430,141 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 
 	// Init module's textedit used for transmitting text input
 	textedit_init(&ctx->input_te, 1);
+
+	// Call the module's module_init()
+	call_module_init(ctx);
 }
 
-// Gets called from the module
-wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *args, size_t nargs, wasmtime_val_t *results, size_t nresults)
+void wahe_set_module_index(wahe_module_t *ctx, int module_index)
+{
+	size_t message_offset = module_sprintf_alloc(ctx, "Module index %d", module_index);
+	call_module_message_input(ctx, message_offset);
+	call_module_free(ctx, message_offset);
+}
+
+void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_offset, size_t copy_size, int dst_module, size_t dst_offset)
+{
+	if (src_module < 0 || src_module >= group->module_count || dst_module < 0 || dst_module >= group->module_count)
+		return;
+
+	wahe_module_t *src_ctx = &group->module[src_module];
+	wahe_module_t *dst_ctx = &group->module[dst_module];
+
+	// Update memory pointers
+	wasmtime_linker_get_memory(src_ctx);
+	wasmtime_linker_get_memory(dst_ctx);
+
+	// TODO Check boundaries
+
+	// Copy
+	memcpy(&dst_ctx->memory_ptr[dst_offset], &src_ctx->memory_ptr[src_offset], copy_size);
+}
+
+size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
+{
+	FILE *in_file;
+	uint8_t *data;
+	size_t fsize, data_addr;
+
+	if (size)
+		*size = 0;
+
+	// Open file handle
+	in_file = fopen_utf8(path, "rb");
+	if (in_file == NULL)
+	{
+		fprintf_rl(stderr, "File '%s' not found.\n", path);
+		return 0;
+	}
+
+	// Get file size
+	fseek(in_file, 0, SEEK_END);
+	fsize = ftell(in_file);
+	rewind(in_file);
+
+	// Alloc data buffer
+	data_addr = call_module_malloc(ctx, fsize+1);
+	data = &ctx->memory_ptr[data_addr];
+
+	// Read all the data at once
+	fread(data, 1, fsize, in_file);
+	fclose(in_file);
+
+	if (size)
+		*size = fsize;
+
+	return data_addr;
+}
+
+// Get called from the module
+wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *resuls, size_t result_count)
 {
 	wahe_module_t *ctx = env;
 
-	uint32_t string_offset = args[0].of.i32;
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+
+	// Find string and print it
+	uint32_t string_offset = wasmtime_val_get_address(arg[0]);
 	char *string = &ctx->memory_ptr[string_offset];
 	fprintf_rl(stdout, "*=*WASM*=*   %s\n", string);
+
+	return NULL;
+}
+
+wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count)
+{
+	wahe_module_t *ctx = env;
+	size_t return_msg_addr = 0;
+
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+
+	// Parse message
+	if (wasmtime_val_get_address(arg[0]))
+	{
+		// Get the message address and make pointer to the message
+		char *message = &ctx->memory_ptr[wasmtime_val_get_address(arg[0])];
+
+		// Parse each line of the message
+		for (const char *line = message; line; line = strstr_after(line, "\n"))
+		{
+			// Copy buffer between memories
+			int src_module, dst_module;
+			size_t src_offset, copy_size, dst_offset;
+			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to %zi (module %d)", &copy_size, &src_offset, &src_module, &dst_offset, &dst_module) == 5)
+			{
+				wahe_copy_between_memories(ctx->parent_group, src_module, src_offset, copy_size, dst_module, dst_offset);
+			}
+
+			// Copy buffer between memories with allocation of destination
+			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to module %d", &copy_size, &src_offset, &src_module, &dst_module) == 4)
+			{
+				wahe_group_t *group = ctx->parent_group;
+				if (dst_module >= 0 && dst_module < group->module_count)
+				{
+					dst_offset = call_module_malloc(&group->module[dst_module], copy_size);
+					wahe_copy_between_memories(ctx->parent_group, src_module, src_offset, copy_size, dst_module, dst_offset);
+					return_msg_addr = module_sprintf_alloc(ctx, "Destination %p", (void *) dst_offset);
+				}
+			}
+
+			// Load raw file
+			int path_start = 0, path_end = 0;
+			sscanf(line, "Load raw file at path %n%*[^\n]%n", &path_start, &path_end);
+			if (path_end)
+			{
+				size_t data_addr, data_size = 0;
+				char *path = make_string_copy_len(&line[path_start], path_end-path_start);
+				data_addr = wahe_load_raw_file(ctx, path, &data_size);
+				free(path);
+				return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %p", data_size, (void *) data_addr);
+			}
+		}
+	}
+
+	// Return message
+	result[0] = wasmtime_val_set_address(ctx, return_msg_addr);
+
 	return NULL;
 }

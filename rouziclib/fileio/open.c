@@ -58,27 +58,33 @@ uint8_t *load_raw_file(const char *path, size_t *size)
 	uint8_t *data;
 	size_t fsize;
 
-	in_file = fopen_utf8(path, "rb");
+	if (size)
+		*size = 0;
 
+	// Open file handle
+	in_file = fopen_utf8(path, "rb");
 	if (in_file==NULL)
 	{
 		fprintf_rl(stderr, "File '%s' not found.\n", path);
 		return NULL;
 	}
 
+	// Get file size
 	fseek(in_file, 0, SEEK_END);
 	fsize = ftell(in_file);
 	rewind(in_file);
 
+	// Alloc data buffer
 	data = calloc(fsize+1, sizeof(uint8_t));
-	fread(data, 1, fsize, in_file);
 
+	// Read all the data at once
+	fread(data, 1, fsize, in_file);
 	fclose(in_file);
 
 	if (size)
 		*size = fsize;
 
-	return data;	
+	return data;
 }
 
 uint8_t *load_raw_file_dos_conv(const char *path, size_t *size)	// loads raw file but converts "\r\n" to "\n"
@@ -121,7 +127,7 @@ uint8_t *load_raw_file_dos_conv(const char *path, size_t *size)	// loads raw fil
 	if (size)
 		*size = fsize - offset;
 
-	return data;	
+	return data;
 }
 
 int save_raw_file(const char *path, const char *mode, uint8_t *data, size_t data_size)

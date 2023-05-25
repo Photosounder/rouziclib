@@ -15,15 +15,23 @@ typedef struct
 	wasmtime_memory_t memory;
 	uint8_t *memory_ptr;
 	wasmtime_valkind_t address_type;
-	wasmtime_func_t malloc_func, realloc_func, free_func, draw_func, user_input_func;
+	wasmtime_func_t malloc_func, realloc_func, free_func, init_func, save_state_func, draw_func, input_func;
 
 	textedit_t input_te;
 
 	// Draw-specific
 	raster_t fb;
-	size_t raster_address, raster_size, draw_msg_addr, draw_ret_msg_addr_ptr;
+	size_t raster_address, raster_size, draw_msg_addr, draw_ret_msg_addr;
 	rect_t fb_rect;
+
+	void *parent_group;	// wahe_group_t *
 } wahe_module_t;
+
+typedef struct
+{
+	wahe_module_t *module;
+	size_t module_count, module_as;
+} wahe_group_t;
 
 extern int wasmtime_linker_get_memory(wahe_module_t *ctx);
 extern int wasmtime_linker_get_func(wahe_module_t *ctx, const char *func_name, wasmtime_func_t *func, int verbosity);
@@ -31,13 +39,17 @@ extern wasmtime_val_t wasmtime_val_set_address(wahe_module_t *ctx, size_t addres
 extern size_t wasmtime_val_get_address(wasmtime_val_t val);
 extern size_t call_module_malloc(wahe_module_t *ctx, size_t size);
 extern void call_module_free(wahe_module_t *ctx, size_t address);
+extern void call_module_init(wahe_module_t *ctx);
+extern size_t call_module_save_state(wahe_module_t *ctx);
 extern int wahe_pixel_format_to_raster_mode(const char *name);
 extern int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution);
-extern void call_module_user_input(wahe_module_t *ctx, size_t message_offset, size_t data_offset, size_t data_len);
+extern char *call_module_message_input(wahe_module_t *ctx, size_t message_offset);
 
 extern size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...);
 extern int is_wasmtime_func_found(wasmtime_func_t func);
 extern void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap);
 extern void wahe_module_init(wahe_module_t *ctx, const char *path);
+extern void wahe_set_module_index(wahe_module_t *ctx, int module_index);
 
-extern wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *args, size_t nargs, wasmtime_val_t *results, size_t nresults);
+extern wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count);
+extern wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count);
