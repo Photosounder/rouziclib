@@ -145,38 +145,6 @@ void call_module_init(wahe_module_t *ctx)
 	wasmtime_linker_get_memory(ctx);
 }
 
-size_t call_module_save_state(wahe_module_t *ctx)
-{
-	wasmtime_error_t *error;
-	wasm_trap_t *trap = NULL;
-	wasmtime_val_t ret[1];
-
-	if (ctx->save_state_func.store_id == 0)
-		return 0;
-
-	// Call the function
-	error = wasmtime_func_call(ctx->context, &ctx->save_state_func, NULL, 0, ret, 1, &trap);
-	if (error || trap)
-	{
-		fprintf_rl(stderr, "call_module_save_state() failed\n");
-		fprint_wasmtime_error(error, trap);
-		return 0;
-	}
-
-	// Check result type
-	if (ret[0].kind != ctx->address_type)
-	{
-		fprintf_rl(stderr, "call_module_save_state() expected a type %s result\n", ctx->address_type==WASMTIME_I32 ? "int32_t" : "int64_t");
-		return 0;
-	}
-
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-
-	// Return result
-	return wasmtime_val_get_address(ret[0]);
-}
-
 int wahe_pixel_format_to_raster_mode(const char *name)
 {
 	if (strcmp(name, "RGBA UQ1.15 linear") == 0)
@@ -253,7 +221,7 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 	return wasmtime_val_get_address(ret[0]) != 0;
 }
 
-char *call_module_message_input(wahe_module_t *ctx, size_t message_offset)
+char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
@@ -263,7 +231,7 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_offset)
 		return NULL;
 
 	// Set params
-	param[0] = wasmtime_val_set_address(ctx, message_offset);
+	param[0] = wasmtime_val_set_address(ctx, message_addr);
 
 	// Call the function
 	error = wasmtime_func_call(ctx->context, &ctx->input_func, param, 1, ret, 1, &trap);
@@ -297,14 +265,14 @@ size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...)
 	va_end(args_copy);
 
 	// Alloc message in the module's linear memory
-	size_t offset = call_module_malloc(ctx, len+1);
+	size_t addr = call_module_malloc(ctx, len+1);
 
 	// Print
-	vsnprintf(&ctx->memory_ptr[offset], len+1, format, args);
+	vsnprintf(&ctx->memory_ptr[addr], len+1, format, args);
 
 	va_end(args);
 
-	return offset;
+	return addr;
 }
 
 int is_wasmtime_func_found(wasmtime_func_t func)
@@ -425,7 +393,7 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 	// Get pointer to linear memory
 	wasmtime_linker_get_memory(ctx);
 
-	// Set the type of module address offsets (currently always 32-bit)
+	// Set the type of module address addrs (currently always 32-bit)
 	ctx->address_type = WASMTIME_I32;
 
 	// Init module's textedit used for transmitting text input
@@ -437,12 +405,12 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 
 void wahe_set_module_index(wahe_module_t *ctx, int module_index)
 {
-	size_t message_offset = module_sprintf_alloc(ctx, "Module index %d", module_index);
-	call_module_message_input(ctx, message_offset);
-	call_module_free(ctx, message_offset);
+	size_t message_addr = module_sprintf_alloc(ctx, "Module index %d", module_index);
+	call_module_message_input(ctx, message_addr);
+	call_module_free(ctx, message_addr);
 }
 
-void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_offset, size_t copy_size, int dst_module, size_t dst_offset)
+void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr)
 {
 	if (src_module < 0 || src_module >= group->module_count || dst_module < 0 || dst_module >= group->module_count)
 		return;
@@ -457,7 +425,7 @@ void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_
 	// TODO Check boundaries
 
 	// Copy
-	memcpy(&dst_ctx->memory_ptr[dst_offset], &src_ctx->memory_ptr[src_offset], copy_size);
+	memcpy(&dst_ctx->memory_ptr[dst_addr], &src_ctx->memory_ptr[src_addr], copy_size);
 }
 
 size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
@@ -505,8 +473,8 @@ wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val
 	wasmtime_linker_get_memory(ctx);
 
 	// Find string and print it
-	uint32_t string_offset = wasmtime_val_get_address(arg[0]);
-	char *string = &ctx->memory_ptr[string_offset];
+	uint32_t string_addr = wasmtime_val_get_address(arg[0]);
+	char *string = &ctx->memory_ptr[string_addr];
 	fprintf_rl(stdout, "*=*WASM*=*   %s\n", string);
 
 	return NULL;
@@ -531,21 +499,21 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 		{
 			// Copy buffer between memories
 			int src_module, dst_module;
-			size_t src_offset, copy_size, dst_offset;
-			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to %zi (module %d)", &copy_size, &src_offset, &src_module, &dst_offset, &dst_module) == 5)
+			size_t src_addr, copy_size, dst_addr;
+			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to %zi (module %d)", &copy_size, &src_addr, &src_module, &dst_addr, &dst_module) == 5)
 			{
-				wahe_copy_between_memories(ctx->parent_group, src_module, src_offset, copy_size, dst_module, dst_offset);
+				wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
 			}
 
 			// Copy buffer between memories with allocation of destination
-			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to module %d", &copy_size, &src_offset, &src_module, &dst_module) == 4)
+			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to module %d", &copy_size, &src_addr, &src_module, &dst_module) == 4)
 			{
 				wahe_group_t *group = ctx->parent_group;
 				if (dst_module >= 0 && dst_module < group->module_count)
 				{
-					dst_offset = call_module_malloc(&group->module[dst_module], copy_size);
-					wahe_copy_between_memories(ctx->parent_group, src_module, src_offset, copy_size, dst_module, dst_offset);
-					return_msg_addr = module_sprintf_alloc(ctx, "Destination %p", (void *) dst_offset);
+					dst_addr = call_module_malloc(&group->module[dst_module], copy_size);
+					wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
+					return_msg_addr = module_sprintf_alloc(ctx, "Destination %p", (void *) dst_addr);
 				}
 			}
 
@@ -560,6 +528,12 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 				free(path);
 				return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %p", data_size, (void *) data_addr);
 			}
+
+			// Return raw time
+			int n = 0;
+			sscanf(line, "Get raw time%n", &n);
+			if (n)
+				return_msg_addr = module_sprintf_alloc(ctx, "Raw time %.16g seconds", get_time_hr());
 		}
 	}
 

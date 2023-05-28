@@ -40,10 +40,9 @@ extern size_t wasmtime_val_get_address(wasmtime_val_t val);
 extern size_t call_module_malloc(wahe_module_t *ctx, size_t size);
 extern void call_module_free(wahe_module_t *ctx, size_t address);
 extern void call_module_init(wahe_module_t *ctx);
-extern size_t call_module_save_state(wahe_module_t *ctx);
 extern int wahe_pixel_format_to_raster_mode(const char *name);
 extern int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution);
-extern char *call_module_message_input(wahe_module_t *ctx, size_t message_offset);
+extern char *call_module_message_input(wahe_module_t *ctx, size_t message_addr);
 
 extern size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...);
 extern int is_wasmtime_func_found(wasmtime_func_t func);

@@ -472,7 +472,7 @@ void my_window_function(double *arg1, double *arg2)
 		if (cur_textedit==NULL && mouse.key_state[RL_SCANCODE_?] >= 2)
 
 	// Get modifier keys
-		get_kb_shift() (also ctrl, guikey, alt)
+		get_kb_shift(), get_kb_ctrl(), get_kb_guikey(), get_kb_alt()
 		// all of the above put together
 		get_kb_all_mods()
 
