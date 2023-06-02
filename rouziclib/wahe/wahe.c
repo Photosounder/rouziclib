@@ -1,3 +1,35 @@
+void wahe_bench_point(wahe_module_t *ctx, const char *label, int depth)
+{
+	static double ref_time = 0.;
+	static int bench_depth = 0;
+	static buffer_t buf = {0};
+
+	// Set ref time if we're starting at the bottom level
+	if (bench_depth == 0)
+		ref_time = get_time_hr();
+
+	// Decrement depth
+	if (depth < 0)
+		bench_depth--;
+
+	// Indent printing according to depth
+	for (int i=0; i < bench_depth; i++)
+		bufprintf(&buf, "\t");
+	bufprintf(&buf, "Bench %s: %.3f ms\n", label, 1e3*(get_time_hr() - ref_time));
+
+	// Increment depth
+	if (depth > 0)
+		bench_depth++;
+
+	// Print buffer to output if it's the end
+	if (bench_depth == 0)
+	{
+		if (get_time_hr() - ref_time > 0.6/60.)
+			fprintf_rl(stdout, "%s\n", buf.buf);
+		clear_buf(&buf);
+	}
+}
+
 int wasmtime_linker_get_memory(wahe_module_t *ctx)
 {
 	wasmtime_extern_t item;
@@ -83,7 +115,9 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	param[0] = wasmtime_val_set_address(ctx, size);
 
 	// Call the function
+	wahe_bench_point(ctx, "calling malloc()", 1);
 	error = wasmtime_func_call(ctx->context, &ctx->malloc_func, param, 1, ret, 1, &trap);
+	wahe_bench_point(ctx, "malloc() returned", 0);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_malloc(ctx, %zu) failed\n", size);
@@ -99,7 +133,9 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	}
 
 	// Update memory pointer
+	wahe_bench_point(ctx, "Updating with wasmtime_linker_get_memory()", 0);
 	wasmtime_linker_get_memory(ctx);
+	wahe_bench_point(ctx, "call_module_malloc() end", -1);
 
 	// Return result
 	return wasmtime_val_get_address(ret[0]);
@@ -115,7 +151,9 @@ void call_module_free(wahe_module_t *ctx, size_t address)
 	param[0] = wasmtime_val_set_address(ctx, address);
 
 	// Call the function
+	wahe_bench_point(ctx, "calling free()", 1);
 	error = wasmtime_func_call(ctx->context, &ctx->free_func, param, 1, NULL, 0, &trap);
+	wahe_bench_point(ctx, "free() returned", -1);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_free(ctx, %zu) failed\n", address);
@@ -181,7 +219,9 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 	param[0] = wasmtime_val_set_address(ctx, ctx->draw_msg_addr);
 
 	// Call the function
+	wahe_bench_point(ctx, "calling module_draw()", 1);
 	error = wasmtime_func_call(ctx->context, &ctx->draw_func, param, 1, ret, 1, &trap);
+	wahe_bench_point(ctx, "module_draw() returned", -1);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_draw() failed\n");
@@ -234,7 +274,9 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 	param[0] = wasmtime_val_set_address(ctx, message_addr);
 
 	// Call the function
+	wahe_bench_point(ctx, "calling module_message_input()", 1);
 	error = wasmtime_func_call(ctx->context, &ctx->input_func, param, 1, ret, 1, &trap);
+	wahe_bench_point(ctx, "module_message_input() returned", -1);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_message_input() failed\n");
@@ -393,7 +435,7 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 	// Get pointer to linear memory
 	wasmtime_linker_get_memory(ctx);
 
-	// Set the type of module address addrs (currently always 32-bit)
+	// Set the type of module addresses (currently always 32-bit)
 	ctx->address_type = WASMTIME_I32;
 
 	// Init module's textedit used for transmitting text input
@@ -469,6 +511,8 @@ wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val
 {
 	wahe_module_t *ctx = env;
 
+	wahe_bench_point(ctx, "WASM called wahe_print()", 1);
+
 	// Update memory pointer
 	wasmtime_linker_get_memory(ctx);
 
@@ -477,6 +521,8 @@ wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val
 	char *string = &ctx->memory_ptr[string_addr];
 	fprintf_rl(stdout, "*=*WASM*=*   %s\n", string);
 
+	wahe_bench_point(ctx, "wahe_print() returning", -1);
+
 	return NULL;
 }
 
@@ -484,6 +530,7 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 {
 	wahe_module_t *ctx = env;
 	size_t return_msg_addr = 0;
+	int n;
 
 	// Update memory pointer
 	wasmtime_linker_get_memory(ctx);
@@ -530,10 +577,16 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 			}
 
 			// Return raw time
-			int n = 0;
+			n = 0;
 			sscanf(line, "Get raw time%n", &n);
 			if (n)
 				return_msg_addr = module_sprintf_alloc(ctx, "Raw time %.16g seconds", get_time_hr());
+
+			// Benchmark return
+			n = 0;
+			sscanf(line, "Benchmark%n", &n);
+			if (n)
+				wahe_bench_point(ctx, "-Benchmark command-", 0);
 		}
 	}
 
