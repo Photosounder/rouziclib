@@ -1199,12 +1199,8 @@ int print_to_layout_label(gui_layout_t *layout, const int id, const char *format
 	cur_elem = &layout->elem[id];
 
 	va_start(args, format);
-	len = vsnprintf(NULL, 0, format, args);	// gets the printed length without actually printing
-	va_end(args);
-
+	len = vstrlenf(format, args);
 	alloc_enough(&cur_elem->label, len+1, &cur_elem->label_as, sizeof(char), 1.25);
-
-	va_start(args, format);
 	vsprintf(cur_elem->label, format, args);
 	va_end(args);
 
@@ -1224,12 +1220,8 @@ int print_to_layout_textedit(gui_layout_t *layout, const int id, const int clear
 	te = (textedit_t *) layout->elem[id].data;
 
 	va_start(args, format);
-	len = vsnprintf(NULL, 0, format, args);	// gets the printed length without actually printing
-	va_end(args);
-
+	len = vstrlenf(format, args);
 	string = calloc(len+1, sizeof(char));
-
-	va_start(args, format);
 	vsprintf(string, format, args);
 	va_end(args);
 

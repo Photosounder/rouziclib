@@ -81,12 +81,23 @@ char *string_tolower(char *str)
 	return str;
 }
 
+int vstrlenf(const char *format, va_list args)
+{
+	int len;
+	va_list args_copy;
+
+	va_copy(args_copy, args);
+	len = vsnprintf(NULL, 0, format, args_copy);	// gets the printed length without actually printing
+	va_end(args_copy);
+
+	return len;
+}
+
 char *vsprintf_realloc(char **string, size_t *alloc_count, const int append, const char *format, va_list args)
 {
 	int len0=0, len1;
 	size_t zero=0;
 	char *p=NULL;
-	va_list args_copy;
 
 	if (string==NULL)				// if there's no string then we create one
 		string = &p;				// so that ultimately it's p that will be returned
@@ -94,9 +105,7 @@ char *vsprintf_realloc(char **string, size_t *alloc_count, const int append, con
 	if (alloc_count==NULL)				// if alloc_count isn't provided
 		alloc_count = &zero;			// use 0 which will realloc string to an adequate size
 
-	va_copy(args_copy, args);
-	len1 = vsnprintf(NULL, 0, format, args_copy);	// gets the printed length without actually printing
-	va_end(args_copy);
+	len1 = vstrlenf(format, args);
 
 	if (string)
 		if (append && *string)
@@ -128,12 +137,8 @@ char *vsprintf_alloc(const char *format, va_list args)	// like vsprintf but allo
 {
 	int len;
 	char *str;
-	va_list args_copy;
 
-	va_copy(args_copy, args);
-	len = vsnprintf(NULL, 0, format, args_copy);	// gets the printed length without actually printing
-	va_end(args_copy);
-
+	len = vstrlenf(format, args);
 	str = calloc(len+1, sizeof(char));
 	vsnprintf(str, len+1, format, args);
 

@@ -877,7 +877,7 @@ void my_window_function(double *arg1, double *arg2)
 		samplerate = pref_get_double(&pref_def, "Audio output:Sample rate", 44100, " Hz");
 		             pref_set_double(&pref_def, "Audio output:Sample rate", samplerate, " Hz");
 
-		// Strings
+		// Strings (return value of pref_get_string() can't be freed)
 		const char *driver_name = pref_get_string(&pref_def, "Audio output:Preferred driver", "directsound");
 		                          pref_set_string(&pref_def, "Audio output:Preferred driver", "winmm");
 

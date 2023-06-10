@@ -292,11 +292,22 @@ const char *strstr_after(const char *fullstr, const char *substr)		// points to 
 	return NULL;
 }
 
+size_t count_substring_occurrences(const char *fullstr, const char *substr)
+{
+	size_t count = 0;
+	const char *p = fullstr;
+
+	while (p = strstr_after(p, substr))
+		count++;
+
+	return count;
+}
+
 void *memmem_rl(const uint8_t *l, size_t l_len, const uint8_t *s, size_t s_len)	// like strstr but binary, like memmem but availability is lacking on Windows and Emscripten
 {
 	int i;
 
-	if (l==NULL || s==NULL || l_len<=0 || s_len<=0 || l_len < s_len)
+	if (l==NULL || s==NULL || l_len <= 0 || s_len <= 0 || l_len < s_len)
 		return NULL;
 
 	if (s_len == 1)		// special case where s_len is 1

@@ -162,27 +162,6 @@ void call_module_free(wahe_module_t *ctx, size_t address)
 	}
 }
 
-void call_module_init(wahe_module_t *ctx)
-{
-	wasmtime_error_t *error;
-	wasm_trap_t *trap = NULL;
-
-	if (ctx->init_func.store_id == 0)
-		return;
-
-	// Call the function
-	error = wasmtime_func_call(ctx->context, &ctx->init_func, NULL, 0, NULL, 0, &trap);
-	if (error || trap)
-	{
-		fprintf_rl(stderr, "call_module_init() failed\n");
-		fprint_wasmtime_error(error, trap);
-		return;
-	}
-
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-}
-
 int wahe_pixel_format_to_raster_mode(const char *name)
 {
 	if (strcmp(name, "RGBA UQ1.15 linear") == 0)
@@ -294,17 +273,12 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 		return NULL;
 }
 
-size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...)
+size_t module_vsprintf_alloc(wahe_module_t *ctx, const char *format, va_list args)
 {
 	int len;
-	va_list args, args_copy;
-
-	va_start(args, format);
 
 	// Get length of string to print
-	va_copy(args_copy, args);
-	len = vsnprintf(NULL, 0, format, args_copy);
-	va_end(args_copy);
+	len = vstrlenf(format, args);
 
 	// Alloc message in the module's linear memory
 	size_t addr = call_module_malloc(ctx, len+1);
@@ -312,9 +286,32 @@ size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...)
 	// Print
 	vsnprintf(&ctx->memory_ptr[addr], len+1, format, args);
 
+	return addr;
+}
+
+size_t module_sprintf_alloc(wahe_module_t *ctx, const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	size_t addr = module_vsprintf_alloc(ctx, format, args);
 	va_end(args);
 
 	return addr;
+}
+
+void wahe_send_input(wahe_module_t *ctx, const char *format, ...)
+{
+	va_list args;
+
+	// Print to message allocated in the module's memory
+	va_start(args, format);
+	size_t message_addr = module_vsprintf_alloc(ctx, format, args);
+	va_end(args);
+
+	// Send the message then free it
+	call_module_message_input(ctx, message_addr);
+	call_module_free(ctx, message_addr);
 }
 
 int is_wasmtime_func_found(wasmtime_func_t func)
@@ -427,8 +424,6 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 	wasmtime_linker_get_func(ctx, "malloc", &ctx->malloc_func, -1);
 	wasmtime_linker_get_func(ctx, "realloc", &ctx->realloc_func, -1);
 	wasmtime_linker_get_func(ctx, "free", &ctx->free_func, -1);
-	wasmtime_linker_get_func(ctx, "module_init", &ctx->init_func, 1);
-	wasmtime_linker_get_func(ctx, "module_save_state", &ctx->save_state_func, 1);
 	wasmtime_linker_get_func(ctx, "module_draw", &ctx->draw_func, 1);
 	wasmtime_linker_get_func(ctx, "module_message_input", &ctx->input_func, 1);
 
@@ -441,15 +436,8 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 	// Init module's textedit used for transmitting text input
 	textedit_init(&ctx->input_te, 1);
 
-	// Call the module's module_init()
-	call_module_init(ctx);
-}
-
-void wahe_set_module_index(wahe_module_t *ctx, int module_index)
-{
-	size_t message_addr = module_sprintf_alloc(ctx, "Module index %d", module_index);
-	call_module_message_input(ctx, message_addr);
-	call_module_free(ctx, message_addr);
+	// Send an Init message to the module
+	wahe_send_input(ctx, "Init");
 }
 
 void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr)

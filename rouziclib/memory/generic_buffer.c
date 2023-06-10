@@ -34,13 +34,9 @@ char *bufnprintf(buffer_t *s, size_t n, const char *format, ...) 	// like fprint
 		return NULL;
 
 	va_start(args, format);
-	len1 = vsnprintf(NULL, 0, format, args);	// gets the printed length without actually printing
-	va_end(args);
+	len1 = vstrlenf(format, args);
 	len1 = MINN(n, len1);				// limit the length to add to n
-
 	alloc_enough(&s->buf, s->len + len1 + 1, &s->as, sizeof(char), s->as==0 ? 1. : 1.5);
-
-	va_start(args, format);
 	vsnprintf(&s->buf[s->len], len1+1, format, args);
 	va_end(args);
 
