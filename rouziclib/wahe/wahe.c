@@ -179,6 +179,42 @@ int wahe_pixel_format_to_raster_mode(const char *name)
 	return IMAGE_USE_BUF;
 }
 
+char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
+{
+	wasmtime_error_t *error;
+	wasm_trap_t *trap = NULL;
+	wasmtime_val_t ret[1], param[1];
+
+	if (ctx->input_func.store_id == 0)
+		return NULL;
+
+	// Set params
+	param[0] = wasmtime_val_set_address(ctx, message_addr);
+
+	// Call the function
+	wahe_bench_point(ctx, "calling module_message_input()", 1);
+	error = wasmtime_func_call(ctx->context, &ctx->input_func, param, 1, ret, 1, &trap);
+	wahe_bench_point(ctx, "module_message_input() returned", -1);
+	if (error || trap)
+	{
+		fprintf_rl(stderr, "call_module_message_input() failed\n");
+		fprint_wasmtime_error(error, trap);
+		return NULL;
+	}
+
+	// Save return pointer
+	ctx->input_ret_msg_addr = wasmtime_val_get_address(ret[0]);
+
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+
+	// Return pointer to return message
+	if (ctx->input_ret_msg_addr)
+		return (char *) &ctx->memory_ptr[ctx->input_ret_msg_addr];
+	else
+		return NULL;
+}
+
 int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 {
 	wasmtime_error_t *error;
@@ -189,10 +225,8 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 		return -1;
 
 	// Write message to send
-	if (ctx->draw_msg_addr == 0)
-		ctx->draw_msg_addr = call_module_malloc(ctx, 50);
-	
-	sprintf(&ctx->memory_ptr[ctx->draw_msg_addr], "Recommended resolution %dx%d", recommended_resolution.x, recommended_resolution.y);
+	/*call_module_free(ctx, ctx->draw_msg_addr);
+	ctx->draw_msg_addr = module_sprintf_alloc(ctx, "Recommended resolution %dx%d", recommended_resolution.x, recommended_resolution.y);*/
 
 	// Set params
 	param[0] = wasmtime_val_set_address(ctx, ctx->draw_msg_addr);
@@ -240,39 +274,6 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 	return wasmtime_val_get_address(ret[0]) != 0;
 }
 
-char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
-{
-	wasmtime_error_t *error;
-	wasm_trap_t *trap = NULL;
-	wasmtime_val_t ret[1], param[1];
-
-	if (ctx->input_func.store_id == 0)
-		return NULL;
-
-	// Set params
-	param[0] = wasmtime_val_set_address(ctx, message_addr);
-
-	// Call the function
-	wahe_bench_point(ctx, "calling module_message_input()", 1);
-	error = wasmtime_func_call(ctx->context, &ctx->input_func, param, 1, ret, 1, &trap);
-	wahe_bench_point(ctx, "module_message_input() returned", -1);
-	if (error || trap)
-	{
-		fprintf_rl(stderr, "call_module_message_input() failed\n");
-		fprint_wasmtime_error(error, trap);
-		return NULL;
-	}
-
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-
-	// Return pointer to return message
-	if (wasmtime_val_get_address(ret[0]))
-		return (char *) &ctx->memory_ptr[wasmtime_val_get_address(ret[0])];
-	else
-		return NULL;
-}
-
 size_t module_vsprintf_alloc(wahe_module_t *ctx, const char *format, va_list args)
 {
 	int len;
@@ -300,7 +301,7 @@ size_t module_sprintf_alloc(wahe_module_t *ctx, const char *format, ...)
 	return addr;
 }
 
-void wahe_send_input(wahe_module_t *ctx, const char *format, ...)
+char *wahe_send_input(wahe_module_t *ctx, const char *format, ...)
 {
 	va_list args;
 
@@ -310,8 +311,10 @@ void wahe_send_input(wahe_module_t *ctx, const char *format, ...)
 	va_end(args);
 
 	// Send the message then free it
-	call_module_message_input(ctx, message_addr);
+	char *return_msg = call_module_message_input(ctx, message_addr);
 	call_module_free(ctx, message_addr);
+
+	return return_msg;
 }
 
 int is_wasmtime_func_found(wasmtime_func_t func)
@@ -340,7 +343,7 @@ void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap)
 	}
 }
 
-void wahe_module_init(wahe_module_t *ctx, const char *path)
+void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path)
 {
 	wasmtime_error_t *error;
 	wasm_functype_t *func_type;
@@ -433,11 +436,17 @@ void wahe_module_init(wahe_module_t *ctx, const char *path)
 	// Set the type of module addresses (currently always 32-bit)
 	ctx->address_type = WASMTIME_I32;
 
+	ctx->parent_group = parent_group;
+
 	// Init module's textedit used for transmitting text input
 	textedit_init(&ctx->input_te, 1);
 
 	// Send an Init message to the module
 	wahe_send_input(ctx, "Init");
+
+	// Send module index to the module
+	if (parent_group)
+		wahe_send_input(ctx, "Module index %d", module_index);
 }
 
 void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr)
