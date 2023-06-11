@@ -2,6 +2,7 @@
 
 extern int get_scancode_by_key_name(const char *name);
 extern int get_key_state_by_name(const char *name);
+extern int get_key_state_fusion(int sc1, int sc2, int sc3);
 extern int get_kb_shift();
 extern int get_kb_ctrl();
 extern int get_kb_guikey();

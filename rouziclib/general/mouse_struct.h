@@ -33,7 +33,7 @@ typedef struct
 	int mod_key[mouse_mod_count];
 	mousebut_t b;
 	mouse_ctrl_id_t *ctrl_id;
-	int key_state[RL_NUM_SCANCODES], key_quick[RL_NUM_SCANCODES];	// keyboard state array, 0 = nothing, 1 = down, 2 = newly down, 3 = repeated down event
+	int key_state[RL_NUM_SCANCODES], key_quick[RL_NUM_SCANCODES];	// keyboard state array, -2 newly up, -1 up, 0 = initial, 1 = down, 2 = newly down, 3 = repeated down event
 	#ifdef MOUSE_LOG
 	int frame_index;
 	buffer_t log;

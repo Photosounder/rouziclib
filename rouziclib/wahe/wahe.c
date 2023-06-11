@@ -1,5 +1,6 @@
 void wahe_bench_point(wahe_module_t *ctx, const char *label, int depth)
 {
+	return;
 	static double ref_time = 0.;
 	static int bench_depth = 0;
 	static buffer_t buf = {0};

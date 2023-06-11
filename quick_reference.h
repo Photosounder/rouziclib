@@ -464,16 +464,16 @@ void my_window_function(double *arg1, double *arg2)
 //**** Keyboard input ****
 
 	// Get state by scancode (see general/keyboard_struct.h)
-		// 0 = nothing, 1 = down, 2 = newly down, 3 = repeated down event
+		// -2 newly up, -1 up, 0 = initial, 1 = down, 2 = newly down, 3 = repeated down event
 		mouse.key_state[RL_SCANCODE_?]
 		// and by name (see https://wiki.libsdl.org/SDL_Keycode for names)
 		get_key_state_by_name("a")
-		// compare with >= 2 for once and repeating, == 2 for once and no repeating, != 0 for down at all
+		// compare with >= 2 for once and repeating, == 2 for once and no repeating, <= 0 for down at all
 		if (cur_textedit==NULL && mouse.key_state[RL_SCANCODE_?] >= 2)
 
 	// Get modifier keys
 		get_kb_shift(), get_kb_ctrl(), get_kb_guikey(), get_kb_alt()
-		// all of the above put together
+		// all of the above put together (returns either 0 or 1)
 		get_kb_all_mods()
 
 	// Get all the return keys at once
@@ -1011,3 +1011,6 @@ void my_window_function(double *arg1, double *arg2)
 	// 220729 transition of making fb be a TLS global pointer
 	%s/\<fb\>\./fb->/g
 	// this means that calls to init_tls_fb() must now have a matching free_null(&fb);
+
+	// 230611 keyboard key states use -2 and -1 instead of only 0 to indicate unpressed keys
+	// make sure that unpressed keys aren't assumed to be 0, included for modifier keys but not get_kb_all_mods() which still returns 0 or 1

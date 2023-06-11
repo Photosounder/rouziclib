@@ -194,7 +194,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 	buf_tail(&mouse->log, 120);
 	mouse->frame_index++;
 
-	if (mouse->key_state[RL_SCANCODE_F8]==2 && get_kb_shift() && get_kb_cmd())
+	if (mouse->key_state[RL_SCANCODE_F8]==2 && get_kb_shift() > 0 && get_kb_cmd() > 0)
 	{
 		// Generate log filename
 		buffer_t filename={0};

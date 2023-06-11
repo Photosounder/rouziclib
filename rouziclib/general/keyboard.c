@@ -23,21 +23,45 @@ int get_key_state_by_name(const char *name)
 	return -1;
 }
 
-int get_kb_shift()  { return mouse.key_state[RL_SCANCODE_LSHIFT] | mouse.key_state[RL_SCANCODE_RSHIFT]; }
-int get_kb_ctrl()   { return mouse.key_state[RL_SCANCODE_LCTRL]  | mouse.key_state[RL_SCANCODE_RCTRL]; }
-int get_kb_guikey() { return mouse.key_state[RL_SCANCODE_LGUI]   | mouse.key_state[RL_SCANCODE_RGUI]; }
-int get_kb_alt()    { return mouse.key_state[RL_SCANCODE_LALT]   | mouse.key_state[RL_SCANCODE_RALT]; }
-int get_kb_enter()  { return mouse.key_state[RL_SCANCODE_RETURN] | mouse.key_state[RL_SCANCODE_RETURN2] | mouse.key_state[RL_SCANCODE_KP_ENTER]; }
+int get_key_state_fusion(int sc1, int sc2, int sc3)
+{
+	int key[3];
+
+	// Load the key values
+	key[0] = mouse.key_state[sc1];
+	key[1] = mouse.key_state[sc2];
+	key[2] = mouse.key_state[sc3];
+
+	// Sort them (lowest ends up first)
+	qsort(key, 3, sizeof(int), cmp_int);
+
+	// Apply state fusion logic
+	if (key[2] == 3 || key[2] == 1)			// if one of the keys is held down
+		return key[2];				// return its state
+
+	if (key[2] == 2)				// if a key is newly down
+		if (key[1] != 1 && key[0] != 1)		// and other keys aren't held down
+			return 2;			// return newly down
+		else					// if other keys are already held down
+			return 1;			// return down
+
+	return key[0];		// either -2, -1 or 0
+}
+
+int get_kb_shift()  { return get_key_state_fusion(RL_SCANCODE_LSHIFT, RL_SCANCODE_RSHIFT, RL_SCANCODE_UNKNOWN); }
+int get_kb_ctrl()   { return get_key_state_fusion(RL_SCANCODE_LCTRL, RL_SCANCODE_RCTRL, RL_SCANCODE_UNKNOWN); }
+int get_kb_guikey() { return get_key_state_fusion(RL_SCANCODE_LGUI, RL_SCANCODE_RGUI, RL_SCANCODE_UNKNOWN); }
+int get_kb_alt()    { return get_key_state_fusion(RL_SCANCODE_LALT, RL_SCANCODE_RALT, RL_SCANCODE_UNKNOWN); }
+int get_kb_enter()  { return get_key_state_fusion(RL_SCANCODE_RETURN, RL_SCANCODE_RETURN2, RL_SCANCODE_KP_ENTER); }
 int get_kb_all_mods() { return (get_kb_shift()>0) + (get_kb_ctrl()>0) + (get_kb_guikey()>0) + (get_kb_alt()>0); }
 
 void flag_update_keyboard_button(int *b, int *quick_b)
 {
-	if (*b >= 2)
-		*b = 1;
+	flag_update(*b);
 
 	if (*quick_b)
 	{
-		*b = *quick_b==1 ? 2 : 0;
+		*b = *quick_b * 2;
 		*quick_b = 0;
 	}
 }
@@ -52,8 +76,8 @@ void keyboard_pre_event_proc(mouse_t *mouse)
 
 void keyboard_button_event(int *b, int *quick_b, int way, int repeat)
 {
-	if (*b * way <= -2)		// if quick press situation
+	if (*b * way == -2)		// if quick press situation
 		*quick_b = way;
 	else
-		*b = (2 + repeat) * (way==1);
+		*b = (2 + repeat) * way;
 }

@@ -361,7 +361,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			v_downonce = v;
 		}
 
-		if (get_kb_alt() && knob_state.down)
+		if (get_kb_alt() > 0 && knob_state.down)
 		{
 			t_rate += t_off * 1./144.;
 			t_off = t_rate;
