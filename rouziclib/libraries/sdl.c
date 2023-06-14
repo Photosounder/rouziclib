@@ -1,7 +1,17 @@
 #ifdef RL_SDL
 
-#if RL_SDL == 2
+#if RL_SDL == 3
+#include <SDL3/SDL_syswm.h>
+#else
 #include <SDL2/SDL_syswm.h>
+#endif
+
+#if defined(_WIN32) && RL_SDL == 3		// /SUBSYSTEM:WINDOWS workaround
+extern int main(int argc, char *argv[]);
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow)
+{
+	return main(0, NULL);
+}
 #endif
 
 SDL_Rect make_sdl_rect(int x, int y, int w, int h)
