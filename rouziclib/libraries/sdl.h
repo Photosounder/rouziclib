@@ -1,13 +1,35 @@
 #ifdef RL_SDL
 
-#ifdef _MSC_VER
-#pragma comment (lib, "SDL2.lib")
-#pragma comment (lib, "SDL2main.lib")
+// Test if RL_SDL is defined but has no value
+#if ~(~RL_SDL+0)==0 && ~(~RL_SDL+1)==1
+  #undef RL_SDL
+  #define RL_SDL 2
 #endif
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_audio.h>
-#include <SDL2/SDL_opengl.h>
+#if RL_SDL == 3
+
+  #ifdef _MSC_VER
+    #pragma comment (lib, "SDL3.lib")
+  #endif
+
+  #define SDL_ENABLE_OLD_NAMES
+  #include <SDL3/SDL.h>
+  #include <SDL3/SDL_audio.h>
+  #include <SDL3/SDL_opengl.h>
+  #include <SDL3/SDL_syswm.h>
+
+#else
+
+  #ifdef _MSC_VER
+    #pragma comment (lib, "SDL2.lib")
+    #pragma comment (lib, "SDL2main.lib")
+  #endif
+
+  #include <SDL2/SDL.h>
+  #include <SDL2/SDL_audio.h>
+  #include <SDL2/SDL_opengl.h>
+
+#endif
 
 typedef struct
 {
@@ -19,11 +41,11 @@ extern dropfile_t dropfile;
 
 extern SDL_Rect make_sdl_rect(int x, int y, int w, int h);
 extern SDL_Rect recti_to_sdl_rect(recti_t ri);
-extern int sdl_get_window_hz(SDL_Window *window);
-extern int sdl_vsync_sleep(SDL_Window *window, uint32_t time_last_vsync);
+extern double sdl_get_window_hz(SDL_Window *window);
 extern recti_t sdl_get_window_rect(SDL_Window *window);
 extern void sdl_set_window_rect(SDL_Window *window, recti_t r);
 extern xyi_t sdl_get_display_dim(int display_id);
+extern int sdl_get_display_count();
 extern recti_t sdl_get_display_rect(int display_id);
 extern recti_t sdl_get_display_usable_rect(int display_id);
 extern recti_t sdl_screen_max_window_rect();
@@ -42,8 +64,6 @@ extern void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event);
 extern void sdl_set_mouse_pos_screen(xy_t pos);
 extern void sdl_set_mouse_pos_world(xy_t world_pos);
 
-extern int get_sdl_renderer_index(const char *name);
-extern int get_sdl_opengl_renderer_index();
 extern SDL_GLContext init_sdl_gl(SDL_Window *window);
 extern void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags);
 extern void sdl_graphics_init_autosize(const char *window_name, int flags, int window_index);

@@ -254,7 +254,14 @@ void mousecursor_logic_and_draw()
 	//	mouse.showcursor = 0;
 
 	#ifdef RL_SDL
+	#if RL_SDL == 3
+	if (mouse.showcursor == 1)
+		SDL_ShowCursor();
+	else
+		SDL_HideCursor();
+	#else
 	SDL_ShowCursor(mouse.showcursor==1);
+	#endif
 	#endif
 	draw_mousecursor(mouse.u);
 

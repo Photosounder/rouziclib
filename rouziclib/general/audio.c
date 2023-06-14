@@ -137,8 +137,14 @@ void sdl_audiosys_init(int def_buflen)
 		}
 
 	// Init the driver
+#if RL_SDL == 3
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+	SDL_SetHint("SDL_AUDIO_DRIVER", SDL_GetAudioDriver(driver_index));
+	SDL_InitSubSystem(SDL_INIT_AUDIO);
+#else
 	SDL_AudioQuit();					// quit the current audio driver
 	SDL_AudioInit(SDL_GetAudioDriver(driver_index));	// initialise it
+#endif
 
 	// Load preferred output device name from pref file
 	if (pref_def.path)
@@ -175,6 +181,10 @@ void sdl_audiosys_init(int def_buflen)
 	audiosys.sec_per_buf = (double) audiosys.buffer_len / audiosys.samplerate;
 	audiosys.sec_per_sample = 1. / audiosys.samplerate;
 
+	#if RL_SDL == 3
+	SDL_PlayAudioDevice(audiosys.device_id);
+	#else
 	SDL_PauseAudioDevice(audiosys.device_id, 0);
+	#endif
 #endif
 }

@@ -1,6 +1,8 @@
 #ifdef RL_SDL
 
+#if RL_SDL == 2
 #include <SDL2/SDL_syswm.h>
+#endif
 
 SDL_Rect make_sdl_rect(int x, int y, int w, int h)
 {
@@ -21,27 +23,22 @@ SDL_Rect recti_to_sdl_rect(recti_t ri)
 }
 
 // Display/window
-int sdl_get_window_hz(SDL_Window *window)
+double sdl_get_window_hz(SDL_Window *window)
 {
+#if RL_SDL == 3
+	const SDL_DisplayMode *mode = SDL_GetWindowFullscreenMode(window);
+
+	if (mode == NULL)
+		return -1;
+	return mode->refresh_rate;
+#else
 	SDL_DisplayMode mode;
 
 	if (SDL_GetWindowDisplayMode(window, &mode) < 0)
 		fprintf_rl(stderr, "SDL_GetWindowDisplayMode failed: %s\n", SDL_GetError());
 
 	return mode.refresh_rate;
-}
-
-int sdl_vsync_sleep(SDL_Window *window, uint32_t time_last_vsync)
-{
-	int hz = sdl_get_window_hz(window);				// refresh rate (e.g. 60 Hz)
-	int ms = (100000 / hz - 60) / 100;				// total time needed (e.g. 60 Hz -> 16 ms)
-	int elapsed = SDL_GetTicks() - time_last_vsync;			// ms since last vsync
-	int delay = ms - elapsed;
-
-	if (delay > 0)			// if sleeping is needed
-		SDL_Delay(delay);
-
-	return delay;
+#endif
 }
 
 recti_t sdl_get_window_rect(SDL_Window *window)
@@ -63,19 +60,39 @@ void sdl_set_window_rect(SDL_Window *window, recti_t r)
 
 xyi_t sdl_get_display_dim(int display_id)
 {
+#if RL_SDL == 3
+	const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(display_id);
+
+	if (mode)
+		return xyi(mode->w, mode->h);
+
+	fprintf_rl(stderr, "SDL_GetCurrentDisplayMode failed: %s\n", SDL_GetError());
+#else
 	SDL_DisplayMode mode={0};
 
 	if (SDL_GetCurrentDisplayMode(display_id, &mode)==0)
 		return xyi(mode.w, mode.h);
+#endif
 
 	return xyi(-1, -1);
+}
+
+int sdl_get_display_count()
+{
+#if RL_SDL == 3
+	int count;
+	SDL_GetDisplays(&count);
+	return count;
+#else
+	return SDL_GetNumVideoDisplays();
+#endif
 }
 
 recti_t sdl_get_display_rect(int display_id)
 {
 	SDL_Rect r;
 
-	if (display_id < SDL_GetNumVideoDisplays())
+	if (display_id < sdl_get_display_count())
 		if (SDL_GetDisplayBounds(display_id, &r)==0)
 			return recti( xyi(r.x, r.y), xyi(r.x+r.w-1, r.y+r.h-1));
 
@@ -86,7 +103,7 @@ recti_t sdl_get_display_usable_rect(int display_id)
 {
 	SDL_Rect r;
 
-	if (display_id < SDL_GetNumVideoDisplays())
+	if (display_id < sdl_get_display_count())
 		if (SDL_GetDisplayUsableBounds(display_id, &r)==0)
 			return recti( xyi(r.x, r.y), xyi(r.x+r.w-1, r.y+r.h-1));
 
@@ -98,7 +115,7 @@ recti_t sdl_screen_max_window_rect()
 	int i;
 	recti_t dr, wr=recti(xyi(0,0), xyi(0,0));
 
-	for (i=0; i < SDL_GetNumVideoDisplays(); i++)
+	for (i=0; i < sdl_get_display_count(); i++)
 	{
 		dr = sdl_get_display_rect(i);
 		wr.p0 = min_xyi(wr.p0, dr.p0);
@@ -126,7 +143,7 @@ int sdl_find_point_within_display(xyi_t p)
 {
 	int i;
 
-	for (i=0; i < SDL_GetNumVideoDisplays(); i++)
+	for (i=0; i < sdl_get_display_count(); i++)
 		if (check_point_within_box_int(p, sdl_get_display_rect(i)))
 			return i;
 
@@ -137,7 +154,7 @@ int sdl_get_window_cur_display()	// determined by the max pixel area in a displa
 {
 	int i, area, max_area=0, display_index=0;
 
-	for (i=0; i < SDL_GetNumVideoDisplays(); i++)
+	for (i=0; i < sdl_get_display_count(); i++)
 	{
 		area = mul_x_by_y_xyi(get_recti_dim(recti_intersection(sdl_get_window_rect(fb->window), sdl_get_display_rect(i))));
 
@@ -159,32 +176,47 @@ int sdl_is_window_maximised(SDL_Window *window)
 #ifdef _WIN32
 HWND sdl_get_window_hwnd(SDL_Window *window)
 {
+#if RL_SDL == 3
+	SDL_SysWMinfo wmInfo = {0};
+
+	SDL_GetWindowWMInfo(window, &wmInfo, SDL_SYSWM_CURRENT_VERSION);
+
+	return wmInfo.info.win.window;
+#else
 	SDL_SysWMinfo wmInfo;
 
 	SDL_VERSION(&wmInfo.version);
 	SDL_GetWindowWMInfo(window, &wmInfo);
 
 	return wmInfo.info.win.window;
+#endif
 }
 #endif
 
 // Mouse/keyboard input
 void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse position wrt the window coordinates, even outside the window
 {
-	xyi_t mpos, wpos, wdim;
-	recti_t wr;
+#if RL_SDL == 3
+	float mpos_x, mpos_y;
+#else
+	int mpos_x, mpos_y;
+#endif
+	xy_t mpos;
+	rect_t wr;
 	int inside_window, but_state;
 
-	but_state = SDL_GetGlobalMouseState(&mpos.x, &mpos.y);	// 1 = lmb, 2 = mmb, 4 = rmb
-	wr = sdl_get_window_rect(fb->window);
+	but_state = SDL_GetGlobalMouseState(&mpos_x, &mpos_y);	// 1 = lmb, 2 = mmb, 4 = rmb
+	mpos = xy(mpos_x, mpos_y);
+	wr = recti_to_rect(sdl_get_window_rect(fb->window));
 
 	#ifdef __EMSCRIPTEN__					// emscripten doesn't have SDL_GetGlobalMouseState
-	but_state = SDL_GetMouseState(&mpos.x, &mpos.y);
-	wr.p1 = sub_xyi(wr.p1, wr.p0);
-	wr.p0 = XYI0;
+	but_state = SDL_GetMouseState(&mpos_x, &mpos_y);
+	mpos = xy(mpos_x, mpos_y);
+	wr.p1 = sub_xy(wr.p1, wr.p0);
+	wr.p0 = XY0;
 	#endif
 
-	inside_window = check_point_within_box_int(mpos, wr);
+	inside_window = check_point_within_box(mpos, wr);
 
 	if (inside_window && mouse->mouse_focus_flag <= 0)	// if the mouse just entered the window
 		mouse->mouse_focus_flag = 2;
@@ -199,7 +231,7 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	}
 
 	if (mouse->warp==0)
-		mouse->a = div_xy(xyi_to_xy(sub_xyi(mpos, wr.p0)), set_xy(fb->pixel_scale));
+		mouse->a = div_xy(sub_xy(mpos, wr.p0), set_xy(fb->pixel_scale));
 
 	if (mouse->mouse_focus_flag <= 0)	// only process global buttons if the mouse is outside the window
 	{
@@ -216,6 +248,19 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	if (event.type==SDL_DROPBEGIN)
 		SDL_RaiseWindow(fb->window);
 
+#if RL_SDL == 3
+	if (event.type==SDL_WINDOWEVENT_FOCUS_GAINED)
+		mouse->window_focus_flag = 2;
+
+	if (event.type==SDL_WINDOWEVENT_FOCUS_LOST)
+		mouse->window_focus_flag = -2;
+
+	if (event.type==SDL_WINDOWEVENT_MINIMIZED)
+		mouse->window_minimised_flag = 2;
+
+	if (event.type==SDL_WINDOWEVENT_RESTORED)
+		mouse->window_minimised_flag = -2;
+#else
 	if (event.type==SDL_WINDOWEVENT)
 	{
 		// SDL bug: SDL_WINDOWEVENT_ENTER and SDL_WINDOWEVENT_LEAVE aren't always triggered when holding the mouse button down
@@ -237,6 +282,7 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 		if (event.window.event==SDL_WINDOWEVENT_RESTORED)
 			mouse->window_minimised_flag = -2;
 	}
+#endif
 
 	if (event.type==SDL_MOUSEMOTION)
 	{
@@ -306,7 +352,11 @@ void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event)
 
 void sdl_set_mouse_pos_screen(xy_t pos)
 {
+#if RL_SDL == 3
+	SDL_WarpMouseInWindow(NULL, pos.x*fb->pixel_scale, pos.y*fb->pixel_scale);
+#else
 	SDL_WarpMouseInWindow(NULL, nearbyint(pos.x*fb->pixel_scale), nearbyint(pos.y*fb->pixel_scale));
+#endif
 }
 
 void sdl_set_mouse_pos_world(xy_t world_pos)
@@ -316,6 +366,8 @@ void sdl_set_mouse_pos_world(xy_t world_pos)
 }
 
 // Window/graphics
+
+#if RL_SDL == 2
 int get_sdl_renderer_index(const char *name)
 {
 	int i, n;
@@ -352,6 +404,7 @@ int get_sdl_opengl_renderer_index()
 
 	return index;
 }
+#endif
 
 SDL_GLContext init_sdl_gl(SDL_Window *window)
 {
@@ -422,16 +475,21 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 
 	// FIXME SDL_WINDOW_MAXIMIZED flag should probably be dealt with because it doesn't work well with the maxdim initialisation
 
-	fb->window = SDL_CreateWindow (	window_name,			// window title
-					-fb->maxdim.x-100,		// initial x position
-					SDL_WINDOWPOS_UNDEFINED,	// initial y position
-					fb->maxdim.x,			// width, in pixels
-					fb->maxdim.y,			// height, in pixels
-				#ifdef RL_VULKAN
-					SDL_WINDOW_VULKAN | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
-				#else
-					SDL_WINDOW_OPENGL | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
-				#endif
+#if RL_SDL == 3
+	fb->window = SDL_CreateWindowWithPosition
+#else
+	fb->window = SDL_CreateWindow
+#endif
+			( window_name,			// window title
+			  -fb->maxdim.x-100,		// initial x position
+			  SDL_WINDOWPOS_UNDEFINED,	// initial y position
+			  fb->maxdim.x,			// width, in pixels
+			  fb->maxdim.y,			// height, in pixels
+		#ifdef RL_VULKAN
+			  SDL_WINDOW_VULKAN | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		#else
+			  SDL_WINDOW_OPENGL | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		#endif
 			);
 
 	if (fb->window==NULL)
@@ -466,7 +524,11 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		#else
 		#ifdef RL_OPENCL_GL
 		fb->gl_ctx = init_sdl_gl(fb->window);
+		#if RL_SDL == 3
+		fb->renderer = SDL_CreateRenderer(fb->window, "opengl", SDL_RENDERER_PRESENTVSYNC);
+		#else
 		fb->renderer = SDL_CreateRenderer(fb->window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
+		#endif
 		if (fb->renderer==NULL)
 			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
 		#endif
@@ -474,7 +536,11 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	}
 	else
 	{
+		#if RL_SDL == 3
+		fb->renderer = SDL_CreateRenderer(fb->window, NULL, SDL_RENDERER_PRESENTVSYNC);
+		#else
 		fb->renderer = SDL_CreateRenderer(fb->window, -1, SDL_RENDERER_PRESENTVSYNC);
+		#endif
 		if (fb->renderer==NULL)
 			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
 
@@ -814,14 +880,23 @@ void sdl_init_audio_not_wasapi()
 {
 	int i;
 
+#if RL_SDL == 3
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+#else
 	SDL_AudioQuit();	// quit the current audio driver, probably wasapi
+#endif
 
 	// Init the first driver that isn't wasapi
 	for (i=0; i < SDL_GetNumAudioDrivers(); i++)
 		if (strcmp("wasapi", SDL_GetAudioDriver(i)))	// if the driver isn't called "wasapi"
 		{
+		#if RL_SDL == 3
+			SDL_SetHint("SDL_AUDIO_DRIVER", SDL_GetAudioDriver(i));
+			SDL_InitSubSystem(SDL_INIT_AUDIO);
+		#else
 			SDL_AudioInit(SDL_GetAudioDriver(i));	// initialise it
-			return ;
+		#endif
+			return;
 		}
 }
 
