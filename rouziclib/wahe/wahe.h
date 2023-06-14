@@ -30,6 +30,12 @@ typedef struct
 	void *parent_group;	// wahe_group_t *
 } wahe_module_t;
 
+enum wahe_eo_type
+{
+	WAHE_EO_MODULE_FUNC,
+	WAHE_EO_BUILTIN_FUNC,
+};
+
 enum wahe_func_id
 {
 	WAHE_FUNC_INPUT=1,
@@ -38,7 +44,7 @@ enum wahe_func_id
 
 typedef struct
 {
-	int type;
+	enum wahe_eo_type type;
 	int module_id;
 	enum wahe_func_id func_id;
 } wahe_connection_end_t;

@@ -364,6 +364,6 @@ enum
 
 	/* Add any other keys here. */
 
-	RL_NUM_SCANCODES = 512 /**< not a key, just marks the number of scancodes
+	RL_NUM_SCANCODES /**< not a key, just marks the number of scancodes
 				  for array bounds */
 };
