@@ -6,7 +6,7 @@
 #include <SDL2/SDL_syswm.h>
 #endif
 
-#if defined(_WIN32) && RL_SDL == 3		// /SUBSYSTEM:WINDOWS workaround
+#if defined(_WIN32) && RL_SDL == 3 && !defined(RL_SDL3_EXCL_WINMAIN)		// /SUBSYSTEM:WINDOWS workaround
 extern int main(int argc, char *argv[]);
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow)
 {

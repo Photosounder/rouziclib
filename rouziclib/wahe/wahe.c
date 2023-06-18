@@ -203,7 +203,7 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 		return NULL;
 	}
 
-	// Save return pointer
+	// Store the return message address
 	ctx->input_ret_msg_addr = wasmtime_val_get_address(ret[0]);
 
 	// Update memory pointer
@@ -216,7 +216,7 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 		return NULL;
 }
 
-int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
+int call_module_draw(wahe_module_t *ctx, size_t message_addr)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
@@ -225,12 +225,8 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 	if (ctx->draw_func.store_id == 0)
 		return -1;
 
-	// Write message to send
-	/*call_module_free(ctx, ctx->draw_msg_addr);
-	ctx->draw_msg_addr = module_sprintf_alloc(ctx, "Recommended resolution %dx%d", recommended_resolution.x, recommended_resolution.y);*/
-
 	// Set params
-	param[0] = wasmtime_val_set_address(ctx, ctx->draw_msg_addr);
+	param[0] = wasmtime_val_set_address(ctx, message_addr);
 
 	// Call the function
 	wahe_bench_point(ctx, "calling module_draw()", 1);
@@ -243,36 +239,51 @@ int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution)
 		return -1;
 	}
 
+	// Store the return message address
+	ctx->draw_ret_msg_addr = wasmtime_val_get_address(ret[0]);
+
 	// Update memory pointer
 	wasmtime_linker_get_memory(ctx);
 
-	// Parse the return message
-	if (wasmtime_val_get_address(ret[0]))
-	{
-		int ret_mode = get_raster_mode(ctx->fb);
-
-		// Get the message address and make pointer to the message
-		ctx->draw_ret_msg_addr = wasmtime_val_get_address(ret[0]);
-		char *message = &ctx->memory_ptr[ctx->draw_ret_msg_addr];
-
-		// Parse each line of the message
-		for (const char *line = message; line; line = strstr_after(line, "\n"))
-		{
-			char a[32];
-
-			if (sscanf(line, "Pixel format: %[^\n]", a) == 1)
-				ret_mode = wahe_pixel_format_to_raster_mode(a);
-
-			sscanf(line, "Framebuffer location: %zu bytes at %zi", &ctx->raster_size, &ctx->raster_address);
-			sscanf(line, "Framebuffer resolution %dx%d", &ctx->fb.dim.x, &ctx->fb.dim.y);
-		}
-
-		// Update the host-side raster for the module framebuffer
-		ctx->fb = make_raster(&ctx->memory_ptr[ctx->raster_address], ctx->fb.dim, ctx->fb.dim, ret_mode);
-	}
-
 	// The return value indicates whether or not the framebuffer was updated
 	return wasmtime_val_get_address(ret[0]) != 0;
+}
+
+int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r)
+{
+	size_t raster_size = 0, raster_address = 0;
+
+	if (msg_addr == 0)
+		return 0;
+
+	int ret_mode = get_raster_mode(*r);
+
+	// Pointer to the message
+	char *message = &ctx->memory_ptr[msg_addr];
+
+	// Parse each line of the message
+	for (const char *line = message; line; line = strstr_after(line, "\n"))
+	{
+		char a[32];
+
+		if (sscanf(line, "Pixel format: %[^\n]", a) == 1)
+			ret_mode = wahe_pixel_format_to_raster_mode(a);
+
+		sscanf(line, "Framebuffer location: %zu bytes at %zi", &raster_size, &raster_address);
+		sscanf(line, "Framebuffer resolution %dx%d", &r->dim.x, &r->dim.y);
+	}
+
+	if (raster_address == 0)
+		return 0;
+
+	// Update the host-side raster for the module framebuffer
+	*r = make_raster(&ctx->memory_ptr[raster_address], r->dim, r->dim, ret_mode);
+	cl_unref_raster(r);
+
+	if (ret_mode == IMAGE_USE_BUF)
+		r->buf_size = raster_size;
+
+	return 1;
 }
 
 size_t module_vsprintf_alloc(wahe_module_t *ctx, const char *format, va_list args)

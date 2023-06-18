@@ -15,45 +15,47 @@ typedef struct
 	wasmtime_memory_t memory;
 	uint8_t *memory_ptr;
 	wasmtime_valkind_t address_type;
-	wasmtime_func_t malloc_func, realloc_func, free_func, draw_func, input_func;
+	wasmtime_func_t malloc_func, realloc_func, free_func;
+	wasmtime_func_t input_func, draw_func;
 
+	size_t input_ret_msg_addr, draw_ret_msg_addr;
 	textedit_t input_te;
-
-	// Input-specific
-	size_t input_msg_addr, input_ret_msg_addr;
-
-	// Draw-specific
-	raster_t fb;
-	size_t raster_address, raster_size, draw_msg_addr, draw_ret_msg_addr;
-	rect_t fb_rect;
-
 	void *parent_group;	// wahe_group_t *
 } wahe_module_t;
+
+typedef struct
+{
+	raster_t fb;
+	rect_t fb_rect;
+} wahe_image_display_t;
 
 enum wahe_eo_type
 {
 	WAHE_EO_MODULE_FUNC,
 	WAHE_EO_BUILTIN_FUNC,
+	WAHE_EO_IMAGE_DISPLAY
 };
 
 enum wahe_func_id
 {
 	WAHE_FUNC_INPUT=1,
-	WAHE_FUNC_DRAW
+	WAHE_FUNC_DRAW,
+	WAHE_PROC_IMAGE,
+	WAHE_PROC_SOUND
 };
 
 typedef struct
 {
-	enum wahe_eo_type type;
-	int module_id;
-	enum wahe_func_id func_id;
-} wahe_connection_end_t;
+	int src_eo, dst_eo;
+} wahe_connection_t;
 
 typedef struct
 {
-	wahe_connection_end_t src, dst;
-	int exec_order_index;
-} wahe_connection_t;
+	enum wahe_eo_type type;
+	int index;
+	enum wahe_func_id func_id;
+	size_t dst_msg_addr;
+} wahe_exec_order_t;
 
 typedef struct
 {
@@ -63,8 +65,11 @@ typedef struct
 	wahe_connection_t *connection;
 	size_t conn_count, conn_as;
 
-	wahe_connection_end_t *exec_order;
+	wahe_exec_order_t *exec_order;
 	size_t exec_order_count, exec_order_as;
+
+	wahe_image_display_t *image;
+	size_t image_count, image_as;
 } wahe_group_t;
 
 extern int wasmtime_linker_get_memory(wahe_module_t *ctx);
@@ -75,7 +80,8 @@ extern size_t call_module_malloc(wahe_module_t *ctx, size_t size);
 extern void call_module_free(wahe_module_t *ctx, size_t address);
 extern int wahe_pixel_format_to_raster_mode(const char *name);
 extern char *call_module_message_input(wahe_module_t *ctx, size_t message_addr);
-extern int call_module_draw(wahe_module_t *ctx, xyi_t recommended_resolution);
+extern int call_module_draw(wahe_module_t *ctx, size_t message_addr);
+extern int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r);
 
 extern size_t module_vsprintf_alloc(wahe_module_t *ctx, const char *format, va_list args);
 extern size_t module_sprintf_alloc(wahe_module_t *ctx, const char* format, ...);
