@@ -1,6 +1,6 @@
 // taken from SDL2's include/SDL_scancode.h which itself comes from the USB HID usage tables https://usb.org/sites/default/files/documents/hut1_12v2.pdf
 
-enum
+enum kb_scancode
 {
 	RL_SCANCODE_UNKNOWN = 0,
 
@@ -81,7 +81,7 @@ enum
 				      *   codes and your OS treats them differently,
 				      *   you should generate RL_SCANCODE_BACKSLASH
 				      *   instead of this code. As a user, you
-				      *   should not rely on this code because RL
+				      *   should not rely on this code because SDL
 				      *   will never generate it with most (all?)
 				      *   keyboards.
 				      */

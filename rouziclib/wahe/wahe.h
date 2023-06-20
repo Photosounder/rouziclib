@@ -4,6 +4,23 @@
 #pragma comment (lib, "wasmtime.dll.lib")
 #endif
 
+enum wahe_eo_type
+{
+	WAHE_EO_MODULE_FUNC,
+	WAHE_EO_IMAGE_DISPLAY,
+	WAHE_EO_KB_MOUSE,
+};
+
+enum wahe_func_id
+{
+	WAHE_FUNC_INPUT=1,
+	WAHE_FUNC_DRAW,
+	WAHE_FUNC_PROC_IMAGE,
+	WAHE_FUNC_PROC_SOUND,
+
+	WAHE_FUNC_COUNT
+};
+
 typedef struct
 {
 	wasm_engine_t *engine;
@@ -16,9 +33,9 @@ typedef struct
 	uint8_t *memory_ptr;
 	wasmtime_valkind_t address_type;
 	wasmtime_func_t malloc_func, realloc_func, free_func;
-	wasmtime_func_t input_func, draw_func;
 
-	size_t input_ret_msg_addr, draw_ret_msg_addr;
+	wasmtime_func_t func[WAHE_FUNC_COUNT];
+	size_t ret_msg_addr[WAHE_FUNC_COUNT];
 	textedit_t input_te;
 	void *parent_group;	// wahe_group_t *
 } wahe_module_t;
@@ -29,21 +46,6 @@ typedef struct
 	rect_t fb_rect;
 } wahe_image_display_t;
 
-enum wahe_eo_type
-{
-	WAHE_EO_MODULE_FUNC,
-	WAHE_EO_BUILTIN_FUNC,
-	WAHE_EO_IMAGE_DISPLAY
-};
-
-enum wahe_func_id
-{
-	WAHE_FUNC_INPUT=1,
-	WAHE_FUNC_DRAW,
-	WAHE_PROC_IMAGE,
-	WAHE_PROC_SOUND
-};
-
 typedef struct
 {
 	int src_eo, dst_eo;
@@ -52,7 +54,7 @@ typedef struct
 typedef struct
 {
 	enum wahe_eo_type type;
-	int index;
+	int module_id, display_id;
 	enum wahe_func_id func_id;
 	size_t dst_msg_addr;
 } wahe_exec_order_t;
@@ -81,6 +83,7 @@ extern void call_module_free(wahe_module_t *ctx, size_t address);
 extern int wahe_pixel_format_to_raster_mode(const char *name);
 extern char *call_module_message_input(wahe_module_t *ctx, size_t message_addr);
 extern int call_module_draw(wahe_module_t *ctx, size_t message_addr);
+extern int call_module_proc_image(wahe_module_t *ctx, size_t message_addr);
 extern int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r);
 
 extern size_t module_vsprintf_alloc(wahe_module_t *ctx, const char *format, va_list args);
@@ -89,6 +92,7 @@ extern char *wahe_send_input(wahe_module_t *ctx, const char *format, ...);
 extern int is_wasmtime_func_found(wasmtime_func_t func);
 extern void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap);
 extern void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path);
+extern void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int display_id, int conn_id);
 
 extern wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count);
 extern wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count);

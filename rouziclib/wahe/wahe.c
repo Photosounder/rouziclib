@@ -186,7 +186,7 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 	wasm_trap_t *trap = NULL;
 	wasmtime_val_t ret[1], param[1];
 
-	if (ctx->input_func.store_id == 0)
+	if (ctx->func[WAHE_FUNC_INPUT].store_id == 0)
 		return NULL;
 
 	// Set params
@@ -194,7 +194,7 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 
 	// Call the function
 	wahe_bench_point(ctx, "calling module_message_input()", 1);
-	error = wasmtime_func_call(ctx->context, &ctx->input_func, param, 1, ret, 1, &trap);
+	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_INPUT], param, 1, ret, 1, &trap);
 	wahe_bench_point(ctx, "module_message_input() returned", -1);
 	if (error || trap)
 	{
@@ -204,49 +204,59 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 	}
 
 	// Store the return message address
-	ctx->input_ret_msg_addr = wasmtime_val_get_address(ret[0]);
+	ctx->ret_msg_addr[WAHE_FUNC_INPUT] = wasmtime_val_get_address(ret[0]);
 
 	// Update memory pointer
 	wasmtime_linker_get_memory(ctx);
 
 	// Return pointer to return message
-	if (ctx->input_ret_msg_addr)
-		return (char *) &ctx->memory_ptr[ctx->input_ret_msg_addr];
+	if (ctx->ret_msg_addr[WAHE_FUNC_INPUT])
+		return (char *) &ctx->memory_ptr[ctx->ret_msg_addr[WAHE_FUNC_INPUT]];
 	else
 		return NULL;
 }
 
-int call_module_draw(wahe_module_t *ctx, size_t message_addr)
+int call_module_generic(wahe_module_t *ctx, size_t message_addr, wasmtime_func_t *func, size_t *ret_msg_addr)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
 	wasmtime_val_t ret[1], param[1];
 
-	if (ctx->draw_func.store_id == 0)
+	if (func->store_id == 0)
 		return -1;
 
 	// Set params
 	param[0] = wasmtime_val_set_address(ctx, message_addr);
 
 	// Call the function
-	wahe_bench_point(ctx, "calling module_draw()", 1);
-	error = wasmtime_func_call(ctx->context, &ctx->draw_func, param, 1, ret, 1, &trap);
-	wahe_bench_point(ctx, "module_draw() returned", -1);
+	wahe_bench_point(ctx, "calling module_?()", 1);
+	error = wasmtime_func_call(ctx->context, func, param, 1, ret, 1, &trap);
+	wahe_bench_point(ctx, "module_?() returned", -1);
 	if (error || trap)
 	{
-		fprintf_rl(stderr, "call_module_draw() failed\n");
+		fprintf_rl(stderr, "call_module_generic() failed\n");
 		fprint_wasmtime_error(error, trap);
 		return -1;
 	}
 
 	// Store the return message address
-	ctx->draw_ret_msg_addr = wasmtime_val_get_address(ret[0]);
+	*ret_msg_addr = wasmtime_val_get_address(ret[0]);
 
 	// Update memory pointer
 	wasmtime_linker_get_memory(ctx);
 
 	// The return value indicates whether or not the framebuffer was updated
 	return wasmtime_val_get_address(ret[0]) != 0;
+}
+
+int call_module_draw(wahe_module_t *ctx, size_t message_addr)
+{
+	return call_module_generic(ctx, message_addr, &ctx->func[WAHE_FUNC_DRAW], &ctx->ret_msg_addr[WAHE_FUNC_DRAW]);
+}
+
+int call_module_proc_image(wahe_module_t *ctx, size_t message_addr)
+{
+	return call_module_generic(ctx, message_addr, &ctx->func[WAHE_FUNC_PROC_IMAGE], &ctx->ret_msg_addr[WAHE_FUNC_PROC_IMAGE]);
 }
 
 int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r)
@@ -266,7 +276,7 @@ int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r)
 	{
 		char a[32];
 
-		if (sscanf(line, "Pixel format: %[^\n]", a) == 1)
+		if (sscanf(line, "Pixel format: %31[^\n]", a) == 1)
 			ret_mode = wahe_pixel_format_to_raster_mode(a);
 
 		sscanf(line, "Framebuffer location: %zu bytes at %zi", &raster_size, &raster_address);
@@ -439,8 +449,9 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	wasmtime_linker_get_func(ctx, "malloc", &ctx->malloc_func, -1);
 	wasmtime_linker_get_func(ctx, "realloc", &ctx->realloc_func, -1);
 	wasmtime_linker_get_func(ctx, "free", &ctx->free_func, -1);
-	wasmtime_linker_get_func(ctx, "module_draw", &ctx->draw_func, 1);
-	wasmtime_linker_get_func(ctx, "module_message_input", &ctx->input_func, 1);
+	wasmtime_linker_get_func(ctx, "module_message_input", &ctx->func[WAHE_FUNC_INPUT], 1);
+	wasmtime_linker_get_func(ctx, "module_draw", &ctx->func[WAHE_FUNC_DRAW], 1);
+	wasmtime_linker_get_func(ctx, "module_proc_image", &ctx->func[WAHE_FUNC_PROC_IMAGE], 1);
 
 	// Get pointer to linear memory
 	wasmtime_linker_get_memory(ctx);
@@ -513,6 +524,42 @@ size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
 		*size = fsize;
 
 	return data_addr;
+}
+
+void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int display_id, int conn_id)
+{
+	buffer_t buf = {0};
+
+	// Go through all keys looking for newly pressed or released keys
+	for (int i = RL_SCANCODE_A; i < RL_NUM_SCANCODES; i++)
+	{
+		if (abs(mouse.key_state[i]) == 2 || mouse.key_state[i] == 3)
+		{
+			if (buf.len)
+				bufprintf(&buf, "\n");
+
+			const char *state_name[] = { "up", "", "", "", "down", "repeat" };
+			bufprintf(&buf, "Key %s: %d", state_name[2 + mouse.key_state[i]], i);
+
+		#ifdef RL_SDL
+			bufprintf(&buf, " / \"%s\" / \"%s\"", SDL_GetScancodeName(i), SDL_GetKeyName(SDL_GetKeyFromScancode(i)));
+		#endif
+		}
+	}
+
+	// TODO make mouse messages depending on the target display
+
+	// Copy message from host memory to module memory
+	size_t *addr = &group->exec_order[ group->connection[conn_id].dst_eo ].dst_msg_addr;
+	call_module_free(&group->module[module_id], *addr);
+	*addr = 0;
+
+	if (buf.buf)
+	{
+		*addr = call_module_malloc(&group->module[module_id], buf.len + 1);
+		memcpy(&group->module[module_id].memory_ptr[*addr], buf.buf, buf.len + 1);
+		free_buf(&buf);
+	}
 }
 
 // Get called from the module
