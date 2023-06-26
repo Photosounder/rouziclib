@@ -528,26 +528,52 @@ size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
 
 void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int display_id, int conn_id)
 {
+	int i;
 	buffer_t buf = {0};
+	const char *state_name[] = { "up", "", "", "", "down", "repeat" };
 
 	// Go through all keys looking for newly pressed or released keys
-	for (int i = RL_SCANCODE_A; i < RL_NUM_SCANCODES; i++)
+	for (i = RL_SCANCODE_A; i < RL_NUM_SCANCODES; i++)
 	{
-		if (abs(mouse.key_state[i]) == 2 || mouse.key_state[i] == 3)
+		if (abs(mouse.key_state[i]) >= 2)
 		{
-			if (buf.len)
-				bufprintf(&buf, "\n");
-
-			const char *state_name[] = { "up", "", "", "", "down", "repeat" };
 			bufprintf(&buf, "Key %s: %d", state_name[2 + mouse.key_state[i]], i);
 
 		#ifdef RL_SDL
 			bufprintf(&buf, " / \"%s\" / \"%s\"", SDL_GetScancodeName(i), SDL_GetKeyName(SDL_GetKeyFromScancode(i)));
 		#endif
+			bufprintf(&buf, "\n");
 		}
 	}
 
-	// TODO make mouse messages depending on the target display
+	// Make mouse messages depending on the target display
+	if (check_point_within_box(mouse.u, group->image[display_id].fb_rect))
+	{
+		xy_t r_scale, r_offset;
+		rect_range_and_dim_to_scale_offset_inv(group->image[display_id].fb_rect, group->image[display_id].fb.dim, &r_scale, &r_offset, 0);
+		xy_t pix_pos = mad_xy(mouse.u, r_scale, r_offset);
+
+		bufprintf(&buf, "Mouse position (pixels) %.16g %.16g\n", pix_pos.x, pix_pos.y);
+	}
+	else
+		bufprintf(&buf, "Mouse position (pixels) NAN NAN\n");
+
+	// Mouse buttons
+	for (i=0; i < 3; i++)
+	{
+		int b;
+		const char *b_name[] = { "left", "middle", "right" };
+
+		switch (i)
+		{
+				case 0: b = mouse.b.lmb;
+			break;	case 1: b = mouse.b.mmb;
+			break;	case 2: b = mouse.b.rmb;
+		}
+
+		if (abs(b) == 2)
+			bufprintf(&buf, "Mouse %s button %s\n", b_name[i], state_name[2 + b]);
+	}
 
 	// Copy message from host memory to module memory
 	size_t *addr = &group->exec_order[ group->connection[conn_id].dst_eo ].dst_msg_addr;

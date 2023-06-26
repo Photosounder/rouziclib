@@ -43,7 +43,7 @@ typedef struct
 typedef struct
 {
 	raster_t fb;
-	rect_t fb_rect;
+	rect_t fb_area, fb_rect;
 } wahe_image_display_t;
 
 typedef struct
