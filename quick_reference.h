@@ -464,7 +464,7 @@ void my_window_function(double *arg1, double *arg2)
 //**** Keyboard input ****
 
 	// Get state by scancode (see general/keyboard_struct.h)
-		// -2 newly up, -1 up, 0 = initial, 1 = down, 2 = newly down, 3 = repeated down event
+		// -2 newly up, -1 up, 1 = down, 2 = newly down, 3 = repeated down event
 		mouse.key_state[RL_SCANCODE_?]
 		// and by name (see https://wiki.libsdl.org/SDL_Keycode for names)
 		get_key_state_by_name("a")
@@ -472,6 +472,7 @@ void my_window_function(double *arg1, double *arg2)
 		if (cur_textedit==NULL && mouse.key_state[RL_SCANCODE_?] >= 2)
 
 	// Get modifier keys
+		// because remote desktoping releases mod keys at the same time as it sends associated key events it's best to test for get_kb_*() != -1
 		get_kb_shift(), get_kb_ctrl(), get_kb_guikey(), get_kb_alt()
 		// all of the above put together (returns either 0 or 1)
 		get_kb_all_mods()

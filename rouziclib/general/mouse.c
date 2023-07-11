@@ -3,6 +3,7 @@ mouse_t init_mouse()
 	mouse_t mouse;
 
 	memset(&mouse, 0, sizeof(mouse_t));
+	memset(mouse.key_state, -1, sizeof(mouse.key_state));
 	mouse.ctrl_id = calloc(1, sizeof(mouse_ctrl_id_t));
 
 	mouse.b.lmb = mouse.b.mmb = mouse.b.rmb = -1;

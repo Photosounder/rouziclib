@@ -45,7 +45,7 @@ int get_key_state_fusion(int sc1, int sc2, int sc3)
 		else					// if other keys are already held down
 			return 1;			// return down
 
-	return key[0];		// either -2, -1 or 0
+	return key[0];		// either -2 or -1
 }
 
 int get_kb_shift()  { return get_key_state_fusion(RL_SCANCODE_LSHIFT, RL_SCANCODE_RSHIFT, RL_SCANCODE_UNKNOWN); }
@@ -53,7 +53,7 @@ int get_kb_ctrl()   { return get_key_state_fusion(RL_SCANCODE_LCTRL, RL_SCANCODE
 int get_kb_guikey() { return get_key_state_fusion(RL_SCANCODE_LGUI, RL_SCANCODE_RGUI, RL_SCANCODE_UNKNOWN); }
 int get_kb_alt()    { return get_key_state_fusion(RL_SCANCODE_LALT, RL_SCANCODE_RALT, RL_SCANCODE_UNKNOWN); }
 int get_kb_enter()  { return get_key_state_fusion(RL_SCANCODE_RETURN, RL_SCANCODE_RETURN2, RL_SCANCODE_KP_ENTER); }
-int get_kb_all_mods() { return (get_kb_shift()>0) + (get_kb_ctrl()>0) + (get_kb_guikey()>0) + (get_kb_alt()>0); }
+int get_kb_all_mods() { return (get_kb_shift()!=-1) + (get_kb_ctrl()!=-1) + (get_kb_guikey()!=-1) + (get_kb_alt()!=-1); }
 
 void flag_update_keyboard_button(int *b, int *quick_b)
 {

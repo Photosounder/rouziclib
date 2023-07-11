@@ -369,7 +369,7 @@ cl_int build_cl_program_filecache(clctx_t *c, cl_program *program, const char *s
 	CL_ERR_RET("clBuildProgram (in build_cl_program_filecache)", ret);
 
 	// Store program binary if needed
-	if (binary_loaded == 0)
+	/*if (binary_loaded == 0)
 	{
 		// Get the binary
 		size_t param_value_size_ret;
@@ -381,7 +381,7 @@ cl_int build_cl_program_filecache(clctx_t *c, cl_program *program, const char *s
 
 		// Save it
 		buf_save_raw_file(&buf, path, "wb");
-	}
+	}*/
 
 	free(path);
 
