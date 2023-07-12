@@ -1071,7 +1071,7 @@ void rl_sdl_standard_main_loop(sdl_main_param_t param)
 				exit_flag = 1;
 		}
 
-		if (mouse.key_state[RL_SCANCODE_RETURN] == 2 && get_kb_alt() > 0)
+		if (mouse.key_state[RL_SCANCODE_RETURN] == 2 && get_kb_alt() != -1)
 			sdl_toggle_borderless_fullscreen();
 
 		textedit_add(cur_textedit, NULL);	// processes the new keystrokes in the current text editor

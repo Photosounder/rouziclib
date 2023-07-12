@@ -199,7 +199,7 @@ void textedit_add(textedit_t *te, char *str)
 		orig_len = strlen(te->string);
 
 	// Do things allowed in read_only
-	if (str==NULL && get_kb_cmd() > 0)
+	if (str==NULL && get_kb_cmd() != -1)
 	{
 		if (get_key_state_by_name("c") >= 2 || get_key_state_by_name("x") >= 2)	// Copy/Cut
 		{
@@ -244,7 +244,7 @@ void textedit_add(textedit_t *te, char *str)
 			mouse.key_state[RL_SCANCODE_HOME] >= 2 ||
 			mouse.key_state[RL_SCANCODE_END] >= 2 )
 		{
-			if (get_kb_shift() > 0)
+			if (get_kb_shift() != -1)
 			{
 				if (te->sel0 == te->sel1)
 					te->sel0 = te->sel1 = te->curpos;
@@ -254,14 +254,14 @@ void textedit_add(textedit_t *te, char *str)
 
 			if (mouse.key_state[RL_SCANCODE_LEFT] >= 2)
 			{
-				if (get_kb_cmd() > 0)
+				if (get_kb_cmd() != -1)
 					te->curpos = textedit_find_prev_wordstart(te);
 				else
 					te->curpos = find_prev_utf8_char(te->string, te->curpos);
 			}
 			else if (mouse.key_state[RL_SCANCODE_RIGHT] >= 2)
 			{
-				if (get_kb_cmd() > 0)
+				if (get_kb_cmd() != -1)
 					te->curpos = textedit_find_next_wordstart(te);
 				else
 					te->curpos = find_next_utf8_char(te->string, te->curpos);
@@ -275,16 +275,16 @@ void textedit_add(textedit_t *te, char *str)
 			else if (mouse.key_state[RL_SCANCODE_END] >= 2)
 				te->curpos = textedit_find_next_linebreak(te);
 
-			if (get_kb_shift() > 0)
+			if (get_kb_shift() != -1)
 				te->sel1 = te->curpos;
 		}
 
-		if (mouse.key_state[RL_SCANCODE_TAB] >= 2 && (get_kb_ctrl() > 0 || get_kb_alt() > 0 || get_kb_guikey() > 0)==0)
+		if (mouse.key_state[RL_SCANCODE_TAB] >= 2 && (get_kb_ctrl() != -1 || get_kb_alt() != -1 || get_kb_guikey() != -1)==0)
 		{
 			if (te->edit_mode == te_mode_value)
 			{
 				te->return_flag = 3;
-				te->tab_switch = get_kb_shift() > 0 ? -1 : 1;	// flags switch to other editor
+				te->tab_switch = get_kb_shift() != -1 ? -1 : 1;	// flags switch to other editor
 			}
 			else
 			{
@@ -338,7 +338,7 @@ void textedit_add(textedit_t *te, char *str)
 				cur_textedit = NULL;
 			}
 		}
-		else if (get_kb_cmd() > 0)
+		else if (get_kb_cmd() != -1)
 		{
 			if (get_key_state_by_name("v") >= 2)			// Paste
 			{
@@ -357,7 +357,7 @@ void textedit_add(textedit_t *te, char *str)
 			}
 			else if (get_key_state_by_name("z") >= 2)		// Undo/Redo
 			{
-				if (get_kb_shift() > 0)
+				if (get_kb_shift() != -1)
 					textundo_redo(te);
 				else
 					textundo_undo(te);

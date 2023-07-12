@@ -226,12 +226,12 @@ void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key)
 	const double rep_inc=0.25;
 	int s;
 
-	if (zc->mouse->zoom_allowed && get_kb_alt() > 0)
+	if (zc->mouse->zoom_allowed && get_kb_alt() != -1)
 	{
 		// Toggle or reset zoom with (Shift-)Alt-Z or toggle the overlay controls with Ctrl-Alt-Z
 		if (zc->mouse->key_state[RL_SCANCODE_Z]==2)
-			if (get_kb_shift() <= 0)
-				if (get_kb_ctrl() > 0)
+			if (get_kb_shift() == -1)
+				if (get_kb_ctrl() != -1)
 					zc->overlay_ctrl ^= 1;
 				else
 					zoom_toggle(zc, flag_zoom_key);
