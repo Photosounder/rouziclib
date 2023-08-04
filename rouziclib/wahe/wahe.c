@@ -210,9 +210,11 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 	// Native call
 	if (ctx->native)
 	{
-		current_ctx = ctx;
 		char *(*func)(char *) = ctx->dl_func[WAHE_FUNC_INPUT];
-		return func((char *) message_addr);
+		swap_ptr(&current_ctx, &ctx);
+		current_ctx->ret_msg_addr[WAHE_FUNC_INPUT] = (size_t) func((char *) message_addr);
+		swap_ptr(&current_ctx, &ctx);
+		return (char *) ctx->ret_msg_addr[WAHE_FUNC_INPUT];
 	}
 
 	if (ctx->func[WAHE_FUNC_INPUT].store_id == 0)
@@ -254,9 +256,10 @@ int call_module_generic(wahe_module_t *ctx, size_t message_addr, enum wahe_func_
 	// Native call
 	if (ctx->native)
 	{
-		current_ctx = ctx;
 		char *(*func)(char *) = ctx->dl_func[func_id];
-		ctx->ret_msg_addr[func_id] = (size_t) func((char *) message_addr);
+		swap_ptr(&current_ctx, &ctx);
+		current_ctx->ret_msg_addr[func_id] = (size_t) func((char *) message_addr);
+		swap_ptr(&current_ctx, &ctx);
 		return ctx->ret_msg_addr[func_id] != 0;
 	}
 
