@@ -54,7 +54,7 @@ void strcpy_then_free(char *dest, char *src)
 
 char *replace_char(char *str, char find, char replace)	// ASCII replacement of one char with another
 {
-	char *current_pos = strchr(str,find);
+	char *current_pos = strchr(str, find);
 
 	while (current_pos)
 	{

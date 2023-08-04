@@ -197,6 +197,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "fileio/dir.h"
 #include "fileio/file_management.h"
 #include "fileio/process.h"
+#include "fileio/dynamic_loading.h"
 #include "fileio/fileball.h"
 #include "fileio/prefs.h"
 #include "fileio/dialog.h"

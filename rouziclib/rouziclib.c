@@ -134,6 +134,7 @@
 #include "fileio/dir.c"
 #include "fileio/file_management.c"
 #include "fileio/process.c"
+#include "fileio/dynamic_loading.c"
 #include "fileio/fileball.c"
 #include "fileio/prefs.c"
 #include "fileio/dialog.c"

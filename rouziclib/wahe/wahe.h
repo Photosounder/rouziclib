@@ -13,7 +13,11 @@ enum wahe_eo_type
 
 enum wahe_func_id
 {
-	WAHE_FUNC_INPUT=1,
+	WAHE_FUNC_MALLOC=1,
+	WAHE_FUNC_REALLOC,
+	WAHE_FUNC_FREE,
+
+	WAHE_FUNC_INPUT,
 	WAHE_FUNC_DRAW,
 	WAHE_FUNC_PROC_IMAGE,
 	WAHE_FUNC_PROC_SOUND,
@@ -23,6 +27,7 @@ enum wahe_func_id
 
 typedef struct
 {
+	// Specific to WASM modules
 	wasm_engine_t *engine;
 	wasmtime_store_t *store;
 	wasmtime_context_t *context;
@@ -32,9 +37,11 @@ typedef struct
 	wasmtime_memory_t memory;
 	uint8_t *memory_ptr;
 	wasmtime_valkind_t address_type;
-	wasmtime_func_t malloc_func, realloc_func, free_func;
-
 	wasmtime_func_t func[WAHE_FUNC_COUNT];
+
+	// Specific to native modules
+	void *native, *dl_func[WAHE_FUNC_COUNT];
+
 	size_t ret_msg_addr[WAHE_FUNC_COUNT];
 	textedit_t input_te;
 	void *parent_group;	// wahe_group_t *
@@ -92,7 +99,8 @@ extern char *wahe_send_input(wahe_module_t *ctx, const char *format, ...);
 extern int is_wasmtime_func_found(wasmtime_func_t func);
 extern void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap);
 extern void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path);
+extern void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr);
 extern void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int display_id, int conn_id);
 
-extern wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count);
+extern char *wahe_run_command_native(char *message);
 extern wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count);

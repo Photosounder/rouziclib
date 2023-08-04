@@ -1,3 +1,5 @@
+_Thread_local wahe_module_t *current_ctx = NULL;
+
 void wahe_bench_point(wahe_module_t *ctx, const char *label, int depth)
 {
 	return;
@@ -34,6 +36,10 @@ void wahe_bench_point(wahe_module_t *ctx, const char *label, int depth)
 int wasmtime_linker_get_memory(wahe_module_t *ctx)
 {
 	wasmtime_extern_t item;
+
+	// Nothing to do if the module is native
+	if (ctx->native)
+		return 1;
 
 	// Look for memory
 	if (!wasmtime_linker_get(ctx->linker, ctx->context, "", 0, "memory", strlen("memory"), &item))
@@ -112,12 +118,19 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	wasm_trap_t *trap = NULL;
 	wasmtime_val_t ret[1], param[1];
 
+	// Native call
+	if (ctx->native)
+	{
+		void *(*func)(size_t) = ctx->dl_func[WAHE_FUNC_MALLOC];
+		return (size_t) func(size);
+	}
+
 	// Set params
 	param[0] = wasmtime_val_set_address(ctx, size);
 
 	// Call the function
 	wahe_bench_point(ctx, "calling malloc()", 1);
-	error = wasmtime_func_call(ctx->context, &ctx->malloc_func, param, 1, ret, 1, &trap);
+	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_MALLOC], param, 1, ret, 1, &trap);
 	wahe_bench_point(ctx, "malloc() returned", 0);
 	if (error || trap)
 	{
@@ -148,12 +161,20 @@ void call_module_free(wahe_module_t *ctx, size_t address)
 	wasm_trap_t *trap = NULL;
 	wasmtime_val_t param[1];
 
+	// Native call
+	if (ctx->native)
+	{
+		void (*func)(void *) = ctx->dl_func[WAHE_FUNC_FREE];
+		func((void *) address);
+		return;
+	}
+
 	// Set params
 	param[0] = wasmtime_val_set_address(ctx, address);
 
 	// Call the function
 	wahe_bench_point(ctx, "calling free()", 1);
-	error = wasmtime_func_call(ctx->context, &ctx->free_func, param, 1, NULL, 0, &trap);
+	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_FREE], param, 1, NULL, 0, &trap);
 	wahe_bench_point(ctx, "free() returned", -1);
 	if (error || trap)
 	{
@@ -186,6 +207,14 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 	wasm_trap_t *trap = NULL;
 	wasmtime_val_t ret[1], param[1];
 
+	// Native call
+	if (ctx->native)
+	{
+		current_ctx = ctx;
+		char *(*func)(char *) = ctx->dl_func[WAHE_FUNC_INPUT];
+		return func((char *) message_addr);
+	}
+
 	if (ctx->func[WAHE_FUNC_INPUT].store_id == 0)
 		return NULL;
 
@@ -216,13 +245,22 @@ char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
 		return NULL;
 }
 
-int call_module_generic(wahe_module_t *ctx, size_t message_addr, wasmtime_func_t *func, size_t *ret_msg_addr)
+int call_module_generic(wahe_module_t *ctx, size_t message_addr, enum wahe_func_id func_id)
 {
 	wasmtime_error_t *error;
 	wasm_trap_t *trap = NULL;
 	wasmtime_val_t ret[1], param[1];
 
-	if (func->store_id == 0)
+	// Native call
+	if (ctx->native)
+	{
+		current_ctx = ctx;
+		char *(*func)(char *) = ctx->dl_func[func_id];
+		ctx->ret_msg_addr[func_id] = (size_t) func((char *) message_addr);
+		return ctx->ret_msg_addr[func_id] != 0;
+	}
+
+	if (ctx->func[func_id].store_id == 0)
 		return -1;
 
 	// Set params
@@ -230,7 +268,7 @@ int call_module_generic(wahe_module_t *ctx, size_t message_addr, wasmtime_func_t
 
 	// Call the function
 	wahe_bench_point(ctx, "calling module_?()", 1);
-	error = wasmtime_func_call(ctx->context, func, param, 1, ret, 1, &trap);
+	error = wasmtime_func_call(ctx->context, &ctx->func[func_id], param, 1, ret, 1, &trap);
 	wahe_bench_point(ctx, "module_?() returned", -1);
 	if (error || trap)
 	{
@@ -240,7 +278,7 @@ int call_module_generic(wahe_module_t *ctx, size_t message_addr, wasmtime_func_t
 	}
 
 	// Store the return message address
-	*ret_msg_addr = wasmtime_val_get_address(ret[0]);
+	ctx->ret_msg_addr[func_id] = wasmtime_val_get_address(ret[0]);
 
 	// Update memory pointer
 	wasmtime_linker_get_memory(ctx);
@@ -251,12 +289,12 @@ int call_module_generic(wahe_module_t *ctx, size_t message_addr, wasmtime_func_t
 
 int call_module_draw(wahe_module_t *ctx, size_t message_addr)
 {
-	return call_module_generic(ctx, message_addr, &ctx->func[WAHE_FUNC_DRAW], &ctx->ret_msg_addr[WAHE_FUNC_DRAW]);
+	return call_module_generic(ctx, message_addr, WAHE_FUNC_DRAW);
 }
 
 int call_module_proc_image(wahe_module_t *ctx, size_t message_addr)
 {
-	return call_module_generic(ctx, message_addr, &ctx->func[WAHE_FUNC_PROC_IMAGE], &ctx->ret_msg_addr[WAHE_FUNC_PROC_IMAGE]);
+	return call_module_generic(ctx, message_addr, WAHE_FUNC_PROC_IMAGE);
 }
 
 int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r)
@@ -367,109 +405,118 @@ void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap)
 
 void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path)
 {
-	wasmtime_error_t *error;
-	wasm_functype_t *func_type;
-
 	memset(ctx, 0, sizeof(wahe_module_t));
 
-	// WASM initialisation
-	wasm_config_t *config = wasm_config_new();
-	//wasmtime_config_debug_info_set(config, true);
-	ctx->engine = wasm_engine_new_with_config(config);
-	ctx->store = wasmtime_store_new(ctx->engine, NULL, NULL);
-	ctx->context = wasmtime_store_context(ctx->store);
-
-	// Create a linker with WASI functions defined
-	ctx->linker = wasmtime_linker_new(ctx->engine);
-	error = wasmtime_linker_define_wasi(ctx->linker);
-	if (error)
+	// Native module
+	if (ctx->native = dynlib_open(path))
 	{
-		fprintf_rl(stderr, "Error linking WASI in wasmtime_linker_define_wasi()\n");
-		fprint_wasmtime_error(error, NULL);
-		return;
+		// Attempt to load functions
+		ctx->dl_func[WAHE_FUNC_MALLOC]     = dynlib_find_symbol(ctx->native, "module_malloc");
+		ctx->dl_func[WAHE_FUNC_REALLOC]    = dynlib_find_symbol(ctx->native, "module_realloc");
+		ctx->dl_func[WAHE_FUNC_FREE]       = dynlib_find_symbol(ctx->native, "module_free");
+		ctx->dl_func[WAHE_FUNC_INPUT]      = dynlib_find_symbol(ctx->native, "module_message_input");
+		ctx->dl_func[WAHE_FUNC_DRAW]       = dynlib_find_symbol(ctx->native, "module_draw");
+		ctx->dl_func[WAHE_FUNC_PROC_IMAGE] = dynlib_find_symbol(ctx->native, "module_proc_image");
 	}
-
-	// Load WASM file
-	buffer_t wasm_buf = buf_load_raw_file(path);
-
-	// Compile WASM
-	error = wasmtime_module_new(ctx->engine, wasm_buf.buf, wasm_buf.len, &ctx->module);
-	if (error)
+	// WASM module
+	else
 	{
-		fprintf_rl(stderr, "Error compiling the module in wasmtime_module_new()\n");
-		fprint_wasmtime_error(error, NULL);
-		return;
+		wasmtime_error_t *error;
+		wasm_functype_t *func_type;
+
+		// WASM initialisation
+		wasm_config_t *config = wasm_config_new();
+		//wasmtime_config_debug_info_set(config, true);
+		ctx->engine = wasm_engine_new_with_config(config);
+		ctx->store = wasmtime_store_new(ctx->engine, NULL, NULL);
+		ctx->context = wasmtime_store_context(ctx->store);
+
+		// Create a linker with WASI functions defined
+		ctx->linker = wasmtime_linker_new(ctx->engine);
+		error = wasmtime_linker_define_wasi(ctx->linker);
+		if (error)
+		{
+			fprintf_rl(stderr, "Error linking WASI in wasmtime_linker_define_wasi()\n");
+			fprint_wasmtime_error(error, NULL);
+			return;
+		}
+
+		// Load WASM file
+		buffer_t wasm_buf = buf_load_raw_file(path);
+
+		// Compile WASM
+		error = wasmtime_module_new(ctx->engine, wasm_buf.buf, wasm_buf.len, &ctx->module);
+		if (error)
+		{
+			fprintf_rl(stderr, "Error compiling the module in wasmtime_module_new()\n");
+			fprint_wasmtime_error(error, NULL);
+			return;
+		}
+
+		free_buf(&wasm_buf);
+
+		// WASI initialisation
+		ctx->wasi_config = wasi_config_new();
+		wasi_config_inherit_stdout(ctx->wasi_config);
+		wasi_config_inherit_stderr(ctx->wasi_config);
+		error = wasmtime_context_set_wasi(ctx->context, ctx->wasi_config);
+		if (error)
+		{
+			fprintf_rl(stderr, "Error initialising WASI in wasmtime_context_set_wasi()\n");
+			fprint_wasmtime_error(error, NULL);
+			return;
+		}
+
+		// Initialise callbacks (host functions called from WASM module)
+		func_type = wasm_functype_new_1_1(wasm_valtype_new_i32(), wasm_valtype_new_i32());
+		error = wasmtime_linker_define_func(ctx->linker, "env", strlen("env"), "wahe_run_command", strlen("wahe_run_command"), func_type, wahe_run_command, ctx, NULL);
+		if (error)
+		{
+			fprintf_rl(stderr, "Error defining callback in wasmtime_linker_define_func()\n");
+			fprint_wasmtime_error(error, NULL);
+			return;
+		}
+		wasm_functype_delete(func_type);
+
+		// Instantiate the module
+		error = wasmtime_linker_module(ctx->linker, ctx->context, "", 0, ctx->module);
+		if (error)
+		{
+			fprintf_rl(stderr, "Error instantiating module in wasmtime_linker_module()\n");
+			fprint_wasmtime_error(error, NULL);
+			return;
+		}
+
+		// Find functions from the WASM module
+		wasmtime_linker_get_func(ctx, "malloc", &ctx->func[WAHE_FUNC_MALLOC], -1);
+		wasmtime_linker_get_func(ctx, "realloc", &ctx->func[WAHE_FUNC_REALLOC], -1);
+		wasmtime_linker_get_func(ctx, "free", &ctx->func[WAHE_FUNC_FREE], -1);
+		wasmtime_linker_get_func(ctx, "module_message_input", &ctx->func[WAHE_FUNC_INPUT], 1);
+		wasmtime_linker_get_func(ctx, "module_draw", &ctx->func[WAHE_FUNC_DRAW], 1);
+		wasmtime_linker_get_func(ctx, "module_proc_image", &ctx->func[WAHE_FUNC_PROC_IMAGE], 1);
+
+		// Get pointer to linear memory
+		wasmtime_linker_get_memory(ctx);
+
+		// Set the type of module addresses (currently always 32-bit)
+		ctx->address_type = WASMTIME_I32;
 	}
-
-	free_buf(&wasm_buf);
-
-	// WASI initialisation
-	ctx->wasi_config = wasi_config_new();
-	wasi_config_inherit_stdout(ctx->wasi_config);
-	wasi_config_inherit_stderr(ctx->wasi_config);
-	error = wasmtime_context_set_wasi(ctx->context, ctx->wasi_config);
-	if (error)
-	{
-		fprintf_rl(stderr, "Error initialising WASI in wasmtime_context_set_wasi()\n");
-		fprint_wasmtime_error(error, NULL);
-		return;
-	}
-
-	// Initialise callbacks (host functions called from WASM module)
-	func_type = wasm_functype_new_1_0(wasm_valtype_new_i32());
-	error = wasmtime_linker_define_func(ctx->linker, "env", strlen("env"), "wahe_print", strlen("wahe_print"), func_type, wahe_print, ctx, NULL);
-	if (error)
-	{
-		fprintf_rl(stderr, "Error defining callback in wasmtime_linker_define_func()\n");
-		fprint_wasmtime_error(error, NULL);
-		return;
-	}
-	wasm_functype_delete(func_type);
-
-	func_type = wasm_functype_new_1_1(wasm_valtype_new_i32(), wasm_valtype_new_i32());
-	error = wasmtime_linker_define_func(ctx->linker, "env", strlen("env"), "wahe_run_command", strlen("wahe_run_command"), func_type, wahe_run_command, ctx, NULL);
-	if (error)
-	{
-		fprintf_rl(stderr, "Error defining callback in wasmtime_linker_define_func()\n");
-		fprint_wasmtime_error(error, NULL);
-		return;
-	}
-	wasm_functype_delete(func_type);
-
-	// Instantiate the module
-	error = wasmtime_linker_module(ctx->linker, ctx->context, "", 0, ctx->module);
-	if (error)
-	{
-		fprintf_rl(stderr, "Error instantiating module in wasmtime_linker_module()\n");
-		fprint_wasmtime_error(error, NULL);
-		return;
-	}
-
-	// Find functions from the WASM module
-	wasmtime_linker_get_func(ctx, "malloc", &ctx->malloc_func, -1);
-	wasmtime_linker_get_func(ctx, "realloc", &ctx->realloc_func, -1);
-	wasmtime_linker_get_func(ctx, "free", &ctx->free_func, -1);
-	wasmtime_linker_get_func(ctx, "module_message_input", &ctx->func[WAHE_FUNC_INPUT], 1);
-	wasmtime_linker_get_func(ctx, "module_draw", &ctx->func[WAHE_FUNC_DRAW], 1);
-	wasmtime_linker_get_func(ctx, "module_proc_image", &ctx->func[WAHE_FUNC_PROC_IMAGE], 1);
-
-	// Get pointer to linear memory
-	wasmtime_linker_get_memory(ctx);
-
-	// Set the type of module addresses (currently always 32-bit)
-	ctx->address_type = WASMTIME_I32;
 
 	ctx->parent_group = parent_group;
-
-	// Init module's textedit used for transmitting text input
-	textedit_init(&ctx->input_te, 1);
 
 	// Send an Init message to the module
 	wahe_send_input(ctx, "Init");
 
+	// Send pointer to wahe_run_command() if the module is not WASM
+	if (ctx->native)
+		wahe_send_input(ctx, "wahe_run_command() = %#zx", wahe_run_command_native);
+
 	// Send module index to the module
 	if (parent_group)
 		wahe_send_input(ctx, "Module index %d", module_index);
+
+	// Init module's textedit used for transmitting text input
+	textedit_init(&ctx->input_te, 1);
 }
 
 void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr)
@@ -589,40 +636,14 @@ void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int d
 }
 
 // Get called from the module
-wasm_trap_t *wahe_print(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *resuls, size_t result_count)
+size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 {
-	wahe_module_t *ctx = env;
-
-	wahe_bench_point(ctx, "WASM called wahe_print()", 1);
-
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-
-	// Find string and print it
-	uint32_t string_addr = wasmtime_val_get_address(arg[0]);
-	char *string = &ctx->memory_ptr[string_addr];
-	fprintf_rl(stdout, "*=*WASM*=*   %s\n", string);
-
-	wahe_bench_point(ctx, "wahe_print() returning", -1);
-
-	return NULL;
-}
-
-wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count)
-{
-	wahe_module_t *ctx = env;
 	size_t return_msg_addr = 0;
 	int n;
 
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-
 	// Parse message
-	if (wasmtime_val_get_address(arg[0]))
+	if (message)
 	{
-		// Get the message address and make pointer to the message
-		char *message = &ctx->memory_ptr[wasmtime_val_get_address(arg[0])];
-
 		// Parse each line of the message
 		for (const char *line = message; line; line = strstr_after(line, "\n"))
 		{
@@ -642,7 +663,7 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 				{
 					dst_addr = call_module_malloc(&group->module[dst_module], copy_size);
 					wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
-					return_msg_addr = module_sprintf_alloc(ctx, "Destination %p", (void *) dst_addr);
+					return_msg_addr = module_sprintf_alloc(ctx, "Destination %#zx", (void *) dst_addr);
 				}
 			}
 
@@ -655,7 +676,7 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 				char *path = make_string_copy_len(&line[path_start], path_end-path_start);
 				data_addr = wahe_load_raw_file(ctx, path, &data_size);
 				free(path);
-				return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %p", data_size, (void *) data_addr);
+				return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %#zx", data_size, (void *) data_addr);
 			}
 
 			// Return raw time
@@ -669,7 +690,45 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 			sscanf(line, "Benchmark%n", &n);
 			if (n)
 				wahe_bench_point(ctx, "-Benchmark command-", 0);
+
+			// Print to host
+			n = 0;
+			sscanf(line, "Print%n", &n);
+			if (n && line[n] == ' ')
+			{
+				int ne = 0;
+				sscanf(&line[n+1], "%*[^\n]%n", &ne);
+				if (ne)
+					fprintf_rl(stdout, "*=*WASM*=*   %.*s\n", ne, &line[n+1]);
+			}
 		}
+	}
+
+	return return_msg_addr;
+}
+
+char *wahe_run_command_native(char *message)
+{
+	return (char *) wahe_run_command_core(current_ctx, message);
+}
+
+wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count)
+{
+	wahe_module_t *ctx = env;
+	size_t return_msg_addr = 0;
+	int n;
+
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+
+	// Parse message
+	if (wasmtime_val_get_address(arg[0]))
+	{
+		// Get the message address and make pointer to the message
+		char *message = &ctx->memory_ptr[wasmtime_val_get_address(arg[0])];
+
+		// Run the command
+		return_msg_addr = wahe_run_command_core(ctx, message);
 	}
 
 	// Return message

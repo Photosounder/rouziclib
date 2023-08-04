@@ -533,6 +533,9 @@ Create symbolic links, folders (even with multiple depths), move, copy, remove f
 ** link:rouziclib/fileio/process.c[process.c] / link:rouziclib/fileio/process.h[process.h] +
 Launch another process (Windows). Load the program's commandline arguments `argv` at any point in the program.
 
+** link:rouziclib/fileio/dynamic_loading.c[dynamic_loading.c] / link:rouziclib/fileio/dynamic_loading.h[dynamic_loading.h] +
+Loading of dynamic libraries.
+
 ** link:rouziclib/fileio/fileball.c[fileball.c] / link:rouziclib/fileio/fileball.h[fileball.h] and link:rouziclib/fileio/fileball_struct.h[fileball_struct.h] +
 Manage fileball archives, a simple format to pack many files into one and optionally compress them using Deflate (via https://github.com/richgel999/miniz[miniz]). This is used to pack the many files that make up the vector typeface into a C header with compression.
 
