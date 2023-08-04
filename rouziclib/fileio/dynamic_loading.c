@@ -1,3 +1,5 @@
+#ifndef __wasm__
+
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
@@ -39,3 +41,5 @@ void dynlib_close(void **module)
 
 	*module = NULL;
 }
+
+#endif
