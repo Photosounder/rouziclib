@@ -184,6 +184,61 @@ void call_module_free(wahe_module_t *ctx, size_t address)
 	}
 }
 
+char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_id func_id, int call_from_eo)
+{
+	wasmtime_error_t *error;
+	wasm_trap_t *trap = NULL;
+	wasmtime_val_t ret[1], param[1];
+	size_t ret_msg_addr_s = 0, *ret_msg_addr = &ret_msg_addr_s;
+
+	if (call_from_eo)
+	{
+		// Find where to store the return message address
+		wahe_group_t *group = ctx->parent_group;
+		wahe_exec_order_t *eo = &group->exec_order[group->current_eo];
+		ret_msg_addr = &eo->ret_msg_addr;
+	}
+
+	// Native call
+	if (ctx->native)
+	{
+		char *(*func)(char *) = ctx->dl_func[func_id];
+		swap_ptr(&current_ctx, &ctx);
+		*ret_msg_addr = (size_t) func((char *) message_addr);
+		swap_ptr(&current_ctx, &ctx);
+		return (char *) *ret_msg_addr;
+	}
+
+	if (ctx->func[func_id].store_id == 0)
+		return NULL;
+
+	// Set params
+	param[0] = wasmtime_val_set_address(ctx, message_addr);
+
+	// Call the function
+	wahe_bench_point(ctx, "calling call_module_func()", 1);
+	error = wasmtime_func_call(ctx->context, &ctx->func[func_id], param, 1, ret, 1, &trap);
+	wahe_bench_point(ctx, "call_module_func() returned", -1);
+	if (error || trap)
+	{
+		fprintf_rl(stderr, "call_module_func() failed\n");
+		fprint_wasmtime_error(error, trap);
+		return NULL;
+	}
+
+	// Store the return message address
+	*ret_msg_addr = wasmtime_val_get_address(ret[0]);
+
+	// Update memory pointer
+	wasmtime_linker_get_memory(ctx);
+
+	// Return pointer to return message
+	if (*ret_msg_addr)
+		return (char *) &ctx->memory_ptr[*ret_msg_addr];
+	else
+		return NULL;
+}
+
 int wahe_pixel_format_to_raster_mode(const char *name)
 {
 	if (strcmp(name, "RGBA UQ1.15 linear") == 0)
@@ -199,105 +254,6 @@ int wahe_pixel_format_to_raster_mode(const char *name)
 		return IMAGE_USE_SQRGB;
 
 	return IMAGE_USE_BUF;
-}
-
-char *call_module_message_input(wahe_module_t *ctx, size_t message_addr)
-{
-	wasmtime_error_t *error;
-	wasm_trap_t *trap = NULL;
-	wasmtime_val_t ret[1], param[1];
-
-	// Native call
-	if (ctx->native)
-	{
-		char *(*func)(char *) = ctx->dl_func[WAHE_FUNC_INPUT];
-		swap_ptr(&current_ctx, &ctx);
-		current_ctx->ret_msg_addr[WAHE_FUNC_INPUT] = (size_t) func((char *) message_addr);
-		swap_ptr(&current_ctx, &ctx);
-		return (char *) ctx->ret_msg_addr[WAHE_FUNC_INPUT];
-	}
-
-	if (ctx->func[WAHE_FUNC_INPUT].store_id == 0)
-		return NULL;
-
-	// Set params
-	param[0] = wasmtime_val_set_address(ctx, message_addr);
-
-	// Call the function
-	wahe_bench_point(ctx, "calling module_message_input()", 1);
-	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_INPUT], param, 1, ret, 1, &trap);
-	wahe_bench_point(ctx, "module_message_input() returned", -1);
-	if (error || trap)
-	{
-		fprintf_rl(stderr, "call_module_message_input() failed\n");
-		fprint_wasmtime_error(error, trap);
-		return NULL;
-	}
-
-	// Store the return message address
-	ctx->ret_msg_addr[WAHE_FUNC_INPUT] = wasmtime_val_get_address(ret[0]);
-
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-
-	// Return pointer to return message
-	if (ctx->ret_msg_addr[WAHE_FUNC_INPUT])
-		return (char *) &ctx->memory_ptr[ctx->ret_msg_addr[WAHE_FUNC_INPUT]];
-	else
-		return NULL;
-}
-
-int call_module_generic(wahe_module_t *ctx, size_t message_addr, enum wahe_func_id func_id)
-{
-	wasmtime_error_t *error;
-	wasm_trap_t *trap = NULL;
-	wasmtime_val_t ret[1], param[1];
-
-	// Native call
-	if (ctx->native)
-	{
-		char *(*func)(char *) = ctx->dl_func[func_id];
-		swap_ptr(&current_ctx, &ctx);
-		current_ctx->ret_msg_addr[func_id] = (size_t) func((char *) message_addr);
-		swap_ptr(&current_ctx, &ctx);
-		return ctx->ret_msg_addr[func_id] != 0;
-	}
-
-	if (ctx->func[func_id].store_id == 0)
-		return -1;
-
-	// Set params
-	param[0] = wasmtime_val_set_address(ctx, message_addr);
-
-	// Call the function
-	wahe_bench_point(ctx, "calling module_?()", 1);
-	error = wasmtime_func_call(ctx->context, &ctx->func[func_id], param, 1, ret, 1, &trap);
-	wahe_bench_point(ctx, "module_?() returned", -1);
-	if (error || trap)
-	{
-		fprintf_rl(stderr, "call_module_generic() failed\n");
-		fprint_wasmtime_error(error, trap);
-		return -1;
-	}
-
-	// Store the return message address
-	ctx->ret_msg_addr[func_id] = wasmtime_val_get_address(ret[0]);
-
-	// Update memory pointer
-	wasmtime_linker_get_memory(ctx);
-
-	// The return value indicates whether or not the framebuffer was updated
-	return wasmtime_val_get_address(ret[0]) != 0;
-}
-
-int call_module_draw(wahe_module_t *ctx, size_t message_addr)
-{
-	return call_module_generic(ctx, message_addr, WAHE_FUNC_DRAW);
-}
-
-int call_module_proc_image(wahe_module_t *ctx, size_t message_addr)
-{
-	return call_module_generic(ctx, message_addr, WAHE_FUNC_PROC_IMAGE);
 }
 
 int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r)
@@ -374,7 +330,7 @@ char *wahe_send_input(wahe_module_t *ctx, const char *format, ...)
 	va_end(args);
 
 	// Send the message then free it
-	char *return_msg = call_module_message_input(ctx, message_addr);
+	char *return_msg = call_module_func(ctx, message_addr, WAHE_FUNC_INPUT, 0);
 	call_module_free(ctx, message_addr);
 
 	return return_msg;
@@ -418,6 +374,7 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		ctx->dl_func[WAHE_FUNC_REALLOC]    = dynlib_find_symbol(ctx->native, "module_realloc");
 		ctx->dl_func[WAHE_FUNC_FREE]       = dynlib_find_symbol(ctx->native, "module_free");
 		ctx->dl_func[WAHE_FUNC_INPUT]      = dynlib_find_symbol(ctx->native, "module_message_input");
+		ctx->dl_func[WAHE_FUNC_PROC_CMD]   = dynlib_find_symbol(ctx->native, "module_proc_cmd");
 		ctx->dl_func[WAHE_FUNC_DRAW]       = dynlib_find_symbol(ctx->native, "module_draw");
 		ctx->dl_func[WAHE_FUNC_PROC_IMAGE] = dynlib_find_symbol(ctx->native, "module_proc_image");
 	}
@@ -491,12 +448,13 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		}
 
 		// Find functions from the WASM module
-		wasmtime_linker_get_func(ctx, "malloc", &ctx->func[WAHE_FUNC_MALLOC], -1);
-		wasmtime_linker_get_func(ctx, "realloc", &ctx->func[WAHE_FUNC_REALLOC], -1);
-		wasmtime_linker_get_func(ctx, "free", &ctx->func[WAHE_FUNC_FREE], -1);
+		wasmtime_linker_get_func(ctx, "malloc",               &ctx->func[WAHE_FUNC_MALLOC], -1);
+		wasmtime_linker_get_func(ctx, "realloc",              &ctx->func[WAHE_FUNC_REALLOC], -1);
+		wasmtime_linker_get_func(ctx, "free",                 &ctx->func[WAHE_FUNC_FREE], -1);
 		wasmtime_linker_get_func(ctx, "module_message_input", &ctx->func[WAHE_FUNC_INPUT], 1);
-		wasmtime_linker_get_func(ctx, "module_draw", &ctx->func[WAHE_FUNC_DRAW], 1);
-		wasmtime_linker_get_func(ctx, "module_proc_image", &ctx->func[WAHE_FUNC_PROC_IMAGE], 1);
+		wasmtime_linker_get_func(ctx, "module_proc_cmd",      &ctx->func[WAHE_FUNC_PROC_CMD], 1);
+		wasmtime_linker_get_func(ctx, "module_draw",          &ctx->func[WAHE_FUNC_DRAW], 1);
+		wasmtime_linker_get_func(ctx, "module_proc_image",    &ctx->func[WAHE_FUNC_PROC_IMAGE], 1);
 
 		// Get pointer to linear memory
 		wasmtime_linker_get_memory(ctx);
@@ -644,66 +602,101 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 	size_t return_msg_addr = 0;
 	int n;
 
-	// Parse message
-	if (message)
+	if (message == NULL)
+		return 0;
+
+	// Execute command processors for this execution order
+	wahe_group_t *group = ctx->parent_group;
+	if (group->current_eo >= 0)
 	{
-		// Parse each line of the message
-		for (const char *line = message; line; line = strstr_after(line, "\n"))
+		wahe_exec_order_t *eo = &group->exec_order[group->current_eo];
+		if (eo->cmd_proc_id && group->current_cmd_proc_id < eo->cmd_proc_count)
 		{
-			// Copy buffer between memories
-			int src_module, dst_module;
-			size_t src_addr, copy_size, dst_addr;
-			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to %zi (module %d)", &copy_size, &src_addr, &src_module, &dst_addr, &dst_module) == 5)
+			int dst_module_id = eo->cmd_proc_id[group->current_cmd_proc_id];
+			wahe_module_t *dst_module = &group->module[dst_module_id];
+
+			// Copy message to cmd processing module
+			size_t len = strlen(message) + 1;
+			size_t dst_addr = call_module_malloc(dst_module, len);
+			memcpy(&dst_module->memory_ptr[dst_addr], message, len);
+
+			// Call cmd processing function
+			group->current_cmd_proc_id++;
+			size_t return_msg_addr_dst = (size_t) call_module_func(dst_module, dst_addr, WAHE_FUNC_PROC_CMD, 0);
+			return_msg_addr_dst -= (size_t) dst_module->memory_ptr;
+			call_module_free(dst_module, dst_addr);
+
+			if (group->current_cmd_proc_id == eo->cmd_proc_count)
+				group->current_cmd_proc_id = 0;
+
+			// Copy and return the return message
+			if (return_msg_addr_dst)
 			{
+				size_t ret_len = strlen(&dst_module->memory_ptr[return_msg_addr_dst]) + 1;
+				return_msg_addr = call_module_malloc(ctx, ret_len);
+				wahe_copy_between_memories(group, dst_module_id, return_msg_addr_dst, ret_len, eo->module_id, return_msg_addr);
+				call_module_free(dst_module, return_msg_addr_dst);
+				return return_msg_addr;
+			}
+		}
+	}
+
+	// Parse each line of the message
+	for (const char *line = message; line; line = strstr_after(line, "\n"))
+	{
+		// Copy buffer between memories
+		int src_module, dst_module;
+		size_t src_addr, copy_size, dst_addr;
+		if (sscanf(line, "Copy %zu bytes at %zi (module %d) to %zi (module %d)", &copy_size, &src_addr, &src_module, &dst_addr, &dst_module) == 5)
+		{
+			wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
+		}
+
+		// Copy buffer between memories with allocation of destination
+		if (sscanf(line, "Copy %zu bytes at %zi (module %d) to module %d", &copy_size, &src_addr, &src_module, &dst_module) == 4)
+		{
+			wahe_group_t *group = ctx->parent_group;
+			if (dst_module >= 0 && dst_module < group->module_count)
+			{
+				dst_addr = call_module_malloc(&group->module[dst_module], copy_size);
 				wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
+				return_msg_addr = module_sprintf_alloc(ctx, "Destination %#zx", (void *) dst_addr);
 			}
+		}
 
-			// Copy buffer between memories with allocation of destination
-			if (sscanf(line, "Copy %zu bytes at %zi (module %d) to module %d", &copy_size, &src_addr, &src_module, &dst_module) == 4)
-			{
-				wahe_group_t *group = ctx->parent_group;
-				if (dst_module >= 0 && dst_module < group->module_count)
-				{
-					dst_addr = call_module_malloc(&group->module[dst_module], copy_size);
-					wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
-					return_msg_addr = module_sprintf_alloc(ctx, "Destination %#zx", (void *) dst_addr);
-				}
-			}
+		// Load raw file
+		int path_start = 0, path_end = 0;
+		sscanf(line, "Load raw file at path %n%*[^\n]%n", &path_start, &path_end);
+		if (path_end)
+		{
+			size_t data_addr, data_size = 0;
+			char *path = make_string_copy_len(&line[path_start], path_end-path_start);
+			data_addr = wahe_load_raw_file(ctx, path, &data_size);
+			free(path);
+			return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %#zx", data_size, (void *) data_addr);
+		}
 
-			// Load raw file
-			int path_start = 0, path_end = 0;
-			sscanf(line, "Load raw file at path %n%*[^\n]%n", &path_start, &path_end);
-			if (path_end)
-			{
-				size_t data_addr, data_size = 0;
-				char *path = make_string_copy_len(&line[path_start], path_end-path_start);
-				data_addr = wahe_load_raw_file(ctx, path, &data_size);
-				free(path);
-				return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %#zx", data_size, (void *) data_addr);
-			}
+		// Return raw time
+		n = 0;
+		sscanf(line, "Get raw time%n", &n);
+		if (n)
+			return_msg_addr = module_sprintf_alloc(ctx, "Raw time %.16g seconds", get_time_hr());
 
-			// Return raw time
-			n = 0;
-			sscanf(line, "Get raw time%n", &n);
-			if (n)
-				return_msg_addr = module_sprintf_alloc(ctx, "Raw time %.16g seconds", get_time_hr());
+		// Benchmark return
+		n = 0;
+		sscanf(line, "Benchmark%n", &n);
+		if (n)
+			wahe_bench_point(ctx, "-Benchmark command-", 0);
 
-			// Benchmark return
-			n = 0;
-			sscanf(line, "Benchmark%n", &n);
-			if (n)
-				wahe_bench_point(ctx, "-Benchmark command-", 0);
-
-			// Print to host
-			n = 0;
-			sscanf(line, "Print%n", &n);
-			if (n && line[n] == ' ')
-			{
-				int ne = 0;
-				sscanf(&line[n+1], "%*[^\n]%n", &ne);
-				if (ne)
-					fprintf_rl(stdout, "*=*WASM*=*   %.*s\n", ne, &line[n+1]);
-			}
+		// Print to host
+		n = 0;
+		sscanf(line, "Print%n", &n);
+		if (n && line[n] == ' ')
+		{
+			int ne = 0;
+			sscanf(&line[n+1], "%*[^\n]%n", &ne);
+			if (ne)
+				fprintf_rl(stdout, "*=*WASM*=*   %.*s\n", ne, &line[n+1]);
 		}
 	}
 

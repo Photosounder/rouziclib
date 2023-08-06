@@ -18,6 +18,7 @@ enum wahe_func_id
 	WAHE_FUNC_FREE,
 
 	WAHE_FUNC_INPUT,
+	WAHE_FUNC_PROC_CMD,
 	WAHE_FUNC_DRAW,
 	WAHE_FUNC_PROC_IMAGE,
 	WAHE_FUNC_PROC_SOUND,
@@ -42,7 +43,6 @@ typedef struct
 	// Specific to native modules
 	void *native, *dl_func[WAHE_FUNC_COUNT];
 
-	size_t ret_msg_addr[WAHE_FUNC_COUNT];
 	textedit_t input_te;
 	void *parent_group;	// wahe_group_t *
 } wahe_module_t;
@@ -63,7 +63,13 @@ typedef struct
 	enum wahe_eo_type type;
 	int module_id, display_id;
 	enum wahe_func_id func_id;
-	size_t dst_msg_addr;
+	size_t dst_msg_addr, ret_msg_addr;
+
+	// Command processors
+	// If type is WAHE_EO_MODULE_FUNC the function can call wahe_run_command()
+	// A cascade of module_proc_cmd() functions can filter the commands and their return messages
+	int *cmd_proc_id;	// module ID for the command processor
+	size_t cmd_proc_count, cmd_proc_as;
 } wahe_exec_order_t;
 
 typedef struct
@@ -79,6 +85,8 @@ typedef struct
 
 	wahe_image_display_t *image;
 	size_t image_count, image_as;
+	
+	int current_eo, current_cmd_proc_id;
 } wahe_group_t;
 
 extern int wasmtime_linker_get_memory(wahe_module_t *ctx);
@@ -87,10 +95,9 @@ extern wasmtime_val_t wasmtime_val_set_address(wahe_module_t *ctx, size_t addres
 extern size_t wasmtime_val_get_address(wasmtime_val_t val);
 extern size_t call_module_malloc(wahe_module_t *ctx, size_t size);
 extern void call_module_free(wahe_module_t *ctx, size_t address);
+extern char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_id func_id, int call_from_eo);
+
 extern int wahe_pixel_format_to_raster_mode(const char *name);
-extern char *call_module_message_input(wahe_module_t *ctx, size_t message_addr);
-extern int call_module_draw(wahe_module_t *ctx, size_t message_addr);
-extern int call_module_proc_image(wahe_module_t *ctx, size_t message_addr);
 extern int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r);
 
 extern size_t module_vsprintf_alloc(wahe_module_t *ctx, const char *format, va_list args);
