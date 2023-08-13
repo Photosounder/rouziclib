@@ -198,3 +198,14 @@ char **string_array_replace_line(char **array, int *linecount, char *repl, int r
 
 	return arrayise_text(s.buf, linecount);
 }
+
+int find_string_in_string_array(const char *string, const char **array, const int count)
+{
+	int i;
+
+	for (i=0; i < count; i++)
+		if (strcmp(string, array[i]) == 0)
+			return i;
+
+	return -1;
+}

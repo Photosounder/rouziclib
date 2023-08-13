@@ -13,7 +13,8 @@ enum wahe_eo_type
 
 enum wahe_func_id
 {
-	WAHE_FUNC_MALLOC=1,
+	WAHE_FUNC_NONE,
+	WAHE_FUNC_MALLOC,
 	WAHE_FUNC_REALLOC,
 	WAHE_FUNC_FREE,
 
@@ -25,6 +26,10 @@ enum wahe_func_id
 
 	WAHE_FUNC_COUNT
 };
+
+// The two enums above must match the names in those arrays (in wahe.c)
+extern const char *wahe_eo_name[];
+extern const char *wahe_func_name[];
 
 typedef struct
 {
@@ -45,6 +50,7 @@ typedef struct
 
 	textedit_t input_te;
 	void *parent_group;	// wahe_group_t *
+	int module_id;
 } wahe_module_t;
 
 typedef struct
@@ -86,7 +92,7 @@ typedef struct
 	wahe_image_display_t *image;
 	size_t image_count, image_as;
 	
-	int current_eo, current_cmd_proc_id;
+	int current_eo, current_cmd_proc_id, current_module;
 } wahe_group_t;
 
 extern int wasmtime_linker_get_memory(wahe_module_t *ctx);

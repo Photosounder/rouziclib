@@ -211,6 +211,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 
 #ifdef RL_WAHE
 #include "wahe/wahe.h"
+#include "wahe/wahe_parser.h"
 #endif
 
 #include "libraries/opencl.h"		// used if RL_OPENCL is defined

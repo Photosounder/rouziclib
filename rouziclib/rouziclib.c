@@ -147,6 +147,7 @@
 
 #ifdef RL_WAHE
 #include "wahe/wahe.c"
+#include "wahe/wahe_parser.c"
 #endif
 
 #include "libraries/opencl.c"

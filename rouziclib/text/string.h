@@ -13,5 +13,6 @@ extern char *sprintf_ret(char *str, const char *format, ...);
 extern char **string_array_insert_lines(char **array, int *linecount, char **ins, int ins_count, int ins_pos);
 extern char **string_array_insert_line(char **array, int *linecount, char *ins, int ins_pos);
 extern char **string_array_replace_line(char **array, int *linecount, char *repl, int repl_pos);
+extern int find_string_in_string_array(const char *string, const char **array, const int count);
 
 #define sprintf_alloc(format, ...) sprintf_realloc(NULL, NULL, 0, format, ##__VA_ARGS__)

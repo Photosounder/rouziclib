@@ -1,3 +1,24 @@
+const char *wahe_eo_name[] =
+{
+	"module_func",
+	"image_display",
+	"kb_mouse"
+};
+
+const char *wahe_func_name[] =
+{
+	"(none)",
+	"malloc",
+	"realloc",
+	"free",
+
+	"input",
+	"proc_cmd",
+	"draw",
+	"proc_image",
+	"proc_sound"
+};
+
 _Thread_local wahe_module_t *current_ctx = NULL;
 
 void wahe_bench_point(wahe_module_t *ctx, const char *label, int depth)
@@ -191,10 +212,12 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	wasmtime_val_t ret[1], param[1];
 	size_t ret_msg_addr_s = 0, *ret_msg_addr = &ret_msg_addr_s;
 
+	wahe_group_t *group = ctx->parent_group;
+	group->current_module = ctx->module_id;
+
 	if (call_from_eo)
 	{
 		// Find where to store the return message address
-		wahe_group_t *group = ctx->parent_group;
 		wahe_exec_order_t *eo = &group->exec_order[group->current_eo];
 		ret_msg_addr = &eo->ret_msg_addr;
 	}
@@ -429,7 +452,7 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 
 		// Initialise callbacks (host functions called from WASM module)
 		func_type = wasm_functype_new_1_1(wasm_valtype_new_i32(), wasm_valtype_new_i32());
-		error = wasmtime_linker_define_func(ctx->linker, "env", strlen("env"), "wahe_run_command", strlen("wahe_run_command"), func_type, wahe_run_command, ctx, NULL);
+		error = wasmtime_linker_define_func(ctx->linker, "env", strlen("env"), "wahe_run_command", strlen("wahe_run_command"), func_type, wahe_run_command, parent_group, NULL);
 		if (error)
 		{
 			fprintf_rl(stderr, "Error defining callback in wasmtime_linker_define_func()\n");
@@ -463,7 +486,9 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		ctx->address_type = WASMTIME_I32;
 	}
 
+	// Store module index so we can know which index a given module has
 	ctx->parent_group = parent_group;
+	ctx->module_id = module_index;
 
 	// Send an Init message to the module
 	wahe_send_input(ctx, "Init");
@@ -607,10 +632,10 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 
 	// Execute command processors for this execution order
 	wahe_group_t *group = ctx->parent_group;
-	if (group->current_eo >= 0)
+	if (group->current_eo >= 0 && group->exec_order)
 	{
 		wahe_exec_order_t *eo = &group->exec_order[group->current_eo];
-		if (eo->cmd_proc_id && group->current_cmd_proc_id < eo->cmd_proc_count)
+		if (eo && eo->cmd_proc_id && group->current_cmd_proc_id < eo->cmd_proc_count)
 		{
 			int dst_module_id = eo->cmd_proc_id[group->current_cmd_proc_id];
 			wahe_module_t *dst_module = &group->module[dst_module_id];
@@ -710,7 +735,8 @@ char *wahe_run_command_native(char *message)
 
 wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count)
 {
-	wahe_module_t *ctx = env;
+	wahe_group_t *group = env;
+	wahe_module_t *ctx = &group->module[group->current_module];
 	size_t return_msg_addr = 0;
 	int n;
 

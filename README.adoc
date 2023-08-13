@@ -574,6 +574,9 @@ This turns mathematical expressions into RLIP programs. This serves as a replace
 ** link:rouziclib/wahe/wahe.c[wahe.c] / link:rouziclib/wahe/wahe.h[wahe.h] +
 **W**eb**A**ssembly **H**ost **E**nvironment.
 
+** link:rouziclib/wahe/wahe_parser.c[wahe_parser.c] / link:rouziclib/wahe/wahe_parser.h[wahe_parser.h] +
+Parses .wahe configuration files into a wahe_group_t structure.
+
 * link:rouziclib/libraries[libraries/]
 
 ** link:rouziclib/libraries/opencl.c[opencl.c] / link:rouziclib/libraries/opencl.h[opencl.h] and link:rouziclib/libraries/opencl_struct.h[opencl_struct.h] +
