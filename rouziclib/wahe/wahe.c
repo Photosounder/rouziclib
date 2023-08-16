@@ -211,9 +211,10 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	wasm_trap_t *trap = NULL;
 	wasmtime_val_t ret[1], param[1];
 	size_t ret_msg_addr_s = 0, *ret_msg_addr = &ret_msg_addr_s;
+	int current_module;
 
 	wahe_group_t *group = ctx->parent_group;
-	group->current_module = ctx->module_id;
+	current_module = group->current_module = ctx->module_id;
 
 	if (call_from_eo)
 	{
@@ -248,6 +249,9 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 		fprint_wasmtime_error(error, trap);
 		return NULL;
 	}
+
+	// Restore current_module
+	group->current_module = current_module;
 
 	// Store the return message address
 	*ret_msg_addr = wasmtime_val_get_address(ret[0]);
@@ -486,23 +490,26 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		ctx->address_type = WASMTIME_I32;
 	}
 
+	ctx->module_name = sprintf_alloc("%s", get_filename_from_path(path));
+
 	// Store module index so we can know which index a given module has
 	ctx->parent_group = parent_group;
 	ctx->module_id = module_index;
-
-	// Send an Init message to the module
-	wahe_send_input(ctx, "Init");
-
-	// Send pointer to wahe_run_command() if the module is not WASM
-	if (ctx->native)
-		wahe_send_input(ctx, "wahe_run_command() = %#zx", wahe_run_command_native);
 
 	// Send module index to the module
 	if (parent_group)
 		wahe_send_input(ctx, "Module index %d", module_index);
 
+	// Send pointer to wahe_run_command() if the module is not WASM
+	if (ctx->native)
+		wahe_send_input(ctx, "wahe_run_command() = %#zx", wahe_run_command_native);
+
+	// Send an Init message to the module
+	wahe_send_input(ctx, "Init");
+
 	// Init module's textedit used for transmitting text input
 	textedit_init(&ctx->input_te, 1);
+	ctx->input_te.edit_mode = te_mode_full;
 }
 
 void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr)
@@ -564,8 +571,37 @@ void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int d
 	int i;
 	buffer_t buf = {0};
 	const char *state_name[] = { "up", "", "", "", "down", "repeat" };
+	wahe_module_t *ctx = &group->module[module_id];
+
+	// Set textedit if framebuffer is clicked which indicates that the module is active in the interface
+	ctrl_button_state_t *butt_state = proc_mouse_rect_ctrl_lrmb(group->image[display_id].fb_rect, *zc.mouse);
+	if (butt_state[0].down || butt_state[1].down)
+		cur_textedit = &ctx->input_te;
+
+	// Determine if the control that represents the display is active
+	int mouse_active = butt_state[0].orig || butt_state[0].over || butt_state[1].orig || butt_state[1].over;
+	int kb_active = (cur_textedit == &ctx->input_te);
+
+	// Send text input
+	if (ctx->input_te.string[0])
+	{
+		bufprintf(&buf, "Text input (0@) ");
+
+		// Convert to 0@ format
+		size_t len = strlen(ctx->input_te.string);
+		for (int i=0; i < len; i++)
+		{
+			uint8_t c = ctx->input_te.string[i];
+			bufprintf(&buf, "%c%c", '0' + (c >> 5), '@' + (c & 0x1F));
+		}
+		bufprintf(&buf, "\n");
+
+		// Clear textedit
+		textedit_clear_then_set_new_text(&ctx->input_te, NULL);
+	}
 
 	// Go through all keys looking for newly pressed or released keys
+	if (kb_active)
 	for (i = RL_SCANCODE_A; i < RL_NUM_SCANCODES; i++)
 	{
 		if (abs(mouse.key_state[i]) >= 2)
@@ -580,7 +616,7 @@ void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int d
 	}
 
 	// Make mouse messages depending on the target display
-	if (check_point_within_box(mouse.u, group->image[display_id].fb_rect))
+	if (mouse_active)
 	{
 		xy_t r_scale, r_offset;
 		rect_range_and_dim_to_scale_offset_inv(group->image[display_id].fb_rect, group->image[display_id].fb.dim, &r_scale, &r_offset, 0);
@@ -588,7 +624,7 @@ void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int d
 
 		bufprintf(&buf, "Mouse position (pixels) %.16g %.16g\n", pix_pos.x, pix_pos.y);
 	}
-	else
+	else if (group->image[display_id].mouse_active)
 		bufprintf(&buf, "Mouse position (pixels) NAN NAN\n");
 
 	// Mouse buttons
@@ -619,6 +655,10 @@ void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int d
 		memcpy(&group->module[module_id].memory_ptr[*addr], buf.buf, buf.len + 1);
 		free_buf(&buf);
 	}
+
+	// Remember the active statuses
+	group->image[display_id].mouse_active = mouse_active;
+	group->image[display_id].kb_active = kb_active;
 }
 
 // Get called from the module
@@ -648,7 +688,9 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			// Call cmd processing function
 			group->current_cmd_proc_id++;
 			size_t return_msg_addr_dst = (size_t) call_module_func(dst_module, dst_addr, WAHE_FUNC_PROC_CMD, 0);
-			return_msg_addr_dst -= (size_t) dst_module->memory_ptr;
+			group->current_module = ctx->module_id;
+			if (return_msg_addr_dst)
+				return_msg_addr_dst -= (size_t) dst_module->memory_ptr;
 			call_module_free(dst_module, dst_addr);
 
 			if (group->current_cmd_proc_id == eo->cmd_proc_count)
@@ -705,7 +747,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		n = 0;
 		sscanf(line, "Get raw time%n", &n);
 		if (n)
-			return_msg_addr = module_sprintf_alloc(ctx, "Raw time %.16g seconds", get_time_hr());
+			return_msg_addr = module_sprintf_alloc(ctx, "Raw time %.17g seconds", get_time_hr());
 
 		// Benchmark return
 		n = 0;
@@ -716,12 +758,13 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		// Print to host
 		n = 0;
 		sscanf(line, "Print%n", &n);
-		if (n && line[n] == ' ')
+		if (n && (line[n] == ' ' || line[n] == '\n'))
 		{
-			int ne = 0;
-			sscanf(&line[n+1], "%*[^\n]%n", &ne);
-			if (ne)
-				fprintf_rl(stdout, "*=*WASM*=*   %.*s\n", ne, &line[n+1]);
+			if (get_string_linecount(&line[n+1], 0) > 1)
+				fprintf_rl(stdout, "\n=== from module %s ===\n%s\n    ===    ===    \n\n", ctx->module_name, &line[n+1]);
+			else
+				fprintf_rl(stdout, "(from module %s)   %s\n", ctx->module_name, &line[n+1]);
+			return 0;
 		}
 	}
 
@@ -748,6 +791,8 @@ wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmti
 	{
 		// Get the message address and make pointer to the message
 		char *message = &ctx->memory_ptr[wasmtime_val_get_address(arg[0])];
+		if (wasmtime_val_get_address(arg[0]) == 0)
+			message = NULL;
 
 		// Run the command
 		return_msg_addr = wahe_run_command_core(ctx, message);

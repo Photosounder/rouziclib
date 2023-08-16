@@ -33,6 +33,11 @@ extern const char *wahe_func_name[];
 
 typedef struct
 {
+	char *module_name;
+	int module_id;
+	void *parent_group;	// wahe_group_t *
+	textedit_t input_te;
+
 	// Specific to WASM modules
 	wasm_engine_t *engine;
 	wasmtime_store_t *store;
@@ -47,16 +52,13 @@ typedef struct
 
 	// Specific to native modules
 	void *native, *dl_func[WAHE_FUNC_COUNT];
-
-	textedit_t input_te;
-	void *parent_group;	// wahe_group_t *
-	int module_id;
 } wahe_module_t;
 
 typedef struct
 {
 	raster_t fb;
 	rect_t fb_area, fb_rect;
+	int mouse_active, kb_active;
 } wahe_image_display_t;
 
 typedef struct

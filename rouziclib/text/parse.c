@@ -179,7 +179,7 @@ size_t get_string_linecount(const char *text, size_t len)
 	if (text[0]=='\0')
 		return linecount;
 
-	if (len <= 0)
+	if (len == 0)
 		len = strlen(text);
 
 	linecount = 1;

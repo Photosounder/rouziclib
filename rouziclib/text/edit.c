@@ -190,7 +190,7 @@ void textedit_clear_then_set_new_text(textedit_t *te, char *str)	// sets a whole
 void textedit_add(textedit_t *te, char *str)
 {
 	int orig_len=0, ins_len, new_pos, char_len;
-	char *clipboard=NULL;
+	char *clipboard=NULL, *p;
 
 	if (te==NULL)
 		return ;
@@ -224,7 +224,12 @@ void textedit_add(textedit_t *te, char *str)
 		textundo_update(te, 0);
 		textedit_erase_selection(te, &orig_len);
 
+		// Measure string length, don't include \n nor \t in value mode
 		ins_len = strlen(str);
+		if (te->edit_mode == te_mode_value)
+			if (p = strpbrk(str, "\n\t"))
+				ins_len = p - str;
+
 		alloc_enough(&te->string, orig_len+ins_len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
 		if (te->curpos >= 0)
 		{

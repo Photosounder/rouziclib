@@ -99,9 +99,9 @@ void wahe_file_parse(wahe_group_t *group, char *module_path, buffer_t *err_log)
 			is = wahe_find_symbol_in_table(&symb_module, module_name);
 			if (is == -1)
 			{
-				bufprintf(err_log, "WAHE file parsing error. In file %s line %d: Module symbol name \"%s\" not found.\n", module_path, il, module_name);
+				bufprintf(err_log, "WAHE file parsing error. In file %s line %d: Module symbol name \"%s\" not previously defined.\n", module_path, il, module_name);
 				free(module_name);
-				return;
+				goto end;
 			}
 			free(module_name);
 
@@ -218,7 +218,41 @@ void wahe_file_parse(wahe_group_t *group, char *module_path, buffer_t *err_log)
 			free_null(&src_name);
 			free_null(&dst_name);
 		}
+
+		// Command processors
+		memset(n, 0, sizeof(n));
+		sscanf(line, "Command processor in module %n%*s%n for order %n%*s%n", &n[0], &n[1], &n[2], &n[3]);
+		if (n[3])
+		{
+			// Find execution order
+			char *order_name = make_string_copy_len(&line[n[2]], n[3]-n[2]);
+			int ie = wahe_find_symbol_in_table(&symb_order, order_name);
+			if (ie == -1)
+			{
+				bufprintf(err_log, "WAHE file parsing error. In file %s line %d: Order symbol name \"%s\" not previously defined.\n", module_path, il, order_name);
+				free(order_name);
+				goto end;
+			}
+			free(order_name);
+			wahe_exec_order_t *eo = &group->exec_order[ie];
+
+			// Add exec order command processor
+			int ip = eo->cmd_proc_count;
+			alloc_enough(&eo->cmd_proc_id, eo->cmd_proc_count+=1, &eo->cmd_proc_as, sizeof(int), 1.5);
+
+			// Find command processing module
+			char *proc_module_name = make_string_copy_len(&line[n[0]], n[1]-n[0]);
+			eo->cmd_proc_id[ip] = wahe_find_symbol_in_table(&symb_module, proc_module_name);
+			if (eo->cmd_proc_id[ip] == -1)
+			{
+				bufprintf(err_log, "WAHE file parsing error. In file %s line %d: Module symbol name \"%s\" not previously defined.\n", module_path, il, proc_module_name);
+				free(proc_module_name);
+				goto end;
+			}
+			free(proc_module_name);
+		}
 	}
 
+end:
 	free_2d(line_array, 1);
 }
