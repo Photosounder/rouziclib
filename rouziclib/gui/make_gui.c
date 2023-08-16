@@ -1326,10 +1326,15 @@ void gui_layout_registry_add(gui_layout_t *layout, const char *layout_name)
 {
 	int i;
 
-	// If the registry hasn't been cleared in the previous frame we don't register
+	// Don't add if the registry doesn't get cleared
+	if (layout_reg.reg_clearer_active == 0)
+		return;
+
+	// Don't add if the registry hasn't been cleared in the previous frame
 	if (fb->frame_count > layout_reg.last_reset_frame+1)
 		return;
 
+	// Add layout to registry
 	if (layout_name)
 	{
 		i = layout_reg.reg_count;
@@ -1344,9 +1349,13 @@ void gui_layout_registry_add(gui_layout_t *layout, const char *layout_name)
 
 void gui_layout_registry_reset()
 {
+	// Clear the registry
 	memset(layout_reg.reg, 0, layout_reg.reg_count * sizeof(layout_reg_entry_t));
 	layout_reg.reg_count = 0;
 	layout_reg.last_reset_frame = fb->frame_count;
+
+	// Indicate that the layout registry gets cleared
+	layout_reg.reg_clearer_active = 1;
 }
 
 rect_t fit_sublayout_into_area(rect_t area0, gui_layout_t *sublayout, int main_area_id, xy_t offset, int save_os)

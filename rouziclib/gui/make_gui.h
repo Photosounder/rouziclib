@@ -62,6 +62,7 @@ typedef struct
 	gui_layout_t *sel_p;
 	int reg_as, reg_count, sel;
 	int64_t last_reset_frame;
+	int reg_clearer_active;
 } layout_reg_t;
 
 extern layout_reg_t layout_reg;
