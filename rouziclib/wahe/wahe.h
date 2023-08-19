@@ -94,7 +94,7 @@ typedef struct
 	wahe_image_display_t *image;
 	size_t image_count, image_as;
 	
-	int current_eo, current_cmd_proc_id, current_module;
+	int current_eo, current_cmd_proc_id, current_module, current_func;
 } wahe_group_t;
 
 extern int wasmtime_linker_get_memory(wahe_module_t *ctx);

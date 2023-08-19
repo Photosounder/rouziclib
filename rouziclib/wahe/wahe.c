@@ -241,7 +241,10 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 
 	// Call the function
 	wahe_bench_point(ctx, "calling call_module_func()", 1);
+	int prev_func = group->current_func;
+	group->current_func = func_id;
 	error = wasmtime_func_call(ctx->context, &ctx->func[func_id], param, 1, ret, 1, &trap);
+	group->current_func = prev_func;
 	wahe_bench_point(ctx, "call_module_func() returned", -1);
 	if (error || trap)
 	{
@@ -761,9 +764,9 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		if (n && (line[n] == ' ' || line[n] == '\n'))
 		{
 			if (get_string_linecount(&line[n+1], 0) > 1)
-				fprintf_rl(stdout, "\n=== from module %s ===\n%s\n    ===    ===    \n\n", ctx->module_name, &line[n+1]);
+				fprintf_rl(stdout, "\n=== from %s:%s ===\n%s\n    ===    ===    \n\n", ctx->module_name, wahe_func_name[group->current_func], &line[n+1]);
 			else
-				fprintf_rl(stdout, "(from module %s)   %s\n", ctx->module_name, &line[n+1]);
+				fprintf_rl(stdout, "(from %s:%s)   %s\n", ctx->module_name, wahe_func_name[group->current_func], &line[n+1]);
 			return 0;
 		}
 	}

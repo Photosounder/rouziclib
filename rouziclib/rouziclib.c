@@ -148,6 +148,7 @@
 #ifdef RL_WAHE
 #include "wahe/wahe.c"
 #include "wahe/wahe_parser.c"
+#include "wahe/wahe_execution.c"
 #endif
 
 #include "libraries/opencl.c"
