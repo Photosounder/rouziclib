@@ -75,7 +75,7 @@ void wahe_execute_group(wahe_group_t *group)
 		// If the execution order is to display the image found in a return message
 		if (eo->type == WAHE_EO_IMAGE_DISPLAY && conn)
 		{
-			// Display from message in the source module memory
+			// Make display image from message in the source module memory
 			if (group->exec_order[conn->src_eo].type == WAHE_EO_MODULE_FUNC)
 			{
 				wahe_module_t *src_module = &group->module[group->exec_order[conn->src_eo].module_id];
@@ -85,10 +85,17 @@ void wahe_execute_group(wahe_group_t *group)
 				raster_t *r = &group->image[eo->display_id].fb;
 				wahe_message_to_raster(src_module, src_addr, r);
 
-				// Display raster in its rectangle
+				// Calculate actual image rectangle inside the display area
 				group->image[eo->display_id].fb_rect = fit_rect_in_area(xyi_to_xy(r->dim), group->image[eo->display_id].fb_area, xy(0.5, 0.5));
-				blit_in_rect(r, sc_rect(group->image[eo->display_id].fb_rect), 1, AA_NEAREST_INTERP);
 			}
 		}
+	}
+}
+
+void wahe_blit_group_displays(wahe_group_t *group)
+{
+	for (int i=0; i < group->image_count; i++)
+	{
+		blit_in_rect(&group->image[i].fb, sc_rect(group->image[i].fb_rect), 1, AA_NEAREST_INTERP);
 	}
 }

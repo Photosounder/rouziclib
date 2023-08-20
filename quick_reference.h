@@ -72,6 +72,9 @@
 
 //**** Colour ****
 
+	// Make RGBA colour (linear arguments)
+		col_t colour = make_colour(1., 0.184, 0., 1.);
+
 	// Make HSL colour
 		// make_colour_hsl(hue, sat, lum (linear), hue type, sec_boost)
 		col_t colour = make_colour_hsl(30., 1., 0.125, HUEDEG, 0);

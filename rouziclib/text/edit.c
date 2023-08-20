@@ -221,27 +221,31 @@ void textedit_add(textedit_t *te, char *str)
 
 	if (str)	// insert this string into the text
 	{
-		textundo_update(te, 0);
-		textedit_erase_selection(te, &orig_len);
-
 		// Measure string length, don't include \n nor \t in value mode
 		ins_len = strlen(str);
 		if (te->edit_mode == te_mode_value)
 			if (p = strpbrk(str, "\n\t"))
 				ins_len = p - str;
 
-		alloc_enough(&te->string, orig_len+ins_len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
-		if (te->curpos >= 0)
+		if (ins_len)
 		{
-			memmove(&te->string[te->curpos+ins_len], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift part of the text right of the cursor further right
-			memcpy(&te->string[te->curpos], str, ins_len);							// insertion of str
-			te->curpos += ins_len;
+			// Add to undo history and erase the selection
+			textundo_update(te, 0);
+			textedit_erase_selection(te, &orig_len);
+
+			alloc_enough(&te->string, orig_len+ins_len+1, &te->alloc_size, sizeof(char), 1.20);		// alloc enough extra space
+			if (te->curpos >= 0)
+			{
+				memmove(&te->string[te->curpos+ins_len], &te->string[te->curpos], orig_len+1 - te->curpos);	// shift part of the text right of the cursor further right
+				memcpy(&te->string[te->curpos], str, ins_len);							// insertion of str
+				te->curpos += ins_len;
+			}
+			te->return_flag = 4;	// indicates modification
 		}
-		te->return_flag = 4;	// indicates modification
 	}
-	else		// run commands (from keyboard shortcuts)
+	else		// handle special keys
 	{
-		// position changing
+		// Cursor position changing
 		if (	mouse.key_state[RL_SCANCODE_LEFT] >= 2 ||
 			mouse.key_state[RL_SCANCODE_RIGHT] >= 2 ||
 			mouse.key_state[RL_SCANCODE_UP] >= 2 ||
@@ -284,6 +288,7 @@ void textedit_add(textedit_t *te, char *str)
 				te->sel1 = te->curpos;
 		}
 
+		// Tab key handling
 		if (mouse.key_state[RL_SCANCODE_TAB] >= 2 && (get_kb_ctrl() != -1 || get_kb_alt() != -1 || get_kb_guikey() != -1)==0)
 		{
 			if (te->edit_mode == te_mode_value)
@@ -298,6 +303,7 @@ void textedit_add(textedit_t *te, char *str)
 			}
 		}
 
+		// Handling of special keys and key combos
 		if (get_kb_all_mods() == 0)	// if there's no modifier key (shift, ctrl, guikey, alt)
 		{
 			if (get_kb_enter() >= 2)
