@@ -114,7 +114,7 @@ extern char *wahe_send_input(wahe_module_t *ctx, const char *format, ...);
 extern int is_wasmtime_func_found(wasmtime_func_t func);
 extern void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap);
 extern void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path);
-extern void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr);
+extern void wahe_copy_between_memories(wahe_group_t *group, wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr);
 extern void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int display_id, int conn_id);
 
 extern char *wahe_run_command_native(char *message);

@@ -499,9 +499,9 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	ctx->parent_group = parent_group;
 	ctx->module_id = module_index;
 
-	// Send module index to the module
+	// Send module index to the module, will probably change to more than just an index in the future so module must a 60 character string
 	if (parent_group)
-		wahe_send_input(ctx, "Module index %d", module_index);
+		wahe_send_input(ctx, "Module ID %d", module_index);
 
 	// Send pointer to wahe_run_command() if the module is not WASM
 	if (ctx->native)
@@ -515,22 +515,29 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	ctx->input_te.edit_mode = te_mode_full;
 }
 
-void wahe_copy_between_memories(wahe_group_t *group, int src_module, size_t src_addr, size_t copy_size, int dst_module, size_t dst_addr)
+wahe_module_t *wahe_get_module_by_id_string(wahe_group_t *group, const char *id_string)
 {
-	if (src_module < 0 || src_module >= group->module_count || dst_module < 0 || dst_module >= group->module_count)
+	int index;
+
+	if (sscanf(id_string, "%d", &index) == 1)
+		return &group->module[index];
+
+	return NULL;
+}
+
+void wahe_copy_between_memories(wahe_group_t *group, wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr)
+{
+	if (src_module == NULL || dst_module == NULL)
 		return;
 
-	wahe_module_t *src_ctx = &group->module[src_module];
-	wahe_module_t *dst_ctx = &group->module[dst_module];
-
 	// Update memory pointers
-	wasmtime_linker_get_memory(src_ctx);
-	wasmtime_linker_get_memory(dst_ctx);
+	wasmtime_linker_get_memory(src_module);
+	wasmtime_linker_get_memory(dst_module);
 
 	// TODO Check boundaries
 
 	// Copy
-	memcpy(&dst_ctx->memory_ptr[dst_addr], &src_ctx->memory_ptr[src_addr], copy_size);
+	memcpy(&dst_module->memory_ptr[dst_addr], &src_module->memory_ptr[src_addr], copy_size);
 }
 
 size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
@@ -704,33 +711,40 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			{
 				size_t ret_len = strlen(&dst_module->memory_ptr[return_msg_addr_dst]) + 1;
 				return_msg_addr = call_module_malloc(ctx, ret_len);
-				wahe_copy_between_memories(group, dst_module_id, return_msg_addr_dst, ret_len, eo->module_id, return_msg_addr);
+				wahe_copy_between_memories(group, dst_module, return_msg_addr_dst, ret_len, &group->module[eo->module_id], return_msg_addr);
 				call_module_free(dst_module, return_msg_addr_dst);
 				return return_msg_addr;
 			}
+			else
+				return 0;
 		}
 	}
 
 	// Parse each line of the message
 	for (const char *line = message; line; line = strstr_after(line, "\n"))
 	{
+		int done = 0;
+
 		// Copy buffer between memories
-		int src_module, dst_module;
+		char src_module[61], dst_module[61];
 		size_t src_addr, copy_size, dst_addr;
-		if (sscanf(line, "Copy %zu bytes at %zi (module %d) to %zi (module %d)", &copy_size, &src_addr, &src_module, &dst_addr, &dst_module) == 5)
+		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to %zi (module %60[^)])", &copy_size, &src_addr, src_module, &dst_addr, dst_module) == 5)
 		{
-			wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
+			wahe_copy_between_memories(ctx->parent_group, wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, wahe_get_module_by_id_string(group, dst_module), dst_addr);
+			done = 1;
 		}
 
 		// Copy buffer between memories with allocation of destination
-		if (sscanf(line, "Copy %zu bytes at %zi (module %d) to module %d", &copy_size, &src_addr, &src_module, &dst_module) == 4)
+		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to module %60[^)]", &copy_size, &src_addr, src_module, dst_module) == 4)
 		{
-			wahe_group_t *group = ctx->parent_group;
-			if (dst_module >= 0 && dst_module < group->module_count)
+			wahe_module_t *dst_ctx = wahe_get_module_by_id_string(group, dst_module);
+
+			if (dst_ctx)
 			{
-				dst_addr = call_module_malloc(&group->module[dst_module], copy_size);
-				wahe_copy_between_memories(ctx->parent_group, src_module, src_addr, copy_size, dst_module, dst_addr);
+				dst_addr = call_module_malloc(dst_ctx, copy_size);
+				wahe_copy_between_memories(ctx->parent_group, wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, dst_ctx, dst_addr);
 				return_msg_addr = module_sprintf_alloc(ctx, "Destination %#zx", (void *) dst_addr);
+				done = 1;
 			}
 		}
 
@@ -744,19 +758,26 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			data_addr = wahe_load_raw_file(ctx, path, &data_size);
 			free(path);
 			return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %#zx", data_size, (void *) data_addr);
+			done = 1;
 		}
 
 		// Return raw time
 		n = 0;
 		sscanf(line, "Get raw time%n", &n);
 		if (n)
+		{
 			return_msg_addr = module_sprintf_alloc(ctx, "Raw time %.17g seconds", get_time_hr());
+			done = 1;
+		}
 
 		// Benchmark return
 		n = 0;
 		sscanf(line, "Benchmark%n", &n);
 		if (n)
+		{
 			wahe_bench_point(ctx, "-Benchmark command-", 0);
+			done = 1;
+		}
 
 		// Print to host
 		n = 0;
@@ -768,6 +789,15 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			else
 				fprintf_rl(stdout, "(from %s:%s)   %s\n", ctx->module_name, wahe_func_name[group->current_func], &line[n+1]);
 			return 0;
+		}
+
+		// Print line if it wasn't interpreted
+		if (done == 0)
+		{
+			int line_len = strlen(line);
+			if (strstr(line, "\n"))
+				line_len = strstr(line, "\n") - line;
+			fprintf_rl(stderr, "Command from %s:%s not interpreted: %.*s\n", ctx->module_name, wahe_func_name[group->current_func], line_len, line);
 		}
 	}
 

@@ -150,6 +150,7 @@
 #include "wahe/wahe_parser.c"
 #include "wahe/wahe_execution.c"
 #endif
+#include "wahe/wahe_module_side.c"
 
 #include "libraries/opencl.c"
 #include "libraries/sdl.c"

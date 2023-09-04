@@ -53,7 +53,7 @@ void wahe_execute_group(wahe_group_t *group)
 							size_t copy_size = strlen(&src_module->memory_ptr[src_addr]) + 1;
 
 							eo->dst_msg_addr = call_module_malloc(dst_module, copy_size);
-							wahe_copy_between_memories(group, group->exec_order[conn->src_eo].module_id, src_addr, copy_size, group->exec_order[conn->dst_eo].module_id, eo->dst_msg_addr);
+							wahe_copy_between_memories(group, src_module, src_addr, copy_size, dst_module, eo->dst_msg_addr);
 						}
 						break;
 				}

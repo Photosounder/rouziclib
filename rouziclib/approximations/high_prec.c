@@ -208,7 +208,7 @@ ddouble_t exp2_q(ddouble_t x)	// max error < 7.3e-32 when x < 1
 		return Q_NAN;
 
 	// Separate integer from fractional parts
-	xr = floor_q(x);	// integer part of x
+	xr = floor_q(x);		// integer part of x
 	xf = sub_qq(x, xr);		// fractional part of x. xf = [0.0 , 1.0[
 
 	// Make 2^xr multiplier
