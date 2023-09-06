@@ -302,7 +302,6 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	int ret, val_set_by_edit=0;
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	ctrl_knob_state_t knob_state={0};
 	char str[64];
 	double v=NAN, t, t_off=0., th;
 	static double t_rate=0., v_downonce=NAN;
@@ -352,22 +351,22 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	// Process input
 	if (mouse.window_focus_flag > 0)
 	{
-		knob_state = proc_mouse_knob_ctrl(box, mouse);
-		t_off = knob_state.vert_delta * 2./1728.;
+		knob->knob_state = proc_mouse_knob_ctrl(box, mouse);
+		t_off = knob->knob_state.vert_delta * 2./1728.;
 
-		if (knob_state.downonce)
+		if (knob->knob_state.downonce)
 		{
 			t_rate = 0.;
 			v_downonce = v;
 		}
 
-		if (get_kb_alt() > 0 && knob_state.down)
+		if (get_kb_alt() > 0 && knob->knob_state.down)
 		{
 			t_rate += t_off * 1./144.;
 			t_off = t_rate;
 		}
 
-		if (knob_state.rightclick && knob->edit_open==0)
+		if (knob->knob_state.rightclick && knob->edit_open==0)
 		{
 			knob->edit_open = 1;
 
@@ -389,20 +388,20 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		mouse.zoom_scroll_freeze = 0;
 	}
 
-	if (knob_state.down)
+	if (knob->knob_state.down)
 	{
 		mouse.warp_if_move = 1;
 		mouse.zoom_scroll_freeze = 1;
 	}
 
-	if (knob_state.uponce || knob_state.doubleclick)
+	if (knob->knob_state.uponce || knob->knob_state.doubleclick)
 	{
 		mouse.warp_if_move = 0;
 		mouse.zoom_scroll_freeze = 0;
 	}
 
 	// Reset on doubleclick
-	if (knob_state.doubleclick)
+	if (knob->knob_state.doubleclick)
 		v = knob->default_value;
 
 	// Calculate new position and value
@@ -477,9 +476,9 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (v_orig)
 		*v_orig = v;
 
-	if ((knob_state.uponce && v_downonce != v) || knob_state.doubleclick || val_set_by_edit)	// the final value change when the mouse button is released
+	if ((knob->knob_state.uponce && v_downonce != v) || knob->knob_state.doubleclick || val_set_by_edit)	// the final value change when the mouse button is released
 		return 1;
-	if (knob_state.down && t_off != 0.)					// an ongoing value change when the mouse button is held down
+	if (knob->knob_state.down && t_off != 0.)					// an ongoing value change when the mouse button is held down
 		return 2;
 	return 0;
 }

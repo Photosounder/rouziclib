@@ -7,6 +7,7 @@ typedef struct
 	char *main_label, *fmt_str, *unit_label;
 	knob_func_t func;
 	double min, max, default_value, arg[4];
+	ctrl_knob_state_t knob_state;
 	textedit_t edit;
 	int edit_open, circular, arg_count;
 	knob_print_func_t display_print_func, editor_print_func;
