@@ -30,11 +30,11 @@ int ctrl_button_invis_box_or_polygon(rect_t box, xy_t *p, int p_count, ctrl_butt
 	}
 
 	// Identify and process the control if the window is in focus
-	if (zc.mouse->window_focus_flag > 0)
+	if (mouse.window_focus_flag > 0)
 		if (p)
-			butt_state = proc_mouse_polygon_ctrl_lrmb(box, p, p_count, *zc.mouse)[0];
+			butt_state = proc_mouse_polygon_ctrl_lrmb(box, p, p_count)[0];
 		else
-			butt_state = proc_mouse_rect_ctrl(box, *zc.mouse);
+			butt_state = proc_mouse_rect_ctrl(box);
 
 	if (butt_state_ptr)
 		*butt_state_ptr = butt_state;
@@ -351,7 +351,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	// Process input
 	if (mouse.window_focus_flag > 0)
 	{
-		knob->knob_state = proc_mouse_knob_ctrl(box, mouse);
+		knob->knob_state = proc_mouse_knob_ctrl(box);
 		t_off = knob->knob_state.vert_delta * 2./1728.;
 
 		if (knob->knob_state.downonce)
@@ -520,7 +520,7 @@ int ctrl_draggable(ctrl_drag_state_t *state)
 		return 0;
 
 	if (mouse.window_focus_flag > 0)
-		ret = proc_mouse_draggable_ctrl(state, box, mouse);
+		ret = proc_mouse_draggable_ctrl(state, box);
 
 	return ret;
 }
@@ -543,7 +543,7 @@ int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_i
 
 	if (mouse.window_focus_flag > 0)
 	{
-		butt_state = proc_mouse_circular_ctrl(pos, radius, mouse, *dragged == cur_id);
+		butt_state = proc_mouse_circular_ctrl(pos, radius, *dragged == cur_id);
 
 		// Limit pos to the pos_area
 		if (isfinite(pos_area.p0.x)) pos->x = MAXN(pos->x, pos_area.p0.x);

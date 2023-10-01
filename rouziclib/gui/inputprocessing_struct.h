@@ -20,13 +20,26 @@ typedef struct
 	int open, next_open, sel_id, hover_id, count;
 } ctrl_selectmenu_state_t;
 
+enum ctrl_type_t
+{
+	ctrl_type_rect,
+	ctrl_type_polygon,
+	ctrl_type_circle
+};
+
+#ifndef CTRL_ID_VERTEX_AS
+#define CTRL_ID_VERTEX_AS 4
+#endif
+
 typedef struct
 {
-	int type;	// 0 for obstructing rect, 1 for nearest-centre circle
-	int id;		// identifies different controls with the same box
-	rect_t box;	// rect coordinates that define the control
-	xy_t pos;	// position of the type 1 circle
-	double radius;	// radius of the type 1 circle
+	enum ctrl_type_t type;
+	int id;				// identifies different controls with the same characteristics
+	rect_t box;			// rect coordinates that define either the rectangular control or the bounding box of the polygonal control
+	xy_t pos;			// position of the circle
+	double radius;			// radius of the circle
+	xy_t vertex[CTRL_ID_VERTEX_AS];	// Vertices that define a polygonal control
+	int vertex_count;
 } ctrl_id_t;
 
 typedef struct

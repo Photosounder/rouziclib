@@ -9,7 +9,7 @@ int ctrl_polyline(polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
 	if (check_box_box_intersection(box, zc.corners)==0)
 		return 0;
 
-	proc_mouse_xy_ctrl(box, mouse, &pos, &lmb, &rmb);
+	proc_mouse_xy_ctrl(box, &pos, &lmb, &rmb);
 	pos = offset_scale_inv(pos, offset, sm);
 
 	if (lmb==2)

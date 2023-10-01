@@ -1,28 +1,65 @@
-int equal_ctrl_id(ctrl_id_t a, ctrl_id_t b)	// returns 1 if the controls are identical
+void ctrl_id_stack_add(mouse_ctrl_id_t *ctrl_id, ctrl_id_t new_ctrl)
+{
+	if (ctrl_id->stack_recap)
+		return;
+
+	alloc_enough(&ctrl_id->stack, ctrl_id->stack_count+=1, &ctrl_id->stack_as, sizeof(ctrl_id_t), 1.5);
+	ctrl_id->stack[ctrl_id->stack_count-1] = new_ctrl;
+}
+
+void ctrl_id_stack_process()
+{
+	mouse.ctrl_id->stack_recap = 1;
+
+	for (int i=0; i < mouse.ctrl_id->stack_count; i++)
+	{
+		ctrl_id_t *s = &mouse.ctrl_id->stack[i];
+		check_ctrl_id(s->box, s->pos, s->radius, s->type);
+	}
+
+	mouse.ctrl_id->stack_recap = 0;
+
+	// Clear stack
+	mouse.ctrl_id->stack_count = 0;
+}
+
+int equal_ctrl_id(ctrl_id_t a, ctrl_id_t b, int check_id)	// returns 1 if the controls are identical
 {
 	if (a.type != b.type)
 		return 0;
 
 	switch (a.type)
 	{
-		case 0:
+		case ctrl_type_rect:
 			if (equal_rect(a.box, b.box) == 0)
 				return 0;
 			break;
 
-		case 1:
+		case ctrl_type_polygon:
+			if (equal_rect(a.box, b.box) == 0)
+				return 0;
+
+			if (a.vertex_count != b.vertex_count)
+				return 0;
+
+			for (int i=0; i < a.vertex_count; i++)
+				if (equal_xy(a.vertex[i], b.vertex[i]) == 0)
+					return 0;
+			break;
+
+		case ctrl_type_circle:
 			if (equal_xy(a.pos, b.pos) == 0 || a.radius != b.radius)
 				return 0;
 			break;
 	}
 
-	if (a.id != b.id)
+	if (check_id && a.id != b.id)
 		return 0;
 
 	return 1;
 }
 
-int check_ctrl_id(rect_t box, xy_t pos, double radius, mouse_t mouse, int type)	// returns 0 if the current control should be ignored
+int check_ctrl_id(rect_t box, xy_t pos, double radius, enum ctrl_type_t type)	// returns 0 if the current control should be ignored
 {
 	int mouse_hovers = 0;
 	double d_current, d_hovnew;
@@ -32,14 +69,17 @@ int check_ctrl_id(rect_t box, xy_t pos, double radius, mouse_t mouse, int type)	
 	mouse.ctrl_id->current.pos = pos;
 	mouse.ctrl_id->current.radius = radius;
 
+	// Add this control to the control stack
+	ctrl_id_stack_add(mouse.ctrl_id, mouse.ctrl_id->current);
+
 	// Increment current.id if needed to separate controls with the same box or circle
 	if (mouse.ctrl_id->hover.type == type)
 	{
 		// if this control has the same box or position and size and type as the previous hovered control in this frame
-		if ((type==0 && equal_rect(mouse.ctrl_id->hover_new.box, box)) || (type==1 && equal_xy(mouse.ctrl_id->hover_new.pos, pos) && mouse.ctrl_id->hover_new.radius == radius))
+		if (equal_ctrl_id(mouse.ctrl_id->hover_new, mouse.ctrl_id->current, 0))
 			mouse.ctrl_id->current.id++;				// increment the ID to differentiate between stacked same-box controls
 		// else if it matches the previous frame's hovered control
-		else if ((type==0 && equal_rect(mouse.ctrl_id->hover.box, box)) || (type==1 && equal_xy(mouse.ctrl_id->hover.pos, pos) && mouse.ctrl_id->hover.radius == radius))
+		else if ((type==ctrl_type_rect && equal_rect(mouse.ctrl_id->hover.box, box)) || (type==ctrl_type_circle && equal_xy(mouse.ctrl_id->hover.pos, pos) && mouse.ctrl_id->hover.radius == radius))
 		{
 			if (mouse.ctrl_id->hover_box_matched==0)	// if this control is the first one that matches the previous frame's hover control
 				mouse.ctrl_id->hover_box_matched = 1;	// only mark it as matched to avoid incrementing once too many
@@ -51,11 +91,11 @@ int check_ctrl_id(rect_t box, xy_t pos, double radius, mouse_t mouse, int type)	
 	// Find if the mouse hovers the control (all this is ultimately discarded in mouse_pre_event_proc() if the lmb is down)
 	switch (type)
 	{
-		case 0:
+		case ctrl_type_rect:
 			mouse_hovers = check_point_within_box(mouse.u, box);
 			break;
 
-		case 1:
+		case ctrl_type_circle:
 			d_current = hypot_xy(mouse.u, pos);
 			d_hovnew = (mouse.ctrl_id->hover_new.type == type) ? hypot_xy(mouse.u, mouse.ctrl_id->hover_new.pos) : FLT_MAX;
 
@@ -69,7 +109,7 @@ int check_ctrl_id(rect_t box, xy_t pos, double radius, mouse_t mouse, int type)	
 		mouse.ctrl_id->hover_new = mouse.ctrl_id->current;	// the hovered ID becomes the ID of the current control
 
 	// Compare current and hover
-	if (equal_ctrl_id(mouse.ctrl_id->current, mouse.ctrl_id->hover))
+	if (equal_ctrl_id(mouse.ctrl_id->current, mouse.ctrl_id->hover, 1))
 	{
 		mouse.ctrl_id->hover_ided = 1;	// this lets anyone who cares know that the one control being hovered has definitively been identified
 		return 1;
@@ -107,14 +147,14 @@ void proc_mouse_ctrl_button(int mb, int clicks, ctrl_button_state_t *state, cons
 	}
 }
 
-ctrl_button_state_t *proc_mouse_rect_ctrl_lrmb(rect_t box, mouse_t mouse)
+ctrl_button_state_t *proc_mouse_rect_ctrl_lrmb(rect_t box)
 {
 	static ctrl_button_state_t state[2];
 	int cur_point_within_box, orig_point_within_box;
 
 	memset(state, 0, sizeof(state));
 
-	if (check_ctrl_id_rect(box, mouse)==0)
+	if (check_ctrl_id_rect(box)==0)
 		return state;
 
 	orig_point_within_box = check_point_within_box(mouse.b.orig, box);
@@ -126,7 +166,7 @@ ctrl_button_state_t *proc_mouse_rect_ctrl_lrmb(rect_t box, mouse_t mouse)
 	return state;
 }
 
-ctrl_button_state_t *proc_mouse_polygon_ctrl_lrmb(rect_t box, xy_t *p, int p_count, mouse_t mouse)
+ctrl_button_state_t *proc_mouse_polygon_ctrl_lrmb(rect_t box, xy_t *p, int p_count)
 {
 	mouse_ctrl_id_t ctrl_id_save;
 	static ctrl_button_state_t state[2];
@@ -138,7 +178,7 @@ ctrl_button_state_t *proc_mouse_polygon_ctrl_lrmb(rect_t box, xy_t *p, int p_cou
 	ctrl_id_save = *mouse.ctrl_id;
 
 	// Identify control by its bounding box
-	ret = check_ctrl_id_rect(box, mouse);
+	ret = check_ctrl_id_rect(box);
 
 	// Check whether mouse cursor and click origin are inside the polygon
 	orig_point_within_box = check_point_within_box(mouse.b.orig, box);
@@ -165,7 +205,7 @@ ctrl_button_state_t *proc_mouse_polygon_ctrl_lrmb(rect_t box, xy_t *p, int p_cou
 	return state;
 }
 
-ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, mouse_t mouse, const int check_bypass)
+ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, const int check_bypass)
 {
 	static ctrl_button_state_t state[2];
 	int cur_point_within_circle, orig_point_within_circle;
@@ -173,7 +213,7 @@ ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, mouse_t 
 	memset(state, 0, sizeof(state));
 
 	// the check_bypass is necessary to get button states while dragging and releasing (uponce)
-	if (check_ctrl_id_circle(pos, radius, mouse)==0 && check_bypass==0)
+	if (check_ctrl_id_circle(pos, radius)==0 && check_bypass==0)
 		return state;
 
 	cur_point_within_circle = check_bypass | check_point_within_circle(mouse.u, pos, radius);
@@ -184,13 +224,13 @@ ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, mouse_t 
 	return state;
 }
 
-ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
+ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box)
 {
 	ctrl_knob_state_t state;
 
 	memset(&state, 0, sizeof(state));
 
-	if (check_ctrl_id_rect(box, mouse)==0)
+	if (check_ctrl_id_rect(box)==0)
 		return state;
 
 	if (check_point_within_box(mouse.b.orig, box))	// check the click originated in the same box
@@ -233,13 +273,13 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box, mouse_t mouse)
 	return state;
 }
 
-int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mouse)
+int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box)
 {
 	int ret=0, ctrl_id_check;
 
 	state->offset = XY0;
 
-	ctrl_id_check = check_ctrl_id_rect(box, mouse);
+	ctrl_id_check = check_ctrl_id_rect(box);
 
 	state->uponce = 0;
 
@@ -273,7 +313,7 @@ int proc_mouse_draggable_ctrl(ctrl_drag_state_t *state, rect_t box, mouse_t mous
 	return ret;
 }
 
-int proc_mouse_xy_ctrl(rect_t box, mouse_t mouse, xy_t *pos, int *lmb, int *rmb)
+int proc_mouse_xy_ctrl(rect_t box, xy_t *pos, int *lmb, int *rmb)
 {
 	int change = 0;
 
@@ -281,7 +321,7 @@ int proc_mouse_xy_ctrl(rect_t box, mouse_t mouse, xy_t *pos, int *lmb, int *rmb)
 	*lmb = 0;
 	*rmb = 0;
 
-	if (check_ctrl_id_rect(box, mouse)==0)
+	if (check_ctrl_id_rect(box)==0)
 		return 0;
 
 	*pos = mouse.u;
@@ -294,11 +334,11 @@ int proc_mouse_xy_ctrl(rect_t box, mouse_t mouse, xy_t *pos, int *lmb, int *rmb)
 	return change;
 }
 
-ctrl_button_state_t proc_mouse_circular_ctrl(xy_t *pos, double radius, mouse_t mouse, int dragged)
+ctrl_button_state_t proc_mouse_circular_ctrl(xy_t *pos, double radius, int dragged)
 {
 	ctrl_button_state_t butt={0};
 
-	butt = proc_mouse_circ_ctrl_lrmb(*pos, radius, mouse, dragged)[0];
+	butt = proc_mouse_circ_ctrl_lrmb(*pos, radius, dragged)[0];
 
 	// Update position when dragged
 	if (butt.down)

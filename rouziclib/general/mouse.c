@@ -213,9 +213,11 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 	}
 	#endif
 
+	ctrl_id_stack_process();
+
 	reset_insert_rect_array();			// nothing to do with the mouse but this is about the right place to put it
 
-	// Drawwing queue discard logic
+	// Drawing queue discard logic
 	if (fb->use_drawq && mouse->window_minimised_flag == 2)
 	{
 		fb->discard = 1;

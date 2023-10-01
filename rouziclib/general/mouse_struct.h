@@ -2,6 +2,10 @@ typedef struct
 {
 	ctrl_id_t hover, hover_new, current;
 	int hover_box_matched, hover_ided;
+
+	int stack_recap;	// flag is on when going through the control stack after mouse events are processed
+	ctrl_id_t *stack;
+	size_t stack_count, stack_as;
 } mouse_ctrl_id_t;
 
 typedef struct
