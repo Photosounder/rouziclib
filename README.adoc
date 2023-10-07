@@ -633,6 +633,9 @@ Load FLAC sound files with https://github.com/mackron/dr_libs/blob/master/dr_fla
 ** link:rouziclib/libraries/zlib.c[zlib.c] / link:rouziclib/libraries/zlib.h[zlib.h] +
 Compress or decompress using the Deflate compression using either zlib or https://github.com/richgel999/miniz[miniz] (miniz is built in rouziclib so there's no reason to use zlib).
 
+** link:rouziclib/libraries/miniz_cutdown.c[miniz_cutdown.c] / link:rouziclib/libraries/miniz_cutdown.h[miniz_cutdown.h] +
+Cut down version of  https://github.com/richgel999/miniz[miniz] that only decompresses but is much quicker to compile than full miniz.
+
 ** link:rouziclib/libraries/mpfr.c[mpfr.c] / link:rouziclib/libraries/mpfr.h[mpfr.h] +
 Macros to make MPFR syntax simpler (I used to have problems typing `mpfr_` correctly so I changed it to `r_`) and some other functions I need.
 
@@ -649,7 +652,7 @@ https://github.com/codeplea/tinyexpr[TinyExpr] (logic branch) code which I use f
 cURL code to get files through HTTPS. I can't seem to get authentication right.
 
 ** link:rouziclib/libraries/libminiaudio.c[libminiaudio.c] / link:rouziclib/libraries/libminiaudio.h[libminiaudio.h] +
-Adds https://github.com/mackron/miniaudio[MiniAudio]. Excluded by default due to the code size
+Adds https://github.com/mackron/miniaudio[MiniAudio].
 
 ** link:rouziclib/libraries/openal.c[openal.c] / link:rouziclib/libraries/openal.h[openal.h] +
 Adds OpenAL.

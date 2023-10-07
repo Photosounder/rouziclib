@@ -61,14 +61,15 @@
 #define RL_MINIAUDIO
 #define RL_OPENAL
 #define RL_TINYEXPR
-	// Include various libraries and the code that use them. MiniAudio is already part of rouziclib but is excluded by default due to code size and TinyExpr is optional due to rarely being used anymore.
+#define RL_IMAGE_FILE
+#define RL_SOUND_FILE
+#define RL_FFTPACK
+#define RL_CFFTPACK
+	// Include various libraries and the code that use them. Some are excluded by default due to requiring external dependencies, others are excluded due to code size.
 
 #define RL_ZLIB
-	// Includes Zlib. If not defined then Miniz is used instead
-
-#define RL_EXCL_FFTPACK
-#define RL_EXCL_CFFTPACK
-	// Excludes FFT code due to size
+#define RL_MINIZ
+	// Includes Zlib or Miniz. If neither is defined then a cutdown Inflate-only version of Miniz is used.
 
 //**** Colour ****
 
