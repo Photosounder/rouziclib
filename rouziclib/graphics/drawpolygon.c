@@ -101,7 +101,7 @@ float calc_subtriangle_pixel_weight(xyf_t p0, xyf_t p1)
 	return weight;
 }
 
-#if defined(RL_INTEL_INTR) && defined(__GNUC__)
+#ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
 void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, double intensity)

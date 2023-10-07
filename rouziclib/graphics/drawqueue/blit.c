@@ -87,7 +87,7 @@ __m128 dqs_calc_flattop_weight(__m128 pif, __m128 i, __m128 knee, __m128 slope, 
 	return w;
 }
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
 __m128 dqs_image_filter_flattop(uint8_t *im, xyi_t im_dim, __m128 im_lim, const int fmt, __m128 pif, __m128 pscale, __m128 slope, __m128 knee, comp_decode_t *cd1)

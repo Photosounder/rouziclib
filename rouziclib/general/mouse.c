@@ -28,12 +28,7 @@ void mouse_pre_event_proc(mouse_t *mouse)
 	mouse->d = XY0;
 	mouse->prev_u = mouse->u_stored;
 	mouse->b.wheel = 0;
-	if (mouse->b.lmb <= 0)						// if LMB is being pressed the hovered ID stays the same as before no matter what
-		mouse->ctrl_id->hover = mouse->ctrl_id->hover_new;
-	memset(&mouse->ctrl_id->hover_new, 0, sizeof(ctrl_id_t));
-	memset(&mouse->ctrl_id->current, 0, sizeof(ctrl_id_t));
-	mouse->ctrl_id->hover_box_matched = 0;
-	mouse->ctrl_id->hover_ided = 0;
+	ctrl_id_cycle();
 
 	flag_update_mouse_button(&mouse->b.lmb, &mouse->b.lmf);
 	flag_update_mouse_button(&mouse->b.mmb, &mouse->b.mmf);

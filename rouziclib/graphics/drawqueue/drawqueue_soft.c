@@ -1,6 +1,6 @@
 #ifdef RL_INTEL_INTR
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("ssse3")))
 #endif
 void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, xyi_t dim, int ss, int chan_stride) // SSSE3, calls SSE4.1

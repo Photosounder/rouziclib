@@ -75,9 +75,9 @@ tinyexpr (not really needed anymore):
 
 miniz:
 	https://github.com/richgel999/miniz/releases
-	release 2.2.0, Jun 27, 2021
-	only download miniz.[ch], the versions found in miniz-2.x.x.zip
-	in miniz.c comment out the useless warning at line 3089
+	release 3.0.2, Jan 15, 2023
+	only download miniz.[ch], the versions found in miniz-3.x.x.zip
+	in miniz.c comment out the useless #pragma messsage at line 3185
 
 miniaudio:
 	https://github.com/mackron/miniaudio/blob/dev/miniaudio.h

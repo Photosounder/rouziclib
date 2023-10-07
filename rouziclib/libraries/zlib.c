@@ -1,6 +1,12 @@
-// uses either zlib or miniz depending on RL_ZLIB
+// Uses either zlib, miniz or a cutdown Inflate-only miniz depending on RL_ZLIB/RL_MINIZ
 
-#include "orig/miniz.c"
+#ifndef RL_ZLIB
+  #ifdef RL_MINIZ
+    #include "orig/miniz.c"
+  #else
+    #include "miniz_cutdown.c"
+  #endif
+#endif
 
 int gz_decompress(const uint8_t *src, const size_t src_len, uint8_t **dst, size_t *dst_alloc)
 {
@@ -11,10 +17,6 @@ int gz_decompress(const uint8_t *src, const size_t src_len, uint8_t **dst, size_
 	strm.avail_out = *dst_alloc;
 	strm.next_in   = (Bytef *) src;
 	strm.next_out  = (Bytef *) *dst;
-
-	strm.zalloc = Z_NULL;
-	strm.zfree  = Z_NULL;
-	strm.opaque = Z_NULL;
 
 	#ifdef RL_ZLIB
 	ret = inflateInit2(&strm, 15+32);	// 15 window bits, and the +32 tells zlib to to detect if using gzip or zlib
@@ -64,6 +66,7 @@ buffer_t gz_decompress_to_buffer(const uint8_t *src, const size_t src_len)
 buffer_t gz_compress_to_buffer(const uint8_t *data, const size_t data_size, const int comp_level)
 {
 	buffer_t bz={0};
+#if defined(RL_ZLIB) || defined(RL_MINIZ)
 	mz_ulong z_size;
 
 	z_size = compressBound(data_size);
@@ -71,7 +74,11 @@ buffer_t gz_compress_to_buffer(const uint8_t *data, const size_t data_size, cons
 
 	compress2(bz.buf, &z_size, data, data_size, comp_level);
 
+	// TODO realloc
 	bz.as = bz.len = z_size;
+#else
+	fprintf_rl(stderr, "Define RL_MINIZ in order to be able to use gz_compress_to_buffer()\n");
+#endif
 	return bz;
 }
 

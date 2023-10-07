@@ -1,3 +1,5 @@
+#ifdef RL_SOUND_FILE
+
 #define MINIMP3_FLOAT_OUTPUT
 #define MINIMP3_ONLY_MP3
 #define MINIMP3_IMPLEMENTATION
@@ -5,8 +7,11 @@
 #include "orig/minimp3.h"
 #undef get_bits
 
+#endif
+
 void *load_full_mp3_fullarg(char *in_path, size_t *sample_count, int *channel_count, int *samplerate, int (*bytes_per_sample_func)(int), int (*conv_func)(void*,void*,size_t,int))
 {
+#ifdef RL_SOUND_FILE
 	uint8_t *raw_data;
 	size_t data_size, raw_index=0;
 	int frame_sample_count, conv_channel_count=0;
@@ -55,6 +60,15 @@ void *load_full_mp3_fullarg(char *in_path, size_t *sample_count, int *channel_co
 	*sample_count = out_count;
 	p = realloc(out, out_count * out_size_elem);	// trim the allocation of out
 	return p ? p : out;
+#else
+	*sample_count = 0;
+	*channel_count = 0;
+	*samplerate = 0;
+
+	fprintf_rl(stderr, "Define RL_SOUND_FILE in order to be able to use load_full_mp3_fullarg()\n");
+
+	return NULL;
+#endif
 }
 
 float *load_full_mp3_float_select_chan(char *in_path, size_t *sample_count, int *channel_count, int *samplerate, int sel_chan)

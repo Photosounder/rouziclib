@@ -145,7 +145,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "vector/vector.h"
 #include "vector/polyline.h"
 
-#include "text/unicode_data.h"			// needs RL_INCL_UNICODE_DATA(_MINI) to be defined
+#include "text/unicode_data.h"		// needs RL_INCL_UNICODE_DATA(_MINI) to be defined
 #include "text/unicode.h"
 #include "text/unicode_bidi.h"
 #include "text/unicode_arabic.h"
@@ -155,7 +155,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "text/edit.h"
 #include "text/undo.h"
 #include "text/history.h"
-#include "vector_type/vector_type.h"		// vector type fileball loading needs RL_INCL_VECTOR_TYPE_FILEBALL
+#include "vector_type/vector_type.h"	// vector type fileball loading needs RL_INCL_VECTOR_TYPE_FILEBALL
 #include "vector_type/make_font.h"
 #include "vector_type/draw.h"
 #include "vector_type/stats.h"
@@ -228,13 +228,13 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "libraries/libsndfile.h"	// used if RL_LIBSNDFILE is defined
 #include "libraries/libraw.h"		// used if RL_LIBRAW is defined
 #include "libraries/libjpeg.h"		// used if RL_LIBJPEG is defined
-#include "libraries/libstb_image.h"
-#include "libraries/libstb_vorbis.h"
-#include "libraries/libminimp3.h"
-#include "libraries/libdr_flac.h"
-#include "libraries/zlib.h"		// uses zlib if RL_ZLIB is defined, otherwise miniz is used
-#include "libraries/fftpack.h"		// used unless RL_EXCL_FFTPACK is defined
-#include "libraries/cfftpack.h"		// used unless RL_EXCL_CFFTPACK is defined
+#include "libraries/libstb_image.h"	// used if RL_IMAGE_FILE is defined
+#include "libraries/libstb_vorbis.h"	// used if RL_SOUND_FILE is defined
+#include "libraries/libminimp3.h"	// used if RL_SOUND_FILE is defined
+#include "libraries/libdr_flac.h"	// used if RL_SOUND_FILE is defined
+#include "libraries/zlib.h"		// uses zlib if RL_ZLIB is defined, miniz if RL_MINIZ is defined, cutdown inflate-only miniz otherwise
+#include "libraries/fftpack.h"		// used if RL_FFTPACK is defined
+#include "libraries/cfftpack.h"		// used if RL_CFFTPACK is defined
 #include "libraries/tinyexpr.h"		// used if RL_TINYEXPR is defined
 #include "libraries/libcurl.h"		// used if RL_LIBCURL is defined
 #include "libraries/libminiaudio.h"	// used if RL_MINIAUDIO is defined

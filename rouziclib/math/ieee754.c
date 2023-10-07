@@ -59,7 +59,7 @@ float get_fractional_part_signedf(float f)	// gets the fractional part of the nu
 	return f;
 }
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
 double get_fractional_part_signed(double f)
@@ -83,7 +83,7 @@ float get_fractional_part_positivef(float f)
 	return f - floorf(f);
 }
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
 double get_fractional_part_positive(double f)
@@ -108,7 +108,7 @@ double get_fractional_part_positive(double f)
 }
 
 #ifdef RL_INTEL_INTR
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
 __m128d _mm_get_fractional_part_positive(__m128d md)

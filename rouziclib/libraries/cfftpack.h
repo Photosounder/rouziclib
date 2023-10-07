@@ -1,4 +1,4 @@
-#ifndef RL_EXCL_CFFTPACK
+#ifdef RL_CFFTPACK
 
 typedef struct
 {

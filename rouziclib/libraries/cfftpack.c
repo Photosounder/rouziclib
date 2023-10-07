@@ -1,4 +1,4 @@
-#ifndef RL_EXCL_CFFTPACK
+#ifdef RL_CFFTPACK
 
 #include "orig/fftpack_float.c"
 #include "orig/fftpack_double.c"

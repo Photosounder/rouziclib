@@ -1,3 +1,5 @@
+#ifdef RL_IMAGE_FILE
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ASSERT(x)
 #undef pi
@@ -8,9 +10,12 @@
 #define stbiw__fopen	fopen_utf8
 #include "orig/stb_image_write.h"
 
+#endif
+
 raster_t load_image_mem_libstb_image(uint8_t *raw_data, size_t size, const int mode)
 {
 	raster_t im={0};
+#ifdef RL_IMAGE_FILE
 	int comp=0;
 	uint8_t *b8=NULL;
 	uint16_t *b16=NULL;
@@ -38,12 +43,14 @@ raster_t load_image_mem_libstb_image(uint8_t *raw_data, size_t size, const int m
 		if (im.srgb != (srgb_t *) b8)
 			free(b8);
 	}
+#endif
 
 	return im;
 }
 
 int save_image_srgb_libstb(const char *path, raster_t r, int jpg_quality)
 {
+#ifdef RL_IMAGE_FILE
 	char ext[32];
 
 	extract_file_extension(path, ext);
@@ -56,6 +63,9 @@ int save_image_srgb_libstb(const char *path, raster_t r, int jpg_quality)
 
 	if (strcmp(ext, "jpg")==0 || strcmp(ext, "jpeg")==0)
 		return stbi_write_jpg(path, r.dim.x, r.dim.y, 4, r.srgb, jpg_quality);
+#else
+	fprintf_rl(stderr, "Define RL_IMAGE_FILE in order to be able to use save_image_srgb_libstb()\n");
+#endif
 
 	return 0;
 }

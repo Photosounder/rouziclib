@@ -1,3 +1,5 @@
+#ifdef RL_SOUND_FILE
+
 #define STB_VORBIS_NO_STDIO
 #define STB_VORBIS_NO_INTEGER_CONVERSION
 #define get_bits get_bits_vorbis
@@ -107,3 +109,18 @@ float *load_sound_vorbis_file(const char *path, size_t *sample_count, int *chann
 
 	return output;
 }
+
+#else
+
+float *load_sound_vorbis_file(const char *path, size_t *sample_count, int *channels, int *samplerate)
+{
+	*sample_count = 0;
+	*channels = 0;
+	*samplerate = 0;
+
+	fprintf_rl(stderr, "Define RL_SOUND_FILE in order to be able to use load_sound_vorbis_file()\n");
+
+	return NULL;
+}
+
+#endif

@@ -1,3 +1,13 @@
+void ctrl_id_cycle()
+{
+	if (mouse.b.lmb <= 0)	// if LMB is being pressed the hovered ID stays the same as before no matter what
+		mouse.ctrl_id->hover = mouse.ctrl_id->hover_new;
+	memset(&mouse.ctrl_id->hover_new, 0, sizeof(ctrl_id_t));
+	memset(&mouse.ctrl_id->current, 0, sizeof(ctrl_id_t));
+	mouse.ctrl_id->hover_box_matched = 0;
+	mouse.ctrl_id->hover_ided = 0;
+}
+
 void ctrl_id_stack_add(mouse_ctrl_id_t *ctrl_id, ctrl_id_t new_ctrl)
 {
 	if (ctrl_id->stack_recap)
@@ -21,6 +31,7 @@ void ctrl_id_stack_process()
 
 	// Clear stack
 	mouse.ctrl_id->stack_count = 0;
+	ctrl_id_cycle();
 }
 
 int equal_ctrl_id(ctrl_id_t a, ctrl_id_t b, int check_id)	// returns 1 if the controls are identical
@@ -101,6 +112,10 @@ int check_ctrl_id(rect_t box, xy_t pos, double radius, enum ctrl_type_t type)	//
 
 			if (d_current <= radius && d_current <= d_hovnew)
 				mouse_hovers = 1;
+			break;
+
+		case ctrl_type_polygon:
+			// TODO
 			break;
 	}
 

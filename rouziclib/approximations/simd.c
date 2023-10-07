@@ -112,7 +112,7 @@ __m128 _mm_erfr_d1_ps(__m128 x)
 	return _mm_eval_poly_d1_lut_ps(x, fasterfr_lut, index);
 }
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
 __m128 _mm_frgb_to_srgb(__m128 x)	// output is [0.f , 1.f]

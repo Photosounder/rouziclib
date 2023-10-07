@@ -117,7 +117,7 @@ __m128 _mm_get_raster_pixel_sqrgb_to_ps(raster_t *r, const size_t index)
 // Convert from frgb
 
 #ifdef RL_INTEL_INTR
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("ssse3")))
 #endif
 lrgb_t frgb_to_lrgb_sse(frgb_t cf)
@@ -182,7 +182,7 @@ void _mm_set_raster_pixel_ps_to_frgb(raster_t *r, const size_t index, __m128 f)
 	_mm_storeu_ps((float *) &r->f[index], f);
 }
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("ssse3")))
 #endif
 void _mm_set_raster_pixel_ps_to_lrgb(raster_t *r, const size_t index, __m128 f)
@@ -201,7 +201,7 @@ void _mm_set_raster_pixel_ps_to_lrgb(raster_t *r, const size_t index, __m128 f)
 	_mm_storeu_si64(&r->l[index], lv);
 }
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("ssse3")))
 #endif
 void _mm_set_raster_pixel_ps_to_srgb(raster_t *r, const size_t index, __m128 f)

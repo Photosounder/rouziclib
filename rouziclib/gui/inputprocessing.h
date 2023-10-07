@@ -1,6 +1,7 @@
 // in gui/inputprocessing_struct.h:
 // ctrl_button_state_t, ctrl_knob_state_t, ctrl_drag_state_t, ctrl_id_t
 
+extern void ctrl_id_cycle();
 extern void ctrl_id_stack_add(mouse_ctrl_id_t *ctrl_id, ctrl_id_t new_ctrl);
 extern void ctrl_id_stack_process();
 extern int equal_ctrl_id(ctrl_id_t a, ctrl_id_t b, int check_id);

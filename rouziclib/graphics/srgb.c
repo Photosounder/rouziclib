@@ -501,7 +501,7 @@ srgb_t srgb_change_order_pixel(const srgb_t in, const int order)
 	return out;
 }
 
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("ssse3")))
 #endif
 void srgb_change_order(srgb_t *in, srgb_t *out, const size_t count, const int order)

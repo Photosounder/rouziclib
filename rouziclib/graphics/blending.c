@@ -145,7 +145,7 @@ blend_func_fl_t get_blend_fl_equivalent(const blend_func_t bf)
 }
 
 #ifdef RL_INTEL_INTR
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("ssse3,sse4.1")))
 #endif
 void alphablend_lrgb_on_srgb_simd128(uint8_t *s0, __m128i *l_ptr, int64_t *s1_ptr, int32_t *lut0, int32_t *lut1)	// AVX2

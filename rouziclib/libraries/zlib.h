@@ -1,19 +1,28 @@
 #ifdef RL_ZLIB
 
-#pragma comment(lib,"zlib.lib")
-#include <zlib.h>
+  #pragma comment(lib,"zlib.lib")
+  #include <zlib.h>
+
+#elif defined(RL_MINIZ)
+
+  #define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+  #ifndef RL_DONT_ASSUME_LITTLE_ENDIAN
+    #define MINIZ_LITTLE_ENDIAN 1
+  #endif
+  #define MINIZ_UNALIGNED_USE_MEMCPY
+  #include "orig/miniz.h"
+
+  #undef alloc_func
+  #undef free_func
 
 #else
 
-#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
-#ifndef RL_DONT_ASSUME_LITTLE_ENDIAN
-#define MINIZ_LITTLE_ENDIAN 1
-#endif
-#define MINIZ_UNALIGNED_USE_MEMCPY
-#include "orig/miniz.h"
-
-#undef alloc_func
-#undef free_func
+  #define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+  #ifndef RL_DONT_ASSUME_LITTLE_ENDIAN
+    #define MINIZ_LITTLE_ENDIAN 1
+  #endif
+  #define MINIZ_UNALIGNED_USE_MEMCPY
+  #include "miniz_cutdown.h"
 
 #endif
 

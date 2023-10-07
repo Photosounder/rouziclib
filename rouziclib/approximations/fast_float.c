@@ -118,7 +118,7 @@ double fastlog2(double x)
 
 // exp2 approximation, returns bogus results if x is outside [-1022.0 , 1024.0[
 // max error of 6.65255e-09 for lutsp of 6, lut takes 1.5 kB
-#ifdef __GNUC__
+#ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
 double fastexp2(double x)

@@ -1,4 +1,4 @@
-#ifndef RL_EXCL_FFTPACK
+#ifdef RL_FFTPACK
 
 void radb2(int32_t ido, int32_t l1, double *cc, 
 	double *ch, double *wa1)

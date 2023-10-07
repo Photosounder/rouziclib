@@ -584,7 +584,7 @@ void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int d
 	wahe_module_t *ctx = &group->module[module_id];
 
 	// Set textedit if framebuffer is clicked which indicates that the module is active in the interface
-	ctrl_button_state_t *butt_state = proc_mouse_rect_ctrl_lrmb(group->image[display_id].fb_rect, *zc.mouse);
+	ctrl_button_state_t *butt_state = proc_mouse_rect_ctrl_lrmb(group->image[display_id].fb_rect);
 	if (butt_state[0].down || butt_state[1].down)
 		cur_textedit = &ctx->input_te;
 
@@ -632,6 +632,7 @@ void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int d
 		rect_range_and_dim_to_scale_offset_inv(group->image[display_id].fb_rect, group->image[display_id].fb.dim, &r_scale, &r_offset, 0);
 		xy_t pix_pos = mad_xy(mouse.u, r_scale, r_offset);
 
+if (mouse.b.lmb != -1 || mouse.b.rmb != -1)
 		bufprintf(&buf, "Mouse position (pixels) %.16g %.16g\n", pix_pos.x, pix_pos.y);
 	}
 	else if (group->image[display_id].mouse_active)
