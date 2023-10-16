@@ -1,4 +1,4 @@
-void wahe_rl_parse_inputs(char *line, int *received_input)
+void wahe_rl_parse_inputs(const char *line, int *received_input)
 {
 	int i, n;
 

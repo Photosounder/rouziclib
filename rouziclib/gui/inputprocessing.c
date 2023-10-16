@@ -1,6 +1,6 @@
 void ctrl_id_cycle()
 {
-	if (mouse.b.lmb <= 0)	// if LMB is being pressed the hovered ID stays the same as before no matter what
+	if (mouse.b.lmb != 1)	// if LMB is being held the hovered ID stays the same as before no matter what
 		mouse.ctrl_id->hover = mouse.ctrl_id->hover_new;
 	memset(&mouse.ctrl_id->hover_new, 0, sizeof(ctrl_id_t));
 	memset(&mouse.ctrl_id->current, 0, sizeof(ctrl_id_t));
@@ -257,7 +257,7 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box)
 		}
 		else
 		{
-			if (mouse.b.lmb >= 1)
+			if (mouse.b.lmb == 1)
 			{
 				//state.vert_delta = (mouse.u.y - mouse.prev_u.y) / get_rect_dim(box).y;
 				state.vert_delta = -mouse.d.y;					
