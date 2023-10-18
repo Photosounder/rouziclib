@@ -63,7 +63,7 @@ static int check_avx2()  { static int v=2; if (v==2) v = check_cpuinfo(CPU_HAS_A
 
 #ifdef RL_INTEL_INTR
       
-  #ifdef __GNUC__
+  #if defined(__GNUC__) && !defined(__EMSCRIPTEN__)
     #define GNU_SSE
   #endif
 
