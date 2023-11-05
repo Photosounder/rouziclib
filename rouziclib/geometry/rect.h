@@ -28,6 +28,7 @@ extern xy_t get_rect_centre(rect_t r);
 extern xyi_t get_recti_centre(recti_t r);
 extern xy_t get_rect_dim(rect_t r);
 extern xyi_t get_recti_dim(recti_t r);
+extern xy_t get_rect_coord(rect_t r, const xy_t off);
 extern double get_rect_area(rect_t r);
 extern rect_t get_rect_centred_coord(rect_t r);
 extern recti_t get_recti_centred_coord(recti_t r);

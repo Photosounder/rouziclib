@@ -176,6 +176,7 @@
 #include "libraries/libcurl.c"
 #include "libraries/libminiaudio.c"
 #include "libraries/openal.c"
+#include "libraries/manymouse.c"
 #include "libraries/emscripten.c"
 
 #include "general/globals.c"

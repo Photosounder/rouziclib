@@ -82,3 +82,8 @@ miniz:
 miniaudio:
 	https://github.com/mackron/miniaudio/blob/dev/miniaudio.h
 	v0.11.9, Apr 20, 2022
+
+manymouse:
+	https://github.com/icculus/manymouse
+	Sep 30, 2023
+	Comment out #define WIN32_LEAN_AND_MEAN 1 and the includes that follow in windows_wminput.c

@@ -127,6 +127,13 @@ xyi_t get_recti_dim(recti_t r)		// assuming that r represents a grid defined by 
 	return add_xyi(set_xyi(1), sub_xyi(r.p1, r.p0));
 }
 
+xy_t get_rect_coord(rect_t r, const xy_t off)
+{
+	xy_t pos, dim;
+	rect_to_pos_dim(r, &pos, &dim, off);
+	return pos;
+}
+
 double get_rect_area(rect_t r)
 {
 	xy_t dim = get_rect_dim(r);

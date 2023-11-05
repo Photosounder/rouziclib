@@ -657,6 +657,9 @@ Adds https://github.com/mackron/miniaudio[MiniAudio].
 ** link:rouziclib/libraries/openal.c[openal.c] / link:rouziclib/libraries/openal.h[openal.h] +
 Adds OpenAL.
 
+** link:rouziclib/libraries/manymouse.c[openal.c] / link:rouziclib/libraries/manymouse.h[openal.h] +
+Adds https://github.com/icculus/manymouse[ManyMouse].
+
 ** link:rouziclib/libraries/emscripten.c[emscripten.c] / link:rouziclib/libraries/emscripten.h[emscripten.h] / link:rouziclib/libraries/emscripten.js[emscripten.js] +
 Emscripten-specific code.
 
