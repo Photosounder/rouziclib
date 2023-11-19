@@ -19,9 +19,10 @@ const char *wahe_func_name[] =
 	"proc_sound"
 };
 
-_Thread_local wahe_module_t *current_ctx = NULL;
+_Thread_local wahe_module_t *wahe_cur_ctx = NULL;
+_Thread_local wahe_thread_t *wahe_cur_thread = NULL;
 
-void wahe_bench_point(wahe_module_t *ctx, const char *label, int depth)
+void wahe_bench_point(const char *label, int depth)
 {
 	return;
 	static double ref_time = 0.;
@@ -150,9 +151,9 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	param[0] = wasmtime_val_set_address(ctx, size);
 
 	// Call the function
-	wahe_bench_point(ctx, "calling malloc()", 1);
+	wahe_bench_point("calling malloc()", 1);
 	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_MALLOC], param, 1, ret, 1, &trap);
-	wahe_bench_point(ctx, "malloc() returned", 0);
+	wahe_bench_point("malloc() returned", 0);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_malloc(ctx, %zu) failed\n", size);
@@ -168,9 +169,9 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	}
 
 	// Update memory pointer
-	wahe_bench_point(ctx, "Updating with wasmtime_linker_get_memory()", 0);
+	wahe_bench_point("Updating with wasmtime_linker_get_memory()", 0);
 	wasmtime_linker_get_memory(ctx);
-	wahe_bench_point(ctx, "call_module_malloc() end", -1);
+	wahe_bench_point("call_module_malloc() end", -1);
 
 	// Return result
 	return wasmtime_val_get_address(ret[0]);
@@ -194,9 +195,9 @@ void call_module_free(wahe_module_t *ctx, size_t address)
 	param[0] = wasmtime_val_set_address(ctx, address);
 
 	// Call the function
-	wahe_bench_point(ctx, "calling free()", 1);
+	wahe_bench_point("calling free()", 1);
 	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_FREE], param, 1, NULL, 0, &trap);
-	wahe_bench_point(ctx, "free() returned", -1);
+	wahe_bench_point("free() returned", -1);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_free(ctx, %zu) failed\n", address);
@@ -213,13 +214,13 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	size_t ret_msg_addr_s = 0, *ret_msg_addr = &ret_msg_addr_s;
 	int current_module;
 
-	wahe_group_t *group = ctx->parent_group;
-	current_module = group->current_module = ctx->module_id;
+	wahe_thread_t *thread = wahe_cur_thread;
+	current_module = thread->current_module = ctx->module_id;
 
 	if (call_from_eo)
 	{
 		// Find where to store the return message address
-		wahe_exec_order_t *eo = &group->exec_order[group->current_eo];
+		wahe_exec_order_t *eo = &thread->exec_order[thread->current_eo];
 		ret_msg_addr = &eo->ret_msg_addr;
 	}
 
@@ -227,9 +228,9 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	if (ctx->native)
 	{
 		char *(*func)(char *) = ctx->dl_func[func_id];
-		swap_ptr(&current_ctx, &ctx);
+		swap_ptr(&wahe_cur_ctx, &ctx);
 		*ret_msg_addr = (size_t) func((char *) message_addr);
-		swap_ptr(&current_ctx, &ctx);
+		swap_ptr(&wahe_cur_ctx, &ctx);
 		return (char *) *ret_msg_addr;
 	}
 
@@ -240,12 +241,12 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	param[0] = wasmtime_val_set_address(ctx, message_addr);
 
 	// Call the function
-	wahe_bench_point(ctx, "calling call_module_func()", 1);
-	int prev_func = group->current_func;
-	group->current_func = func_id;
+	wahe_bench_point("calling call_module_func()", 1);
+	int prev_func = thread->current_func;
+	thread->current_func = func_id;
 	error = wasmtime_func_call(ctx->context, &ctx->func[func_id], param, 1, ret, 1, &trap);
-	group->current_func = prev_func;
-	wahe_bench_point(ctx, "call_module_func() returned", -1);
+	thread->current_func = prev_func;
+	wahe_bench_point("call_module_func() returned", -1);
 	if (error || trap)
 	{
 		fprintf_rl(stderr, "call_module_func() failed\n");
@@ -254,7 +255,7 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	}
 
 	// Restore current_module
-	group->current_module = current_module;
+	thread->current_module = current_module;
 
 	// Store the return message address
 	*ret_msg_addr = wasmtime_val_get_address(ret[0]);
@@ -499,7 +500,7 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	ctx->parent_group = parent_group;
 	ctx->module_id = module_index;
 
-	// Send module index to the module, will probably change to more than just an index in the future so module must a 60 character string
+	// Send module index to the module, will probably change to more than just an index in the future so module must be a 60 character string
 	if (parent_group)
 		wahe_send_input(ctx, "Module ID %d", module_index);
 
@@ -525,7 +526,7 @@ wahe_module_t *wahe_get_module_by_id_string(wahe_group_t *group, const char *id_
 	return NULL;
 }
 
-void wahe_copy_between_memories(wahe_group_t *group, wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr)
+void wahe_copy_between_memories(wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr)
 {
 	if (src_module == NULL || dst_module == NULL)
 		return;
@@ -576,11 +577,12 @@ size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
 	return data_addr;
 }
 
-void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int display_id, int conn_id)
+void wahe_make_keyboard_mouse_messages(wahe_thread_t *thread, int module_id, int display_id, int conn_id)
 {
 	int i;
 	buffer_t buf = {0};
 	const char *state_name[] = { "up", "", "", "", "down", "repeat" };
+	wahe_group_t *group = thread->parent_group;
 	wahe_module_t *ctx = &group->module[module_id];
 
 	// Set textedit if framebuffer is clicked which indicates that the module is active in the interface
@@ -656,7 +658,7 @@ if (mouse.b.lmb != -1 || mouse.b.rmb != -1)
 	}
 
 	// Copy message from host memory to module memory
-	size_t *addr = &group->exec_order[ group->connection[conn_id].dst_eo ].dst_msg_addr;
+	size_t *addr = &thread->exec_order[ thread->connection[conn_id].dst_eo ].dst_msg_addr;
 	call_module_free(&group->module[module_id], *addr);
 	*addr = 0;
 
@@ -682,13 +684,14 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		return 0;
 
 	// Execute command processors for this execution order
+	wahe_thread_t *thread = wahe_cur_thread;
 	wahe_group_t *group = ctx->parent_group;
-	if (group->current_eo >= 0 && group->exec_order)
+	if (thread->current_eo >= 0 && thread->exec_order)
 	{
-		wahe_exec_order_t *eo = &group->exec_order[group->current_eo];
-		if (eo && eo->cmd_proc_id && group->current_cmd_proc_id < eo->cmd_proc_count)
+		wahe_exec_order_t *eo = &thread->exec_order[thread->current_eo];
+		if (eo && eo->cmd_proc_id && thread->current_cmd_proc_id < eo->cmd_proc_count)
 		{
-			int dst_module_id = eo->cmd_proc_id[group->current_cmd_proc_id];
+			int dst_module_id = eo->cmd_proc_id[thread->current_cmd_proc_id];
 			wahe_module_t *dst_module = &group->module[dst_module_id];
 
 			// Copy message to cmd processing module
@@ -697,22 +700,22 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			memcpy(&dst_module->memory_ptr[dst_addr], message, len);
 
 			// Call cmd processing function
-			group->current_cmd_proc_id++;
+			thread->current_cmd_proc_id++;
 			size_t return_msg_addr_dst = (size_t) call_module_func(dst_module, dst_addr, WAHE_FUNC_PROC_CMD, 0);
-			group->current_module = ctx->module_id;
+			thread->current_module = ctx->module_id;
 			if (return_msg_addr_dst)
 				return_msg_addr_dst -= (size_t) dst_module->memory_ptr;
 			call_module_free(dst_module, dst_addr);
 
-			if (group->current_cmd_proc_id == eo->cmd_proc_count)
-				group->current_cmd_proc_id = 0;
+			if (thread->current_cmd_proc_id == eo->cmd_proc_count)
+				thread->current_cmd_proc_id = 0;
 
 			// Copy and return the return message
 			if (return_msg_addr_dst)
 			{
 				size_t ret_len = strlen(&dst_module->memory_ptr[return_msg_addr_dst]) + 1;
 				return_msg_addr = call_module_malloc(ctx, ret_len);
-				wahe_copy_between_memories(group, dst_module, return_msg_addr_dst, ret_len, &group->module[eo->module_id], return_msg_addr);
+				wahe_copy_between_memories(dst_module, return_msg_addr_dst, ret_len, &group->module[eo->module_id], return_msg_addr);
 				call_module_free(dst_module, return_msg_addr_dst);
 				return return_msg_addr;
 			}
@@ -731,7 +734,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		size_t src_addr, copy_size, dst_addr;
 		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to %zi (module %60[^)])", &copy_size, &src_addr, src_module, &dst_addr, dst_module) == 5)
 		{
-			wahe_copy_between_memories(ctx->parent_group, wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, wahe_get_module_by_id_string(group, dst_module), dst_addr);
+			wahe_copy_between_memories(wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, wahe_get_module_by_id_string(group, dst_module), dst_addr);
 			done = 1;
 		}
 
@@ -743,7 +746,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			if (dst_ctx)
 			{
 				dst_addr = call_module_malloc(dst_ctx, copy_size);
-				wahe_copy_between_memories(ctx->parent_group, wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, dst_ctx, dst_addr);
+				wahe_copy_between_memories(wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, dst_ctx, dst_addr);
 				return_msg_addr = module_sprintf_alloc(ctx, "Destination %#zx", (void *) dst_addr);
 				done = 1;
 			}
@@ -776,7 +779,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		sscanf(line, "Benchmark%n", &n);
 		if (n)
 		{
-			wahe_bench_point(ctx, "-Benchmark command-", 0);
+			wahe_bench_point("-Benchmark command-", 0);
 			done = 1;
 		}
 
@@ -786,9 +789,9 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		if (n && (line[n] == ' ' || line[n] == '\n'))
 		{
 			if (get_string_linecount(&line[n+1], 0) > 1)
-				fprintf_rl(stdout, "\n=== from %s:%s ===\n%s\n    ===    ===    \n\n", ctx->module_name, wahe_func_name[group->current_func], &line[n+1]);
+				fprintf_rl(stdout, "\n=== from %s:%s ===\n%s\n    ===    ===    \n\n", ctx->module_name, wahe_func_name[thread->current_func], &line[n+1]);
 			else
-				fprintf_rl(stdout, "(from %s:%s)   %s\n", ctx->module_name, wahe_func_name[group->current_func], &line[n+1]);
+				fprintf_rl(stdout, "(from %s:%s)   %s\n", ctx->module_name, wahe_func_name[thread->current_func], &line[n+1]);
 			return 0;
 		}
 
@@ -798,7 +801,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			int line_len = strlen(line);
 			if (strstr(line, "\n"))
 				line_len = strstr(line, "\n") - line;
-			fprintf_rl(stderr, "Command from %s:%s not interpreted: %.*s\n", ctx->module_name, wahe_func_name[group->current_func], line_len, line);
+			fprintf_rl(stderr, "Command from %s:%s not interpreted: %.*s\n", ctx->module_name, wahe_func_name[thread->current_func], line_len, line);
 		}
 	}
 
@@ -807,13 +810,13 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 
 char *wahe_run_command_native(char *message)
 {
-	return (char *) wahe_run_command_core(current_ctx, message);
+	return (char *) wahe_run_command_core(wahe_cur_ctx, message);
 }
 
 wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count)
 {
 	wahe_group_t *group = env;
-	wahe_module_t *ctx = &group->module[group->current_module];
+	wahe_module_t *ctx = &group->module[wahe_cur_thread->current_module];
 	size_t return_msg_addr = 0;
 	int n;
 

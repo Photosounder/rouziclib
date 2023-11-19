@@ -82,20 +82,31 @@ typedef struct
 
 typedef struct
 {
-	wahe_module_t *module;
-	size_t module_count, module_as;
+	char *thread_name;
+	void *parent_group;	// wahe_group_t *
 
 	wahe_connection_t *connection;
 	size_t conn_count, conn_as;
 
 	wahe_exec_order_t *exec_order;
 	size_t exec_order_count, exec_order_as;
+	
+	int current_eo, current_cmd_proc_id, current_module, current_func;
+} wahe_thread_t;
+
+typedef struct
+{
+	wahe_module_t *module;
+	size_t module_count, module_as;
+
+	wahe_thread_t *thread;
+	size_t thread_count, thread_as;
 
 	wahe_image_display_t *image;
 	size_t image_count, image_as;
-	
-	int current_eo, current_cmd_proc_id, current_module, current_func;
 } wahe_group_t;
+
+extern _Thread_local wahe_thread_t *wahe_cur_thread;
 
 extern int wasmtime_linker_get_memory(wahe_module_t *ctx);
 extern int wasmtime_linker_get_func(wahe_module_t *ctx, const char *func_name, wasmtime_func_t *func, int verbosity);
@@ -114,8 +125,8 @@ extern char *wahe_send_input(wahe_module_t *ctx, const char *format, ...);
 extern int is_wasmtime_func_found(wasmtime_func_t func);
 extern void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap);
 extern void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path);
-extern void wahe_copy_between_memories(wahe_group_t *group, wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr);
-extern void wahe_make_keyboard_mouse_messages(wahe_group_t *group, int module_id, int display_id, int conn_id);
+extern void wahe_copy_between_memories(wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr);
+extern void wahe_make_keyboard_mouse_messages(wahe_thread_t *thread, int module_id, int display_id, int conn_id);
 
 extern char *wahe_run_command_native(char *message);
 extern wasm_trap_t *wahe_run_command(void *env, wasmtime_caller_t *caller, const wasmtime_val_t *arg, size_t arg_count, wasmtime_val_t *result, size_t result_count);
