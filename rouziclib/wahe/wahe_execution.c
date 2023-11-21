@@ -1,6 +1,7 @@
-void wahe_execute_thread(wahe_thread_t *thread)
+char *wahe_execute_thread(wahe_thread_t *thread)
 {
 	wahe_group_t *group = thread->parent_group;
+	char *last_msg = NULL;
 
 	wahe_cur_thread = thread;
 
@@ -66,7 +67,7 @@ void wahe_execute_thread(wahe_thread_t *thread)
 			// Call function
 			thread->current_eo = ie;
 			thread->current_cmd_proc_id = 0;
-			call_module_func(exec_module, eo->dst_msg_addr, eo->func_id, 1);
+			last_msg = call_module_func(exec_module, eo->dst_msg_addr, eo->func_id, 1);
 			thread->current_eo = -1;
 		}
 
@@ -94,6 +95,8 @@ void wahe_execute_thread(wahe_thread_t *thread)
 			}
 		}
 	}
+
+	return last_msg;
 }
 
 void wahe_blit_group_displays(wahe_group_t *group)

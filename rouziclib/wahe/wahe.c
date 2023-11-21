@@ -678,14 +678,15 @@ if (mouse.b.lmb != -1 || mouse.b.rmb != -1)
 size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 {
 	size_t return_msg_addr = 0;
-	int n;
+	int n, start, end;
 
 	if (message == NULL)
 		return 0;
 
-	// Execute command processors for this execution order
 	wahe_thread_t *thread = wahe_cur_thread;
 	wahe_group_t *group = ctx->parent_group;
+
+	// Execute command processors for this execution order
 	if (thread->current_eo >= 0 && thread->exec_order)
 	{
 		wahe_exec_order_t *eo = &thread->exec_order[thread->current_eo];
@@ -752,13 +753,39 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			}
 		}
 
+		// Run thread
+		start = end = 0;
+		sscanf(line, "Run thread %n%*[^\n]%n", &start, &end);
+		if (end)
+		{
+			wahe_thread_t *thread = NULL;
+			char *name = make_string_copy_len(&line[start], end-start);
+
+			for (int i=0; i < group->thread_count; i++)
+				if (group->thread[i].thread_name && strcmp(group->thread[i].thread_name, name) == 0)
+					thread = &group->thread[i];
+
+			if (thread)
+			{
+				// Execute thread and get the last message
+				char *end_msg = wahe_execute_thread(thread);
+
+				// Copy the last message from the thread to give it to the caller
+				return_msg_addr = module_sprintf_alloc(ctx, "%s", end_msg);
+			}
+			else
+				fprintf(stderr, "The 'Run thread' command from %s:%s could not be executed because the thread named '%s' couldn't be found.\n", ctx->module_name, wahe_func_name[thread->current_func], name);
+			free(name);
+			done = 1;
+		}
+
 		// Load raw file
-		int path_start = 0, path_end = 0;
-		sscanf(line, "Load raw file at path %n%*[^\n]%n", &path_start, &path_end);
-		if (path_end)
+		start = end = 0;
+		sscanf(line, "Load raw file at path %n%*[^\n]%n", &start, &end);
+		if (end)
 		{
 			size_t data_addr, data_size = 0;
-			char *path = make_string_copy_len(&line[path_start], path_end-path_start);
+			char *path = make_string_copy_len(&line[start], end-start);
 			data_addr = wahe_load_raw_file(ctx, path, &data_size);
 			free(path);
 			return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %#zx", data_size, (void *) data_addr);
