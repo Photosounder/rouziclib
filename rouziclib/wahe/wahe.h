@@ -9,6 +9,7 @@ enum wahe_eo_type
 	WAHE_EO_MODULE_FUNC,
 	WAHE_EO_IMAGE_DISPLAY,
 	WAHE_EO_KB_MOUSE,
+	WAHE_EO_THREAD_INPUT_MSG
 };
 
 enum wahe_func_id

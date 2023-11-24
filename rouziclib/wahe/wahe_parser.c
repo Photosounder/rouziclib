@@ -35,6 +35,14 @@ int wahe_find_symbol_in_table(wahe_symbol_table_t *table, char *name)
 	return -1;
 }
 
+void wahe_symbol_table_free(wahe_symbol_table_t *table)
+{
+	for (int is=0; is < table->symbol_count; is++)
+		free(table->symbol[is].name);
+	free(table->symbol);
+	memset(table, 0, sizeof(wahe_symbol_table_t));
+}
+
 void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 {
 	// group has to be a pointer with a fixed location so that pointers to it in the struct wouldn't be dereferenced
@@ -136,10 +144,19 @@ void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 		sscanf(line, "Thread %n%*[^\n]%n", &n[0], &n[1]);
 		if (n[1])
 		{
+			// Free EO symbol table
+			wahe_symbol_table_free(&symb_order);
+
+			// Alloc thread
 			alloc_enough(&group->thread, group->thread_count+=1, &group->thread_as, sizeof(wahe_thread_t), 1.5);
 			thread = &group->thread[group->thread_count-1];
 			thread->thread_name = make_string_copy_len(&line[n[0]], n[1]-n[0]);
 			thread->parent_group = group;
+
+			// Add thread_input_msg EO
+			is = wahe_add_symbol_to_table(&symb_order, make_string_copy("thread_input_msg"));
+			alloc_enough(&thread->exec_order, thread->exec_order_count = is+1, &thread->exec_order_as, sizeof(wahe_exec_order_t), 1.5);
+			thread->exec_order[is].type = WAHE_EO_THREAD_INPUT_MSG;	// the type is the only thing needed since such EOs don't do anything
 		}
 
 		// Execution orders
@@ -272,5 +289,8 @@ void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 	}
 
 end:
+	wahe_symbol_table_free(&symb_module);
+	wahe_symbol_table_free(&symb_display);
+	wahe_symbol_table_free(&symb_order);
 	free_2d(line_array, 1);
 }

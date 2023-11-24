@@ -2,7 +2,8 @@ const char *wahe_eo_name[] =
 {
 	"module_func",
 	"image_display",
-	"kb_mouse"
+	"kb_mouse",
+	"thread_input_msg"
 };
 
 const char *wahe_func_name[] =
@@ -58,6 +59,10 @@ void wahe_bench_point(const char *label, int depth)
 int wasmtime_linker_get_memory(wahe_module_t *ctx)
 {
 	wasmtime_extern_t item;
+
+	// Nothing to do if the module is NULL (this means host memory is being used)
+	if (ctx == NULL)
+		return 1;
 
 	// Nothing to do if the module is native
 	if (ctx->native)
@@ -408,6 +413,7 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		ctx->dl_func[WAHE_FUNC_PROC_CMD]   = dynlib_find_symbol(ctx->native, "module_proc_cmd");
 		ctx->dl_func[WAHE_FUNC_DRAW]       = dynlib_find_symbol(ctx->native, "module_draw");
 		ctx->dl_func[WAHE_FUNC_PROC_IMAGE] = dynlib_find_symbol(ctx->native, "module_proc_image");
+		ctx->dl_func[WAHE_FUNC_PROC_SOUND] = dynlib_find_symbol(ctx->native, "module_proc_sound");
 	}
 	// WASM module
 	else
@@ -486,6 +492,7 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		wasmtime_linker_get_func(ctx, "module_proc_cmd",      &ctx->func[WAHE_FUNC_PROC_CMD], 1);
 		wasmtime_linker_get_func(ctx, "module_draw",          &ctx->func[WAHE_FUNC_DRAW], 1);
 		wasmtime_linker_get_func(ctx, "module_proc_image",    &ctx->func[WAHE_FUNC_PROC_IMAGE], 1);
+		wasmtime_linker_get_func(ctx, "module_proc_sound",    &ctx->func[WAHE_FUNC_PROC_SOUND], 1);
 
 		// Get pointer to linear memory
 		wasmtime_linker_get_memory(ctx);
@@ -500,9 +507,9 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	ctx->parent_group = parent_group;
 	ctx->module_id = module_index;
 
-	// Send module index to the module, will probably change to more than just an index in the future so module must be a 60 character string
+	// Send module ID to the module, it's intended to keep changing in the future on the host side without changes in modules, so modules should just store the ID in a char[61]
 	if (parent_group)
-		wahe_send_input(ctx, "Module ID %d", module_index);
+		wahe_send_input(ctx, "Module ID 0x%" PRIx64 "->%d", parent_group, module_index);
 
 	// Send pointer to wahe_run_command() if the module is not WASM
 	if (ctx->native)
@@ -516,19 +523,25 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	ctx->input_te.edit_mode = te_mode_full;
 }
 
-wahe_module_t *wahe_get_module_by_id_string(wahe_group_t *group, const char *id_string)
+wahe_module_t *wahe_get_module_by_id_string(const char *id_string)
 {
-	int index;
+	size_t group_addr;
+	int module_index;
 
-	if (sscanf(id_string, "%d", &index) == 1)
-		return &group->module[index];
+	if (sscanf(id_string, "%zx->%d", &group_addr, &module_index) == 2)
+	{
+		wahe_group_t *group = (wahe_group_t *) group_addr;
+		if (module_index >= group->module_count)
+			return NULL;
+		return &group->module[module_index];
+	}
 
 	return NULL;
 }
 
 void wahe_copy_between_memories(wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr)
 {
-	if (src_module == NULL || dst_module == NULL)
+	if (dst_module == NULL)
 		return;
 
 	// Update memory pointers
@@ -538,7 +551,10 @@ void wahe_copy_between_memories(wahe_module_t *src_module, size_t src_addr, size
 	// TODO Check boundaries
 
 	// Copy
-	memcpy(&dst_module->memory_ptr[dst_addr], &src_module->memory_ptr[src_addr], copy_size);
+	if (src_module)
+		memcpy(&dst_module->memory_ptr[dst_addr], &src_module->memory_ptr[src_addr], copy_size);
+	else
+		memcpy(&dst_module->memory_ptr[dst_addr], (void *) src_addr, copy_size);
 }
 
 size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
@@ -677,6 +693,7 @@ if (mouse.b.lmb != -1 || mouse.b.rmb != -1)
 // Get called from the module
 size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 {
+	wahe_group_t *group = NULL;
 	size_t return_msg_addr = 0;
 	int n, start, end;
 
@@ -684,10 +701,11 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		return 0;
 
 	wahe_thread_t *thread = wahe_cur_thread;
-	wahe_group_t *group = ctx->parent_group;
+	if (ctx)
+		group = ctx->parent_group;
 
 	// Execute command processors for this execution order
-	if (thread->current_eo >= 0 && thread->exec_order)
+	if (thread && thread->current_eo >= 0 && thread->exec_order)
 	{
 		wahe_exec_order_t *eo = &thread->exec_order[thread->current_eo];
 		if (eo && eo->cmd_proc_id && thread->current_cmd_proc_id < eo->cmd_proc_count)
@@ -730,53 +748,86 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 	{
 		int done = 0;
 
-		// Copy buffer between memories
-		char src_module[61], dst_module[61];
-		size_t src_addr, copy_size, dst_addr;
-		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to %zi (module %60[^)])", &copy_size, &src_addr, src_module, &dst_addr, dst_module) == 5)
+		// Identify calling module and its group
+		start = end = 0;
+		sscanf(line, "From module ID %n%*[^\n]%n", &start, &end);
+		if (end)
 		{
-			wahe_copy_between_memories(wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, wahe_get_module_by_id_string(group, dst_module), dst_addr);
-			done = 1;
-		}
-
-		// Copy buffer between memories with allocation of destination
-		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to module %60[^)]", &copy_size, &src_addr, src_module, dst_module) == 4)
-		{
-			wahe_module_t *dst_ctx = wahe_get_module_by_id_string(group, dst_module);
-
-			if (dst_ctx)
+			ctx = wahe_get_module_by_id_string(&line[start]);
+			if (ctx)
 			{
-				dst_addr = call_module_malloc(dst_ctx, copy_size);
-				wahe_copy_between_memories(wahe_get_module_by_id_string(group, src_module), src_addr, copy_size, dst_ctx, dst_addr);
-				return_msg_addr = module_sprintf_alloc(ctx, "Destination %#zx", (void *) dst_addr);
+				group = ctx->parent_group;
 				done = 1;
 			}
 		}
 
+		// Skip parsing the line if the module hasn't been identified yet
+		if (group == NULL || ctx == NULL)
+		{
+			fprintf_rl(stderr, "Module calling wahe_run_command() unidentified, run the command 'From module ID <module_id>' first.\n");
+			goto loop_end;
+		}
+
 		// Run thread
-		start = end = 0;
-		sscanf(line, "Run thread %n%*[^\n]%n", &start, &end);
+		n = start = end = 0;
+		sscanf(line, "Run thread %n%*[^\n]%n\n%n", &start, &end, &n);
 		if (end)
 		{
-			wahe_thread_t *thread = NULL;
+			wahe_thread_t *thread_to_run = NULL;
 			char *name = make_string_copy_len(&line[start], end-start);
 
 			for (int i=0; i < group->thread_count; i++)
 				if (group->thread[i].thread_name && strcmp(group->thread[i].thread_name, name) == 0)
-					thread = &group->thread[i];
+					thread_to_run = &group->thread[i];
 
-			if (thread)
+			if (thread_to_run)
 			{
+				// Point to the thread_input_msg
+				const char *input_msg = NULL;
+				if (n)
+					input_msg = &line[n];
+
 				// Execute thread and get the last message
-				char *end_msg = wahe_execute_thread(thread);
+				char *end_msg = wahe_execute_thread(thread_to_run, input_msg);
 
 				// Copy the last message from the thread to give it to the caller
-				return_msg_addr = module_sprintf_alloc(ctx, "%s", end_msg);
+				if (end_msg)
+					return_msg_addr = module_sprintf_alloc(ctx, "%s", end_msg);
 			}
 			else
-				fprintf(stderr, "The 'Run thread' command from %s:%s could not be executed because the thread named '%s' couldn't be found.\n", ctx->module_name, wahe_func_name[thread->current_func], name);
+				fprintf(stderr, "The 'Run thread' command from %s:%s could not be executed because the thread named '%s' couldn't be found.\n", ctx->module_name, thread ? wahe_func_name[thread->current_func] : "(?)", name);
 			free(name);
-			done = 1;
+
+			return return_msg_addr;
+		}
+
+		// Copy buffer between memories
+		char src_module_id[61], dst_module_id[61];
+		size_t src_addr, copy_size, dst_addr;
+		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to %zi (module %60[^)])", &copy_size, &src_addr, src_module_id, &dst_addr, dst_module_id) == 5)
+		{
+			wahe_module_t *src_ctx = wahe_get_module_by_id_string(src_module_id);
+			wahe_module_t *dst_ctx = wahe_get_module_by_id_string(dst_module_id);
+
+			if (src_ctx && dst_ctx)
+			{
+				wahe_copy_between_memories(src_ctx, src_addr, copy_size, dst_ctx, dst_addr);
+				done = 1;
+			}
+		}
+
+		// Copy buffer between memories with allocation of destination
+		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to module %60[^)]", &copy_size, &src_addr, src_module_id, dst_module_id) == 4)
+		{
+			wahe_module_t *dst_ctx = wahe_get_module_by_id_string(dst_module_id);
+
+			if (dst_ctx)
+			{
+				dst_addr = call_module_malloc(dst_ctx, copy_size);
+				wahe_copy_between_memories(wahe_get_module_by_id_string(src_module_id), src_addr, copy_size, dst_ctx, dst_addr);
+				return_msg_addr = module_sprintf_alloc(ctx, "Destination %#zx", (void *) dst_addr);
+				done = 1;
+			}
 		}
 
 		// Load raw file
@@ -816,19 +867,25 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		if (n && (line[n] == ' ' || line[n] == '\n'))
 		{
 			if (get_string_linecount(&line[n+1], 0) > 1)
-				fprintf_rl(stdout, "\n=== from %s:%s ===\n%s\n    ===    ===    \n\n", ctx->module_name, wahe_func_name[thread->current_func], &line[n+1]);
+				fprintf_rl(stdout, "\n=== from %s:%s ===\n%s\n    ===    ===    \n\n",
+						ctx->module_name, thread ? wahe_func_name[thread->current_func] : "(?)", &line[n+1]);
 			else
-				fprintf_rl(stdout, "(from %s:%s)   %s\n", ctx->module_name, wahe_func_name[thread->current_func], &line[n+1]);
+				fprintf_rl(stdout, "(from %s:%s)   %s\n",
+						ctx->module_name, thread ? wahe_func_name[thread->current_func] : "(?)", &line[n+1]);
 			return 0;
 		}
 
+loop_end:
 		// Print line if it wasn't interpreted
 		if (done == 0)
 		{
 			int line_len = strlen(line);
 			if (strstr(line, "\n"))
 				line_len = strstr(line, "\n") - line;
-			fprintf_rl(stderr, "Command from %s:%s not interpreted: %.*s\n", ctx->module_name, wahe_func_name[thread->current_func], line_len, line);
+			fprintf_rl(stderr, "Command from %s:%s not interpreted: %.*s\n",
+					ctx ? ctx->module_name : "(?)", 
+					thread ? wahe_func_name[thread->current_func] : "(?)",
+					line_len, line);
 		}
 	}
 

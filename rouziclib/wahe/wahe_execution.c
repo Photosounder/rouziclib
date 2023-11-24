@@ -1,4 +1,4 @@
-char *wahe_execute_thread(wahe_thread_t *thread)
+char *wahe_execute_thread(wahe_thread_t *thread, const char *input_msg)
 {
 	wahe_group_t *group = thread->parent_group;
 	char *last_msg = NULL;
@@ -59,6 +59,19 @@ char *wahe_execute_thread(wahe_thread_t *thread)
 
 							eo->dst_msg_addr = call_module_malloc(dst_module, copy_size);
 							wahe_copy_between_memories(src_module, src_addr, copy_size, dst_module, eo->dst_msg_addr);
+						}
+						break;
+
+					case WAHE_EO_THREAD_INPUT_MSG:
+						dst_module = &group->module[thread->exec_order[conn->dst_eo].module_id];
+						call_module_free(dst_module, eo->dst_msg_addr);
+						eo->dst_msg_addr = 0;
+
+						if (input_msg)
+						{
+							size_t copy_size = strlen(input_msg) + 1;
+							eo->dst_msg_addr = call_module_malloc(dst_module, copy_size);
+							wahe_copy_between_memories(NULL, (size_t) input_msg, copy_size, dst_module, eo->dst_msg_addr);
 						}
 						break;
 				}
