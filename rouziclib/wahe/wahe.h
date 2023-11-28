@@ -36,6 +36,7 @@ typedef struct
 {
 	char *module_name;
 	int module_id;
+	rl_mutex_t mutex;
 	void *parent_group;	// wahe_group_t *
 	textedit_t input_te;
 
@@ -66,6 +67,14 @@ typedef struct
 {
 	int src_eo, dst_eo;
 } wahe_connection_t;
+
+typedef struct
+{
+	char *name;
+	uint64_t name_hash;
+	buffer_t buffer;
+	rl_mutex_t mutex;
+} wahe_shared_buffer_t;
 
 typedef struct
 {
@@ -105,6 +114,10 @@ typedef struct
 
 	wahe_image_display_t *image;
 	size_t image_count, image_as;
+
+	rl_mutex_t shared_buffer_mutex;
+	wahe_shared_buffer_t *shared_buffer;
+	size_t shared_buffer_count, shared_buffer_as;
 } wahe_group_t;
 
 extern _Thread_local wahe_thread_t *wahe_cur_thread;
@@ -114,6 +127,7 @@ extern int wasmtime_linker_get_func(wahe_module_t *ctx, const char *func_name, w
 extern wasmtime_val_t wasmtime_val_set_address(wahe_module_t *ctx, size_t address);
 extern size_t wasmtime_val_get_address(wasmtime_val_t val);
 extern size_t call_module_malloc(wahe_module_t *ctx, size_t size);
+extern size_t call_module_realloc(wahe_module_t *ctx, size_t address, size_t size);
 extern void call_module_free(wahe_module_t *ctx, size_t address);
 extern char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_id func_id, int call_from_eo);
 

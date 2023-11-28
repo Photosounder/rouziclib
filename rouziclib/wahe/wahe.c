@@ -157,7 +157,9 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 
 	// Call the function
 	wahe_bench_point("calling malloc()", 1);
+	rl_mutex_lock(&ctx->mutex);
 	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_MALLOC], param, 1, ret, 1, &trap);
+	rl_mutex_unlock(&ctx->mutex);
 	wahe_bench_point("malloc() returned", 0);
 	if (error || trap)
 	{
@@ -182,6 +184,59 @@ size_t call_module_malloc(wahe_module_t *ctx, size_t size)
 	return wasmtime_val_get_address(ret[0]);
 }
 
+size_t call_module_realloc(wahe_module_t *ctx, size_t address, size_t size)
+{
+	wasmtime_error_t *error;
+	wasm_trap_t *trap = NULL;
+	wasmtime_val_t ret[1], param[2];
+
+	// Native call
+	if (ctx->native)
+	{
+		void *(*func)(size_t,size_t) = ctx->dl_func[WAHE_FUNC_REALLOC];
+		return (size_t) func(address, size);
+	}
+
+	// Set params
+	param[0] = wasmtime_val_set_address(ctx, address);
+	param[1] = wasmtime_val_set_address(ctx, size);
+
+	// Call the function
+	wahe_bench_point("calling realloc()", 1);
+	rl_mutex_lock(&ctx->mutex);
+	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_REALLOC], param, 2, ret, 1, &trap);
+	rl_mutex_unlock(&ctx->mutex);
+	wahe_bench_point("realloc() returned", 0);
+	if (error || trap)
+	{
+		fprintf_rl(stderr, "call_module_realloc(ctx, %zu) failed\n", size);
+		fprint_wasmtime_error(error, trap);
+		return 0;
+	}
+
+	// Check result type
+	if (ret[0].kind != ctx->address_type)
+	{
+		fprintf_rl(stderr, "call_module_realloc() expected a type %s result\n", ctx->address_type==WASMTIME_I32 ? "int32_t" : "int64_t");
+		return 0;
+	}
+
+	// Check NULL result
+	if (wasmtime_val_get_address(ret[0]) == 0)
+	{
+		fprintf_rl(stderr, "call_module_realloc(%s, 0x%x, %d) returned NULL\n", ctx->module_name, address, size);
+		return 0;
+	}
+
+	// Update memory pointer
+	wahe_bench_point("Updating with wasmtime_linker_get_memory()", 0);
+	wasmtime_linker_get_memory(ctx);
+	wahe_bench_point("call_module_realloc() end", -1);
+
+	// Return result
+	return wasmtime_val_get_address(ret[0]);
+}
+
 void call_module_free(wahe_module_t *ctx, size_t address)
 {
 	wasmtime_error_t *error;
@@ -201,7 +256,9 @@ void call_module_free(wahe_module_t *ctx, size_t address)
 
 	// Call the function
 	wahe_bench_point("calling free()", 1);
+	rl_mutex_lock(&ctx->mutex);
 	error = wasmtime_func_call(ctx->context, &ctx->func[WAHE_FUNC_FREE], param, 1, NULL, 0, &trap);
+	rl_mutex_unlock(&ctx->mutex);
 	wahe_bench_point("free() returned", -1);
 	if (error || trap)
 	{
@@ -249,7 +306,9 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	wahe_bench_point("calling call_module_func()", 1);
 	int prev_func = thread->current_func;
 	thread->current_func = func_id;
+	rl_mutex_lock(&ctx->mutex);
 	error = wasmtime_func_call(ctx->context, &ctx->func[func_id], param, 1, ret, 1, &trap);
+	rl_mutex_unlock(&ctx->mutex);
 	thread->current_func = prev_func;
 	wahe_bench_point("call_module_func() returned", -1);
 	if (error || trap)
@@ -312,7 +371,7 @@ int wahe_message_to_raster(wahe_module_t *ctx, size_t msg_addr, raster_t *r)
 		if (sscanf(line, "Pixel format: %31[^\n]", a) == 1)
 			ret_mode = wahe_pixel_format_to_raster_mode(a);
 
-		sscanf(line, "Framebuffer location: %zu bytes at %zi", &raster_size, &raster_address);
+		sscanf(line, "Framebuffer location: %zi bytes at %zi", &raster_size, &raster_address);
 		sscanf(line, "Framebuffer resolution %dx%d", &r->dim.x, &r->dim.y);
 	}
 
@@ -401,6 +460,8 @@ void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap)
 void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path)
 {
 	memset(ctx, 0, sizeof(wahe_module_t));
+
+	rl_mutex_init(&ctx->mutex);
 
 	// Native module
 	if (ctx->native = dynlib_open(path))
@@ -528,12 +589,19 @@ wahe_module_t *wahe_get_module_by_id_string(const char *id_string)
 	size_t group_addr;
 	int module_index;
 
+	// Module ID is made of the group's address in host memory plus the module's index
 	if (sscanf(id_string, "%zx->%d", &group_addr, &module_index) == 2)
 	{
 		wahe_group_t *group = (wahe_group_t *) group_addr;
 		if (module_index >= group->module_count)
 			return NULL;
-		return &group->module[module_index];
+
+		wahe_module_t *ctx = &group->module[module_index];
+
+		if (ctx->parent_group != group)
+			fprintf_rl(stderr, "Module ID \"%s\" points to a bogus group address.\n", id_string);
+
+		return ctx;
 	}
 
 	return NULL;
@@ -541,9 +609,6 @@ wahe_module_t *wahe_get_module_by_id_string(const char *id_string)
 
 void wahe_copy_between_memories(wahe_module_t *src_module, size_t src_addr, size_t copy_size, wahe_module_t *dst_module, size_t dst_addr)
 {
-	if (dst_module == NULL)
-		return;
-
 	// Update memory pointers
 	wasmtime_linker_get_memory(src_module);
 	wasmtime_linker_get_memory(dst_module);
@@ -551,10 +616,7 @@ void wahe_copy_between_memories(wahe_module_t *src_module, size_t src_addr, size
 	// TODO Check boundaries
 
 	// Copy
-	if (src_module)
-		memcpy(&dst_module->memory_ptr[dst_addr], &src_module->memory_ptr[src_addr], copy_size);
-	else
-		memcpy(&dst_module->memory_ptr[dst_addr], (void *) src_addr, copy_size);
+	memcpy(dst_module ? &dst_module->memory_ptr[dst_addr] : (void *) dst_addr, src_module ? &src_module->memory_ptr[src_addr] : (void *) src_addr, copy_size);
 }
 
 size_t wahe_load_raw_file(wahe_module_t *ctx, const char *path, size_t *size)
@@ -690,6 +752,33 @@ if (mouse.b.lmb != -1 || mouse.b.rmb != -1)
 	group->image[display_id].kb_active = kb_active;
 }
 
+wahe_shared_buffer_t *wahe_add_or_find_shared_buffer(wahe_group_t *group, const char *name)
+{
+	int i;
+	uint64_t name_hash = get_string_hash(name);
+
+	rl_mutex_lock(&group->shared_buffer_mutex);
+
+	// Look for an existing buffer
+	for (i=0; i < group->shared_buffer_count; i++)
+		if (group->shared_buffer[i].name_hash == name_hash)
+		{
+			rl_mutex_unlock(&group->shared_buffer_mutex);
+			return &group->shared_buffer[i];
+		}
+
+	// Add the buffer
+	alloc_enough(&group->shared_buffer, group->shared_buffer_count+=1, &group->shared_buffer_as, sizeof(wahe_shared_buffer_t), 1.5);
+	wahe_shared_buffer_t *sb = &group->shared_buffer[group->shared_buffer_count-1];
+	sb->name = make_string_copy(name);
+	sb->name_hash = name_hash;
+	rl_mutex_init(&sb->mutex);
+
+	rl_mutex_unlock(&group->shared_buffer_mutex);
+
+	return sb;
+}
+
 // Get called from the module
 size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 {
@@ -804,7 +893,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		// Copy buffer between memories
 		char src_module_id[61], dst_module_id[61];
 		size_t src_addr, copy_size, dst_addr;
-		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to %zi (module %60[^)])", &copy_size, &src_addr, src_module_id, &dst_addr, dst_module_id) == 5)
+		if (sscanf(line, "Copy %zi bytes at %zi (module %60[^)]) to %zi (module %60[^)])", &copy_size, &src_addr, src_module_id, &dst_addr, dst_module_id) == 5)
 		{
 			wahe_module_t *src_ctx = wahe_get_module_by_id_string(src_module_id);
 			wahe_module_t *dst_ctx = wahe_get_module_by_id_string(dst_module_id);
@@ -817,7 +906,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 		}
 
 		// Copy buffer between memories with allocation of destination
-		if (sscanf(line, "Copy %zu bytes at %zi (module %60[^)]) to module %60[^)]", &copy_size, &src_addr, src_module_id, dst_module_id) == 4)
+		if (sscanf(line, "Copy %zi bytes at %zi (module %60[^)]) to module %60[^)]", &copy_size, &src_addr, src_module_id, dst_module_id) == 4)
 		{
 			wahe_module_t *dst_ctx = wahe_get_module_by_id_string(dst_module_id);
 
@@ -830,6 +919,51 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			}
 		}
 
+		// Sync module buffer to shared buffer
+		start = end = 0;
+		size_t offset = 0;
+		sscanf(line, "Sync %zi bytes at %zi (module %60[^)]) to shared buffer %n%*s%n (offset %zu)", &copy_size, &src_addr, src_module_id, &start, &end, &offset);
+		if (end)
+		{
+			char *name = make_string_copy_len(&line[start], end-start);
+			wahe_shared_buffer_t *sb = wahe_add_or_find_shared_buffer(group, name);
+			free(name);
+			wahe_module_t *src_ctx = wahe_get_module_by_id_string(src_module_id);
+
+			rl_mutex_lock(&sb->mutex);
+			buf_alloc_enough(&sb->buffer, offset+copy_size);
+			sb->buffer.len = sb->buffer.as;
+			wahe_copy_between_memories(src_ctx, src_addr, copy_size, NULL, (size_t) &sb->buffer.buf[offset]);
+			rl_mutex_unlock(&sb->mutex);
+
+			done = 1;
+		}
+
+		// Sync shared buffer to module buffer
+		size_t orig_size;
+		dst_module_id[0] = '\0';
+		sscanf(line, "Sync shared buffer %n%*s%n to %zi bytes at %zi (module %60[^)])", &start, &end, &orig_size, &dst_addr, dst_module_id);
+		if (dst_module_id[0])
+		{
+			char *name = make_string_copy_len(&line[start], end-start);
+			wahe_shared_buffer_t *sb = wahe_add_or_find_shared_buffer(group, name);
+			free(name);
+			wahe_module_t *dst_ctx = wahe_get_module_by_id_string(dst_module_id);
+
+			rl_mutex_lock(&sb->mutex);
+			if (sb->buffer.len)
+			{
+				if (orig_size < sb->buffer.len)
+					dst_addr = call_module_realloc(dst_ctx, dst_addr, sb->buffer.len);
+
+				wahe_copy_between_memories(NULL, (size_t) sb->buffer.buf, sb->buffer.len, dst_ctx, dst_addr);
+			}
+			rl_mutex_unlock(&sb->mutex);
+
+			return_msg_addr = module_sprintf_alloc(ctx, "Buffer location: %zi bytes at %#zx", sb->buffer.len, (void *) dst_addr);
+			done = 1;
+		}
+
 		// Load raw file
 		start = end = 0;
 		sscanf(line, "Load raw file at path %n%*[^\n]%n", &start, &end);
@@ -839,7 +973,7 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			char *path = make_string_copy_len(&line[start], end-start);
 			data_addr = wahe_load_raw_file(ctx, path, &data_size);
 			free(path);
-			return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zu bytes at %#zx", data_size, (void *) data_addr);
+			return_msg_addr = module_sprintf_alloc(ctx, "Data location: %zi bytes at %#zx", data_size, (void *) data_addr);
 			done = 1;
 		}
 

@@ -60,6 +60,9 @@ void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 	thread->parent_group = group;
 	wahe_cur_thread = thread;
 
+	// Initialise the shared buffer mutex
+	rl_mutex_init(&group->shared_buffer_mutex);
+
 	// Go through each line
 	for (il=0; il < linecount; il++)
 	{
