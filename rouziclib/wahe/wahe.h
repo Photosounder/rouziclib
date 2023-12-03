@@ -123,7 +123,8 @@ typedef struct
 extern _Thread_local wahe_thread_t *wahe_cur_thread;
 
 extern int wasmtime_linker_get_memory(wahe_module_t *ctx);
-extern int wasmtime_linker_get_func(wahe_module_t *ctx, const char *func_name, wasmtime_func_t *func, int verbosity);
+extern void wahe_get_module_func(wahe_module_t *ctx, const char *func_name, enum wahe_func_id func_id, int verbosity);
+extern void wahe_init_all_module_symbols(wahe_module_t *ctx);
 extern wasmtime_val_t wasmtime_val_set_address(wahe_module_t *ctx, size_t address);
 extern size_t wasmtime_val_get_address(wasmtime_val_t val);
 extern size_t call_module_malloc(wahe_module_t *ctx, size_t size);

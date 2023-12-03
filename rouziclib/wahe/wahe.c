@@ -90,31 +90,56 @@ int wasmtime_linker_get_memory(wahe_module_t *ctx)
 
 }
 
-int wasmtime_linker_get_func(wahe_module_t *ctx, const char *func_name, wasmtime_func_t *func, int verbosity)
+void wahe_get_module_func(wahe_module_t *ctx, const char *func_name, enum wahe_func_id func_id, int verbosity)
 {
-	wasmtime_extern_t func_ext;
-
-	if (!wasmtime_linker_get(ctx->linker, ctx->context, "", 0, func_name, strlen(func_name), &func_ext))
+	if (ctx->native)
 	{
-		if (verbosity == -1)
-			fprintf_rl(stderr, "Error: function %s() not found in wasmtime_linker_get()\n", func_name);
-		return 0;
-	}
+		ctx->dl_func[func_id] = dynlib_find_symbol(ctx->native, func_name);
 
-	if (func_ext.kind != WASMTIME_EXTERN_FUNC)
+		if (ctx->dl_func[func_id] == NULL && verbosity == -1)
+			fprintf_rl(stderr, "Error in module %s: function %s() not found\n", ctx->module_name, func_name);
+
+		if (ctx->dl_func[func_id] && verbosity == 1)
+			fprintf_rl(stdout, "Module %s: %s() found\n", ctx->module_name, func_name);
+	}
+	else
 	{
-		if (verbosity == -1)
-			fprintf_rl(stderr, "Error: symbol %s found in wasmtime_linker_get() is not a function\n", func_name);
-		return 0;
+		wasmtime_extern_t func_ext;
+
+		// Get the symbol
+		if (!wasmtime_linker_get(ctx->linker, ctx->context, "", 0, func_name, strlen(func_name), &func_ext))
+		{
+			if (verbosity == -1)
+				fprintf_rl(stderr, "Error in module %s: function %s() not found in wasmtime_linker_get()\n", ctx->module_name, func_name);
+			return;
+		}
+
+		// Check the symbol is a function
+		if (func_ext.kind != WASMTIME_EXTERN_FUNC)
+		{
+			if (verbosity == -1)
+				fprintf_rl(stderr, "Error in module %s: symbol %s found in wasmtime_linker_get() is not a function\n", ctx->module_name, func_name);
+			return;
+		}
+
+		// Store function symbol data
+		ctx->func[func_id] = func_ext.of.func;
+
+		if (verbosity == 1)
+			fprintf_rl(stdout, "Module %s: %s() found\n", ctx->module_name, func_name);
 	}
+}
 
-	*func = func_ext.of.func;
-
-	if (verbosity == 1)
-		fprintf_rl(stdout, "Function %s found\n", func_name);
-
-	return 1;
-
+void wahe_init_all_module_symbols(wahe_module_t *ctx)
+{
+	wahe_get_module_func(ctx, "module_malloc",        WAHE_FUNC_MALLOC, -1);
+	wahe_get_module_func(ctx, "module_realloc",       WAHE_FUNC_REALLOC, -1);
+	wahe_get_module_func(ctx, "module_free",          WAHE_FUNC_FREE, -1);
+	wahe_get_module_func(ctx, "module_message_input", WAHE_FUNC_INPUT, 1);
+	wahe_get_module_func(ctx, "module_proc_cmd",      WAHE_FUNC_PROC_CMD, 1);
+	wahe_get_module_func(ctx, "module_draw",          WAHE_FUNC_DRAW, 1);
+	wahe_get_module_func(ctx, "module_proc_image",    WAHE_FUNC_PROC_IMAGE, 1);
+	wahe_get_module_func(ctx, "module_proc_sound",    WAHE_FUNC_PROC_SOUND, 1);
 }
 
 wasmtime_val_t wasmtime_val_set_address(wahe_module_t *ctx, size_t address)
@@ -460,21 +485,14 @@ void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap)
 void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path)
 {
 	memset(ctx, 0, sizeof(wahe_module_t));
-
 	rl_mutex_init(&ctx->mutex);
+	ctx->module_name = sprintf_alloc("%s", get_filename_from_path(path));
 
 	// Native module
 	if (ctx->native = dynlib_open(path))
 	{
-		// Attempt to load functions
-		ctx->dl_func[WAHE_FUNC_MALLOC]     = dynlib_find_symbol(ctx->native, "module_malloc");
-		ctx->dl_func[WAHE_FUNC_REALLOC]    = dynlib_find_symbol(ctx->native, "module_realloc");
-		ctx->dl_func[WAHE_FUNC_FREE]       = dynlib_find_symbol(ctx->native, "module_free");
-		ctx->dl_func[WAHE_FUNC_INPUT]      = dynlib_find_symbol(ctx->native, "module_message_input");
-		ctx->dl_func[WAHE_FUNC_PROC_CMD]   = dynlib_find_symbol(ctx->native, "module_proc_cmd");
-		ctx->dl_func[WAHE_FUNC_DRAW]       = dynlib_find_symbol(ctx->native, "module_draw");
-		ctx->dl_func[WAHE_FUNC_PROC_IMAGE] = dynlib_find_symbol(ctx->native, "module_proc_image");
-		ctx->dl_func[WAHE_FUNC_PROC_SOUND] = dynlib_find_symbol(ctx->native, "module_proc_sound");
+		// Find functions from the native module
+		wahe_init_all_module_symbols(ctx);
 	}
 	// WASM module
 	else
@@ -546,14 +564,7 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		}
 
 		// Find functions from the WASM module
-		wasmtime_linker_get_func(ctx, "malloc",               &ctx->func[WAHE_FUNC_MALLOC], -1);
-		wasmtime_linker_get_func(ctx, "realloc",              &ctx->func[WAHE_FUNC_REALLOC], -1);
-		wasmtime_linker_get_func(ctx, "free",                 &ctx->func[WAHE_FUNC_FREE], -1);
-		wasmtime_linker_get_func(ctx, "module_message_input", &ctx->func[WAHE_FUNC_INPUT], 1);
-		wasmtime_linker_get_func(ctx, "module_proc_cmd",      &ctx->func[WAHE_FUNC_PROC_CMD], 1);
-		wasmtime_linker_get_func(ctx, "module_draw",          &ctx->func[WAHE_FUNC_DRAW], 1);
-		wasmtime_linker_get_func(ctx, "module_proc_image",    &ctx->func[WAHE_FUNC_PROC_IMAGE], 1);
-		wasmtime_linker_get_func(ctx, "module_proc_sound",    &ctx->func[WAHE_FUNC_PROC_SOUND], 1);
+		wahe_init_all_module_symbols(ctx);
 
 		// Get pointer to linear memory
 		wasmtime_linker_get_memory(ctx);
@@ -561,8 +572,6 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		// Set the type of module addresses (currently always 32-bit)
 		ctx->address_type = WASMTIME_I32;
 	}
-
-	ctx->module_name = sprintf_alloc("%s", get_filename_from_path(path));
 
 	// Store module index so we can know which index a given module has
 	ctx->parent_group = parent_group;
