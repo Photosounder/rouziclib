@@ -133,7 +133,7 @@ void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 				buffer_t buf = {0};
 
 				for (i=il+1; i < linecount && i-(il+1) < send_lines; i++)
-					bufprintf(&buf, "%s\n", line[i]);
+					bufprintf(&buf, "%s\n", line_array[i]);
 
 				wahe_send_input(&group->module[is], "%s", buf.buf);
 				free_buf(&buf);

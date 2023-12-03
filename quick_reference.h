@@ -982,6 +982,9 @@ void my_window_function(double *arg1, double *arg2)
 		SetConsoleCP(CP_UTF8);
 		#endif
 
+	// Print a string to a certain length
+		printf("%.*s", len, string);
+
 	// Print block elements (lvl is between 1 and 8)
 		fprintf_rl(stdout, "\342\226%c", 0200+lvl);
 

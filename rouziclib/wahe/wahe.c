@@ -579,6 +579,10 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	// Send an Init message to the module
 	wahe_send_input(ctx, "Init");
 
+	// Send an Init message to the module
+	char *cmd_reg_msg = wahe_send_input(ctx, "Command registration");
+	// TODO register commands
+
 	// Init module's textedit used for transmitting text input
 	textedit_init(&ctx->input_te, 1);
 	ctx->input_te.edit_mode = te_mode_full;
