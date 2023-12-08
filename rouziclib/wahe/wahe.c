@@ -302,7 +302,8 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 	int current_module;
 
 	wahe_thread_t *thread = wahe_cur_thread;
-	current_module = thread->current_module = ctx->module_id;
+	current_module = thread->current_module;
+	thread->current_module = ctx->module_id;
 
 	if (call_from_eo)
 	{
@@ -318,6 +319,9 @@ char *call_module_func(wahe_module_t *ctx, size_t message_addr, enum wahe_func_i
 		swap_ptr(&wahe_cur_ctx, &ctx);
 		*ret_msg_addr = (size_t) func((char *) message_addr);
 		swap_ptr(&wahe_cur_ctx, &ctx);
+
+		// Restore current_module
+		thread->current_module = current_module;
 		return (char *) *ret_msg_addr;
 	}
 
@@ -482,6 +486,28 @@ void fprint_wasmtime_error(wasmtime_error_t *error, wasm_trap_t *trap)
 	}
 }
 
+void wahe_register_commands(wahe_module_t *ctx, char *list)
+{
+	wahe_group_t *group = ctx->parent_group;
+	int il, linecount;
+	char **array = arrayise_text(make_string_copy(list), &linecount);
+
+	for (il = 0; il < linecount; il++)
+	{
+		// TODO check for conflicts
+		alloc_enough(&group->cmd_reg, group->cmd_reg_count+=1, &group->cmd_reg_as, sizeof(wahe_cmd_reg_t), 1.2);
+
+		wahe_cmd_reg_t *reg = &group->cmd_reg[group->cmd_reg_count-1];
+		reg->hash = get_string_hash(array[il]);
+		reg->word_count = string_count_fields(array[il], " ");
+		reg->module_id = ctx->module_id;
+
+		group->max_cmd_word_count = MAXN(group->max_cmd_word_count, reg->word_count);
+	}
+
+	free_2d(array, 1);
+}
+
 void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_t *ctx, const char *path)
 {
 	memset(ctx, 0, sizeof(wahe_module_t));
@@ -585,12 +611,9 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	if (ctx->native)
 		wahe_send_input(ctx, "wahe_run_command() = %#zx", wahe_run_command_native);
 
-	// Send an Init message to the module
-	wahe_send_input(ctx, "Init");
-
-	// Send an Init message to the module
+	// Register commands
 	char *cmd_reg_msg = wahe_send_input(ctx, "Command registration");
-	// TODO register commands
+	wahe_register_commands(ctx, cmd_reg_msg);
 
 	// Init module's textedit used for transmitting text input
 	textedit_init(&ctx->input_te, 1);
@@ -869,6 +892,37 @@ size_t wahe_run_command_core(wahe_module_t *ctx, char *message)
 			fprintf_rl(stderr, "Module calling wahe_run_command() unidentified, run the command 'From module ID <module_id>' first.\n");
 			goto loop_end;
 		}
+
+		//** Run registered commands **
+		uint64_t msg_hash[16] = {0};
+		const char *p = line, *line_end = strstr(line, "\n");
+		if (line_end == NULL)
+			line_end = &line[strlen(line)];
+
+		// Make hashes for all word counts
+		for (int i=0; i < group->max_cmd_word_count && p < line_end; i++)
+		{
+			p = strstr(p, " ");
+			if (p == NULL || p > line_end)
+				p = line_end;
+
+			msg_hash[i] = get_buffer_hash(line, p - line);
+			p = &p[1];
+		}
+
+		// Go through every registered command to find a match
+		for (int i = group->cmd_reg_count-1; i >= 0; i--)
+			if (group->cmd_reg[i].hash == msg_hash[ group->cmd_reg[i].word_count-1 ])
+			{
+				// Send the command to the module that registered it
+				char *ret_msg = wahe_send_input(&group->module[ group->cmd_reg[i].module_id ], "%s", line);
+
+				// Copy the return message to give it to the caller
+				if (ret_msg)
+					return_msg_addr = module_sprintf_alloc(ctx, "%s", ret_msg);
+				return return_msg_addr;
+			}
+		//**                         **
 
 		// Run thread
 		n = start = end = 0;

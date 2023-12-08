@@ -646,14 +646,14 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                         bit_buf >>= code_len;
                         num_bits -= code_len;
 
-                        pOut_buf_cur[0] = (mz_uint8)counter;
+                        pOut_buf_cur[0] = (mz_uint8)(counter & 0xFF);
                         if (sym2 & 256)
                         {
                             pOut_buf_cur++;
                             counter = sym2;
                             break;
                         }
-                        pOut_buf_cur[1] = (mz_uint8)sym2;
+                        pOut_buf_cur[1] = (mz_uint8)(sym2 & 0xFF);
                         pOut_buf_cur += 2;
                     }
                 }

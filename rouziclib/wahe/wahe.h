@@ -78,6 +78,12 @@ typedef struct
 
 typedef struct
 {
+	uint64_t hash;
+	int word_count, module_id;
+} wahe_cmd_reg_t;
+
+typedef struct
+{
 	enum wahe_eo_type type;
 	int module_id, display_id;
 	enum wahe_func_id func_id;
@@ -114,6 +120,10 @@ typedef struct
 
 	wahe_image_display_t *image;
 	size_t image_count, image_as;
+
+	wahe_cmd_reg_t *cmd_reg;
+	size_t cmd_reg_count, cmd_reg_as;
+	int max_cmd_word_count;
 
 	rl_mutex_t shared_buffer_mutex;
 	wahe_shared_buffer_t *shared_buffer;

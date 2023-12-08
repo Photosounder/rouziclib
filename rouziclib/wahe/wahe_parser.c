@@ -63,6 +63,19 @@ void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 	// Initialise the shared buffer mutex
 	rl_mutex_init(&group->shared_buffer_mutex);
 
+	// Go through each line to count modules
+	for (il=0; il < linecount; il++)
+	{
+		line = line_array[il];
+
+		// Count modules
+		memset(n, 0, sizeof(n));
+		sscanf(line, "Module %n%*[^:]%n: \"%n%*[^\"]%n", &n[0], &n[1], &n[2], &n[3]);
+		if (n[3])
+			group->module_as++;
+	}
+	group->module = calloc(group->module_as, sizeof(wahe_module_t));
+
 	// Go through each line
 	for (il=0; il < linecount; il++)
 	{
@@ -152,6 +165,7 @@ void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 
 			// Alloc thread
 			alloc_enough(&group->thread, group->thread_count+=1, &group->thread_as, sizeof(wahe_thread_t), 1.5);
+			wahe_cur_thread = &group->thread[0];
 			thread = &group->thread[group->thread_count-1];
 			thread->thread_name = make_string_copy_len(&line[n[0]], n[1]-n[0]);
 			thread->parent_group = group;
@@ -290,6 +304,10 @@ void wahe_file_parse(wahe_group_t *group, char *filepath, buffer_t *err_log)
 			free(proc_module_name);
 		}
 	}
+
+	// Send an Init message to all modules
+	for (i = 0; i < group->module_count; i++)
+		wahe_send_input(&group->module[i], "Init");
 
 end:
 	wahe_symbol_table_free(&symb_module);
