@@ -49,6 +49,7 @@ typedef struct
 	wasmtime_linker_t *linker;
 	wasmtime_memory_t memory;
 	uint8_t *memory_ptr;
+	size_t memory_size;
 	wasmtime_valkind_t address_type;
 	wasmtime_func_t func[WAHE_FUNC_COUNT];
 

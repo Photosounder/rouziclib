@@ -83,8 +83,12 @@ int wasmtime_linker_get_memory(wahe_module_t *ctx)
 
 	ctx->memory = item.of.memory;
 
-	// Get pointer to start of module's linear memory
+	// Get pointer to start of module's linear memory and its size
 	ctx->memory_ptr = wasmtime_memory_data(ctx->context, &ctx->memory);
+	size_t current_size = wasmtime_memory_data_size (ctx->context, &ctx->memory);
+	if (ctx->memory_size != current_size)
+		fprintf_rl(stdout, "Memory of module #%d %s grew from %d kB to %d kB\n", ctx->module_id, ctx->module_name, ctx->memory_size >> 10, current_size >> 10);
+	ctx->memory_size = current_size;
 
 	return 1;
 
@@ -100,7 +104,7 @@ void wahe_get_module_func(wahe_module_t *ctx, const char *func_name, enum wahe_f
 			fprintf_rl(stderr, "Error in module %s: function %s() not found\n", ctx->module_name, func_name);
 
 		if (ctx->dl_func[func_id] && verbosity == 1)
-			fprintf_rl(stdout, "Module %s: %s() found\n", ctx->module_name, func_name);
+			fprintf_rl(stdout, "Module #%d %s: %s() found\n", ctx->module_id, ctx->module_name, func_name);
 	}
 	else
 	{
@@ -126,7 +130,7 @@ void wahe_get_module_func(wahe_module_t *ctx, const char *func_name, enum wahe_f
 		ctx->func[func_id] = func_ext.of.func;
 
 		if (verbosity == 1)
-			fprintf_rl(stdout, "Module %s: %s() found\n", ctx->module_name, func_name);
+			fprintf_rl(stdout, "Module #%d %s: %s() found\n", ctx->module_id, ctx->module_name, func_name);
 	}
 }
 
@@ -514,6 +518,10 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 	rl_mutex_init(&ctx->mutex);
 	ctx->module_name = sprintf_alloc("%s", get_filename_from_path(path));
 
+	// Store module index so we can know which index a given module has
+	ctx->parent_group = parent_group;
+	ctx->module_id = module_index;
+
 	// Native module
 	if (ctx->native = dynlib_open(path))
 	{
@@ -598,10 +606,6 @@ void wahe_module_init(wahe_group_t *parent_group, int module_index, wahe_module_
 		// Set the type of module addresses (currently always 32-bit)
 		ctx->address_type = WASMTIME_I32;
 	}
-
-	// Store module index so we can know which index a given module has
-	ctx->parent_group = parent_group;
-	ctx->module_id = module_index;
 
 	// Send module ID to the module, it's intended to keep changing in the future on the host side without changes in modules, so modules should just store the ID in a char[61]
 	if (parent_group)
