@@ -52,7 +52,7 @@ letter_t *get_dominant_letter(vector_font_t *font, uint32_t c, int *lowerscale)
 	{
 		process_one_glyph(font, get_letter_index(font, c));
 
-		if (l->obj)
+		if (l->obj || l->tri_mesh.count)
 			return l;
 	}
 

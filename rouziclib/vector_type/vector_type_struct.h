@@ -2,6 +2,7 @@ typedef struct
 {
 	uint32_t codepoint, alias;
 	vobj_t *obj;
+	vobj_tri_t tri_mesh;
 	double bl, br, bb, bt;	// bounds to the left and right, bottom and top
 	double width;
 	textedit_t glyphdata_edit;
@@ -14,6 +15,9 @@ typedef struct
 	letter_t *l;
 	int letter_count, alloc_count;
 	int32_t *codepoint_letter_lut;
+
+	double letter_spacing, line_vspacing;
+
 	int32_t *cjkdec_pos, *cjkdec_data;
 	int cjkdec_data_count, cjkdec_alloc_count;
 } vector_font_t;

@@ -19,6 +19,7 @@ extern xyi_t recti_p10(recti_t r);
 extern void rect_set_p01(rect_t *r, xy_t c);
 extern void rect_set_p10(rect_t *r, xy_t c);
 extern rect_t mul_rect(rect_t r, xy_t m);
+extern triangle_t mul_triangle(triangle_t t, xy_t m);
 extern recti_t rshift_recti(recti_t r, int sh);
 extern rect_t make_rect_centred(const xy_t c, const xy_t wh);
 extern rect_t make_rect_off(const xy_t pos, const xy_t dim, const xy_t off);

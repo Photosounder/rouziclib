@@ -12,6 +12,7 @@ extern void process_glyphdata(vector_font_t *font, letter_t *l, glyphdata_t *gd)
 extern void make_glyph_vobj(letter_t *l, glyphdata_t *gd);
 extern void make_fallback_font(vector_font_t *font);
 extern void process_one_glyph(vector_font_t *font, int i);
+extern vector_font_t *init_font();
 extern vector_font_t *make_font(char *index_path);
 extern vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename);
 extern vector_font_t *make_font_from_zball(uint8_t *data, size_t data_len);

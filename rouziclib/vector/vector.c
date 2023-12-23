@@ -313,3 +313,42 @@ vobj_t *map_to_vobj(xy_t *map, int32_t mapsize, int32_t dofree)
 
 	return o;
 }
+
+triangle_t rot_tri(triangle_t tri, double scale, double th)
+{
+	triangle_t rt;
+
+	if (th==0. && scale==1.)
+		return tri;
+
+	rt.a = mul_xy(tri.a, set_xy(scale));
+	rt.b = mul_xy(tri.b, set_xy(scale));
+	rt.c = mul_xy(tri.c, set_xy(scale));
+
+	if (th==0.)
+		return rt;
+
+	rt.a = rotate_xy2(rt.a, th);
+	rt.b = rotate_xy2(rt.b, th);
+	rt.c = rotate_xy2(rt.c, th);
+
+	return rt;
+}
+
+void draw_vobj_tri(vobj_tri_t o, xy_t p, double scale, double angle, double line_thick, col_t colour)
+{
+	int32_t i;
+	seg_t rs;
+
+	if (o.count == 0)
+		return;
+
+	for (i=0; i < o.count; i++)
+	{
+		triangle_t tri = rot_tri(o.tri[i], scale, angle);
+		tri.a = add_xy(neg_y(tri.a), p);
+		tri.b = add_xy(neg_y(tri.b), p);
+		tri.c = add_xy(neg_y(tri.c), p);
+		draw_triangle(tri, line_thick, colour, 1.);
+	}
+}

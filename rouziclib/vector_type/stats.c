@@ -12,8 +12,8 @@ double glyph_width(vector_font_t *font, double pos, uint32_t c, double scale, co
 
 	if (c=='\t')
 	{
-		while (tabx < pos + LETTERSPACING*scale)
-			tabx += 8.*(4.+LETTERSPACING) * scale;
+		while (tabx < pos + font->letter_spacing*scale)
+			tabx += 8.*(4.+font->letter_spacing) * scale;
 
 		return tabx - pos;
 	}
@@ -21,15 +21,17 @@ double glyph_width(vector_font_t *font, double pos, uint32_t c, double scale, co
 	process_one_glyph(font, get_letter_index(font, c));
 
 	l = get_dominant_letter(font, c, &lowerscale);
-	if (l)
-	if (l->obj)
+	if (l && l->obj)
 		if ((mode&12)==PROPORTIONAL || (((mode&12)==MONODIGITS) && (c<'0' || c>'9')))
-			return (l->width * (lowerscale ? LOWERCASESCALE : 1.) + LETTERSPACING) * scale;
+			return (l->width * (lowerscale ? LOWERCASESCALE : 1.) + font->letter_spacing) * scale;
 		else
-			return (4. + LETTERSPACING) * scale;
+			return (4. + font->letter_spacing) * scale;
+
+	if (l && l->tri_mesh.count)
+		return (l->width + font->letter_spacing) * scale;
 
 	if (is_cjkdec_glyph(font, c))
-		return (6. + LETTERSPACING) * scale;
+		return (6. + font->letter_spacing) * scale;
 
 	return 0.;
 }
@@ -47,7 +49,7 @@ double letter_width(vector_font_t *font, double pos, uint32_t c, double scale, c
 		return 0.;
 
 	if (ucd.decomp_type==decomp_wide)
-		return (6. + LETTERSPACING) * scale;
+		return (6. + font->letter_spacing) * scale;
 
 	return glyph_width(font, pos, c, scale, mode);
 }
@@ -77,15 +79,15 @@ double calc_strwidth_len(vector_font_t *font, const uint8_t *string, double scal
 
 		// Ligature exceptions
 		if (c >= cp_ins_start && c < cp_ins_end)
-			if (c_prev >= cp_ins_start && c_prev < cp_ins_end)	// there's no LETTERSPACING between two cp_ins spaces
-				w -= LETTERSPACING * scale;
+			if (c_prev >= cp_ins_start && c_prev < cp_ins_end)	// there's no font->letter_spacing between two cp_ins spaces
+				w -= font->letter_spacing * scale;
 
 		w += letter_width(font, w, c, scale, mode);
 
 		c_prev = c;
 	}
 
-	w -= LETTERSPACING * scale;	// removes the end space FIXME wrong if last char is small letter
+	w -= font->letter_spacing * scale;	// removes the end space FIXME wrong if last char is small letter
 	w = MAXN(0., w);
 
 	return w;
@@ -114,7 +116,7 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 	ws.word_start = calloc(ws.word_count, sizeof(int));
 	ws.word_end = calloc(ws.word_count, sizeof(int));
 
-	ws.aver_word_length = (ws.full_length - (double) (ws.word_count-1)*(letter_width(font, 0., ' ', 1., mode)+LETTERSPACING)) / (double) ws.word_count;
+	ws.aver_word_length = (ws.full_length - (double) (ws.word_count-1)*(letter_width(font, 0., ' ', 1., mode)+font->letter_spacing)) / (double) ws.word_count;
 
 	// find individual word length and the final length sum of all the lines
 	ws.max_word_length = 0.;
@@ -125,7 +127,7 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 
 		if (c==' ')
 		{
-			ws.word_length[iw] -= LETTERSPACING;	// removes the end space
+			ws.word_length[iw] -= font->letter_spacing;	// removes the end space
 			ws.max_word_length = MAXN(ws.max_word_length, ws.word_length[iw]);
 			iw++;
 			prev_was_space = 1;
@@ -136,12 +138,12 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 
 			// Ligature exceptions
 			if (c >= cp_ins_start && c < cp_ins_end)
-				if (c_prev >= cp_ins_start && c_prev < cp_ins_end)	// there's no LETTERSPACING between two cp_ins spaces
-					ws.word_length[iw] -= LETTERSPACING;
+				if (c_prev >= cp_ins_start && c_prev < cp_ins_end)	// there's no font->letter_spacing between two cp_ins spaces
+					ws.word_length[iw] -= font->letter_spacing;
 
 			if (i == len-1)		// if we've reached the end
 			{
-				ws.word_length[iw] -= LETTERSPACING;	// removes the end space
+				ws.word_length[iw] -= font->letter_spacing;	// removes the end space
 				ws.max_word_length = MAXN(ws.max_word_length, ws.word_length[iw]);
 			}
 
@@ -174,7 +176,7 @@ double get_word_length(vector_font_t *font, const uint8_t *string, word_stats_t 
 	width = ws.word_length[iw];
 
 	if (iw>iw_start)
-		width += space_width + LETTERSPACING;
+		width += space_width + font->letter_spacing;
 
 	return width;
 }

@@ -89,7 +89,7 @@ double find_string_width_for_nlines(vector_font_t *font, const uint8_t *string, 
 	if (ws.word_count==1)
 		return ws.full_length;
 
-	total_end_length = ws.full_length - (space_width+LETTERSPACING)*(*nlines-1);	// remove the widths of the spaces that will be turned into line breaks
+	total_end_length = ws.full_length - (space_width+font->letter_spacing)*(*nlines-1);	// remove the widths of the spaces that will be turned into line breaks
 
 	*lower_bound = total_end_length / (double) *nlines;	// the threshold couldn't possibly be lower than this
 	*lower_bound = MAXN(*lower_bound, ws.max_word_length);	// or this
@@ -120,13 +120,13 @@ double find_best_string_width(vector_font_t *font, const uint8_t *string, word_s
 	if (ws.word_count==1)
 	{
 		*nlines = 1;
-		*scale_ratio = MINN(boxdim.x / ws.full_length, boxdim.y / LINEVSPACING);	// find the scale needed for the text to fit the box with this many lines
+		*scale_ratio = MINN(boxdim.x / ws.full_length, boxdim.y / font->line_vspacing);	// find the scale needed for the text to fit the box with this many lines
 		*scale_ratio = MINN(1., *scale_ratio);
 		return ws.full_length;
 	}
 
 	if (boxdim.x!=0. && boxdim.y!=0.)
-		nl_start = sqrt(ws.full_length / (boxdim.x*boxdim.y/LINEVSPACING)) * boxdim.y/LINEVSPACING;	// good starting point
+		nl_start = sqrt(ws.full_length / (boxdim.x*boxdim.y/font->line_vspacing)) * boxdim.y/font->line_vspacing;	// good starting point
 	else
 		nl_start = 1;
 
@@ -149,10 +149,10 @@ double find_best_string_width(vector_font_t *font, const uint8_t *string, word_s
 
 		thresh = find_string_width_for_nlines(font, string, ws, nlines, mode, &lower_bound);
 
-		if (thresh <= boxdim.x && *nlines*LINEVSPACING <= boxdim.y)		// if it fits without needing to lower the scale
+		if (thresh <= boxdim.x && *nlines*font->line_vspacing <= boxdim.y)		// if it fits without needing to lower the scale
 			return thresh;
 
-		scale = MINN(boxdim.x / thresh, boxdim.y / (*nlines*LINEVSPACING));	// find the scale needed for the text to fit the box with this many lines
+		scale = MINN(boxdim.x / thresh, boxdim.y / (*nlines*font->line_vspacing));	// find the scale needed for the text to fit the box with this many lines
 
 		if (scale < prev_scale && *nlines > prev_nlines)			// if the previous attempt was the most suitable one
 		{
@@ -192,7 +192,7 @@ void draw_string_maxwidth(vector_font_t *font, const uint8_t *string, word_stats
 	else
 	{
 		p.y = 0.5*(box.p0.y+box.p1.y) + 3.*scale;			// puts the text right in the vertical middle of the box
-		p.y -= (double) (nlines-1) * 0.5 * LINEVSPACING * scale;	// shift it up depending on the number of lines
+		p.y -= (double) (nlines-1) * 0.5 * font->line_vspacing * scale;	// shift it up depending on the number of lines
 	}
 
 	for (iw=0; iw < ws.word_count; )
@@ -206,7 +206,7 @@ void draw_string_maxwidth(vector_font_t *font, const uint8_t *string, word_stats
 
 		iw = line_iw_end + 1;
 
-		p.y += LINEVSPACING * scale;	// move it down one line
+		p.y += font->line_vspacing * scale;	// move it down one line
 	}
 }
 
@@ -263,10 +263,10 @@ double draw_string_bestfit_asis(vector_font_t *font, const uint8_t *string, rect
 
 	maxwidth = find_string_maxwidth_and_nlines(font, string, mode, &nlines, 1) + 4.;	// get maxwidth (of the longest line) and number of lines
 
-	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*LINEVSPACING));			// find the scale needed for the text to fit the box with this many lines
+	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*font->line_vspacing));			// find the scale needed for the text to fit the box with this many lines
 	scale = MINN(scale, maxscale);
 
-	//fitdim = mul_xy( set_xy(scale) , xy(maxwidth, nlines*LINEVSPACING) );
+	//fitdim = mul_xy( set_xy(scale) , xy(maxwidth, nlines*font->line_vspacing) );
 	//fitrect = make_rect_off( box.p0, fitdim, XY0 );
 	//draw_rect_full(fitrect, line_thick, colour, intensity);
 
@@ -294,7 +294,7 @@ void draw_string_fixed_thresh(vector_font_t *font, const uint8_t *string, rect_t
 
 	nlines = find_line_count_for_thresh(font, string, ws, mode, thresh, &maxwidth);		// then the number of lines must be recounted
 
-	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*LINEVSPACING));			// find the scale needed for the text to fit the box with this many lines
+	maxscale = MINN(boxdim.x / maxwidth, boxdim.y / (nlines*font->line_vspacing));			// find the scale needed for the text to fit the box with this many lines
 	scale = MINN(scale, maxscale);
 
 	draw_string_maxwidth(font, string, ws, box, scale, colour, intensity, line_thick, mode, thresh, nlines, tp);

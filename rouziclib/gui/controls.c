@@ -110,13 +110,13 @@ int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour)
 	if (butt_state.uponce && state)
 		*state = (*state & 1) ^ 1;
 
-	box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
+	box = rect_add_margin(box, xy(-2.*scale/font->line_vspacing, 0.));
 	if (state)
 		draw_string_bestfit(font, (*state==1) ? "\xE2\x98\x91" : (*state==0) ? "\xE2\x98\x90" : "\xF3\xB2\x98\x92", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 	else
 		draw_string_bestfit(font, "\xE2\x98\x90", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 
-	box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
+	box.p0.x += (8.+font->letter_spacing)*scale/font->line_vspacing;
 	draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 
 	return butt_state.uponce;
@@ -141,7 +141,7 @@ ctrl_button_state_t ctrl_checkbox_pin(int *state, rect_t box, col_t colour)
 	if (butt_state.uponce && state)
 		*state = (*state & 1) ^ 1;
 
-	box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
+	box = rect_add_margin(box, xy(-2.*scale/font->line_vspacing, 0.));
 	draw_string_bestfit(font, (*state) ? "\xE2\x98\x91\302\240\360\237\223\214" : "\xE2\x98\x90\302\240\360\237\223\214", sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 
 	return butt_state;
@@ -168,8 +168,8 @@ int ctrl_radio(int state, const uint8_t *name, rect_t box, col_t colour)
 
 	if (name)
 	{
-		box = rect_add_margin(box, xy(-2.*scale/LINEVSPACING, 0.));
-		box.p0.x += (8.+LETTERSPACING)*scale/LINEVSPACING;
+		box = rect_add_margin(box, xy(-2.*scale/font->line_vspacing, 0.));
+		box.p0.x += (8.+font->letter_spacing)*scale/font->line_vspacing;
 		draw_string_bestfit(font, name, sc_rect(box), 0., 1e30*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 	}
 
@@ -260,9 +260,9 @@ void draw_selectmenu_entry(ctrl_selectmenu_state_t *state, rect_t box, col_t col
 	if (id == state->sel_id)
 	{
 		main_label_box = box;
-		main_label_box.p0.x += 3.*scale/LINEVSPACING;
+		main_label_box.p0.x += 3.*scale/font->line_vspacing;
 		main_label_box.p1.x -= scale;
-		main_label_box = rect_add_margin(main_label_box, xy(0., -2.*scale/LINEVSPACING));
+		main_label_box = rect_add_margin(main_label_box, xy(0., -2.*scale/font->line_vspacing));
 		draw_label(label, main_label_box, colour, ALIG_LEFT);
 	}
 
@@ -276,8 +276,8 @@ void draw_selectmenu_entry(ctrl_selectmenu_state_t *state, rect_t box, col_t col
 			draw_label("\342\234\224", rect_add_margin(make_rect_off(entry_box.p0, set_xy(scale), XY0), set_xy(-1.5/12.*scale)), colour, ALIG_CENTRE);
 
 		entry_box.p0.x += scale;
-		entry_box.p1.x -= 3.*scale/LINEVSPACING;
-		entry_box = rect_add_margin(entry_box, xy(0., -2.*scale/LINEVSPACING));
+		entry_box.p1.x -= 3.*scale/font->line_vspacing;
+		entry_box = rect_add_margin(entry_box, xy(0., -2.*scale/font->line_vspacing));
 		draw_label(label, entry_box, colour, ALIG_LEFT);
 	}
 }

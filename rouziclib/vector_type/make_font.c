@@ -7,7 +7,6 @@ void font_create_letter(vector_font_t *font, uint32_t cp)
 {
 	font_alloc_one(font);
 	font->l[font->letter_count-1].codepoint = cp;
-	textedit_init(&font->l[font->letter_count-1].glyphdata_edit, 1);
 
 	add_codepoint_letter_lut_reference(font);
 }
@@ -601,6 +600,7 @@ void font_block_process_line(const char *line, vector_font_t *font)
 			}
 
 		font_create_letter(font, cp);
+		textedit_init(&font->l[font->letter_count-1].glyphdata_edit, 1);
 	}
 	else
 	{
@@ -744,17 +744,29 @@ void process_one_glyph(vector_font_t *font, int i)
 		make_cjkdec_vobj(font, &font->l[i]);
 }
 
+vector_font_t *init_font()
+{
+	vector_font_t *font;
+
+	font = calloc(1, sizeof(vector_font_t));
+
+	font->l = calloc(font->alloc_count = 256, sizeof(letter_t));
+	font->codepoint_letter_lut = calloc(0x110000, sizeof(int32_t));
+	memset(font->codepoint_letter_lut, 0xFF, 0x110000 * sizeof(int32_t));
+
+	font->letter_spacing = 1.5;	// spacing between each letter
+	font->line_vspacing = 10.;	// offset for each line
+
+	return font;
+}
+
 vector_font_t *make_font(char *index_path)
 {
 	vector_font_t *font;
 	char dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
 	int i, linecount, range0, range1;
 
-	font = calloc(1, sizeof(vector_font_t));
-
-	font->l = calloc (font->alloc_count = 256, sizeof(letter_t));
-	font->codepoint_letter_lut = calloc (0x110000, sizeof(int32_t));
-	memset(font->codepoint_letter_lut, 0xFF, 0x110000 * sizeof(int32_t));
+	font = init_font();
 
 	remove_name_from_path(dirpath, index_path);
 	dirpath[strlen(dirpath)+1] = '\0';
@@ -805,11 +817,7 @@ vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename
 	char dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
 	int i, linecount, range0, range1;
 
-	font = calloc(1, sizeof(vector_font_t));
-
-	font->l = calloc (font->alloc_count = 256, sizeof(letter_t));
-	font->codepoint_letter_lut = calloc (0x110000, sizeof(int32_t));
-	memset(font->codepoint_letter_lut, 0xFF, 0x110000 * sizeof(int32_t));
+	font = init_font();
 
 	fileball_subfile_t *subfile = fileball_find_subfile(s, index_filename);
 	if (subfile==NULL)

@@ -20,5 +20,7 @@ extern void draw_vobj_fullarg_dq(vobj_t *o, xy_t p, xy_t scale, double angle, do
 extern void draw_vobj_dqnq(vobj_t *o, xy_t pos, double scale, double angle, double line_thick, col_t colour);
 extern xy_t *vobj_to_map(vobj_t *o, int32_t dofree);
 extern vobj_t *map_to_vobj(xy_t *map, int32_t mapsize, int32_t dofree);
+extern triangle_t rot_tri(triangle_t tri, double scale, double th);
+extern void draw_vobj_tri(vobj_tri_t o, xy_t p, double scale, double angle, double line_thick, col_t colour);
 
 #define draw_vobj(o, p, scale, angle, line_thick, colour)	draw_vobj_fullarg(o, p, set_xy(scale), angle, line_thick, colour)

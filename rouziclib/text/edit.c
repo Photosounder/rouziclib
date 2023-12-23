@@ -511,7 +511,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		int nlines = 0;
 		double maxwidth = find_string_maxwidth_and_nlines(font, te->string, te->draw_string_mode, &nlines, 1) + 4.;
 		// FIXME scroll_limit.x seems too small when the lines are long
-		xy_t scroll_limit = xy(maxwidth, (double) nlines * LINEVSPACING);
+		xy_t scroll_limit = xy(maxwidth, (double) nlines * font->line_vspacing);
 
 		// Calc scale and span
 		scale = get_rect_dim(text_area).x / te->scroll_mode_scale;
@@ -519,7 +519,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 		// Mouse wheel scrolling up and down
 		if (check_point_within_box(mouse.u, box) && mouse.zoom_flag==0 && mouse.b.wheel)
-			te->scroll_pos.y += 3. * (double) mouse.b.wheel * LINEVSPACING;		// scroll 3 lines
+			te->scroll_pos.y += 3. * (double) mouse.b.wheel * font->line_vspacing;		// scroll 3 lines
 
 		// Vertical scroll bar
 		if (vis_span.y < scroll_limit.y)
@@ -644,8 +644,8 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 				te->scroll_pos.x = -te->cur_screen_pos.x + sideways_thresh;
 
 			// If the cursor is below what is seen
-			if (te->cur_screen_pos.y+LINEVSPACING > vis_span.y - te->scroll_pos.y)
-				te->scroll_pos.y = vis_span.y - te->cur_screen_pos.y - LINEVSPACING;
+			if (te->cur_screen_pos.y+ font->line_vspacing > vis_span.y - te->scroll_pos.y)
+				te->scroll_pos.y = vis_span.y - te->cur_screen_pos.y - font->line_vspacing;
 
 			// If the cursor is right of what is seen
 			if (te->cur_screen_pos.x + sideways_thresh > vis_span.x - te->scroll_pos.x)
@@ -705,7 +705,7 @@ void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, 
 	col = bidi > 0 ? lime : col2;
 
 	offset.y -= 3.*scale;
-	pd.x = LETTERSPACING*0.5;
+	pd.x = font->letter_spacing * 0.5;
 	if (bidi >= 0)
 		pd.x = -pd.x;
 

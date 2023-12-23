@@ -98,6 +98,7 @@
 #include "vector_type/stats.c"
 #include "vector_type/fit.c"
 #include "vector_type/cjk.c"
+#include "vector_type/truetype.c"
 #include "vector_type/insert_rect.c"
 
 #include "gui/zoom.c"

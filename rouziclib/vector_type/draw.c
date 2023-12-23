@@ -13,7 +13,7 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 
 	l = get_letter(font, c);
 	if (l)
-	if (l->obj)
+	if (l->obj || l->tri_mesh.count)
 	{
 		found = 1;
 		fixoff = 0.;
@@ -25,10 +25,13 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 		else
 			fixoff -= l->bl;
 
-		if (fb->use_dqnq)
-			draw_vobj_dqnq(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
+		if (l->obj)
+			if (fb->use_dqnq)
+				draw_vobj_dqnq(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
+			else
+				draw_vobj(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
 		else
-			draw_vobj(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
+			draw_vobj_tri(l->tri_mesh, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, colour);
 	}
 
 	// Alias
@@ -48,7 +51,7 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 
 			if (ucd.uccat == uccat_Ll)	// if character is lowercase
 			{
-				wc2 = ((glyph_width(font, off.x, ucd.combo2, 1., mode) - LETTERSPACING) * LOWERCASESCALE + LETTERSPACING) * scale;
+				wc2 = ((glyph_width(font, off.x, ucd.combo2, 1., mode) - font->letter_spacing) * LOWERCASESCALE + font->letter_spacing) * scale;
 				scale *= LOWERCASESCALE;
 			}
 			else
@@ -125,7 +128,7 @@ int draw_vector_char_lookahead(vector_font_t *font, uint32_t c, const char *stri
 				ldom = get_dominant_letter(font, cn, &lowerscale_dom);
 
 				if (ucd1.uccat == uccat_Ll)	// if character is lowercase
-					wc2 = ((glyph_width(font, off->x, cn, 1., mode) - LETTERSPACING) * LOWERCASESCALE + LETTERSPACING) * scale;
+					wc2 = ((glyph_width(font, off->x, cn, 1., mode) - font->letter_spacing) * LOWERCASESCALE + font->letter_spacing) * scale;
 				else
 					wc2 = glyph_width(font, off->x, cn, scale, mode);
 
@@ -163,7 +166,7 @@ int draw_vector_char_lookahead(vector_font_t *font, uint32_t c, const char *stri
 
 void check_closest_cursor(xy_t off, double scale, xy_t expected_pos, double *closest_deltapos, int isa, int *curpos)
 {
-	if (fabs(off.y - expected_pos.y) <= LINEVSPACING*scale*0.5)
+	if (fabs(off.y - expected_pos.y) <= font->line_vspacing*scale*0.5)
 		if (fabs(off.x - expected_pos.x) < *closest_deltapos)
 		{
 			*closest_deltapos = fabs(off.x - expected_pos.x);
@@ -210,8 +213,8 @@ void cursor_processing(vector_font_t *font, const char *string, uint32_t c, xy_t
 		{
 			p1 = add_xy(p, off);
 
-			box.p0 = add_xy(p0, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
-			box.p1 = add_xy(p1, xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), -8.*scale));
+			box.p0 = add_xy(p0, xy(-font->letter_spacing*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
+			box.p1 = add_xy(p1, xy(-font->letter_spacing*0.5*scale * (bidi == -2 ? -1. : 1.), -8.*scale));
 		//	draw_rect_full(box, line_thick, text_sel_col, 1.);
 
 			if (c=='\n')
@@ -225,7 +228,7 @@ void cursor_processing(vector_font_t *font, const char *string, uint32_t c, xy_t
 	if (isa >= sel0 && isa <= sel1 && sel0 < sel1 && bidi_change==0)		// display selection one character at a time
 	{
 		wc1 = glyph_width(font, off.x, c, scale, mode);
-		box.p0 = add_xy(add_xy(p, off), xy(-LETTERSPACING*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
+		box.p0 = add_xy(add_xy(p, off), xy(-font->letter_spacing*0.5*scale * (bidi == -2 ? -1. : 1.), 2.*scale));
 		box.p1 = add_xy(box.p0, xy(wc1 * (bidi == -2 ? -1. : 1.), -10.*scale));
 		draw_rect_full(box, line_thick, text_sel_col, cur_blend, 1.);
 	}
@@ -241,13 +244,13 @@ void cursor_processing(vector_font_t *font, const char *string, uint32_t c, xy_t
 		check_closest_cursor(off, scale, expected_pos, &closest_deltapos[0], isa, &cur_textedit->curpos);
 
 	// find the position in the line above and below
-	expected_pos = mad_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale), xy(0., LINEVSPACING * -scale));
-	expected_pos = mad_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), expected_pos);
+	expected_pos = mad_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale), xy(0., font->line_vspacing * -scale));
+	expected_pos = mad_xy(xy(0.5*font->letter_spacing * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), expected_pos);
 	//expected_pos.y = MAXN(0., expected_pos.y);
 	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[1], isa, &cur_textedit->curpos_up);
 
-	expected_pos = mad_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale), xy(0., LINEVSPACING * scale));
-	expected_pos = mad_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), expected_pos);
+	expected_pos = mad_xy(cur_textedit->cur_screen_pos_prev, set_xy(scale), xy(0., font->line_vspacing * scale));
+	expected_pos = mad_xy(xy(0.5*font->letter_spacing * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), expected_pos);
 	check_closest_cursor(off, scale, expected_pos, &closest_deltapos[2], isa, &cur_textedit->curpos_down);
 }
 
@@ -327,7 +330,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 
 				if (cur_textedit->click_on)
 				{
-					expected_pos = mad_xy(xy(0.5*LETTERSPACING * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), sub_xy(cur_textedit->click, p));
+					expected_pos = mad_xy(xy(0.5*font->letter_spacing * (bidi == -2 ? -1. : 1.), 3.), set_xy(scale), sub_xy(cur_textedit->click, p));
 					expected_pos.y = MAXN(0., expected_pos.y);
 					if (recur==0)
 						cur_textedit->curpos = strlen(cur_textedit->string);
@@ -370,7 +373,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 			if (drawline && recur==0)
 			if (c==' ' || c=='\t' || c=='\n')	// if c is whitespace char
 			if (equal_xy(off, off_ls)==0)
-				draw_line_thin(add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
+				draw_line_thin(add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-font->letter_spacing*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
 
 			c_bidi = bidicat_direction(ucd.bidicat);
 
@@ -383,7 +386,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 			{
 				len_sec = find_len_bidi_section(&string[is], len-is, c_bidi);
 				draw_string_full(font, &string[is], p, off, scale, colour, intensity, line_thick, mode, len_sec, glyph_limit, line_limit, c_bidi, recur+1, tp);
-				off.x += (calc_strwidth_len(font, &string[is], scale, mode, len_sec) + LETTERSPACING * scale) * (bidi == -2 ? -1. : 1.);
+				off.x += (calc_strwidth_len(font, &string[is], scale, mode, len_sec) + font->letter_spacing * scale) * (bidi == -2 ? -1. : 1.);
 				is += len_sec;
 				i = is-1;
 			}
@@ -391,7 +394,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 			{
 				case '\n':
 					off.x = base_off;
-					off.y += LINEVSPACING * scale;
+					off.y += font->line_vspacing * scale;
 					break;
 
 				default:
@@ -412,7 +415,7 @@ void draw_string_full(vector_font_t *font, const char *string, xy_t p, xy_t off,
 
 	if (drawline && recur==0)
 	if (equal_xy(off, off_ls)==0)
-		draw_line_thin(add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-LETTERSPACING*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
+		draw_line_thin(add_xy(add_xy(p, off_ls), xy(0., -2.5*scale)), add_xy(add_xy(p, off), xy(-font->letter_spacing*scale, -2.5*scale) ), line_thick, colour, cur_blend, intensity*3.);
 }
 
 void draw_string_len(vector_font_t *font, const char *string, xy_t p, double scale, col_t colour, double intensity, double line_thick, const int mode, int32_t len, text_param_t *tp)

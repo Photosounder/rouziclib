@@ -161,6 +161,7 @@ typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #include "vector_type/stats.h"
 #include "vector_type/fit.h"
 #include "vector_type/cjk.h"
+#include "vector_type/truetype.h"	// used if RL_TRUETYPE is defined
 #include "vector_type/insert_rect.h"
 
 #include "gui/zoom.h"

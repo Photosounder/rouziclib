@@ -19,7 +19,7 @@ extern int64_t fastabs64(int64_t x);
 
 extern int32_t log2_ffo32(uint32_t x);
 extern int32_t log2_ffo64(uint64_t x);
-extern int64_t mulshift (int64_t a, int64_t b, int s);
+extern int64_t mulshift(int64_t a, int64_t b, int s);
 
 extern int64_t fpdiv_d2(int32_t y, int32_t x, int32_t outfmt);
 extern uint32_t isqrt_d1i(uint64_t x);

@@ -102,6 +102,11 @@ rect_t mul_rect(rect_t r, xy_t m)
 	return rect(mul_xy(r.p0, m), mul_xy(r.p1, m));
 }
 
+triangle_t mul_triangle(triangle_t t, xy_t m)
+{
+	return triangle(mul_xy(t.a, m), mul_xy(t.b, m), mul_xy(t.c, m));
+}
+
 recti_t rshift_recti(recti_t r, int sh)
 {
 	return recti( rshift_xyi(r.p0, sh), rshift_xyi(r.p1, sh) );

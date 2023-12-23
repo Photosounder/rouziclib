@@ -9,9 +9,6 @@
 #define MONODIGITS	8
 #define ALIG_TOP	16
 
-// TODO put that into font struct
-#define LETTERSPACING	1.5	// spacing between each letter
-#define LINEVSPACING	10.	// offset for each line
 #define LOWERCASESCALE	0.75
 
 extern int get_letter_index(vector_font_t *font, uint32_t c);
