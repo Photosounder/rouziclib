@@ -1,3 +1,4 @@
+extern float eval_polygon_at_pos(xy_t *p, int p_count, double radius, xy_t pos);
 extern void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, double intensity);
 extern rect_t get_bounding_box_for_polygon(xy_t *p, int p_count);
 extern int get_dq_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi);

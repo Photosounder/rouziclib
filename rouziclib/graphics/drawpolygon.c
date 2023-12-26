@@ -101,6 +101,30 @@ float calc_subtriangle_pixel_weight(xyf_t p0, xyf_t p1)
 	return weight;
 }
 
+float eval_polygon_at_pos(xy_t *p, int p_count, double radius, xy_t pos)
+{
+	int i;
+	xyf_t p0, p1;
+
+	// Prepare parameters
+	xy_t rad = set_xy(1./radius);
+
+	// Scale pos
+	pos = mul_xy(pos, rad);
+
+	// Calculate the weight for each subtriangle
+	float weight = 0.f;
+	p0 = xy_to_xyf(sub_xy(mul_xy(p[p_count-1], rad), pos));
+	for (i=0; i < p_count; i++)
+	{
+		p1 = xy_to_xyf(sub_xy(mul_xy(p[i], rad), pos));
+		weight += calc_subtriangle_pixel_weight(p0, p1);
+		p0 = p1;
+	}
+
+	return weight;
+}
+
 #ifdef GNU_SSE
 __attribute__((__target__("sse4.1")))
 #endif
@@ -155,7 +179,7 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 				p0 = p1;
 			}
 
-			weight = MAXN(0.f, -weight);
+			weight = MAXN(0.f, weight);
 			int weight_fp = float_to_fixedpoint_15(weight);
 
 			// Apply weight to colour

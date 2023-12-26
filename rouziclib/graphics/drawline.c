@@ -3,7 +3,7 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 	int32_t i, iy, ix, fbi;
 	xy_t p3, p4, p1l, p2l, p3l, p4l;
 	double d12, d12s, dx12, dy12, vx12, vy12, grad;
-	int32_t p, ratio;		// 0.15
+	int32_t p;	// 0.15
 	double iradius, bradius, bvx, bvy;
 	int32_t bstartx, bstarty, bendx, bendy, incx, incy, incc;
 	int bx0, by0, bx1, by1, dx, dy, sx, sy, err, e2;	// Bresenham routine variables
@@ -14,12 +14,13 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 	const int32_t fp=16, fpi=30-fp;
 	const double fpratio = (double) (1<<fp);
 
+	// Apply intensity to colour and calculate the Gaussian radius limit
+	colour = mul_scalar_lrgb(colour, intensity*ONEF+0.5);
+	intensity = (double) max_of_lrgb(colour) / ONEF;
 	grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002
 	bradius = grad * sqrt(2.);		// bounding radius, the maximum radius necessary at each end of the line
 
 	border_clip(fb->w-1, fb->h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen
-
-	ratio = 32768. * intensity + 0.5;
 
 	dx12 = p2.x-p1.x;
 	dy12 = p2.y-p1.y;
@@ -156,7 +157,6 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 				p -= fperfr_d0(xrp-xr2) >> 15;
 				p *= fpgauss_d0(yrp-yr1) >> 15;
 				p >>= 15;
-				p = p * ratio >> 15;
 
 				bf(&fb->r.l[fbi], colour, p);
 			}
@@ -188,7 +188,7 @@ void draw_line_thin_frgb(xy_t p1, xy_t p2, double radius, frgb_t colour, const b
 	float th, costh, sinth;
 
 	//grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002
-	grad = GAUSSRAD_HQ * radius;			// erfr and gaussian can go up to x = ±4
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
 	bradius = grad * sqrt(2.);		// bounding radius, the maximum radius necessary at each end of the line
 
 	border_clip(fb->w-1, fb->h-1, &p1, &p2, grad);	// cut the part of the segment outside the screen

@@ -759,6 +759,16 @@ float max_of_frgb(frgb_t a)
 	return MAXN(MAXN(a.r, a.g), a.b);
 }
 
+int min_of_lrgb(lrgb_t a)
+{
+	return MINN(MINN(a.r, a.g), a.b);
+}
+
+int max_of_lrgb(lrgb_t a)
+{
+	return MAXN(MAXN(a.r, a.g), a.b);
+}
+
 frgb_t mul_scalar_frgb(frgb_t a, float m)
 {
 	a.r *= m;
@@ -786,9 +796,9 @@ frgb_t mul_scalar_frgba(frgb_t a, float m)
 
 lrgb_t mul_scalar_lrgb(lrgb_t a, int m)
 {
-	a.r = a.r * m >> LBD;
-	a.g = a.g * m >> LBD;
-	a.b = a.b * m >> LBD;
+	a.r = a.r * m + (ONE>>1) >> LBD;
+	a.g = a.g * m + (ONE>>1) >> LBD;
+	a.b = a.b * m + (ONE>>1) >> LBD;
 
 	return a;
 }

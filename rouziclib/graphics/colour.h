@@ -107,6 +107,8 @@ extern frgb_t mul_frgb(frgb_t a, frgb_t b);
 extern frgb_t div_frgb(frgb_t a, frgb_t b);
 extern float min_of_frgb(frgb_t a);
 extern float max_of_frgb(frgb_t a);
+extern int min_of_lrgb(lrgb_t a);
+extern int max_of_lrgb(lrgb_t a);
 extern frgb_t mul_scalar_frgb(frgb_t a, float m);
 extern frgb_t mul_scalar_frgba(frgb_t a, float m);
 extern lrgb_t mul_scalar_lrgb(lrgb_t a, int m);

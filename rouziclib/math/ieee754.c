@@ -211,7 +211,7 @@ float fast_absf(float x)
 	return x;
 }
 
-uint32_t float_to_fixedpoint_15(float x)	// input must be [0.f , 255.999969482.f]
+uint32_t float_to_fixedpoint_15(float x)	// input must be [0.f , 255.999969482f]
 {
 	x += 256.f;
 	return float_get_mantissa(x);
