@@ -900,7 +900,8 @@ void free_font(vector_font_t *font)
 
 	for (i=0; i<font->letter_count; i++)
 	{
-		free_vobj (font->l[i].obj);
+		free_vobj(font->l[i].obj);
+		free(font->l[i].tri_mesh.tri);
 		textedit_free(&font->l[i].glyphdata_edit);
 	}
 

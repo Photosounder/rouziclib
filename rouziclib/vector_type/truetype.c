@@ -1,9 +1,10 @@
 #ifdef RL_TRUETYPE
 
 #undef pi
-#define optimize tt_optimize
-#define FAILED TT_FAILED
+#define optimize ttf_optimize
+#define FAILED TTF_FAILED
 #define TTF_NO_FILESYSTEM
+#define TTF_NO_SIGNAL_H
 #include "../libraries/orig/ttf2mesh.c"
 #undef optimize
 #undef FAILED
@@ -19,8 +20,18 @@ vector_font_t *load_truetype_font_as_triangles(const uint8_t *data, size_t size,
 
 	vector_font_t *font = init_font();
 
-	// Calculate the scale and typographic parameters
+	// Find the ascender height to calculate the scale
 	double scale = 6. / (double) ttf->os2.sTypoAscender;
+	for (int ic=0; ic < ttf->nchars; ic++)
+	{
+		if (ttf->chars[ic] == 'H')
+		{
+			scale = 6. / (double) ttf->glyphs[ttf->char2glyph[ic]].ybounds[1];
+			break;
+		}
+	}
+
+	// Typesetting parameters
 	font->letter_spacing = 0.;
 	font->line_vspacing = scale * (ttf->os2.sTypoLineGap + ttf->os2.sTypoAscender - ttf->os2.sTypoDescender);
 
