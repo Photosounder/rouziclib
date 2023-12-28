@@ -271,6 +271,11 @@ rect_t add_rect_xy(rect_t r, xy_t a)
 	return rect(add_xy(r.p0, a), add_xy(r.p1, a));
 }
 
+rect_t mad_rect_xy(rect_t r, xy_t a, xy_t b)
+{
+	return rect(mad_xy(r.p0, a, b), mad_xy(r.p1, a, b));
+}
+
 int equal_rect(rect_t r1, rect_t r2)
 {
 	r1 = sort_rect(r1);

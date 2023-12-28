@@ -1,8 +1,24 @@
 typedef struct
 {
+	rect_t bound;
+	double **c;
+	xyi_t degree;
+} polynomial_cell_t;
+
+typedef struct
+{
+	rect_t bound;
+	xyi_t dim;
+	xy_t step, inv_step;
+	polynomial_cell_t **cell;
+} polynomial_grid_t;
+
+typedef struct
+{
 	uint32_t codepoint, alias;
 	vobj_t *obj;
 	vobj_tri_t tri_mesh;
+	polynomial_grid_t polynomial_grid;
 	double bl, br, bb, bt;	// bounds to the left and right, bottom and top
 	double width;
 	textedit_t glyphdata_edit;

@@ -294,7 +294,7 @@ recti_t recti_intersection(recti_t r1, recti_t r2)		// boolean intersection
 	recti_t ri;
 
 	if (check_box_box_intersection_int(r1, r2)==0)
-		return recti( XYI0 , XYI0 );
+		return recti( XYI0 , set_xyi(-1) );
 
 	r1 = sort_recti(r1);
 	r2 = sort_recti(r2);

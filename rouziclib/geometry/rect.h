@@ -47,6 +47,7 @@ extern double rect_height_width_ratio(rect_t r);
 extern rect_t sort_rect(rect_t r);
 extern recti_t sort_recti(recti_t r);
 extern rect_t add_rect_xy(rect_t r, xy_t a);
+extern rect_t mad_rect_xy(rect_t r, xy_t a, xy_t b);
 extern int equal_rect(rect_t r1, rect_t r2);
 extern int isnan_rect(rect_t r);
 extern int is0_rect(const rect_t r);

@@ -25,13 +25,18 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 		else
 			fixoff -= l->bl;
 
+		xy_t pos = xy(p.x + off.x + fixoff*scale, p.y + off.y);
+
 		if (l->obj)
 			if (fb->use_dqnq)
-				draw_vobj_dqnq(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, col_thin);
+				draw_vobj_dqnq(l->obj, pos, scale, 0., line_thick, col_thin);
 			else
-				draw_vobj(l->obj, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, col_thin);
+				draw_vobj(l->obj, pos, scale, 0., line_thick, col_thin);
 		else
-			draw_vobj_tri(l->tri_mesh, xy(p.x + off.x + fixoff*scale, p.y + off.y), scale, 0., line_thick, col_poly);
+			if (l->polynomial_grid.cell)
+				draw_polynomial_grid(&l->polynomial_grid, pos, scale, 0., col_poly);
+			else
+				draw_vobj_tri(l->tri_mesh, pos, scale, 0., line_thick, col_poly);
 	}
 
 	// Alias

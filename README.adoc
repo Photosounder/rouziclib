@@ -428,7 +428,7 @@ Fit strings into rectangles with line breaks either to maximise the size of the 
 Generates CJK glyphs by combining strokes using a list of combinations. Doesn't really produce anything readable.
 
 ** link:rouziclib/vector_type/truetype.c[truetype.c] / link:rouziclib/vector_type/truetype.h[truetype.h] +
-Loads a TrueType font as a triangle mesh.
+Loads a TrueType font as a triangle mesh and can render a triangle mesh into a polynomial grid.
 
 ** link:rouziclib/vector_type/insert_rect.c[insert_rect.c] / link:rouziclib/vector_type/insert_rect.h[insert_rect.h] +
 An insert rect is a space in a string to be drawn on screen, and that space has its coordinates reported so that they can be used to insert an interface element where the space is. The width of the space is specified by combining private use Unicode codepoints that each represent a different spacing, the sum of which is the width of the space, and then a variation selector character which represents an index in an array. So for example by using the character that represents a space of 36 units, followed by the character that represents 3 units, followed by the character that represents an index of 0, I can make a space 39 units wide in some text and then by querying the insert rect at index 0 get the on-screen coordinates for that space so that I can place something there. I use it mainly for inserting text edit controls to enter a value in the middle of some text, so the text input field is automatically adjusted to be the right size and position to fit in perfectly.

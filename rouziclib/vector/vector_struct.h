@@ -16,4 +16,5 @@ typedef struct
 {
 	int count;
 	triangle_t *tri;
+	rect_t bound;
 } vobj_tri_t;
