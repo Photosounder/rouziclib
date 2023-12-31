@@ -63,23 +63,28 @@ vector_font_t *load_truetype_font_as_triangles(const uint8_t *data, size_t size,
 				{
 					l->tri_mesh.count = m->nfaces;
 					l->tri_mesh.tri = calloc(l->tri_mesh.count, sizeof(triangle_t));
+					l->tri_mesh.tri_bound = calloc(l->tri_mesh.count, sizeof(rect_t));
 
 					// Set the triangles
 					for (int it=0; it < l->tri_mesh.count; it++)
+					{
 						l->tri_mesh.tri[it] = mul_triangle(triangle(
 								xy(m->vert[m->faces[it].v1].x, m->vert[m->faces[it].v1].y), 
 								xy(m->vert[m->faces[it].v2].x, m->vert[m->faces[it].v2].y), 
 								xy(m->vert[m->faces[it].v3].x, m->vert[m->faces[it].v3].y)), set_xy(scale));
+						l->tri_mesh.tri_bound[it].p0 = min_xy(l->tri_mesh.tri[it].a, min_xy(l->tri_mesh.tri[it].b, l->tri_mesh.tri[it].c));
+						l->tri_mesh.tri_bound[it].p1 = max_xy(l->tri_mesh.tri[it].a, max_xy(l->tri_mesh.tri[it].b, l->tri_mesh.tri[it].c));
+					}
 
 					ttf_free_mesh(m);
 
 					// Calculate mesh bounds
-					l->tri_mesh.bound.p0 = l->tri_mesh.tri[0].a;
-					l->tri_mesh.bound.p1 = l->tri_mesh.tri[0].a;
-					for (int it=0; it < l->tri_mesh.count; it++)
+					l->tri_mesh.bound.p0 = l->tri_mesh.tri_bound[0].p0;
+					l->tri_mesh.bound.p1 = l->tri_mesh.tri_bound[0].p1;
+					for (int it=1; it < l->tri_mesh.count; it++)
 					{
-						l->tri_mesh.bound.p0 = min_xy(l->tri_mesh.bound.p0, min_xy(l->tri_mesh.tri[it].a, min_xy(l->tri_mesh.tri[it].b, l->tri_mesh.tri[it].c)));
-						l->tri_mesh.bound.p1 = max_xy(l->tri_mesh.bound.p1, max_xy(l->tri_mesh.tri[it].a, max_xy(l->tri_mesh.tri[it].b, l->tri_mesh.tri[it].c)));
+						l->tri_mesh.bound.p0 = min_xy(l->tri_mesh.bound.p0, l->tri_mesh.tri_bound[it].p0);
+						l->tri_mesh.bound.p1 = max_xy(l->tri_mesh.bound.p1, l->tri_mesh.tri_bound[it].p1);
 					}
 				}
 			}
@@ -95,19 +100,26 @@ polynomial_grid_t mesh_to_polynomial(vobj_tri_t *mesh, double radius, double max
 {
 	polynomial_grid_t grid = {0};
 	xyi_t ic, ip, p_count;
+	xy_t pos;
 
 	// Alloc cell samples and node positions
 	p_count = set_xyi(degree + 1);
 	double **z = (double **) calloc_2d_contig(p_count.y, p_count.x, sizeof(double));
 	xy_t **node = (xy_t **) calloc_2d_contig(p_count.y, p_count.x, sizeof(xy_t));
 
+	// Node scaling
+	// 1 is normal, 1/chebyshev_node(degree+1, 0) spreads out the nodes to make cells seamless
+	xy_t node_scale = XY1;
+	//xy_t node_scale = inv_xy(xy(chebyshev_node(degree+1, 0.), chebyshev_node(degree+1, 0.)));
+
 	// Calculate cell-relative node positions
 	for (ip.y=0; ip.y < p_count.y; ip.y++)
 		for (ip.x=0; ip.x < p_count.x; ip.x++)
-			node[ip.y][ip.x] = mad_xy(xy(chebyshev_node(p_count.x, ip.x), chebyshev_node(p_count.y, ip.y)), set_xy(0.5), set_xy(0.5));
+			node[ip.y][ip.x] = mad_xy(mul_xy(node_scale, xy(chebyshev_node(p_count.x, ip.x), chebyshev_node(p_count.y, ip.y))), set_xy(0.5), set_xy(0.5));
 
 	// Calculate grid and cell dimensions
-	grid.bound = rect_add_margin(mesh->bound, set_xy(radius * 3.));
+	xy_t rad_margin = set_xy(radius * 3.);
+	grid.bound = rect_add_margin(mesh->bound, rad_margin);
 	grid.dim = xy_to_xyi(ceil_xy(div_xy(get_rect_dim(grid.bound), set_xy(max_grid_step))));
 	grid.step = div_xy(get_rect_dim(grid.bound), xyi_to_xy(grid.dim));
 	grid.inv_step = inv_xy(grid.step);
@@ -121,15 +133,37 @@ polynomial_grid_t mesh_to_polynomial(vobj_tri_t *mesh, double radius, double max
 			memset(z[0], 0, mul_x_by_y_xyi(p_count) * sizeof(double));
 
 			// Compute the points by going through every triangle for every point of the cell
+			rect_t node_lim = rect_add_margin(rect(mad_xy(node[0][0], grid.step, start), mad_xy(node[p_count.y - 1][p_count.x - 1], grid.step, start)), rad_margin);
+			for (int it=0; it < mesh->count; it++)
+				if (check_box_box_intersection(mesh->tri_bound[it], node_lim))
+				{
+					rect_t tri_bound_pad = rect_add_margin(mesh->tri_bound[it], rad_margin);
+
+					for (ip.y=0; ip.y < p_count.y; ip.y++)
+					{
+						pos.y = node[ip.y][0].y * grid.step.y + start.y;
+						if (tri_bound_pad.p0.y < pos.y && pos.y < tri_bound_pad.p1.y)
+							for (ip.x=0; ip.x < p_count.x; ip.x++)
+							{
+								pos.x = node[ip.y][ip.x].x * grid.step.x + start.x;
+								if (tri_bound_pad.p0.x < pos.x && pos.x < tri_bound_pad.p1.x)
+									z[ip.y][ip.x] -= eval_polygon_at_pos((xy_t *) &mesh->tri[it], 3, radius, pos);
+							}
+					}
+				}
+
+			// Sqrt the samples
 			for (ip.y=0; ip.y < p_count.y; ip.y++)
 				for (ip.x=0; ip.x < p_count.x; ip.x++)
-					for (int it=0; it < mesh->count; it++)
-						z[ip.y][ip.x] += -eval_polygon_at_pos((xy_t *) &mesh->tri[it], 3, radius, mad_xy(node[ip.y][ip.x], grid.step, start));
+					z[ip.y][ip.x] = sqrt(MAXN(0., z[ip.y][ip.x]));
 
 			// Fit points into polynomial coefs
-			grid.cell[ic.y][ic.x].bound = make_rect_off(start, grid.step, XY0);
-			grid.cell[ic.y][ic.x].degree = set_xyi(degree);
-			grid.cell[ic.y][ic.x].c = polynomial_fit_on_points_by_dct_2d(z, p_count, start, add_xy(start, grid.step), NULL, set_xyi(degree));
+			polynomial_cell_t *cell = &grid.cell[ic.y][ic.x];
+			cell->bound = make_rect_off(start, grid.step, XY0);
+			cell->eval_offset = get_rect_centre(cell->bound);
+			cell->degree = set_xyi(degree);
+			xy_t span = mul_xy(grid.step, mul_xy(node_scale, set_xy(0.5)));
+			cell->c = polynomial_fit_on_points_by_dct_2d(z, p_count, neg_xy(span), span, NULL, set_xyi(degree));
 		}
 
 	free_2d(z, 1);
@@ -148,7 +182,41 @@ void font_gen_polynomial_grids(vector_font_t *font, double asc_height_px, double
 		l = &font->l[il];
 
 		if (l->tri_mesh.tri)
-			l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*0.5, 2);
+			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*5., 9);	// 7.04"
+			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*3., 6);
+			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*2.6, 5);	// 2.87"
+			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*1.6, 4);
+			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*1.7, 3);	// 2.31"
+			l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*0.978, 2);	// 5.98"
+			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*0.2, 1);
+
+		/*
+plot v0 = erfr(x/0.8)
+fit erfr(t/0.8)
+plot v3 = v0 + (poly(x)-v0)*10
+
+			err:	1/1000		1/400
+			Deg 1			0.231 @ 0.567
+			Deg 2	0.447 @ 0.014	0.611 @ 0.020
+			Deg 3	0.891 @ 0.428	1.139 @ 0.438
+			Deg 4	1.303 @ 0.018	1.602 @ 0.022
+			Deg 5			2.147 @ 0.396
+			Deg 6			2.612 @ 0.022
+			Deg 9			4.130 @ 0.355
+
+plot v0 = sqrt(erfr(x/0.8))
+fit sqrt(erfr(t/0.8))
+plot v3 = v0 + (poly(x)-v0)*10
+
+			err:	1/200
+			Deg 1	
+			Deg 2	0.978 @-0.343
+			Deg 3	1.705 @ 0.246
+			Deg 4	
+			Deg 5	
+			Deg 6	
+			Deg 9	
+		   */
 	}
 }
 
@@ -178,8 +246,9 @@ void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, 
 
 			ic = rangelimit_xyi(ic, XYI0, sub_xyi(grid->dim, XYI1));
 
-			pix = eval_polynomial_2d(p, grid->cell[ic.y][ic.x].c, grid->cell[ic.y][ic.x].degree);
-			pix = MAXN(0., pix);
+			pix = eval_polynomial_2d(sub_xy(p, grid->cell[ic.y][ic.x].eval_offset), grid->cell[ic.y][ic.x].c, grid->cell[ic.y][ic.x].degree);
+			//pix = MAXN(0., pix);
+			pix *= pix;
 
 			blend_add(&fb->r.l[ip.y*fb->r.dim.x + ip.x], colour, pix * ONEF + 0.5);
 		}

@@ -70,8 +70,8 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 {
 	double grad;
 	xyi_t ip, pf, d0, d1, gv;
-	rect_t gr, fr, screen_box = rect(XY0, xy(fb->w-1, fb->h-1));
-	recti_t gri, fri, rfp;
+	rect_t gr, fr;
+	recti_t gri, fri, rfp, screen_box = recti(XYI0, xyi(fb->w-1, fb->h-1));
 	int32_t fbi, p, iradf, ratio;
 	const int32_t fp=16;
 	const double fpratio = (double) (1<<fp);
@@ -91,15 +91,16 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 	gr.p0 = ceil_xy(sub_xy(box.p0, set_xy(grad)));
 	gr.p1 = floor_xy(add_xy(box.p1, set_xy(grad)));
 
-	gri.p0 = xy_to_xyi(max_xy(gr.p0, screen_box.p0));
-	gri.p1 = xy_to_xyi(min_xy(gr.p1, screen_box.p1));
+	//FIXME for huge gr values
+	gri.p0 = max_xyi(xy_to_xyi(gr.p0), screen_box.p0);
+	gri.p1 = min_xyi(xy_to_xyi(gr.p1), screen_box.p1);
 
 	// calculate the fill rectangle, which is the inner rectangle where pixels are just filled plainly
 	fr.p0 = ceil_xy(add_xy(box.p0, set_xy(grad)));
 	fr.p1 = floor_xy(sub_xy(box.p1, set_xy(grad)));
 
-	fri.p0 = xy_to_xyi(max_xy(fr.p0, screen_box.p0));
-	fri.p1 = xy_to_xyi(min_xy(fr.p1, screen_box.p1));
+	fri.p0 = max_xyi(xy_to_xyi(fr.p0), screen_box.p0);
+	fri.p1 = min_xyi(xy_to_xyi(fr.p1), screen_box.p1);
 
 	if (fri.p1.x <= fri.p0.x || fri.p1.y <= fri.p0.y)	// if there is no plain fill area
 	{

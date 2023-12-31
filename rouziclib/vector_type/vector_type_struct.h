@@ -3,6 +3,7 @@ typedef struct
 	rect_t bound;
 	double **c;
 	xyi_t degree;
+	xy_t eval_offset;
 } polynomial_cell_t;
 
 typedef struct

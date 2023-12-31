@@ -972,21 +972,40 @@ void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_
 
 	memset_2d(c, 0, (degree.x+1)*sizeof(double), degree.y+1);
 
-	// x and y substitution for the shifting
+	// x and y substitution for the shifting where x' = x*xs[1] + xs[0]
 	xs[0] = -2.*start.x/(end.x-start.x) - 1.;
 	ys[0] = -2.*start.y/(end.y-start.y) - 1.;
 	xs[1] = 2. / (end.x-start.x);
 	ys[1] = 2. / (end.y-start.y);
 
 	// Transform each Chebyshev coef into a polynomial
-	for (id.y=0; id.y <= degree.y; id.y++)
-		for (id.x=0; id.x <= degree.x; id.x++)
-		{
-			cc = chebyshev_coefs_2d(id);					// get the default polynomial coeficients
-			polynomial_scalar_mul_2d(cc, id, cm[id.y][id.x], cc);		// apply the multiplier
-			polynomial_x_substitution_2d(cc, id, xs, ys, xyi(1, 1), c);	// shift the polynomial and add to c
-			free_2d(cc, 1);
-		}
+	if (xs[0] == 0. && ys[0] == 0.)		// when there's no offset the transformation is simpler
+	{
+		for (id.y=0; id.y <= degree.y; id.y++)
+			for (id.x=0; id.x <= degree.x; id.x++)
+			{
+				xy_t ie;	// ie = (xs[1] ^ ia.x , ys[1] ^ ia.y)
+				xyi_t ia;
+
+				cc = chebyshev_coefs_2d(id);						// get the default polynomial coeficients
+				polynomial_scalar_mul_2d(cc, id, cm[id.y][id.x], cc);			// apply the multiplier
+				for (ie.y=1., ia.y=0; ia.y <= id.y; ia.y++, ie.y*=ys[1])
+					for (ie.x=1., ia.x=0; ia.x <= id.x; ia.x++, ie.x*=xs[1])
+						c[ia.y][ia.x] += cc[ia.y][ia.x] * ie.x * ie.y;		// multiply the coefficients by the exponentiated scale and add to c
+				free_2d(cc, 1);
+			}
+	}
+	else
+	{
+		for (id.y=0; id.y <= degree.y; id.y++)
+			for (id.x=0; id.x <= degree.x; id.x++)
+			{
+				cc = chebyshev_coefs_2d(id);					// get the default polynomial coeficients
+				polynomial_scalar_mul_2d(cc, id, cm[id.y][id.x], cc);		// apply the multiplier
+				polynomial_x_substitution_2d(cc, id, xs, ys, xyi(1, 1), c);	// shift the polynomial and add to c
+				free_2d(cc, 1);
+			}
+	}
 }
 
 double **chebyshev_fit_on_points_by_dct_2d(double **z, xyi_t p_count, xyi_t degree)
