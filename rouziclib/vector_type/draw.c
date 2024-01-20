@@ -1,3 +1,5 @@
+const _Thread_local blend_func_t vector_font_blending_mode = blend_add;
+
 int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t col_thin, col_t col_poly, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
@@ -34,7 +36,7 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 				draw_vobj(l->obj, pos, scale, 0., line_thick, col_thin);
 		else
 			if (l->polynomial_grid.cell)
-				draw_polynomial_grid(&l->polynomial_grid, pos, scale, 0., col_poly);
+				draw_polynomial_grid(&l->polynomial_grid, pos, scale, 0., col_poly, vector_font_blending_mode);
 			else
 				draw_vobj_tri(l->tri_mesh, pos, scale, 0., line_thick, col_poly);
 	}

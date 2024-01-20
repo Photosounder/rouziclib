@@ -146,11 +146,6 @@
 #include "interpreter/decompilation.c"
 #include "interpreter/expression.c"
 
-#ifdef RL_WAHE
-#include "wahe/wahe.c"
-#include "wahe/wahe_parser.c"
-#include "wahe/wahe_execution.c"
-#endif
 #include "wahe/wahe_module_side.c"
 
 #include "libraries/opencl.c"

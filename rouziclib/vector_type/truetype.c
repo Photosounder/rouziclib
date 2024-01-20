@@ -182,37 +182,19 @@ void font_gen_polynomial_grids(vector_font_t *font, double asc_height_px, double
 		l = &font->l[il];
 
 		if (l->tri_mesh.tri)
-			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*5., 9);	// 7.04"
-			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*3., 6);
-			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*2.6, 5);	// 2.87"
-			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*1.6, 4);
-			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*1.7, 3);	// 2.31"
-			l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*0.978, 2);	// 5.98"
-			//l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*0.2, 1);
+			l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*0.8, 2);
 
 		/*
-plot v0 = erfr(x/0.8)
-fit erfr(t/0.8)
-plot v3 = v0 + (poly(x)-v0)*10
-
-			err:	1/1000		1/400
-			Deg 1			0.231 @ 0.567
-			Deg 2	0.447 @ 0.014	0.611 @ 0.020
-			Deg 3	0.891 @ 0.428	1.139 @ 0.438
-			Deg 4	1.303 @ 0.018	1.602 @ 0.022
-			Deg 5			2.147 @ 0.396
-			Deg 6			2.612 @ 0.022
-			Deg 9			4.130 @ 0.355
-
-plot v0 = sqrt(erfr(x/0.8))
-fit sqrt(erfr(t/0.8))
-plot v3 = v0 + (poly(x)-v0)*10
+plot v0 = sqrt(erfr(x))
+fit sqrt(erfr(t))
+plot v1 = v0^2
+plot v3 = v0^2 + (poly(x)^2-v0^2)*10
 
 			err:	1/200
-			Deg 1	
-			Deg 2	0.978 @-0.343
-			Deg 3	1.705 @ 0.246
-			Deg 4	
+			Deg 1		0.400 @ 0.379	3.90"
+			Deg 2	1.222 @-0.343	1.96"
+			Deg 3		1.705 @ 0.246	1.77"
+			Deg 4		2.376 @-0.329	2.08"
 			Deg 5	
 			Deg 6	
 			Deg 9	
@@ -222,7 +204,7 @@ plot v3 = v0 + (poly(x)-v0)*10
 
 #endif
 
-void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, double angle, lrgb_t colour)
+void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, double angle, lrgb_t colour, const blend_func_t bf)
 {
 	xyi_t ip, ic;
 	xy_t p;
@@ -247,15 +229,14 @@ void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, 
 			ic = rangelimit_xyi(ic, XYI0, sub_xyi(grid->dim, XYI1));
 
 			pix = eval_polynomial_2d(sub_xy(p, grid->cell[ic.y][ic.x].eval_offset), grid->cell[ic.y][ic.x].c, grid->cell[ic.y][ic.x].degree);
-			//pix = MAXN(0., pix);
 			pix *= pix;
 
-			blend_add(&fb->r.l[ip.y*fb->r.dim.x + ip.x], colour, pix * ONEF + 0.5);
+			bf(&fb->r.l[ip.y*fb->r.dim.x + ip.x], colour, pix * ONEF + 0.5);
 		}
 	}
 }
 
-void draw_polynomial_grid(polynomial_grid_t *grid, xy_t pos, double scale, double angle, col_t colour)
+void draw_polynomial_grid(polynomial_grid_t *grid, xy_t pos, double scale, double angle, col_t colour, const blend_func_t bf)
 {
 	if (fb->use_drawq)
 		if (fb->use_dqnq)
@@ -265,5 +246,5 @@ void draw_polynomial_grid(polynomial_grid_t *grid, xy_t pos, double scale, doubl
 	else if (fb->r.use_frgb)
 		return;
 	else
-		draw_polynomial_grid_lrgb(grid, pos, scale, angle, col_to_lrgb(colour));
+		draw_polynomial_grid_lrgb(grid, pos, scale, angle, col_to_lrgb(colour), bf);
 }

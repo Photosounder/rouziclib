@@ -22,5 +22,6 @@ extern void draw_string(vector_font_t *font, const char *string, xy_t p, double 
 extern void print_to_screen(xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, const char *format, ...);
 
 extern col_t text_sel_col;
+extern const _Thread_local blend_func_t vector_font_blending_mode;
 
 //#define print_to_screen(pos, scale, colour, intensity, mode, format, ...)

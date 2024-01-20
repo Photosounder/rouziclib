@@ -78,20 +78,21 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 
 	ratio = 32768. * intensity + 0.5;
 	if (ratio == 0)
-		return ;
+		return;
 
-	iradf = roundaway(1./radius * fpratio);
+	// Shrink box to fit in a maximum size and check if it's entirely off-screen
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±3
+	box = rect_intersection(box, rect_add_margin(recti_to_rect(screen_box), set_xy(grad+1.)));
+	if (isnan(box.p0.x))
+		return;
 
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
-
-	box = sort_rect(box);
 	rfp = rect_to_recti_fixedpoint(box, fpratio);
+	iradf = roundaway(1./radius * fpratio);
 
 	// calculate the gauss rectangle, which is the outer rectangle that contains all the pixels
 	gr.p0 = ceil_xy(sub_xy(box.p0, set_xy(grad)));
 	gr.p1 = floor_xy(add_xy(box.p1, set_xy(grad)));
 
-	//FIXME for huge gr values
 	gri.p0 = max_xyi(xy_to_xyi(gr.p0), screen_box.p0);
 	gri.p1 = min_xyi(xy_to_xyi(gr.p1), screen_box.p1);
 

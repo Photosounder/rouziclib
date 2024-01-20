@@ -6,5 +6,5 @@ extern void font_gen_polynomial_grids(vector_font_t *font, double asc_height_px,
 
 #endif
 
-extern void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, double angle, lrgb_t colour);
-extern void draw_polynomial_grid(polynomial_grid_t *grid, xy_t pos, double scale, double angle, col_t colour);
+extern void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, double angle, lrgb_t colour, const blend_func_t bf);
+extern void draw_polynomial_grid(polynomial_grid_t *grid, xy_t pos, double scale, double angle, col_t colour, const blend_func_t bf);

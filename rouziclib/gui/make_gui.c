@@ -1116,7 +1116,7 @@ void gui_layout_unimplemented_elems(gui_layout_t *layout)
 
 				case gui_type_rect:
 				case gui_type_textedit:
-					draw_rect_fromlayout(1, layout, id);
+					draw_rect_fromlayout(0, layout, id);
 					break;
 
 				case gui_type_selmenu:

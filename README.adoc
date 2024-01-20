@@ -574,15 +574,6 @@ This turns mathematical expressions into RLIP programs. This serves as a replace
 
 * link:rouziclib/wahe[wahe/]
 
-** link:rouziclib/wahe/wahe.c[wahe.c] / link:rouziclib/wahe/wahe.h[wahe.h] +
-**W**eb**A**ssembly **H**ost **E**nvironment.
-
-** link:rouziclib/wahe/wahe_parser.c[wahe_parser.c] / link:rouziclib/wahe/wahe_parser.h[wahe_parser.h] +
-Parses .wahe configuration files into a wahe_group_t structure.
-
-** link:rouziclib/wahe/wahe_execution.c[wahe_execution.c] / link:rouziclib/wahe/wahe_execution.h[wahe_execution.h] +
-Executes a WAHE setup.
-
 ** link:rouziclib/wahe/wahe_module_side.c[wahe_module_side.c] / link:rouziclib/wahe/wahe_module_side.h[wahe_module_side.h] +
 Functions used for writing WAHE modules that use rouziclib and its GUI system.
 
@@ -592,7 +583,7 @@ Functions used for writing WAHE modules that use rouziclib and its GUI system.
 OpenCL code for initialising a context, compiling a kernel and more. Relies on https://github.com/martijnberger/clew[CLEW].
 
 ** link:rouziclib/libraries/sdl.c[sdl.c] / link:rouziclib/libraries/sdl.h[sdl.h] +
-SDL2 code to get display and driver information, handle various types of events, control the mouse cursor, initialise graphics and audio, use the clipboard, poll drag-and-drop file events. Also includes a function that serves as a program's main loop that calls a function you provide, with a structure to select features.
+SDL2 and SDL3 code to get display and driver information, handle various types of events, control the mouse cursor, initialise graphics and audio, use the clipboard, poll drag-and-drop file events. Also includes a function that serves as a program's main loop that calls a function you provide, with a structure to select features.
 
 ** link:rouziclib/libraries/vulkan.c[vulkan.c] / link:rouziclib/libraries/vulkan.h[vulkan.h] and link:rouziclib/libraries/vulkan_struct.h[vulkan_struct.h] +
 Aborted attempt to port my OpenCL system to Vulkan. Vulkan is rather complicated.
