@@ -18,7 +18,7 @@ void *dynlib_open(const char *path)
 	free(wpath);
 	return module;
 #else
-	return dlopen(path, RTLD_LOCAL);
+	return dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
 }
 
