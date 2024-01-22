@@ -297,7 +297,7 @@ char *sprint_timestamp_short(char *string, double t, int prec)
 		sprintf(string, "%d", ts);
 
 	if (prec > 0)
-		sprintf(&string[strlen(string)], ".%0*d", prec, ti%pm);
+		sprintf(&string[strlen(string)], ".%0*d", MINN(prec, 32), ti%pm);
 
 	return string;
 }

@@ -59,7 +59,7 @@ void rl_thread_set_priority_low()
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_LOWEST);
 
 	#elif defined(NOT_WINDOWS)
-	nice(39);
+	int ret = nice(39);
 
 	#else 
 	#error Unknown platform.

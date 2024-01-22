@@ -2,7 +2,6 @@ int ctrl_polyline(polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
 {
 	xy_t pos;
 	int i, j, k, lmb, rmb, ds_alloc;
-	char ds_label[8];
 
 	box = offset_scale_rect(box, offset, sm);
 
@@ -34,7 +33,6 @@ int ctrl_polyline(polyline_edit_t *pl, rect_t box, xy_t offset, double sm)
 
 	for (i=0; i < pl->pv_count; i++)
 	{
-		sprintf(ds_label, "p%d", i);
 		ctrl_drag_set_dim(&pl->ds[i], set_xy(0.25 * sm));
 		if (ctrl_draggable(&pl->ds[i]))
 			pl->pv[i] = offset_scale_inv(pl->ds[i].pos, offset, sm);

@@ -78,7 +78,7 @@ uint8_t *load_raw_file(const char *path, size_t *size)
 	data = calloc(fsize+1, sizeof(uint8_t));
 
 	// Read all the data at once
-	fread(data, 1, fsize, in_file);
+	int ret = fread(data, 1, fsize, in_file);
 	fclose(in_file);
 
 	if (size)
@@ -110,7 +110,7 @@ uint8_t *load_raw_file_dos_conv(const char *path, size_t *size)	// loads raw fil
 	for (i=0; i < fsize; i++)
 	{
 		byte0 = byte1;
-		fread(&byte1, 1, 1, in_file);
+		int ret = fread(&byte1, 1, 1, in_file);
 
 		if (byte0=='\r' && byte1=='\n')
 			offset++;
