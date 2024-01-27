@@ -978,8 +978,7 @@ void my_window_function(double *arg1, double *arg2)
 	
 	// Print UTF-8 to the console
 		#ifdef _WIN32
-		SetConsoleOutputCP(CP_UTF8);
-		SetConsoleCP(CP_UTF8);
+		SetConsoleOutputCP(65001);
 		#endif
 
 	// Print a string to a certain length

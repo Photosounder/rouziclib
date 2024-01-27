@@ -1,3 +1,9 @@
+// FIXME Problem inputs:
+/*
+expr d v = cos(x)
+return v v v
+*/	// the first line can't be an 'expr' somehow
+
 enum opcode_table
 {
 	table_none=0,
@@ -561,34 +567,43 @@ line_proc_start:
 			ir = rlip_find_value(s0, ed);
 			if (ir > -1)	// this most likely is the result of a forward jump meaning we must go through previous opcodes to add in the correct offsets
 			{
-				ed->loc[ed->reg[ir].index] = ed->op_count;	// add the correct current location
-
-				// Go through all previous opcodes to look for forward jumps to this location
-				for (io=0; io < ed->op_count;)
+				// Check that this is a location and not a variable with the same name
+				if (ed->reg[ir].type[0] == 'l' && ed->reg[ir].type[1] == '\0')
 				{
-					if (ed->op[io] == nop_jmp)
-						if (ed->op[io+1] == ir)
-						{
-							ed->op[io] = op_jmp;
-							ed->op[io+1] = ed->op_count - io;
-							fwd_jumps--;
-						}
+					ed->loc[ed->reg[ir].index] = ed->op_count;	// add the correct current location
 
-					if (ed->op[io] == nop_jmp_cond)
-						if (ed->op[io+2] == ir)
-						{
-							ed->op[io] = op_jmp_cond;
-							ed->op[io+2] = ed->op_count - io;
-							fwd_jumps--;
-						}
-
-					if ((ed->op[io] >> 10) < 1)
+					// Go through all previous opcodes to look for forward jumps to this location
+					for (io=0; io < ed->op_count;)
 					{
-						bufprintf(comp_log, "op[%d] is %d\n", io, ed->op[io]);
-						goto invalid_prog;
-					}
+						if (ed->op[io] == nop_jmp)
+							if (ed->op[io+1] == ir)
+							{
+								ed->op[io] = op_jmp;
+								ed->op[io+1] = ed->op_count - io;
+								fwd_jumps--;
+							}
 
-					io += ed->op[io] >> 10;
+						if (ed->op[io] == nop_jmp_cond)
+							if (ed->op[io+2] == ir)
+							{
+								ed->op[io] = op_jmp_cond;
+								ed->op[io+2] = ed->op_count - io;
+								fwd_jumps--;
+							}
+
+						if ((ed->op[io] >> 10) < 1)
+						{
+							bufprintf(comp_log, "op[%d] is %d\n", io, ed->op[io]);
+							goto invalid_prog;
+						}
+
+						io += ed->op[io] >> 10;
+					}
+				}
+				else
+				{
+					bufprintf(comp_log, "Location '%s' used in line %d: '%s' is already declared as a type '%s'\n", s0, il, line[il], ed->reg[ir].type);
+					goto invalid_prog;
 				}
 			}
 			else
