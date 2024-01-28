@@ -886,6 +886,18 @@ add_command:
 									else if (strcmp(ed->reg[ir].type, "fdddi")==0)	new_opcode = op_func3_dddi;
 									else if (strcmp(ed->reg[ir].type, "frrrr")==0)	new_opcode = op_func3_rrrr;
 									break;
+								case 5:
+									if (strcmp(ed->reg[ir].type, "fddddd")==0)	new_opcode = op_func4_ddddd;
+									break;
+								case 6:
+									if (strcmp(ed->reg[ir].type, "fdddddd")==0)	new_opcode = op_func5_dddddd;
+									break;
+								case 7:
+									if (strcmp(ed->reg[ir].type, "fddddddd")==0)	new_opcode = op_func6_ddddddd;
+									break;
+								case 8:
+									if (strcmp(ed->reg[ir].type, "fdddddddd")==0)	new_opcode = op_func7_dddddddd;
+									break;
 							}
 
 							if (new_opcode == 0)

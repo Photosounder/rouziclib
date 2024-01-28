@@ -124,8 +124,20 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_func3_dddd:	vd[op[1]] = ((double (*)(double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]]);
 			break;	case op_func3_dddi:	vd[op[1]] = ((double (*)(double,double,int)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vi[op[5]]);
 			break;	case op_func3_rrrr:	((void (*)(uint8_t *,uint8_t *,uint8_t *,uint8_t *)) d->ptr[op[2]])(&vr[op[1]], &vr[op[3]], &vr[op[4]], &vr[op[5]]);
-			break;
 
+			// 7 word ops
+			break;	case op_func4_ddddd:	vd[op[1]] = ((double (*)(double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]]);
+
+			// 8 word ops
+			break;	case op_func5_dddddd:	vd[op[1]] = ((double (*)(double,double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]], vd[op[7]]);
+
+			// 9 word ops
+			break;	case op_func6_ddddddd:	vd[op[1]] = ((double (*)(double,double,double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]], vd[op[7]], vd[op[8]]);
+
+			// 10 word ops
+			break;	case op_func7_dddddddd:	vd[op[1]] = ((double (*)(double,double,double,double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]], vd[op[7]], vd[op[8]], vd[op[9]]);
+
+			break;
 			default:
 				fprintf_rl(stderr, "Invalid opcode '%d' at op[%zu]\n", op[0], (op - d->op) / sizeof(opint_t));
 				return -2;

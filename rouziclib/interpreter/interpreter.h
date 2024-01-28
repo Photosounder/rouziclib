@@ -95,7 +95,16 @@ enum opcode
 	op_func3_rrrr,
 
 	op_7word_ops = 7168,
+	op_func4_ddddd,
+
 	op_8word_ops = 8192,
+	op_func5_dddddd,
+
+	op_9word_ops = 9216,
+	op_func6_ddddddd,
+
+	op_10word_ops = 10240,
+	op_func7_dddddddd,
 };
 
 typedef struct
