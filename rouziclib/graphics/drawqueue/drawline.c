@@ -87,14 +87,14 @@ void dqsb_draw_point_add(float *le, float *block, xy_t start_pos, const int bs, 
 	int ic, ib=0;
 
 	// Specific variables
-	__m128 cx, cy, rad, col[4];
+	__m128 cx, cy, /*rad,*/ col[4];
 	__m128 weight, d, dy2, dx2;
 	const float gl = DQS_GAUSS_LIMIT;
 
 	// Load parameters
 	cx = _mm_set_ps1(le[0]);
 	cy = _mm_set_ps1(le[1]);
-	rad = _mm_set_ps1(le[2]);
+	//rad = _mm_set_ps1(le[2]);
 	col[0] = _mm_set_ps1(le[3]);
 	col[1] = _mm_set_ps1(le[4]);
 	col[2] = _mm_set_ps1(le[5]);

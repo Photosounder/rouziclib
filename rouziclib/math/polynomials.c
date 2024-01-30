@@ -1369,10 +1369,8 @@ void polynomial_fit_on_function_by_dct_minmax(double (*f)(double), double start,
 double reduce_digits(double (*f)(double), double segstart, double segend, double *c, const int degree, int errmode, double added_error_thresh, double digits)
 {
 	int i;
-	double err0, err1, err_orig;
+	double err0, err1;
 	double l, m, r=0., rp;
-
-	err_orig = get_polynomial_error(f, segstart, segend, c, degree, NEGMODE);
 
 	for (i=0; i <= degree; i++)		// go through every coef to round it
 	{
@@ -1418,10 +1416,8 @@ double reduce_digits(double (*f)(double), double segstart, double segend, double
 double reduce_digits_2d(double (*f)(double,double), xy_t segstart, xy_t segend, double **c, const xyi_t degree, int errmode, double added_error_thresh, double digits)
 {
 	xyi_t ip;
-	double err0, err1, err_orig;
+	double err0, err1;
 	double l, m, r=0., rp;
-
-	err_orig = get_polynomial_error_2d(f, segstart, segend, c, degree, NEGMODE);
 
 	for (ip.y=0; ip.y <= degree.y; ip.y++)		// go through every coef to round it
 		for (ip.x=0; ip.x <= degree.x; ip.x++)

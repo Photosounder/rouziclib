@@ -20,12 +20,10 @@ void draw_titled_roundrect_frame(xy_t pos, double radius, xy_t c, xy_t space, lr
 
 void draw_label(const uint8_t *label, rect_t box, col_t colour, const int mode)
 {
-	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
+	double scale = rect_min_side(box), total_scale = scale*zc.scrscale;
 
 	if (total_scale < 1./fb->pixel_scale)
 		return ;
-
-	intensity = rect_ctrl_intensity_scale(box);
 
 	//box.p0.x += 2.*scale/LINEVSPACING;
 	//box.p1.x -= 2.*scale/LINEVSPACING;
@@ -35,12 +33,10 @@ void draw_label(const uint8_t *label, rect_t box, col_t colour, const int mode)
 
 void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
 {
-	double intensity, scale = rect_min_side(box), total_scale = scale*zc.scrscale;
+	double scale = rect_min_side(box), total_scale = scale*zc.scrscale;
 
 	if (total_scale < 1./fb->pixel_scale)
 		return ;
-
-	intensity = intensity_scaling(total_scale, 24.);
 
 	//box.p0.x += 2.*scale/LINEVSPACING;
 	//box.p1.x -= 2.*scale/LINEVSPACING;
@@ -50,12 +46,10 @@ void draw_text_block(const uint8_t *label, rect_t box, col_t colour, const int m
 
 void draw_text_at_scale(const uint8_t *label, rect_t box, col_t colour, const int mode, double thresh)
 {
-	double intensity, scale;
+	double scale;
 
 	scale = get_rect_dim(box).x / thresh;
 	scale *= zc.scrscale;
-
-	intensity = intensity_scaling(scale, 3.);
 
 	draw_string(font, label, add_xy(xy(0., 8*scale), sc_xy(rect_p01(box))), scale, colour, 1., drawing_thickness, mode, NULL);
 }

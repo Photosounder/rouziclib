@@ -43,7 +43,7 @@ void write_icc_profile_mluc(FILE *file, const char *string)
 	uint16_t utf16[3];
 	uint32_t c;
 
-	tag_size = icc_mluc_size(string, &padding);
+	icc_mluc_size(string, &padding);
 
 	// Write tags
 	fprintf_override(file, "mluc");				// Type signature

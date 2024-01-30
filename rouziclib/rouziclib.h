@@ -42,6 +42,19 @@ extern "C" {
 #include <float.h>
 #include <limits.h>
 
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
+  #pragma clang diagnostic ignored "-Wunused-variable"
+  #pragma clang diagnostic ignored "-Wpointer-sign"
+  #pragma clang diagnostic ignored "-Wunused-function"
+  #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  #pragma clang diagnostic ignored "-Wdangling-else"
+  #pragma clang diagnostic ignored "-Wshift-op-parentheses"
+  #pragma clang diagnostic ignored "-Wmisleading-indentation"
+  #pragma clang diagnostic ignored "-Wparentheses"
+#endif
+
 #include "general/windows_includes.h"
 
 #if defined(_MSC_VER)

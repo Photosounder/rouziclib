@@ -266,7 +266,7 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 {
 #ifdef RL_OPENCL
 	uint64_t ret=0;
-	int i, hash;
+	int i/*, hash*/;
 	const int ht_size = 1 << 16;
 	const int ht_mask = ht_size - 1;
 
@@ -287,7 +287,7 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 	}
 
 	// Check hash table FIXME unused
-	hash = get_pointer_hash(buffer) & ht_mask;
+	//hash = get_pointer_hash(buffer) & ht_mask;
 
 	if (fb->hash_table.elem==NULL)	// alloc hash table
 	{

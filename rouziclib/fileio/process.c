@@ -23,7 +23,7 @@ PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags)
 				&procinf)	// Pointer to PROCESS_INFORMATION structure
 	  ) 
 	{
-		fprintf_rl(stderr, "CreateProcessW failed (%d) in create_process_direct(%s)\n", GetLastError(), cmd);
+		fprintf_rl(stderr, "CreateProcessW failed (%ld) in create_process_direct(%s)\n", GetLastError(), cmd);
 		return procinf;
 	}
 
@@ -55,7 +55,7 @@ PROCESS_INFORMATION create_process_flags(const char *cmd, DWORD flags, int close
 				&procinf)	// Pointer to PROCESS_INFORMATION structure
 	  ) 
 	{
-		fprintf_rl(stderr, "CreateProcessW failed (%d) in create_process_flags(%s)\n", GetLastError(), cmd);
+		fprintf_rl(stderr, "CreateProcessW failed (%ld) in create_process_flags(%s)\n", GetLastError(), cmd);
 		return procinf;
 	}
 

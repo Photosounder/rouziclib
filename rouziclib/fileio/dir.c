@@ -345,7 +345,7 @@ int64_t get_volume_free_space(const char *path)
 
 	if (GetDiskFreeSpaceExW(wpath, (PULARGE_INTEGER) &free_space, NULL, NULL)==0)
 	{
-		fprintf_rl(stderr, "GetLastError() in get_volume_free_space(): %d\n", GetLastError());
+		fprintf_rl(stderr, "GetLastError() in get_volume_free_space(): %ld\n", GetLastError());
 		return -1;
 	}
 

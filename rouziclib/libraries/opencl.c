@@ -135,13 +135,12 @@ void check_compilation_log(clctx_t *c, cl_program program)
 
 char *cl_get_device_string(clctx_t *c, cl_device_info param_name)
 {
-	cl_int ret=0;
 	size_t info_size;
 	char *string=NULL;
 
-	ret = clGetDeviceInfo(c->device_id, param_name, 0, NULL, &info_size);
+	clGetDeviceInfo(c->device_id, param_name, 0, NULL, &info_size);
 	string = calloc(info_size, sizeof(char));
-	ret = clGetDeviceInfo(c->device_id, param_name, info_size, string, NULL);
+	clGetDeviceInfo(c->device_id, param_name, info_size, string, NULL);
 
 	return string;
 }

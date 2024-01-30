@@ -559,7 +559,7 @@ line_proc_start:
 		sscanf(p, "%30s = %n", s0, &n);
 
 		// Declaring a location
-		if (s0[strlen(s0)-1] == ':')
+		if (s0[0] && s0[strlen(s0) - 1] == ':')
 		{
 			s0[strlen(s0)-1] = '\0';	// remove : to make location name
 

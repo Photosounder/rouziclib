@@ -868,11 +868,9 @@ int ctrl_button_fromlayout_offset(gui_layout_t *layout, const int id, const xy_t
 int ctrl_button_invis_fromlayout_offset(ctrl_button_state_t *butt_state_ptr, gui_layout_t *layout, const int id, const xy_t offset)
 {
 	int ret;
-	layout_elem_t *cur_elem=NULL;
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return 0;
-	cur_elem = &layout->elem[id];
 
 	ret = ctrl_button_invis(gui_layout_elem_comp_area_os(layout, id, offset), butt_state_ptr);
 

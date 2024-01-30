@@ -25,7 +25,7 @@ void physical_integration_xy(xy_t *pos, xy_t *vel, xy_t acc, double dt)
 	enum { meth_euler, meth_rk2, meth_rk4 };
 	const int method = meth_euler;
 	double xo, yo, ax0, ax1, ax2, ay0, ay1, ay2, hvx, hvy;
-	xy_t po, a0, a1, a2, hv;
+	xy_t a0, a1, a2, hv;
 
 	// f(t) = vx, vy at t
 
@@ -38,7 +38,6 @@ void physical_integration_xy(xy_t *pos, xy_t *vel, xy_t acc, double dt)
 
 	if (method==meth_rk2)
 	{
-		po = *pos;
 		hv = mad_xy(acc, set_xy(0.5*dt), *vel);
 		*pos = mad_xy(*vel, set_xy(0.5*dt), *pos);
 		*vel = mad_xy(acc, set_xy(dt), *vel);
@@ -64,7 +63,7 @@ void physical_integration_xyz(xyz_t *pos, xyz_t *vel, xyz_t acc, double dt)
 	enum { meth_euler, meth_rk2, meth_rk4 };
 	const int method = meth_euler;
 	double xo, yo, ax0, ax1, ax2, ay0, ay1, ay2, hvx, hvy;
-	xyz_t po, a0, a1, a2, hv;
+	xyz_t a0, a1, a2, hv;
 
 	// f(t) = vx, vy at t
 
@@ -77,7 +76,6 @@ void physical_integration_xyz(xyz_t *pos, xyz_t *vel, xyz_t acc, double dt)
 
 	if (method==meth_rk2)
 	{
-		po = *pos;
 		hv = mad_xyz(acc, set_xyz(0.5*dt), *vel);
 		*pos = mad_xyz(*vel, set_xyz(0.5*dt), *pos);
 		*vel = mad_xyz(acc, set_xyz(dt), *vel);

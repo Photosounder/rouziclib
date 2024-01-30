@@ -163,11 +163,10 @@ void line_rect_clip(xy_t *l1, xy_t *l2, rect_t br)
 
 int keep_box_inside_area(rect_t *box, rect_t area)
 {
-	xy_t box_centre, new_box_centre, area_centre, box_dim;
+	xy_t box_centre, new_box_centre, box_dim;
 	rect_t shrunk_area;
 
 	box_centre = get_rect_centre(*box);
-	area_centre = get_rect_centre(area);
 	box_dim = get_rect_dim(*box);
 	shrunk_area = rect_add_margin(area, mul_xy(box_dim, set_xy(-0.5)));		// shrink the area by the dim of the box
 	new_box_centre = rangelimit_xy(box_centre, shrunk_area.p0, shrunk_area.p1);	// limit the position of the box centre

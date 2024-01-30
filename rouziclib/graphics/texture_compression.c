@@ -60,7 +60,7 @@ int cmp_frgb_alpha(const frgb_t *a, const frgb_t *b)
 raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 {
 	double wr=0.124, wg=0.686, wb=0.19, c[5];
-	double sum, sumw, mean_lum, sd, s0, s1, s2, bary0w, bary1w, erfw, sum0, sum0w, sum1, sum1w, mean_lum0, mean_lum1, erf_th, erf_off, erf_width;
+	double sum, sumw, mean_lum, sd, s0, s1, s2, bary0w, bary1w, erfw, /*sum0, sum0w, sum1,*/ sum1w, /*mean_lum0, mean_lum1,*/ erf_th, erf_off, erf_width;
 	xy_t bary0, bary1;
 	raster_t r1={0};
 	xyi_t ip, ib;
@@ -185,7 +185,7 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 			// Calculate the weighted barycentres and mean lum for each side
 			bary0 = bary1 = XY0;
 			bary0w = bary1w = 0.;
-			sum0 = sum0w = sum1 = sum1w = 0.;
+			//sum0 = sum0w = sum1 = sum1w = 0.;
 			col0 = col1 = make_grey_f(0.);
 
 			if (sd > 1e-3)
@@ -202,8 +202,8 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 								erfw = sq(erf((mean_lum-b0[i].a)/sd));
 								bary0 = mad_xy(xyi_to_xy(ib), set_xy(block_coef[i] * erfw), bary0);
 								bary0w += block_coef[i] * erfw;
-								sum0 += b0[i].a * block_coef[i] * sq(erfw);
-								sum0w += block_coef[i] * sq(erfw);
+								//sum0 += b0[i].a * block_coef[i] * sq(erfw);
+								//sum0w += block_coef[i] * sq(erfw);
 								col0 = add_frgb(col0, mul_scalar_frgb(b0[i], block_coef[i] * sq(erfw)));
 							}
 							else
@@ -211,18 +211,18 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 								erfw = sq(erf((b0[i].a-mean_lum)/sd));
 								bary1 = mad_xy(xyi_to_xy(ib), set_xy(block_coef[i] * erfw), bary1);
 								bary1w += block_coef[i] * erfw;
-								sum1 += b0[i].a * block_coef[i] * sq(erfw);
-								sum1w += block_coef[i] * sq(erfw);
+								//sum1 += b0[i].a * block_coef[i] * sq(erfw);
+								//sum1w += block_coef[i] * sq(erfw);
 								col1 = add_frgb(col1, mul_scalar_frgb(b0[i], block_coef[i] * sq(erfw)));
 							}
 						}
 					}
 				bary0 = div_xy(bary0, set_xy(bary0w));
 				bary1 = div_xy(bary1, set_xy(bary1w));
-				mean_lum0 = sum0 / sum0w;
+				/*mean_lum0 = sum0 / sum0w;
 				mean_lum1 = sum1 / sum1w;
 				col0 = mul_scalar_frgb(col0, 1./sum0w);
-				col1 = mul_scalar_frgb(col1, 1./sum1w);
+				col1 = mul_scalar_frgb(col1, 1./sum1w);*/
 
 				c[4] = atan2(bary1.x-bary0.x, bary1.y-bary0.y) / (2.*pi);
 				c[0] = 1.25;
@@ -230,7 +230,7 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 			}
 			else	// if all pixels are the same
 			{
-				mean_lum0 = mean_lum1 = mean_lum;
+				//mean_lum0 = mean_lum1 = mean_lum;
 				col0 = col1 = mean_col;
 				bary0 = bary1 = cp.block_centre;
 			}
@@ -278,12 +278,12 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 				col1 = mul_scalar_frgba(col1, 1./(double) sec_count);
 
 				// Find middle colour (between the luminosities of col0 and col1)
-				double mid, width, weight;
-				mid = 0.5*(col0.a + col1.a);
+				double /*mid, width,*/ weight;
+				/*mid = 0.5 * (col0.a + col1.a);
 				if (col1.a > col0.a)
 					width = 8. / (col1.a-col0.a);
 				else
-					width = 0.;
+					width = 0.;*/
 
 				/*for (i=nan_count; i < cp.block_size*cp.block_size; i++)
 				{
