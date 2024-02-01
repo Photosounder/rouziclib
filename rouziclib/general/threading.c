@@ -28,7 +28,7 @@ WINBASEAPI _Ret_maybenull_ HANDLE WINAPI CreateSemaphoreA( _In_opt_ LPSECURITY_A
 #define pthread_exit(a)			(void)0
 #define sched_get_priority_min(a)	(int)0
 #define pthread_setschedparam(a,b,c)	(void)0
-#define nice(a)				(void)0
+#define nice(a)				(int)0
 #define sem_post(a)			(void)0
 struct sched_param { int sched_priority; };
 #endif
