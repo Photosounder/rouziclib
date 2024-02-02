@@ -104,6 +104,8 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 	int prev_was_space=1;
 	uint32_t c, c_prev=0;
 	word_stats_t ws;
+	const size_t storage_word_count = 4;
+	static _Thread_local one_word_stats_t *storage = NULL;
 
 	ws.full_length = calc_strwidth(font, string, 1., mode);
 
@@ -112,9 +114,18 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 		if (string[i]==' ' && string[i+1]!='\0')	// TODO do better than just count spaces
 			ws.word_count++;
 
-	ws.word_length = calloc(ws.word_count, sizeof(double));
-	ws.word_start = calloc(ws.word_count, sizeof(int));
-	ws.word_end = calloc(ws.word_count, sizeof(int));
+	// Allocate word stats array
+	ws.use_storage = (ws.word_count <= storage_word_count);
+	if (storage == NULL && ws.use_storage)
+		storage = calloc(storage_word_count, sizeof(one_word_stats_t));
+
+	if (ws.use_storage)
+	{
+		ws.word = storage;
+		memset(ws.word, 0, ws.word_count * sizeof(one_word_stats_t));
+	}
+	else
+		ws.word = calloc(ws.word_count, sizeof(one_word_stats_t));
 
 	ws.aver_word_length = (ws.full_length - (double) (ws.word_count-1)*(letter_width(font, 0., ' ', 1., mode)+font->letter_spacing)) / (double) ws.word_count;
 
@@ -127,30 +138,30 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 
 		if (c==' ')
 		{
-			ws.word_length[iw] -= font->letter_spacing;	// removes the end space
-			ws.max_word_length = MAXN(ws.max_word_length, ws.word_length[iw]);
+			ws.word[iw].length -= font->letter_spacing;	// removes the end space
+			ws.max_word_length = MAXN(ws.max_word_length, ws.word[iw].length);
 			iw++;
 			prev_was_space = 1;
 		}
 		else
 		{
-			ws.word_length[iw] += letter_width(font, 0., c, 1., mode);
+			ws.word[iw].length += letter_width(font, 0., c, 1., mode);
 
 			// Ligature exceptions
 			if (c >= cp_ins_start && c < cp_ins_end)
 				if (c_prev >= cp_ins_start && c_prev < cp_ins_end)	// there's no font->letter_spacing between two cp_ins spaces
-					ws.word_length[iw] -= font->letter_spacing;
+					ws.word[iw].length -= font->letter_spacing;
 
 			if (i == len-1)		// if we've reached the end
 			{
-				ws.word_length[iw] -= font->letter_spacing;	// removes the end space
-				ws.max_word_length = MAXN(ws.max_word_length, ws.word_length[iw]);
+				ws.word[iw].length -= font->letter_spacing;	// removes the end space
+				ws.max_word_length = MAXN(ws.max_word_length, ws.word[iw].length);
 			}
 
-			ws.word_end[iw] = i;
+			ws.word[iw].end = i;
 
 			if (prev_was_space)
-				ws.word_start[iw] = is;
+				ws.word[iw].start = is;
 			prev_was_space = 0;
 		}
 
@@ -162,9 +173,8 @@ word_stats_t make_word_stats(vector_font_t *font, const uint8_t *string, const i
 
 void free_word_stats(word_stats_t ws)
 {
-	free(ws.word_length);
-	free(ws.word_start);
-	free(ws.word_end);
+	if (ws.use_storage == 0)
+		free(ws.word);
 }
 
 // gives to correct word length to use for adding to the length of the line starting at iw_start
@@ -173,7 +183,7 @@ double get_word_length(vector_font_t *font, const uint8_t *string, word_stats_t 
 	const double space_width = letter_width(font, 0., ' ', 1., mode);
 	double width;
 
-	width = ws.word_length[iw];
+	width = ws.word[iw].length;
 
 	if (iw>iw_start)
 		width += space_width + font->letter_spacing;

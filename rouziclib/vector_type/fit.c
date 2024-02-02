@@ -199,8 +199,8 @@ void draw_string_maxwidth(vector_font_t *font, const uint8_t *string, word_stats
 	{
 		find_line_for_thresh(font, string, ws, mode, maxwidth, iw, &line_iw_end);	// changes line_iw_end to the corrent ending word
 
-		line_start = ws.word_start[iw];
-		line_end = ws.word_end[line_iw_end];
+		line_start = ws.word[iw].start;
+		line_end = ws.word[line_iw_end].end;
 		len = 1 + line_end - line_start;
 		draw_string_len(font, &string[line_start], p, scale, colour, intensity, line_thick, mode, len, tp);
 

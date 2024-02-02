@@ -1,7 +1,14 @@
 typedef struct
 {
-	int word_count, *word_start, *word_end;
-	double *word_length, max_word_length, full_length, aver_word_length;
+	int start, end;
+	double length;
+} one_word_stats_t;
+
+typedef struct
+{
+	one_word_stats_t *word;
+	int word_count, use_storage;
+	double max_word_length, full_length, aver_word_length;
 } word_stats_t;		// statistics for words in a string
 
 typedef struct
