@@ -31,7 +31,7 @@ typedef struct
 {
 	letter_t *l;
 	int letter_count, alloc_count;
-	int32_t *codepoint_letter_lut;
+	int32_t **codepoint_letter_lut;
 
 	double letter_spacing, line_vspacing;
 

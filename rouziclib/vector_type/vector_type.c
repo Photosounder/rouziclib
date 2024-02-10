@@ -6,7 +6,10 @@ int32_t get_letter_index(vector_font_t *font, uint32_t c)
 	if (font==NULL)
 		return -1;
 
-	return font->codepoint_letter_lut[c];
+	if (font->codepoint_letter_lut[c >> CODEPOINT_LUT_SHIFT] == NULL)
+		return -1;
+
+	return font->codepoint_letter_lut[c >> CODEPOINT_LUT_SHIFT][c & CODEPOINT_LUT_MASK];
 }
 
 letter_t *get_letter(vector_font_t *font, uint32_t c)

@@ -637,6 +637,7 @@ void my_window_function(double *arg1, double *arg2)
 		buf = buf_load_raw_file_dos_conv(path)	= load_raw_file_dos_conv(path, ...)
 		buf_save_raw_file(&buf, path, "wb")	= save_raw_file(...)
 		buf_string_copy(string)			= make_string_copy(string)
+		buf_alloc_enough(&buf, req_size)	= alloc_enough(&buf->buf, req_size, &buf->as, 1, 1.)
 
 //**** Threading ****
 
@@ -990,6 +991,9 @@ void my_window_function(double *arg1, double *arg2)
 	// Set console colours, see https://www.nayab.xyz/linux/escapecodes
 		fprintf_rl(stdout, "\033[0;32m");	// green
 		fprintf_rl(stdout, "\033[0m");		// reset colour
+
+	// Macro to printf/fprintf
+		#define REPORT(fmt, ...) { fprintf(stderr, (fmt"\n"), ##__VA_ARGS__); fflush(stdout); }
 
 	// Convert between float and __m128
 		__m128 vf = _mm_load_ps((float *) &cf);

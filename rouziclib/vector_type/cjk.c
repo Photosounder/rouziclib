@@ -35,7 +35,7 @@ void cjkdec_load_data(char *path, vector_font_t *font)
 
 			font->cjkdec_pos[cp] = start;	// position of the data for this codepoint
 
-			if (font->codepoint_letter_lut[cp]==-1)		// if codepoint isn't already taken
+			if (get_letter_index(font, cp) == -1)		// if codepoint isn't already taken
 			{
 				// add to font->letter
 				font_alloc_one(font);

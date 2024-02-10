@@ -19,26 +19,40 @@ void font_remove_letter(vector_font_t *font, uint32_t cp)
 	if (letter_index == -1)
 		return ;
 
-	// free elements
+	// Free elements
 	free_vobj(font->l[letter_index].obj);
 	font->l[letter_index].obj = NULL;
 	textedit_free(&font->l[letter_index].glyphdata_edit);
 
 	font->letter_count--;
 
-	// move every next letter one position down
+	// Move all subsequent letters one position down
 	for (i=letter_index; i < font->letter_count; i++)
 	{
 		font->l[i] = font->l[i+1];
-		font->codepoint_letter_lut[font->l[i].codepoint] = i;	// update new index in the codepoint LUT
+
+		// Update new index in the codepoint LUT
+		uint32_t c = font->l[i].codepoint;
+		font->codepoint_letter_lut[c >> CODEPOINT_LUT_SHIFT][c & CODEPOINT_LUT_MASK] = i;
 	}
 
-	font->codepoint_letter_lut[cp] = -1;	// remove table references
+	// Remove LUT reference
+	font->codepoint_letter_lut[cp >> CODEPOINT_LUT_SHIFT][cp & CODEPOINT_LUT_MASK] = -1;
 }
 
 void add_codepoint_letter_lut_reference(vector_font_t *font)
 {
-	font->codepoint_letter_lut[font->l[font->letter_count-1].codepoint] = font->letter_count-1;	// add a LUT reference
+	uint32_t cp = font->l[font->letter_count-1].codepoint;
+
+	// Add LUT section if needed
+	if (font->codepoint_letter_lut[cp >> CODEPOINT_LUT_SHIFT] == NULL)
+	{
+		font->codepoint_letter_lut[cp >> CODEPOINT_LUT_SHIFT] = malloc((1 << CODEPOINT_LUT_SHIFT) * sizeof(int32_t));
+		memset(font->codepoint_letter_lut[cp >> CODEPOINT_LUT_SHIFT], 0xFF, (1 << CODEPOINT_LUT_SHIFT) * sizeof(int32_t));
+	}
+
+	// Add LUT reference
+	font->codepoint_letter_lut[cp >> CODEPOINT_LUT_SHIFT][cp & CODEPOINT_LUT_MASK] = font->letter_count-1;
 }
 
 void font_parse_p_line(char *line, xy_t *pv, int *pid, letter_t *l)
@@ -751,8 +765,7 @@ vector_font_t *init_font()
 	font = calloc(1, sizeof(vector_font_t));
 
 	font->l = calloc(font->alloc_count = 256, sizeof(letter_t));
-	font->codepoint_letter_lut = calloc(0x110000, sizeof(int32_t));
-	memset(font->codepoint_letter_lut, 0xFF, 0x110000 * sizeof(int32_t));
+	font->codepoint_letter_lut = calloc(0x110000>>CODEPOINT_LUT_SHIFT, sizeof(int32_t *));
 
 	font->letter_spacing = 1.5;	// spacing between each letter
 	font->line_vspacing = 10.;	// offset for each line
@@ -905,7 +918,7 @@ void free_font(vector_font_t *font)
 		textedit_free(&font->l[i].glyphdata_edit);
 	}
 
-	free(font->codepoint_letter_lut);
+	free_2d(font->codepoint_letter_lut, 0x110000>>CODEPOINT_LUT_SHIFT);
 	free(font->l);
 	free(font->cjkdec_pos);
 	free(font->cjkdec_data);

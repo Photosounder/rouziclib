@@ -90,7 +90,7 @@ typedef struct
 } unicode_data_t;
 
 extern const char *get_ucd_cat(int cattype, int cat);
-extern unicode_data_t *load_unicode_data_from_file(uint8_t *ucd_path, int16_t **codepoint_lut);
+extern unicode_data_t *load_unicode_data_from_file(uint8_t *ucd_path, int16_t ***codepoint_lut);
 extern void init_unicode_data();
 extern unicode_data_t get_unicode_data(uint32_t c);
 extern void make_unicode_data_table_file();

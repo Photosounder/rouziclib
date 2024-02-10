@@ -82,6 +82,7 @@ extern char *dropfile_pop_first();
 
 typedef struct
 {
+	volatile int *exit_flag;
 	const char *window_name;
 	void (*func)();
 	int use_drawq, maximise_window, gui_toolbar;

@@ -33666,8 +33666,6 @@ const unicode_data_t unicode_data[] = {
 #else
 
 const unicode_data_t unicode_data[] = {
-{ 0x0000, "<Everything>", 0, 0, -1, 0, 0, 0, 0 },
-{ 0x10FFFD, "<Everything, Last>", 0, 0, -1, 0, 0, 0, 0 },
 { 0x0061, "", 1, 0, -1, 0, 0, 0x0041, 0 },
 { 0x0062, "", 1, 0, -1, 0, 0, 0x0042, 0 },
 { 0x0063, "", 1, 0, -1, 0, 0, 0x0043, 0 },

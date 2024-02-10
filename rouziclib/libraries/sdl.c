@@ -1018,12 +1018,15 @@ char *dropfile_pop_first()
 
 void rl_sdl_standard_main_loop(sdl_main_param_t param)
 {
-	static int exit_flag=0, init=1;
+	static int exit_flag_s=0, init=1;
 	SDL_Event event;
 
 	if (init)
 	{
 		init = 0;
+
+		if (param.exit_flag==NULL)
+			param.exit_flag = &exit_flag_s;
 
 		fb->use_drawq = param.use_drawq;	// OpenCL draw queue
 
@@ -1052,7 +1055,7 @@ void rl_sdl_standard_main_loop(sdl_main_param_t param)
 
 	#ifdef __EMSCRIPTEN__
 	#else
-	while (exit_flag==0)
+	while (*param.exit_flag == 0)
 	#endif
 	{
 		//********Input handling********
@@ -1068,7 +1071,7 @@ void rl_sdl_standard_main_loop(sdl_main_param_t param)
 			sdl_keyboard_event_proc(&mouse, event);
 
 			if (event.type==SDL_QUIT)
-				exit_flag = 1;
+				*param.exit_flag = 1;
 		}
 
 		if (mouse.key_state[RL_SCANCODE_RETURN] == 2 && get_kb_alt() != -1)
