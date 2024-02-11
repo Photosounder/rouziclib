@@ -5,10 +5,10 @@ void elem_te_val(gui_layout_t *layout, const int id, gui_layout_t *lp, int *val,
 	if (check_elem_id_validity(layout, id, 0)==0)
 		return ;
 
-	if (layout->elem[id].type != gui_type_textedit)
+	if (layout->elem[id]->type != gui_type_textedit)
 		return ;
 
-	te = layout->elem[id].data;
+	te = layout->elem[id]->data;
 	te->edit_mode = te_mode_value;
 
 	if (sel_change)
@@ -158,7 +158,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	draw_label_fromlayout(&layout, 21, ALIG_LEFT);
 	draw_label_fromlayout(&layout, 23, ALIG_LEFT);
 
-	te = layout.elem[20].data;
+	te = layout.elem[20]->data;
 	te->edit_mode = te_mode_value;
 
 	if (sel_change)
@@ -176,7 +176,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	}
 
 	// update elem_id's te
-	te = layout.elem[22].data;
+	te = layout.elem[22]->data;
 	te->edit_mode = te_mode_value;
 
 	if (elem_id != elem_id_prev)
@@ -190,23 +190,23 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	draw_label_fromlayout(&layout, 30, ALIG_LEFT);
 
 	// Label editor
-	te = layout.elem[label_te_id].data;
+	te = layout.elem[label_te_id]->data;
 	te->edit_mode = te_mode_value;
 
 	// copy the current element label to the text editor
 	if (sel_change)				// if the element selected has changed
 		if (check_elem_id_validity(lp, sel_id, 0) && (sel_id != label_te_id || lp != &layout))
-			textedit_clear_then_set_new_text(te, lp->elem[sel_id].label);	
+			textedit_clear_then_set_new_text(te, lp->elem[sel_id]->label);	
 
 	if (ctrl_textedit_fromlayout(&layout, label_te_id)==1 && check_elem_id_validity(lp, sel_id, 0) && (sel_id != label_te_id || lp != &layout) && lp)		// text editor modifies element label
 	{
-		sprintf_realloc(&lp->elem[sel_id].label, &lp->elem[sel_id].label_as, 0, "%s", te->string);
-		lp->elem[sel_id].label_set = 1;
+		sprintf_realloc(&lp->elem[sel_id]->label, &lp->elem[sel_id]->label_as, 0, "%s", te->string);
+		lp->elem[sel_id]->label_set = 1;
 
-		if (lp->elem[sel_id].type==gui_type_knob)
+		if (lp->elem[sel_id]->type==gui_type_knob)
 		{
-			knob_data = lp->elem[sel_id].data;
-			knob_data->main_label = lp->elem[sel_id].label;
+			knob_data = lp->elem[sel_id]->data;
+			knob_data->main_label = lp->elem[sel_id]->label;
 		}
 	}
 
@@ -228,7 +228,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	// Remove element
 	if (ctrl_button_fromlayout(&layout, 63))
 		if (check_elem_id_validity(lp, sel_id, 0))
-			free_layout_elem(&lp->elem[sel_id]);
+			free_layout_elem(lp->elem[sel_id]);
 
 	// Round off pos/dim
 	reset_insert_rect_array();
@@ -243,15 +243,15 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 
 	// Link pos
 	draw_label_fromlayout(&layout, 71, ALIG_LEFT);
-	elem_te_val(&layout, 70, lp, lp==NULL ? NULL : &lp->elem[sel_id].link_pos_id, sel_change);
+	elem_te_val(&layout, 70, lp, lp==NULL ? NULL : &lp->elem[sel_id]->link_pos_id, sel_change);
 
 	// Pos v#
 	draw_label_fromlayout(&layout, 73, ALIG_LEFT);
-	elem_te_val(&layout, 72, lp, lp==NULL ? NULL : &lp->elem[sel_id].pos_val, sel_change);
+	elem_te_val(&layout, 72, lp, lp==NULL ? NULL : &lp->elem[sel_id]->pos_val, sel_change);
 
 	// Dim v#
 	draw_label_fromlayout(&layout, 75, ALIG_LEFT);
-	elem_te_val(&layout, 74, lp, lp==NULL ? NULL : &lp->elem[sel_id].dim_val, sel_change);
+	elem_te_val(&layout, 74, lp, lp==NULL ? NULL : &lp->elem[sel_id]->dim_val, sel_change);
 
 	// Position offset
 	static int offset_radio = -1;
@@ -262,7 +262,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 
 	if (sel_change)
 		if (check_elem_id_validity(lp, sel_id, 0))
-			offset_radio = 101 + (int) nearbyint(lp->elem[sel_id].pos_off.x*2.) + 3 * (int) nearbyint(lp->elem[sel_id].pos_off.y*2.);
+			offset_radio = 101 + (int) nearbyint(lp->elem[sel_id]->pos_off.x*2.) + 3 * (int) nearbyint(lp->elem[sel_id]->pos_off.y*2.);
 		else
 			offset_radio = -1;
 
@@ -270,12 +270,12 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	for (i=101; i <= 109; i++)
 		if (ctrl_radio_fromlayout(&offset_radio, &layout, i))
 		{
-			po0 = lp->elem[sel_id].pos_off;
+			po0 = lp->elem[sel_id]->pos_off;
 			po1 = xy( (double) ((i-101) % 3) * 0.5 , (double) ((i-101) / 3) * 0.5 );
-			lp->elem[sel_id].pos_off = po1;
+			lp->elem[sel_id]->pos_off = po1;
 
 			if (keep_screen_pos)
-				lp->elem[sel_id].pos = mad_xy(get_elem_dim(lp, sel_id), sub_xy(po1, po0), lp->elem[sel_id].pos);
+				lp->elem[sel_id]->pos = mad_xy(get_elem_dim(lp, sel_id), sub_xy(po1, po0), lp->elem[sel_id]->pos);
 		}
 
 	// Markup
@@ -319,7 +319,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 
 	// Unimplemented elems code
 	draw_label_fromlayout(&layout, 91, ALIG_LEFT);
-	te = layout.elem[90].data;
+	te = layout.elem[90]->data;
 	te->max_scale = 1./6.;
 	ctrl_textedit_fromlayout(&layout, 90);
 
@@ -332,7 +332,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	}
 
 	// Create buttons
-	selmenu_data = layout.elem[50].data;
+	selmenu_data = layout.elem[50]->data;
 	gui_layout_selmenu_set_count(gui_type_count-gui_type_none, &layout, 50);
 	if (ctrl_selmenu_fromlayout(&layout, 50))
 	{
@@ -362,7 +362,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	// Layout selection
 	draw_label_fromlayout(&layout, 121, ALIG_LEFT);	
 
-	selmenu_data = layout.elem[120].data;
+	selmenu_data = layout.elem[120]->data;
 	gui_layout_selmenu_set_count(layout_reg.reg_count, &layout, 120);
 	if (ctrl_selmenu_fromlayout(&layout, 120))
 		lp = layout_reg.sel_p = layout_reg.reg[selmenu_data->sel_id % layout_reg.reg_count].lp;
@@ -376,7 +376,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 
 	if (apply_markup && lp)
 	{
-		te = (*markup_layout)->elem[80].data;
+		te = (*markup_layout)->elem[80]->data;
 		if (strlen(te->string) > 0)
 		{
 			gui_layout_t new_layout={0}, layout_copy;

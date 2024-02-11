@@ -36,7 +36,7 @@ char *get_letter_glyphdata(vector_font_t *font, uint32_t c)
 {
 	letter_t *l = get_letter(font, c);
 	if (l)
-		return l->glyphdata_edit.string;
+		return l->glyphdata;
 	return NULL;
 }
 

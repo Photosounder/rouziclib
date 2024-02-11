@@ -11,7 +11,7 @@
 
 #define LOWERCASESCALE	0.75
 
-#define CODEPOINT_LUT_SHIFT 7
+#define CODEPOINT_LUT_SHIFT 8
 #define CODEPOINT_LUT_MASK ((1<<CODEPOINT_LUT_SHIFT)-1)
 
 extern int get_letter_index(vector_font_t *font, uint32_t c);

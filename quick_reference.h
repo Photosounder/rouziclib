@@ -1025,3 +1025,8 @@ void my_window_function(double *arg1, double *arg2)
 
 	// 230611 keyboard key states use -2 and -1 instead of only 0 to indicate unpressed keys
 	// make sure that unpressed keys aren't assumed to be 0, included for modifier keys but not get_kb_all_mods() which still returns 0 or 1
+
+	// 240211 GUI layout elements are individually allocated and referenced in an array of pointers, so
+	layout.elem[111].data
+	// becomes
+	layout.elem[111]->data

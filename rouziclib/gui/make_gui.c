@@ -33,6 +33,7 @@ void free_layout_elem(layout_elem_t *elem)
 				break;
 		}
 
+		free(elem->resize_ctrl);
 		free(elem->data);
 		elem->data = NULL;
 	}
@@ -48,7 +49,7 @@ void free_gui_layout(gui_layout_t *layout)
 		return;
 
 	for (i=0; i < layout->elem_as; i++)
-		free_layout_elem(&layout->elem[i]);
+		free_layout_elem(layout->elem[i]);
 
 	free(layout->elem);
 	free(layout->value);
@@ -67,7 +68,7 @@ void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, int dst_i
 	// Check IDs
 	if (check_elem_id_validity(layout, src_id, 0)==0)
 		 return ;
-	src_elem = &layout->elem[src_id];
+	src_elem = layout->elem[src_id];
 
 	if (dst_id < 0 || dst_id > 1000000)
 		return ;
@@ -80,8 +81,9 @@ void gui_layout_duplicate_elem(gui_layout_t *layout, const int src_id, int dst_i
 
 	// Allocate new ID
 	layout->cur_elem_id = dst_id;
-	alloc_enough(&layout->elem, layout->cur_elem_id+1, &layout->elem_as, sizeof(layout_elem_t), 1.5);
-	dst_elem = &layout->elem[layout->cur_elem_id];
+	alloc_enough((void **) &layout->elem, layout->cur_elem_id + 1, &layout->elem_as, sizeof(layout_elem_t*), 1.5);
+	layout->elem[layout->cur_elem_id] = calloc(1, sizeof(layout_elem_t));
+	dst_elem = layout->elem[layout->cur_elem_id];
 
 	// Copy struct
 	*dst_elem = *src_elem;
@@ -143,7 +145,7 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 	layout->sel_id = -1;
 
 	if (layout->elem && layout->cur_elem_id < layout->elem_as)
-		cur_elem = &layout->elem[layout->cur_elem_id];
+		cur_elem = layout->elem[layout->cur_elem_id];
 
 	for (il=0; il < linecount; il++)
 	{
@@ -188,9 +190,10 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 				}
 				else
 				{
-					alloc_enough(&layout->elem, layout->cur_elem_id+1, &layout->elem_as, sizeof(layout_elem_t), 1.5);
+					alloc_enough((void **) &layout->elem, layout->cur_elem_id + 1, &layout->elem_as, sizeof(layout_elem_t*), 1.5);
+					layout->elem[layout->cur_elem_id] = calloc(1, sizeof(layout_elem_t));
 
-					cur_elem = &layout->elem[layout->cur_elem_id];
+					cur_elem = layout->elem[layout->cur_elem_id];
 
 					if (cur_elem->type != 0)		// if an element was already there
 						free_layout_elem(cur_elem);	// remove it
@@ -427,7 +430,7 @@ void gui_layout_add_elem(gui_layout_t *layout, int *id, const char **src, const 
 
 	if (check_elem_id_validity(layout, *id, 0))			// if the ID is already taken
 		for (i=layout->elem_as-1; i >= 0; i--)			// change ID to the free ID above the highest taken ID
-			if (layout->elem[i].type == gui_type_null)
+			if (layout->elem[i] == NULL || layout->elem[i]->type == gui_type_null)
 				*id = i;
 			else
 				break;
@@ -477,9 +480,9 @@ void sprint_gui_layout(gui_layout_t *layout, char **str, size_t *str_as)
 
 	for (id=0; id < layout->elem_as; id++)
 	{
-		cur_elem = &layout->elem[id];
+		cur_elem = layout->elem[id];
 
-		if (cur_elem->type != gui_type_null)
+		if (cur_elem && cur_elem->type != gui_type_null)
 		{
 			sprintf_realloc(str, str_as, 1, "elem %d\n", id);
 			if (cur_elem->type >= 0 && cur_elem->type < gui_type_count)
@@ -601,7 +604,7 @@ int check_elem_id_validity(gui_layout_t *layout, const int id, const int impleme
 	if (layout==NULL)
 		return 0;
 
-	if (id < 0 || id >= layout->elem_as)
+	if (id < 0 || id >= layout->elem_as || layout->elem[id] == NULL)
 	{
 		if (implemented)
 			fprintf_rl(stderr, "Error in check_elem_id_validity(): ID %d isn't valid (highest ID is %zu)\n", id, layout->elem_as-1);
@@ -609,17 +612,17 @@ int check_elem_id_validity(gui_layout_t *layout, const int id, const int impleme
 	}
 
 	if (implemented)
-		layout->elem[id].implemented = 0;
+		layout->elem[id]->implemented = 0;
 
-	if (layout->elem[id].type <= gui_type_null || layout->elem[id].type >= gui_type_count)
+	if (layout->elem[id]->type <= gui_type_null || layout->elem[id]->type >= gui_type_count)
 	{
 		if (implemented)
-			fprintf_rl(stderr, "Error in check_elem_id_validity(): element at ID %d %s\n", id, layout->elem[id].type == gui_type_null ? "isn't initialised" : "has an invalid type");
+			fprintf_rl(stderr, "Error in check_elem_id_validity(): element at ID %d %s\n", id, layout->elem[id]->type == gui_type_null ? "isn't initialised" : "has an invalid type");
 		return 0;
 	}
 
 	if (implemented)
-		layout->elem[id].implemented = 1;
+		layout->elem[id]->implemented = 1;
 
 	return 1;
 }
@@ -630,7 +633,7 @@ xy_t *get_elem_posdim_ptr(gui_layout_t *layout, const int id, const int which)	/
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return NULL;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	if ((cur_elem->pos_val >= 0 && which==0) || (cur_elem->dim_val >= 0 && which==1))
 		return gui_layout_get_value_ptr(layout, which==0 ? cur_elem->pos_val : cur_elem->dim_val);
@@ -668,7 +671,7 @@ xy_t gui_layout_get_link_pos(gui_layout_t *layout, const int id)
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return XY0;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	if (check_elem_id_validity(layout, cur_elem->link_pos_id, 0)==0)
 		return XY0;
@@ -699,7 +702,7 @@ rect_t gui_layout_elem_comp_area(gui_layout_t *layout, const int id)
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return rect(XY0, XY0);
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	return make_rect_off(add_xy(get_elem_pos(layout, id), gui_layout_get_link_pos(layout, id)), get_elem_dim(layout, id), cur_elem->pos_off);
 }
@@ -724,7 +727,7 @@ int ctrl_fromlayout_resizing(gui_layout_t *layout, const int id, const int phase
 	{
 		if (check_elem_id_validity(layout, id, 1)==0)	// if id isn't a valid layout element
 			return 1;				// instruct caller to abort
-		cur_elem = &layout->elem[id];
+		cur_elem = layout->elem[id];
 
 		if ((cur_elem->type == gui_type_knob || cur_elem->type == gui_type_textedit || cur_elem->type == gui_type_selmenu) && cur_elem->data == NULL)
 			return 1;
@@ -736,7 +739,10 @@ int ctrl_fromlayout_resizing(gui_layout_t *layout, const int id, const int phase
 
 			if (layout->sel_id == id)		// if this control is the selected one
 			{					// use the resizing rect
-				if (ctrl_resizing_rect(&cur_elem->resize_ctrl, &box_os))
+				if (cur_elem->resize_ctrl == NULL)
+					cur_elem->resize_ctrl = calloc(1, sizeof(ctrl_resize_rect_t));
+
+				if (ctrl_resizing_rect(cur_elem->resize_ctrl, &box_os))
 				{
 					area = offset_scale_inv_rect(box_os, layout->offset, layout->sm);
 					pos_ptr = get_elem_posdim_ptr(layout, id, 0);
@@ -747,11 +753,18 @@ int ctrl_fromlayout_resizing(gui_layout_t *layout, const int id, const int phase
 					*pos_ptr = sub_xy(pos, gui_layout_get_link_pos(layout, id));	// remove linked offset
 				}
 			}
-			else if (ctrl_button_invis(box_os, NULL))	// invisible selection button
-				layout->sel_id = id;
+			else
+			{
+				free_null(&cur_elem->resize_ctrl);
+
+				if (ctrl_button_invis(box_os, NULL))	// invisible selection button
+					layout->sel_id = id;
+			}
 
 			ctrl_id_save = *mouse.ctrl_id;		// suspends input processing for following controls so that the resizing controls seem above them
 		}
+		else
+			free_null(&cur_elem->resize_ctrl);
 	}
 
 	if (phase & 2)
@@ -770,7 +783,7 @@ void draw_label_fromlayout_in_rect(gui_layout_t *layout, const int id, const int
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	draw_label(cur_elem->label, box_os, cur_elem->colour, mode);
 
@@ -789,7 +802,7 @@ void draw_text_block_fromlayout_in_rect(gui_layout_t *layout, const int id, char
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	//draw_text_block(cur_elem->label, box_os, cur_elem->colour, mode, thresh);
 	draw_text_block(text_block, box_os, cur_elem->colour, mode, thresh);
@@ -809,7 +822,7 @@ void draw_text_at_scale_fromlayout_in_rect(gui_layout_t *layout, const int id, c
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	draw_text_at_scale(text_block, box_os, cur_elem->colour, mode, thresh);
 
@@ -828,7 +841,7 @@ void draw_rect_fromlayout_blending(const int type, const blend_func_t bf, gui_la
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	rect_t box_sc = sc_rect(gui_layout_elem_comp_area_os(layout, id, XY0));
 
@@ -857,7 +870,7 @@ int ctrl_button_fromlayout_offset(gui_layout_t *layout, const int id, const xy_t
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return 0;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	ret = ctrl_button_chamf(cur_elem->label, gui_layout_elem_comp_area_os(layout, id, offset), cur_elem->colour);
 
@@ -885,7 +898,7 @@ int ctrl_checkbox_fromlayout(int *state, gui_layout_t *layout, const int id)
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return 0;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	ret = ctrl_checkbox(state, cur_elem->label, gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour);
 
@@ -900,7 +913,7 @@ int ctrl_radio_fromlayout_offset(int *state, gui_layout_t *layout, const int id,
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return 0;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	ret = ctrl_radio(state ? id+id_off==*state : 0, cur_elem->label, gui_layout_elem_comp_area_os(layout, id, offset), cur_elem->colour);
 
@@ -918,7 +931,7 @@ int ctrl_knob_fromlayout(double *v, gui_layout_t *layout, const int id)
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return 0;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	ret = ctrl_knob(v, (knob_t *) cur_elem->data, gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour);
 
@@ -933,7 +946,7 @@ int ctrl_textedit_fromlayout_in_rect(gui_layout_t *layout, const int id, rect_t 
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return 0;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	ret = ctrl_textedit(cur_elem->data, box_os, cur_elem->colour);
 	draw_rect(sc_rect(box_os), drawing_thickness, cur_elem->colour, cur_blend, 0.25 * intensity_scaling(rect_min_side(sc_rect(box_os)), 24.));	// FIXME maybe use te.rect_brightness instead?
@@ -955,7 +968,7 @@ void gui_layout_selmenu_set_open(const int state, gui_layout_t *layout, const in
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	if (cur_elem->data)
 		((ctrl_selectmenu_state_t *) cur_elem->data)->next_open = state;
@@ -967,7 +980,7 @@ void gui_layout_selmenu_set_count(const int count, gui_layout_t *layout, const i
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	if (cur_elem->data)
 		((ctrl_selectmenu_state_t *) cur_elem->data)->count = count;
@@ -979,7 +992,7 @@ void gui_layout_selmenu_set_entry_id(const int entry_id, gui_layout_t *layout, c
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	if (cur_elem->data)
 		((ctrl_selectmenu_state_t *) cur_elem->data)->sel_id = entry_id;
@@ -992,7 +1005,7 @@ int ctrl_selmenu_fromlayout(gui_layout_t *layout, const int id)
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return 0;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	ret = ctrl_selectmenu(cur_elem->data, gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour);
 
@@ -1007,7 +1020,7 @@ void draw_selmenu_entry_fromlayout(const int i, const char *label, gui_layout_t 
 
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	selmenu_data = cur_elem->data;
 	draw_selectmenu_entry(selmenu_data, gui_layout_elem_comp_area_os(layout, id, XY0), cur_elem->colour, i, label);
@@ -1026,9 +1039,9 @@ char *gui_layout_make_code_for_unimp_elem(gui_layout_t *layout)
 
 	for (id=0; id < layout->elem_as; id++)
 	{
-		if (layout->elem[id].type && layout->elem[id].implemented==0)
+		if (layout->elem[id] && layout->elem[id]->type && layout->elem[id]->implemented==0)
 		{
-			switch (layout->elem[id].type)
+			switch (layout->elem[id]->type)
 			{
 				case gui_type_none:
 					break;
@@ -1085,9 +1098,9 @@ void gui_layout_unimplemented_elems(gui_layout_t *layout)
 
 	for (id=0; id < layout->elem_as; id++)
 	{
-		if (layout->elem[id].type && layout->elem[id].implemented==0)
+		if (layout->elem[id] && layout->elem[id]->type && layout->elem[id]->implemented==0)
 		{
-			switch (layout->elem[id].type)
+			switch (layout->elem[id]->type)
 			{
 				case gui_type_none:
 					break;
@@ -1122,7 +1135,7 @@ void gui_layout_unimplemented_elems(gui_layout_t *layout)
 					break;
 			}
 
-			layout->elem[id].implemented = 0;
+			layout->elem[id]->implemented = 0;
 		}
 	}
 }
@@ -1134,7 +1147,7 @@ void gui_set_control_label(const char *new_label, gui_layout_t *layout, const in
 
 	if (check_elem_id_validity(layout, id, 0)==0)	// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	sprintf_realloc(&cur_elem->label, &cur_elem->label_as, 0, "%s", new_label);
 	//cur_elem->label_set = 1;
@@ -1147,7 +1160,7 @@ void gui_set_control_colour(col_t colour, gui_layout_t *layout, const int id)
 
 	if (check_elem_id_validity(layout, id, 0)==0)	// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	cur_elem->colour = colour;
 }
@@ -1160,7 +1173,7 @@ void gui_printf_to_label(gui_layout_t *layout, const int id, const int append, c
 
 	if (check_elem_id_validity(layout, id, 0)==0)	// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	va_start(args, format);
 	vsprintf_realloc(&cur_elem->label, &cur_elem->label_as, append, format, args);
@@ -1176,13 +1189,13 @@ void gui_round_elem_posdim(gui_layout_t *layout, const int id, const double roun
 
 	if (check_elem_id_validity(layout, id, 0)==0)	// if id isn't a valid layout element
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	pos_ptr = get_elem_posdim_ptr(layout, id, 0);
 	dim_ptr = get_elem_posdim_ptr(layout, id, 1);
 	*pos_ptr = div_xy(nearbyint_xy(mul_xy(*pos_ptr, rv)), rv);
 	*dim_ptr = div_xy(nearbyint_xy(mul_xy(*dim_ptr, rv)), rv);
-	update_ctrl_resizing_rect_positions(&cur_elem->resize_ctrl, gui_layout_elem_comp_area(layout, id));
+	update_ctrl_resizing_rect_positions(cur_elem->resize_ctrl, gui_layout_elem_comp_area(layout, id));
 }
 
 int print_to_layout_label(gui_layout_t *layout, const int id, const char *format, ...)
@@ -1194,7 +1207,7 @@ int print_to_layout_label(gui_layout_t *layout, const int id, const char *format
 	ret = check_elem_id_validity(layout, id, 0);
 	if (ret==0)
 		return ret;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	va_start(args, format);
 	len = vstrlenf(format, args);
@@ -1215,7 +1228,7 @@ int print_to_layout_textedit(gui_layout_t *layout, const int id, const int clear
 	ret = check_elem_id_validity(layout, id, 0);
 	if (ret==0)
 		return ret;
-	te = (textedit_t *) layout->elem[id].data;
+	te = (textedit_t *) layout->elem[id]->data;
 
 	va_start(args, format);
 	len = vstrlenf(format, args);
@@ -1245,7 +1258,7 @@ int print_to_layout_textedit_append(gui_layout_t *layout, const int id, const in
 	ret = check_elem_id_validity(layout, id, 0);
 	if (ret==0)
 		return ret;
-	te = (textedit_t *) layout->elem[id].data;
+	te = (textedit_t *) layout->elem[id]->data;
 
 	bufprintf(&buf, "%s", te->string);
 
@@ -1267,7 +1280,7 @@ textedit_t *get_textedit_fromlayout(gui_layout_t *layout, const int id)
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return NULL;
 
-	te = (textedit_t *) layout->elem[id].data;
+	te = (textedit_t *) layout->elem[id]->data;
 	return te;
 }
 
@@ -1278,7 +1291,7 @@ char *get_textedit_string_fromlayout(gui_layout_t *layout, const int id)
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return NULL;
 
-	te = (textedit_t *) layout->elem[id].data;
+	te = (textedit_t *) layout->elem[id]->data;
 	return te->string;
 }
 
@@ -1287,7 +1300,7 @@ void set_cur_textedit_fromlayout(gui_layout_t *layout, const int id)
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return;
 
-	cur_textedit = (textedit_t *) layout->elem[id].data;
+	cur_textedit = (textedit_t *) layout->elem[id]->data;
 }
 
 knob_t *get_knob_data_fromlayout(gui_layout_t *layout, const int id)
@@ -1295,7 +1308,7 @@ knob_t *get_knob_data_fromlayout(gui_layout_t *layout, const int id)
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return NULL;
 
-	return (knob_t *) layout->elem[id].data;
+	return (knob_t *) layout->elem[id]->data;
 }
 
 void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const int id)
@@ -1305,7 +1318,7 @@ void set_knob_circularity_fromlayout(int circular, gui_layout_t *layout, const i
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;
 
-	knob_data = (knob_t *) layout->elem[id].data;
+	knob_data = (knob_t *) layout->elem[id]->data;
 	knob_data->circular = circular;
 }
 
@@ -1316,7 +1329,7 @@ int get_selmenu_selid_fromlayout(gui_layout_t *layout, const int id)
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return -1;
 
-	selmenu_data = (ctrl_selectmenu_state_t *) layout->elem[id].data;
+	selmenu_data = (ctrl_selectmenu_state_t *) layout->elem[id]->data;
 	return selmenu_data->sel_id;
 }
 
@@ -1432,7 +1445,7 @@ void gui_parse_knob_data_string(gui_layout_t *layout, const int id, const char *
 	if (check_elem_id_validity(layout, id, 0)==0)		// if id isn't a valid layout element
 		return ;
 
-	knob_data = (knob_t *) layout->elem[id].data;
+	knob_data = (knob_t *) layout->elem[id]->data;
 
 	n = 0;
 	if (sscanf(line, "%lg %lg %lg %s %n", &knob_data->min, &knob_data->default_value, &knob_data->max, b, &n)>=3)

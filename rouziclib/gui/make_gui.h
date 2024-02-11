@@ -18,18 +18,16 @@ extern const char *layout_elem_type_name[];
 
 typedef struct
 {
-	int type;
 	xy_t pos, dim, pos_off;
 	char *label;
 	size_t label_as;
 	col_t colour;
 	void *data;
-	ctrl_resize_rect_t resize_ctrl;
-	int label_set, label_as_set, fmt_str_set, pos_val, dim_val;
-	int implemented;
-	int link_pos_id;
+	ctrl_resize_rect_t *resize_ctrl;
 	xy_t link_pos_off;
+	int pos_val, dim_val, link_pos_id;
 	char link_pos_off_str[3];
+	int8_t type, label_set, label_as_set, fmt_str_set, implemented;
 } layout_elem_t;
 
 typedef struct
@@ -42,7 +40,7 @@ typedef struct
 {
 	int init, edit_on, sel_id, cur_elem_id;
 	size_t elem_as;
-	layout_elem_t *elem;
+	layout_elem_t **elem;
 	xy_t offset;
 	double sm;
 

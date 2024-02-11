@@ -22,7 +22,7 @@ typedef struct
 	polynomial_grid_t polynomial_grid;
 	double bl, br, bb, bt;	// bounds to the left and right, bottom and top
 	double width;
-	textedit_t glyphdata_edit;
+	char *glyphdata;
 	int point_count, line_count;
 	int pid_offset, max_pid;
 } letter_t;

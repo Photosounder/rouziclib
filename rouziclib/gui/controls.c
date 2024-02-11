@@ -649,6 +649,9 @@ void update_ctrl_resizing_rect_positions(ctrl_resize_rect_t *state, rect_t box)
 	int i;
 	xy_t rpos;
 
+	if (state == NULL)
+		return;
+
 	state->drag[0].pos = get_rect_centre(box);
 
 	for (i=0; i<4; i++)

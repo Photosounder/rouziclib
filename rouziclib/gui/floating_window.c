@@ -36,7 +36,7 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 
 	if (ctrl_fromlayout_resizing(layout, id, 1))
 		return ;
-	cur_elem = &layout->elem[id];
+	cur_elem = layout->elem[id];
 
 	// Fit an undetached window into its parent area if it exists
 	if (parent_area)
