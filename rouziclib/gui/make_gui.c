@@ -17,6 +17,9 @@ layout_reg_t layout_reg={0};
 
 void free_layout_elem(layout_elem_t *elem)
 {
+	if (elem == NULL)
+		return;
+
 	free(elem->label);
 
 	if (elem->data)
