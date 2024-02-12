@@ -136,3 +136,16 @@ void draw_rangebox(rect_t box, const char *label, col_t colour)
 
 	draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, 1. - bg_intensity, drawing_thickness, ALIG_CENTRE, NULL);
 }
+
+void draw_rangebox_fade_to_solid(rect_t box, const char *label, col_t colour)
+{
+	if (check_box_on_screen(box)==0 || rect_max_side(box)*zc.scrscale < 0.1)
+		return ;
+
+	double intensity = sq(intensity_scaling(rect_min_side(sc_rect(box)), 200.));
+	const double bg_intensity = 2./144. / (0.97 * intensity + 0.03);
+	draw_rect_full(sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
+	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, (1.-bg_intensity)*intensity*0.5);
+
+	draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+}
