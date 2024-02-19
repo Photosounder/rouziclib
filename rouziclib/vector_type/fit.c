@@ -217,13 +217,10 @@ void draw_string_bestfit(vector_font_t *font, const uint8_t *string, rect_t box,
 	int nlines;
 	xy_t boxdim, p;
 
-	if (string == NULL)
+	if (string == NULL || string[0] == '\0')
 		return;
 
 	ws = make_word_stats(font, string, mode);
-
-	if (ws.max_word_length <= 0.)
-		return ;
 
 	box = sort_rect(box);
 	box.p1 = sub_xy(box.p1, set_xy(border*scale));		// remove the border
