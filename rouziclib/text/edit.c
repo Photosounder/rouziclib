@@ -422,7 +422,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	if (scale*zc.scrscale < 1.)
 		return 0;
 
-	if (mouse.window_focus_flag > 0)
+	if (mouse.window_focus_flag >= 0)
 		butt_state = proc_mouse_rect_ctrl(box);
 
 	te->click_on = 0;

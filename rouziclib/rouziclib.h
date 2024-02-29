@@ -58,11 +58,13 @@ extern "C" {
 #include "general/windows_includes.h"
 
 #if defined(_MSC_VER)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
+  #include <BaseTsd.h>
+  typedef SSIZE_T ssize_t;	// Visual Studio lacks ssize_t
 #endif
 
-#define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
+#ifndef assert
+  #define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
+#endif
 
 // Structs and includes needed elsewhere
 #include "general/intrinsics.h"

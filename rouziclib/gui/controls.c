@@ -30,7 +30,7 @@ int ctrl_button_invis_box_or_polygon(rect_t box, xy_t *p, int p_count, ctrl_butt
 	}
 
 	// Identify and process the control if the window is in focus
-	if (mouse.window_focus_flag > 0)
+	if (mouse.window_focus_flag >= 0)
 		if (p)
 			butt_state = proc_mouse_polygon_ctrl_lrmb(box, p, p_count)[0];
 		else
@@ -349,7 +349,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		return 0;
 
 	// Process input
-	if (mouse.window_focus_flag > 0)
+	if (mouse.window_focus_flag >= 0)
 	{
 		knob->knob_state = proc_mouse_knob_ctrl(box);
 		t_off = knob->knob_state.vert_delta * 2./1728.;
@@ -519,7 +519,7 @@ int ctrl_draggable(ctrl_drag_state_t *state)
 	if (check_box_on_screen(box)==0 && state->down==0)
 		return 0;
 
-	if (mouse.window_focus_flag > 0)
+	if (mouse.window_focus_flag >= 0)
 		ret = proc_mouse_draggable_ctrl(state, box);
 
 	return ret;
@@ -541,7 +541,7 @@ int ctrl_draggable_circle_invis(xy_t *pos, double radius, int *sel_id, int cur_i
 	if (check_box_on_screen(box)==0 && *dragged != cur_id)
 		return -10;
 
-	if (mouse.window_focus_flag > 0)
+	if (mouse.window_focus_flag >= 0)
 	{
 		butt_state = proc_mouse_circular_ctrl(pos, radius, *dragged == cur_id);
 

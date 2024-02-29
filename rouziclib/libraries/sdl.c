@@ -447,6 +447,129 @@ SDL_GLContext init_sdl_gl(SDL_Window *window)
 #endif
 #endif*/
 
+void sdl_graphics_init_from_handle(const void *window_handle, int flags)
+{
+	static int init=1;
+	SDL_DisplayMode dm;
+
+	if (init)
+	{
+		init = 0;
+		if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+			fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+
+		#ifdef __EMSCRIPTEN__
+		em_mmb_capture();		// captures the mouse correctly on a middle-click
+		#endif
+	}
+
+	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
+
+	if (fb->pixel_scale == 0)
+		fb->pixel_scale = 1;
+
+	// Create window from handle
+	SDL_Window *temp_window = SDL_CreateWindow("", 0, 0, 1, 1, flags | SDL_WINDOW_HIDDEN);	// flags could be something like SDL_WINDOW_OPENGL
+	char hint[32];
+	sprintf(hint, "%p", temp_window);
+	SDL_SetHint(SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, hint);
+	if (flags & SDL_WINDOW_OPENGL)
+		SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_OPENGL, "1");
+
+	fb->window = SDL_CreateWindowFrom(window_handle);
+	if (fb->window==NULL)
+		fprintf_rl(stderr, "SDL_CreateWindowFrom failed: %s\n", SDL_GetError());
+
+	SDL_SetHint(SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, NULL);
+	SDL_DestroyWindow(temp_window);
+
+	// Window dimensions
+	SDL_GetWindowSizeInPixels(fb->window, &fb->w, &fb->h);
+
+	// Set max dimension used for allocation
+	fb->maxdim = sdl_screen_max_window_size();
+	if (fb->use_drawq == 1)
+		fb->maxdim = add_xyi(fb->maxdim, set_xyi(32));	// pad the dimensions for OpenCL due to work size rounding up
+
+	// Check that the requested mode can work
+	if (fb->use_drawq==1)
+	{
+		#ifndef RL_OPENCL
+		fb->use_drawq = 2;
+		#else
+		if (check_opencl()==0)
+			fprintf_rl(stderr, "In sdl_graphics_init_from_handle(): Cannot render using the OpenCL draw queue\n");
+		#endif
+	}
+
+	if (fb->use_drawq==2)
+		if (check_ssse3()==0 || check_sse41()==0)
+		{
+			fprintf_rl(stderr, "In sdl_graphics_init_from_handle(): Cannot render using the software draw queue on a CPU that lacks SSSE3 or SSE4.1. Go buy a new computer, this ancient wreck is unworthy of running my code.\n");
+			fb->use_drawq = 0;
+		}
+
+	// Renderer and texture
+	if (fb->use_drawq==1)
+	{
+		#ifdef RL_VULKAN
+		vk_init();
+
+		if (SDL_Vulkan_CreateSurface(fb->window, fb->vk.instance, &fb->vk.surface) == 0)
+			fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
+		#else
+		#ifdef RL_OPENCL_GL
+		fb->gl_ctx = init_sdl_gl(fb->window);
+		#if RL_SDL == 3
+		fb->renderer = SDL_CreateRenderer(fb->window, "opengl", SDL_RENDERER_PRESENTVSYNC);
+		#else
+		fb->renderer = SDL_CreateRenderer(fb->window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
+		#endif
+		if (fb->renderer==NULL)
+			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+		#endif
+		#endif
+	}
+	else
+	{
+		#if RL_SDL == 3
+		fb->renderer = SDL_CreateRenderer(fb->window, NULL, SDL_RENDERER_PRESENTVSYNC);
+		#else
+		fb->renderer = SDL_CreateRenderer(fb->window, -1, SDL_RENDERER_PRESENTVSYNC);
+		#endif
+		if (fb->renderer==NULL)
+			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+
+		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
+		if (fb->texture==NULL)
+			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+
+		fb->srgb_order = ORDER_BGRA;
+
+		if (fb->use_drawq==0)
+			fb->r = make_raster(NULL, XYI0, fb->maxdim, fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB);
+		// fb->r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
+	}
+
+	if (fb->use_drawq)
+	{
+		#ifdef RL_OPENCL
+		if (fb->use_drawq==1)
+			init_fb_cl();
+		#endif
+
+		drawq_alloc();
+	}
+
+	SDL_SetWindowSize(fb->window, fb->w, fb->h);
+	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
+	fb->r.dim = xyi(fb->w, fb->h);
+
+	#ifdef __EMSCRIPTEN__
+	SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#screen");
+	#endif
+}
+
 void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags)
 {
 	static int init=1;
