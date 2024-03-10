@@ -3,6 +3,9 @@ _Thread_local fwrite_func_t fwrite_override = (fwrite_func_t) fwrite;
 _Thread_local fprintf_func_t fprintf_override = (fprintf_func_t) fprintf;
 _Thread_local fopen_func_t fopen_override = (fopen_func_t) fopen_utf8;
 _Thread_local fclose_func_t fclose_override = (fclose_func_t) fclose;
+_Thread_local rewind_func_t rewind_override = (rewind_func_t) rewind;
+_Thread_local fseek_func_t fseek_override = (fseek_func_t) fseek;
+_Thread_local ftell_func_t ftell_override = (ftell_func_t) ftell;
 
 size_t fread_buffer(void *ptr, size_t size, size_t nmemb, void *stream)
 {
@@ -61,6 +64,37 @@ int fclose_buffer(void *stream)
 	return ret;
 }
 
+void rewind_buffer(void *stream)
+{
+	buffer_t *s = (buffer_t *) stream;
+	s->read_pos = 0;
+}
+
+int fseek_buffer(void *stream, long int offset, int whence)
+{
+	buffer_t *s = (buffer_t *) stream;
+
+	switch (whence)
+	{
+			case SEEK_SET: s->read_pos = offset;
+		break;	case SEEK_CUR: s->read_pos += offset;
+		break;	case SEEK_END: s->read_pos = s->len + offset;
+	}
+
+	if (s->read_pos < 0 || s->read_pos > s->len)
+	{
+		s->read_pos = 0;
+		return -1;
+	}
+
+	return 0;
+}
+
+long int ftell_buffer(void *stream)
+{
+	return s->read_pos;
+}
+
 void io_override_set_FILE()
 {
 	// Set the function points to those of the FILE type
@@ -69,6 +103,9 @@ void io_override_set_FILE()
 	fprintf_override = (fprintf_func_t) fprintf;
 	fopen_override  = (fopen_func_t)  fopen_utf8;
 	fclose_override = (fclose_func_t) fclose;
+	rewind_override = (rewind_func_t) rewind;
+	fseek_override = (fseek_func_t) fseek;
+	ftell_override = (ftell_func_t) ftell;
 }
 
 void io_override_set_buffer()
@@ -79,4 +116,7 @@ void io_override_set_buffer()
 	fprintf_override = (fprintf_func_t) bufprintf;
 	fopen_override  = fopen_buffer;
 	fclose_override = fclose_buffer;
+	rewind_override = rewind_buffer;
+	fseek_override = fseek_buffer;
+	ftell_override = ftell_buffer;
 }

@@ -85,6 +85,28 @@ uint64_t fread_BE64(FILE *file)
 	return ((uint64_t) b1<<32) | b0;
 }
 
+int64_t fread_LEB128(FILE *file, int signed_leb)
+{
+	uint64_t v = 0;
+	int shift = 0;
+	uint8_t b;
+
+	// Add up the 7 bits of each byte
+	do
+	{
+		b = fread_byte8(file);
+		v |= (uint64_t) (b & 0x7F) << shift;
+		shift += 7;
+	}
+	while (b & 0x80);
+
+	// If we're decoding a signed number the sign is given by the bit at 0x40
+	if (signed_leb && b & 0x40)
+		v |= (~0ULL << shift);		// this extends the sign
+
+	return (int64_t) v;
+}
+
 // File write
 void fwrite_byte8(FILE *file, uint8_t s)
 {
@@ -145,6 +167,38 @@ void fwrite_BE64(FILE *file, uint64_t w)
 {
 	fwrite_BE32(file, w >> 32);
 	fwrite_BE32(file, w);
+}
+
+void fwrite_ULEB128(FILE *file, uint64_t v)
+{
+	do
+	{
+		uint8_t b = v & 0x7F;
+
+		v >>= 7;
+		if (v)
+			b |= 0x80;
+
+		fwrite_byte8(file, b);
+	}
+	while (v);
+}
+
+void fwrite_SLEB128(FILE *file, int64_t v)
+{
+	uint8_t b;
+
+	do
+	{
+		b = v & 0x7F;
+
+		v >>= 7;
+		if ((v != 0 || b & 0x40) && (v != -1 || (b & 0x40) == 0))
+			b |= 0x80;
+
+		fwrite_byte8(file, b);
+	}
+	while (b & 0x80);
 }
 
 // Buffer read

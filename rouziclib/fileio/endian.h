@@ -10,6 +10,7 @@ extern uint32_t fread_LE32(FILE *file);
 extern uint32_t fread_BE32(FILE *file);
 extern uint64_t fread_LE64(FILE *file);
 extern uint64_t fread_BE64(FILE *file);
+extern int64_t fread_LEB128(FILE *file, int signed_leb);
 extern void fwrite_byte8(FILE *file, uint8_t s);
 extern void fwrite_LE16(FILE *file, uint16_t s);
 extern void fwrite_BE16(FILE *file, uint16_t s);
@@ -17,6 +18,8 @@ extern void fwrite_LE32(FILE *file, uint32_t w);
 extern void fwrite_BE32(FILE *file, uint32_t w);
 extern void fwrite_LE64(FILE *file, uint64_t w);
 extern void fwrite_BE64(FILE *file, uint64_t w);
+extern void fwrite_ULEB128(FILE *file, uint64_t v);
+extern void fwrite_SLEB128(FILE *file, int64_t v);
 
 // Read from a buffer
 extern uint8_t read_byte8(const void *ptr, size_t *index);
