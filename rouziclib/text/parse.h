@@ -17,6 +17,7 @@ extern char *remove_after_char_copy(const char *string, const char c);
 extern size_t get_string_linecount(const char *text, size_t len);
 extern int string_find_start_nth_line(const char *text, int len, int n);
 extern char **arrayise_text(char *text, int *linecount);
+extern int stricmp(const char *a, const char *b);
 extern const char *strstr_i(const char *fullstr, const char *substr);
 extern const char *strstr_after(const char *fullstr, const char *substr);
 extern size_t count_substring_occurrences(const char *fullstr, const char *substr);

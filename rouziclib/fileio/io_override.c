@@ -92,6 +92,7 @@ int fseek_buffer(void *stream, long int offset, int whence)
 
 long int ftell_buffer(void *stream)
 {
+	buffer_t *s = (buffer_t *) stream;
 	return s->read_pos;
 }
 

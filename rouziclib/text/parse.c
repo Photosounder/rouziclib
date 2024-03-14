@@ -267,6 +267,17 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 	return array;
 }
 
+int stricmp(const char *a, const char *b)
+{
+	int i;
+
+	for (i = 0; a[i] && b[i]; i++)
+		if (tolower(a[i]) != tolower(b[i]))
+			break;
+
+	return tolower(a[i]) - tolower(b[i]);
+}
+
 const char *strstr_i(const char *fullstr, const char *substr)		// case insensitive substring search
 {
 	char *fullstr_low, *substr_low;
