@@ -1,4 +1,5 @@
 //	gcc tablegen_mpfr.c -o tablegen_mpfr.exe -std=c99 -lm -lmpfr -lgmp -lwinmm -lcomdlg32 -lole32 -Wno-incompatible-pointer-types -O0 -DRL_STOREU_SI32 && ./tablegen_mpfr.exe
+//	clang tablegen_mpfr.c -o tablegen_mpfr.exe -std=c99 -lm -lmpfr -lgmp -lwinmm -lcomdlg32 -lole32 -Wno-incompatible-pointer-types -Wno-dangling-else -Wno-parentheses -Wno-pointer-sign -Wno-shift-op-parentheses -O0 && ./tablegen_mpfr.exe
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,8 +11,6 @@
 #define RL_MPFR
 #include "../rouziclib/rouziclib.h"
 #include "../rouziclib/rouziclib.c"
-
-#define PREC	512
 
 #define COEF_COUNT 100
 
@@ -139,6 +138,12 @@ void f_cos(real_t y, real_t x)
 	r_mul(a, x);
 
 	r_cos(y, a);
+}
+
+void f_cos_sq(real_t y, real_t x)
+{
+	r_sqrt(y, x);
+	f_cos(y, y);
 }
 
 double find_max_intermediary_value(real_t *c_r, real_t segstart_r, real_t segend_r)
@@ -390,10 +395,16 @@ void compare_chebyshev_arithmetics(void (*f)(real_t,real_t), real_t *cm, int deg
 	r_free(x2r);
 }
 
+//#define COSQ_EVEN
 void make_cos_double_double_approx()
 {
 	int i;
-	const int degree = 28, p_count = 1000;
+#ifdef COSQ_EVEN
+	const int step=2, degree = 28;
+#else
+	const int step=1, degree = 14;
+#endif
+	const int p_count = 1000;
 	real_t *c, *cm;
 	real_t start, end, v;
 	double err;
@@ -401,19 +412,28 @@ void make_cos_double_double_approx()
 	cm = r_init_array(degree+1);
 	c = r_init_array(degree+1);
 
-	r_init(start);
-	r_setd(start, -0.25);
-	r_init(end);
-	r_setd(end, 0.25);
 	r_init(v);
+	r_init(start);
+	r_init(end);
+#ifdef COSQ_EVEN
+	r_setd(start, -0.25);
+	r_setd(end, 0.25);
 
 	chebyshev_analysis_on_function_mpfr(f_cos, start, end, cm, degree, p_count);
 	polynomial_fit_on_function_by_dct_mpfr(f_cos, start, end, c, degree);
 	err = get_polynomial_error_mpfr(f_cos, start, end, c, degree, NEGMODE);
-	fprintf(stdout, "Polynomial error: %.5eg\n", err);
+#else
+	r_setd(start, 0.);
+	r_setd(end, 0.0625);
+
+	chebyshev_analysis_on_function_mpfr(f_cos_sq, start, end, cm, degree, p_count);
+	polynomial_fit_on_function_by_dct_mpfr(f_cos_sq, start, end, c, degree);
+	err = get_polynomial_error_mpfr(f_cos_sq, start, end, c, degree, NEGMODE);
+#endif
+	fprintf(stdout, "Polynomial error: %.5e\n", err);
 
 	// Print Chebyshev multipliers
-	for (i=0; i <= degree; i+=2)
+	for (i=0; i <= degree; i++)
 	{
 		mpfr_abs(v, cm[i], MPFR_RNDN);
 		if (mpfr_cmp_d(v, 1e-150) > 0)
@@ -425,16 +445,16 @@ void make_cos_double_double_approx()
 	}
 
 	// Print polynomial coefficients
-	for (i=0; i <= degree; i+=2)
+	for (i=0; i <= degree; i+=step)
 	{
 		ddouble_t q = mpfr_to_ddouble(c[i]);
 		fprintf(stdout, "{%.17g, %.17g},	// c%d\n", q.hi, q.lo, i);
 	}
 
 	// Print Horner form of polynomial
-	for (i=degree; i > 2; i-=2)
+	for (i=degree; i > step; i-=step)
 		mpfr_fprintf(stdout, "(");
-	for (i=degree; i > 0; i-=2)
+	for (i=degree; i > 0; i-=step)
 		if (i==degree)
 			mpfr_fprintf(stdout, "%.17Rg*x2 + ", c[i]);
 		else
@@ -442,45 +462,211 @@ void make_cos_double_double_approx()
 	mpfr_fprintf(stdout, "%.17Rg\n", c[0]);
 
 	// Compare arithmetics
-	compare_chebyshev_arithmetics(f_cos, cm, degree, 0.24998772);
+	//compare_chebyshev_arithmetics(f_cos, cm, degree, 0.24998772);
 
 	r_free(v);
 	r_free_array(&cm, degree+1);
 	r_free_array(&c, degree+1);
 }
 
-void test_cos_ddouble()
+rlip_t expr_prog={0};
+real_t expr_prog_x;
+
+int f_expr_init(const char *expr)
+{
+	static int init = 1;
+	rlip_inputs_t inputs[] = { RLIP_REAL_MPFR, {"x", &expr_prog_x, "pr"} };
+
+	// Init or reset
+	if (init)
+	{
+		init = 0;
+		r_init(expr_prog_x);
+	}
+	else
+	{
+		free_rlip(&expr_prog);
+	}
+
+	// Compile
+	buffer_t comp_log={0};
+	expr_prog = rlip_expression_compile(expr, inputs, sizeof(inputs)/sizeof(*inputs), 1, &comp_log);
+
+	if (expr_prog.valid_prog == 0)
+	{
+		fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
+		free_buf(&comp_log);
+		free_rlip(&expr_prog);
+		return -1;
+	}
+	free_buf(&comp_log);
+
+	return 0;
+}
+
+void f_expr(real_t y, real_t x)
+{
+	// Set x input
+	r_set(expr_prog_x, x);
+
+	// Execute
+	volatile int exec_on = 1;
+	expr_prog.exec_on = &exec_on;
+	rlip_execute_opcode(&expr_prog);
+
+	// Copy result
+	r_set(y, *(mpfr_t *) &expr_prog.return_real[0]);
+}
+
+void make_expr_double_double_approx(const char *expr, double startd, double endd, int degree)
+{
+	int i;
+	const int p_count = 1000;
+	real_t *c, *cm;
+	real_t start, end, v;
+	double err;
+
+	// Init expression
+	if (f_expr_init(expr))
+		return;
+
+	// Init coef arrays and variables
+	cm = r_init_array(degree+1);
+	c = r_init_array(degree+1);
+
+	r_init(v);
+	r_init(start);
+	r_init(end);
+	r_setd(start, startd);
+	r_setd(end, endd);
+
+	fprintf_rl(stdout, "\n%s, x = [%g , %g], degree %d:\n\n", expr, startd, endd, degree);
+
+	// Fit
+	chebyshev_analysis_on_function_mpfr(f_expr, start, end, cm, degree, p_count);
+	polynomial_fit_on_function_by_dct_mpfr(f_expr, start, end, c, degree);
+	err = get_polynomial_error_mpfr(f_expr, start, end, c, degree, NEGMODE);
+	fprintf(stdout, "Polynomial error: %.5e\n", err);
+
+	// Print Chebyshev multipliers
+	for (i=0; i <= degree; i++)
+	{
+		mpfr_abs(v, cm[i], MPFR_RNDN);
+		if (mpfr_cmp_d(v, 1e-150) > 0)
+		{
+			//mpfr_fprintf(stdout, "T_%d(x) * % .32Rg\n", i, cm[i]);
+			ddouble_t q = mpfr_to_ddouble(cm[i]);
+			fprintf(stdout, "{%.17g, %.17g},	// T_%d (err %.3g)\n", q.hi, q.lo, i, diff_mpfr_ddouble(cm[i], q));
+			fflush(stdout);
+		}
+	}
+
+	r_free(v);
+	r_free_array(&cm, degree+1);
+	r_free_array(&c, degree+1);
+}
+
+void test_expr_ddouble(const char *expr, double start, double end, double step, int print_new_err)
 {
 	int i;
 	real_t x, ym, yq;
-	ddouble_t r;
-	double err, maxerr=0.;
+	ddouble_t r, xq;
+	double err, maxerr=0., maxerr_x=NAN, maxerr_y=NAN;
+	rlip_inputs_t inputs_ddouble[] = { RLIP_REAL_DOUBLEDOUBLE, {"x", &xq, "pr"} };
+	rlip_inputs_t inputs_mpfr[] = { RLIP_REAL_MPFR, {"x", &x, "pr"} };
+	rlip_t prog_ddouble, prog_mpfr;
+
+	prog_ddouble = rlip_expression_compile(expr, inputs_ddouble, sizeof(inputs_ddouble)/sizeof(*inputs_ddouble), 1, NULL);
+	prog_mpfr    = rlip_expression_compile(expr, inputs_mpfr,    sizeof(inputs_mpfr)/sizeof(*inputs_mpfr),       1, NULL);
+
+	if (prog_ddouble.valid_prog == 0 || prog_mpfr.valid_prog == 0)
+	{
+		free_rlip(&prog_ddouble);
+		free_rlip(&prog_mpfr);
+		fprintf_rl(stderr, "Invalid compiled program for expression '%s' in test_expr_ddouble()\n", expr);
+		return;
+	}
+
+	volatile int exec_on = 1;
+	prog_ddouble.exec_on = &exec_on;
+	prog_mpfr.exec_on = &exec_on;
 
 	r_init(x);
 	r_init(ym);
 	r_init(yq);
 
-	r_setd(x, 0.);
-	for (; mpfr_cmp_d(x, 0.25) < 0; r_addd(x, 1.18e-7))
+	r_setd(x, start);
+	for (; mpfr_cmp_d(x, end) < 0; r_addd(x, step))
 	{
-		ddouble_to_mpfr(x, mpfr_to_ddouble(x));		// round it to an exact double-double value
+		xq = mpfr_to_ddouble(x);
+		ddouble_to_mpfr(x, xq);		// round it to an exact double-double value
 
-		f_cos(ym, x);
-		r = cos_tr_q(mpfr_to_ddouble(x));
+		// Execution
+		rlip_execute_opcode(&prog_ddouble);
+		rlip_execute_opcode(&prog_mpfr);
+		r = *(ddouble_t *) &prog_ddouble.return_real[0];
+		r_set(ym, *(mpfr_t *) &prog_mpfr.return_real[0]);
+
+		// Comparison
 		ddouble_to_mpfr(yq, r);
 		r_sub(yq, ym);
 		r_abs(yq);
+
 		err = r_todouble(yq);
-		maxerr = MAXN(err, maxerr);
-		if (err > 3e-32)
-			fprintf(stdout, "f(%.17g): %.5e\n", r_todouble(x), err);
+		if (err > maxerr)
+		{
+			maxerr = err;
+			maxerr_x = xq.hi;
+			maxerr_y = r.hi;
+
+			if (print_new_err)
+			{
+				fprintf_rl(stdout, "\tnew error of '%s': %.5e at %.16g (value %.16g)\n", expr, maxerr, maxerr_x, maxerr_y);
+				fflush(stdout);
+			}
+		}
 	}
 
-	fprintf(stdout, "Max error of cos_tr_q(): %.5e\n", maxerr);
+	fprintf(stdout, "Max error of '%s': %.5e at %.16g (value %.16g)\n", expr, maxerr, maxerr_x, maxerr_y);
+	fflush(stdout);
 
 	r_free(x);
 	r_free(ym);
 	r_free(yq);
+
+	free_rlip(&prog_ddouble);
+	free_rlip(&prog_mpfr);
+}
+
+void expr_eval_to_ddouble(const char *expr)
+{
+	ddouble_t result;
+	rlip_inputs_t inputs_mpfr[] = { RLIP_REAL_MPFR };
+	rlip_t prog_mpfr;
+
+	// Compile
+	buffer_t comp_log={0};
+	prog_mpfr = rlip_expression_compile(expr, inputs_mpfr, sizeof(inputs_mpfr)/sizeof(*inputs_mpfr), 1, &comp_log);
+	if (prog_mpfr.valid_prog == 0)
+	{
+		fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
+		free_buf(&comp_log);
+		free_rlip(&prog_mpfr);
+		return;
+	}
+	free_buf(&comp_log);
+
+	// Execute
+	volatile int exec_on = 1;
+	prog_mpfr.exec_on = &exec_on;
+	rlip_execute_opcode(&prog_mpfr);
+	result = mpfr_to_ddouble(*(mpfr_t *) &prog_mpfr.return_real[0]);
+
+	// Print
+	mpfr_fprintf(stdout, "%s = %.60Rg = {%.17g, %.17g}\n", expr, *(mpfr_t *) &prog_mpfr.return_real[0], result.hi, result.lo);
+	fflush(stdout);
+
+	free_rlip(&prog_mpfr);
 }
 
 // Sinc windowed with squared gaussian window
@@ -1094,14 +1280,110 @@ void make_asin_table_human(const int order, const double step)
 	printf("\nMax error: %g\n", maxerr);
 }
 
+void test_rlip()
+{
+	buffer_t comp_log={0};
+	volatile int exec_on = 1;
+	static double x;
+	const char source[] = 
+		"r v1 = cos_ x\n return_real v1";
+	rlip_inputs_t inputs[] = { RLIP_REAL_MPFR, RLIP_FUNC, {"x", &x, "pd"} };
+	rlip_t prog = rlip_compile(source, inputs, sizeof(inputs)/sizeof(*inputs), 1, &comp_log);
+	buffer_t decomp = rlip_decompile(&prog);
+
+	if (comp_log.len)
+		fprintf_rl(stdout, "Compilation log: %s\n", comp_log.buf);
+	free_buf(&comp_log);
+
+	fprintf_rl(stdout, "Decompilation:\n%s\n", decomp.buf);
+	free_buf(&decomp);
+
+	x = 4.;
+	prog.exec_on = &exec_on;
+	rlip_execute_opcode(&prog);
+	mpfr_t *result = ((mpfr_t *) &prog.return_real[0]);
+	mpfr_fprintf(stdout, "Program returned %.60Rg\n\n", *result);
+
+	free_rlip(&prog);
+
+	// Test expression interpretation
+	real_t v;
+	r_init(v);
+		double ts=0.;
+		get_time_diff_hr(&ts);
+	rlip_expression_interp_mpfr(&v, "0.5 + 0.5cos(0.25pi)", NULL);
+		fprintf_rl(stdout, "rlip_expression_interp_mpfr() took %g sec\n\n", get_time_diff_hr(&ts));
+	mpfr_fprintf(stdout, "Expression result: %Rg\n\n", v);
+	r_free(v);
+}
+
+void expr_to_coefs(const char *expr, double startd, double endd, int degree, const char *var)
+{
+	int32_t i;
+	real_t *c;
+	real_t start, end;
+	double err;
+
+	// Init expression
+	if (f_expr_init(expr))
+		return;
+
+	fprintf(stdout, "Fitting %s in [%g , %g], degree %d\n", expr, startd, endd, degree);
+
+	r_init(start);
+	r_init(end);
+	r_setd(start, startd);
+	r_setd(end, endd);
+
+	// Init coef arrays and variables
+	c = r_init_array(degree+1);
+
+	// Fit
+	polynomial_fit_on_function_by_dct_mpfr(f_expr, start, end, c, degree);
+	err = get_polynomial_error_mpfr(f_expr, start, end, c, degree, NEGMODE);
+	fprintf(stdout, "Polynomial error before reduction: %.5e\n", err);
+
+	// Reduce digits
+	err = reduce_digits_mpfr(f_expr, start, end, c, degree, NEGMODE, 1.03, 30.);
+	fprintf(stdout, "Polynomial error after reduction: %.5e\n", err);
+
+	// Print
+	for (i=degree; i > 1; i--)
+		mpfr_fprintf(stdout, "(");
+	for (i=degree; i > 0; i--)
+		mpfr_fprintf(stdout, "%.17Rg%s*%s + ", c[i], i==degree ? "" : ")", var);
+	mpfr_fprintf(stdout, "%.17Rg\n", c[0]);
+
+	r_free_array(&c, degree+1);
+}
+
 int main(int argc, char **argv)
 {
-	mpfr_set_default_prec(PREC);
+	mpfr_set_default_prec(512);
+
+	//expr_to_coefs("log(x+1)/log(2)", 0., 1., 20, "x");
+	//expr_to_coefs("2^x", 0., 1., 11, "xf");
+	//expr_to_coefs("sin(2pi*x)", -0.25, 0.25, 17, "x");
+	//expr_to_coefs("atan(x)+0.25*pi", -1., 1., 41, "z");
+	//expr_to_coefs("(1 - erf(x))^(-1/8)", 0., 3.4, 22, "xa");
+	//expr_to_coefs("asin(2*x-x^2)", 0.6, 1., 12, "xm");
+	expr_to_coefs("asin(2*x-x^2)", 0., 0.83, 5, "xm");
+
+	//test_rlip();
 
 	//make_erf_radlim_mid_table(3, 1./4.);		// causes SIGSEGV for some reason
 
-	make_cos_double_double_approx();
-	test_cos_ddouble();
+	//make_cos_double_double_approx();
+	//make_expr_double_double_approx("exp(x*log(2))", 0., 1., 20);
+	//make_expr_double_double_approx("log(1-erf(x))", 10., 20., 30);
+	//make_expr_double_double_approx("erf(x)", 0.5, 1., 30);
+	//test_expr_ddouble("cos(x)", 0., 0.25, 1.18e-6, 0);
+	//test_expr_ddouble("sqrt(x)", 1., 2., 1.18e-7, 0);
+	//test_expr_ddouble("asin(x)", 0., 1., 1.18e-5, 1);
+	//test_expr_ddouble("exp(x)", 0., log(2.), 1.18e-7, 0);
+	//test_expr_ddouble("erf(x)", -2.5, -0., 4.18e-6, 1);
+	//expr_eval_to_ddouble("1/log(2)");
+	//expr_eval_to_ddouble("e");
 /*	make_cos_table_human(atoi(argv[1]), 0.01);
 	make_cos_table(2, 5, 4);	// 1/2 kB, float err 4.2e-006, double err 6.159e-007
 	make_cos_table(3, 5, 4);	// 3 kB, err 1.88958e-009
