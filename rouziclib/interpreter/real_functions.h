@@ -191,6 +191,7 @@ static void real_mpfr_sqrt(mpfr_t *r, mpfr_t *a) { mpfr_sqrt(*r, *a, MPFR_RNDN);
 static void real_mpfr_cos(mpfr_t *r, mpfr_t *a) { mpfr_cos(*r, *a, MPFR_RNDN); }
 static void real_mpfr_sin(mpfr_t *r, mpfr_t *a) { mpfr_sin(*r, *a, MPFR_RNDN); }
 static void real_mpfr_asin(mpfr_t *r, mpfr_t *a) { mpfr_asin(*r, *a, MPFR_RNDN); }
+static void real_mpfr_atan(mpfr_t *r, mpfr_t *a) { mpfr_atan(*r, *a, MPFR_RNDN); }
 static void real_mpfr_exp(mpfr_t *r, mpfr_t *a) { mpfr_exp(*r, *a, MPFR_RNDN); }
 static void real_mpfr_log(mpfr_t *r, mpfr_t *a) { mpfr_log(*r, *a, MPFR_RNDN); }
 static void real_mpfr_erf(mpfr_t *r, mpfr_t *a) { mpfr_erf(*r, *a, MPFR_RNDN); }
@@ -232,6 +233,7 @@ static rlip_real_functions_t real_mpfr_functions = {
 	{"cos_", real_mpfr_cos,		"frr"},		\
 	{"sin_", real_mpfr_sin,		"frr"},		\
 	{"asin_", real_mpfr_asin,	"frr"},		\
+	{"atan_", real_mpfr_atan,	"frr"},		\
 	{"exp_", real_mpfr_exp,		"frr"},		\
 	{"log_", real_mpfr_log,		"frr"},		\
 	{"erf_", real_mpfr_erf,		"frr"},		\
