@@ -34,6 +34,7 @@ size_t alloc_enough_and_copy2(void **buffer, void *copy_src, size_t needed_count
 	return alloc_count;
 }
 
+#ifndef RL_EXCL_THREADING
 size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_count, size_t size_elem, double inc_ratio, rl_mutex_t *mutex)
 {
 	if (needed_count > alloc_count && mutex)
@@ -47,6 +48,7 @@ size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_coun
 
 	return alloc_count;
 }
+#endif
 
 void free_null(void **ptr)
 {

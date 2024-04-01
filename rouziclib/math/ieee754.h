@@ -2,9 +2,11 @@
 #define	ffabsf(x)	(*((uint32_t *) (x)) &= 0x7FFFFFFFUL)
 #define	ffabs(x)	(*((uint64_t *) (x)) &= 0x7FFFFFFFFFFFFFFFULL)
 
+#ifdef _MSC_VER
 // Replace standard calls due to MSVC retardation (their fabsf calls fabs...)
 #define fabsf fast_absf
 #define fabs fast_abs
+#endif
 
 extern float u32_as_float(const uint32_t i);
 extern double u64_as_double(const uint64_t i);

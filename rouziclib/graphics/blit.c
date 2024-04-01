@@ -47,7 +47,6 @@ int calc_blit_bounds(xyi_t in_dim, xyi_t out_dim, xyi_t offset, recti_t *bounds)
 	return 0;
 }
 
-#include <string.h>	// for memcpy
 void blit_sprite(raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vmode)
 {
 	int32_t iy_r0, iy_r1;

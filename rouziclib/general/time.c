@@ -7,7 +7,7 @@ uint32_t get_time_ms()
 	return timeGetTime();
 }
 
-#else
+#elif !defined(WAHE_MODULE)
 #include <sys/types.h> 
 #include <sys/time.h>
 
@@ -30,8 +30,18 @@ uint32_t get_time_ms()
 #include <profileapi.h>
 #endif
 
+
+
 double get_time_hr()	// High-resolution timing
 {
+#ifdef WAHE_MODULE
+	double t = NAN;
+	char *response = wahe_run_command("Get raw time");
+	sscanf(response, "Raw time %lg", &t);
+	free(response);
+	return t;
+#else	// WAHE_MODULE
+
 	static double tick_dur = 0.;
 
 	// Find the tick duration in seconds only once
@@ -80,6 +90,7 @@ double get_time_hr()	// High-resolution timing
 	#endif
 	return (double) ((uint64_t) now.tv_sec*1000000000LL + now.tv_nsec) * tick_dur;
 	#endif
+#endif	// WAHE_MODULE
 }
 
 // the caller should give a pointer to the old time value for it to be replaced with the new value, and the difference is returned
@@ -248,6 +259,10 @@ double parse_date_time_string_hr(const char *string)	// expected format is "YYYY
 
 void sleep_ms(int ms)
 {
+#ifdef WAHE_MODULE
+	sleep_hr(ms * 1e-3);
+#else	// WAHE_MODULE
+
 	#ifdef _WIN32
 	Sleep(ms);
 
@@ -262,6 +277,7 @@ void sleep_ms(int ms)
 
 	nanosleep(&t, NULL);
 	#endif
+#endif	// WAHE_MODULE
 }
 
 #ifdef _WIN32
@@ -279,6 +295,12 @@ ZwSetTimerResolution_func ZwSetTimerResolution;
 
 void sleep_hr(double t)
 {
+#ifdef WAHE_MODULE
+	char cmd[20];
+	sprintf(cmd, "Sleep %g", t);
+	free(wahe_run_command(cmd));
+#else	// WAHE_MODULE
+
 	#ifdef _WIN32
 	static int init=1;
 
@@ -306,6 +328,7 @@ void sleep_hr(double t)
 
 	nanosleep(&ts, NULL);
 	#endif
+#endif	// WAHE_MODULE
 }
 
 void time_struct_minimise_elem(struct tm *ts, const int level)

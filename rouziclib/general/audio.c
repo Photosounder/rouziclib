@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_THREADING
+
 void audiosys_callback(void *userdata, uint8_t *stream, int stream_bytes)
 {
 	int ib;
@@ -188,3 +190,5 @@ void sdl_audiosys_init(int def_buflen)
 	#endif
 #endif
 }
+
+#endif // RL_EXCL_THREADING

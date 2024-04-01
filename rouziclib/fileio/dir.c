@@ -1,3 +1,5 @@
+#ifndef __wasm__
+
 #ifdef _WIN32
 #define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)	// handleapi.h
 #include "../libraries/dirent.c"
@@ -375,3 +377,5 @@ double get_volume_free_space_gb(const char *path)
 
 	return (double) bytes / (1024.*1024.*1024.);
 }
+
+#endif // __wasm__

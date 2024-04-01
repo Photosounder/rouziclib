@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_THREADING
+
 #if defined(__EMSCRIPTEN__)
 #define RL_THREADING_PLATFORM_FAKING
 #define __APPLE__
@@ -349,3 +351,7 @@ int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value)
 #ifdef RL_THREADING_PLATFORM_FAKING
 #undef __APPLE__
 #endif
+
+#else	// RL_EXCL_THREADING
+
+#endif	// RL_EXCL_THREADING

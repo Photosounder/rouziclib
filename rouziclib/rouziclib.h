@@ -32,15 +32,17 @@ extern "C" {
 extern "C" {
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <stdarg.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <float.h>
-#include <limits.h>
+#ifndef RL_EXCL_LIBC_INCLUDES
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <inttypes.h>
+  #include <stdarg.h>
+  #include <string.h>
+  #include <ctype.h>
+  #include <math.h>
+  #include <float.h>
+  #include <limits.h>
+#endif
 
 #if defined(__clang__)
   #pragma clang diagnostic push

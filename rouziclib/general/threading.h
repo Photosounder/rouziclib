@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_THREADING
+
 // _Thread_local definition
 #if defined(_MSC_VER) && !defined(_Thread_local)
     #define _Thread_local __declspec(thread)
@@ -66,3 +68,12 @@ extern int32_t rl_atomic_load_i32(volatile int32_t *ptr);
 extern void rl_atomic_store_i32(volatile int32_t *ptr, int32_t value);
 extern int32_t rl_atomic_add_i32(volatile int32_t *ptr, int32_t value);
 extern int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value);
+
+#else	// RL_EXCL_THREADING
+
+#define _Thread_local
+typedef int rl_sem_t;
+typedef int rl_mutex_t;
+typedef void* rl_thread_t;
+
+#endif	// RL_EXCL_THREADING

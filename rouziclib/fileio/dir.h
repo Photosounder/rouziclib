@@ -1,6 +1,8 @@
 // in fileio/dir_struct.h:
 // DIR_CHAR, fs_file_t, fs_dir_t
 
+#ifndef __wasm__
+
 #ifdef _WIN32
 
 #ifndef PATH_MAX
@@ -34,3 +36,5 @@ extern double get_volume_free_space_gb(const char *path);
 
 #define sprint_dir_depth(dir, current_depth)	sprint_dir_depth_fullarg(dir, current_depth, NULL, NULL)
 #define export_subfiles_to_path(path, dir)	export_subfiles_to_path_fullarg(path, dir, 0)
+
+#endif // __wasm__

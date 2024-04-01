@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_THREADING
+
 math_graph_array_t graph_array={0};
 
 math_graph_t *math_graph_alloc_one()
@@ -131,3 +133,5 @@ double math_graph_get_interpolated_value(int index, double x)
 
 	return y;
 }
+
+#endif // RL_EXCL_THREADING

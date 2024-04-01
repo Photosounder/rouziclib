@@ -13,6 +13,7 @@ float sqf(float x)
 	return x*x;
 }
 
+#ifndef MINQND_LIBC_H
 double cos_tr(double x)
 {
 	return cos(x * 2.*pi);
@@ -22,6 +23,7 @@ double sin_tr(double x)
 {
 	return sin(x * 2.*pi);
 }
+#endif
 
 double gaussian(double x)	// gaussian(x) = e^-x²
 {
