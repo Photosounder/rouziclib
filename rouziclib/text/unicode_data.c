@@ -177,7 +177,7 @@ unicode_data_t *load_unicode_data_from_file(uint8_t *ucd_path, int16_t ***codepo
 		ic++;
 	}
 
-	fclose (udf);
+	fclose(udf);
 
 	return ucd;
 }
@@ -247,7 +247,7 @@ void make_unicode_data_table_file()	// generates the unicode_data_table.h file
 		fprintf(file, i==end ? " };" : ",\n");
 	}
 
-	fclose (file);
+	fclose(file);
 }
 
 #undef LUT_SHIFT

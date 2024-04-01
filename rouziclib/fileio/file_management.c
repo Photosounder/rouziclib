@@ -1,3 +1,5 @@
+#ifndef WAHE_MODULE
+
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
@@ -248,3 +250,5 @@ void show_file_in_explorer(const char *path)
 
 	free(wpath);
 }
+
+#endif	// WAHE_MODULE

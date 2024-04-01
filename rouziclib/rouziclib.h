@@ -149,6 +149,7 @@ extern "C" {
 #include "graphics/drawrect.h"
 #include "graphics/drawpolygon.h"
 #include "graphics/drawprimitives.h"
+#ifndef __wasm__
 #include "graphics/drawqueue.h"
 #include "graphics/drawqueue_enqueue.h"
 #include "graphics/drawqueue/drawqueue_soft.h"
@@ -156,6 +157,7 @@ extern "C" {
 #include "graphics/drawqueue/drawline.h"
 #include "graphics/drawqueue/blit.h"
 #include "graphics/draw_effects.h"
+#endif	// __wasm__
 #include "graphics/processing.h"
 #include "graphics/mipmap.h"
 #include "graphics/cl_memory.h"

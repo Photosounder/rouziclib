@@ -211,6 +211,7 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 
 void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, double intensity)
 {
+#ifndef __wasm__
 	int i;
 	float *df;
 	double grad;
@@ -241,6 +242,7 @@ void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, double 
 	for (ip.y=bbi.p0.y; ip.y<=bbi.p1.y; ip.y++)
 		for (ip.x=bbi.p0.x; ip.x<=bbi.p1.x; ip.x++)
 			drawq_add_sector_id(ip.y*fb->sector_w + ip.x);	// add sector reference
+#endif	// __wasm__
 }
 
 rect_t get_bounding_box_for_polygon(xy_t *p, int p_count)

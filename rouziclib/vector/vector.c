@@ -232,6 +232,7 @@ void draw_vobj_fullarg(vobj_t *o, xy_t p, xy_t scale, double angle, double line_
 
 void draw_vobj_fullarg_dq(vobj_t *o, xy_t p, xy_t scale, double angle, double line_thick, frgb_t colour)
 {
+#ifndef __wasm__
 	int32_t i;
 	seg_t rs;
 
@@ -247,10 +248,12 @@ void draw_vobj_fullarg_dq(vobj_t *o, xy_t p, xy_t scale, double angle, double li
 		else
 			draw_line_thin_dq(xy(rs.p1.x+p.x, -rs.p1.y+p.y), xy(rs.p2.x+p.x, -rs.p2.y+p.y), line_thick, colour, 0, o->seg[i].m, 0);
 	}
+#endif	// __wasm__
 }
 
 void draw_vobj_dqnq(vobj_t *o, xy_t pos, double scale, double angle, double line_thick, col_t colour)
 {
+#ifndef __wasm__
 	const enum dqnq_type type = DQNQT_VOBJ;
 
 	// Get pointer to data buffer
@@ -269,6 +272,7 @@ void draw_vobj_dqnq(vobj_t *o, xy_t pos, double scale, double angle, double line
 	write_LE32(&p, float_as_u32(col.a));
 
 	dqnq_finish_entry(type);
+#endif	// __wasm__
 }
 
 xy_t *vobj_to_map(vobj_t *o, int32_t dofree)	// naively assumes the vobj is a sequential curve

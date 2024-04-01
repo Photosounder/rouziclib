@@ -94,6 +94,7 @@ double get_time_hr()	// High-resolution timing
 }
 
 // the caller should give a pointer to the old time value for it to be replaced with the new value, and the difference is returned
+#ifndef WAHE_MODULE
 int32_t get_time_diff(uint32_t *t)
 {
 	uint32_t now, diff;
@@ -104,6 +105,7 @@ int32_t get_time_diff(uint32_t *t)
 
 	return diff;
 }
+#endif	// WAHE_MODULE
 
 double get_time_diff_hr(double *t)
 {

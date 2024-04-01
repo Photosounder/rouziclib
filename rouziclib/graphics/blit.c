@@ -194,6 +194,7 @@ void blit_scale_frgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 
 void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
+#ifndef __wasm__
 	int ix, iy;
 	int32_t *di;
 	float *df;
@@ -251,6 +252,7 @@ void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
 		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
 			drawq_add_sector_id(iy*fb->sector_w + ix);	// add sector reference
+#endif	// __wasm__
 }
 
 void blit_scale(raster_t *r, xy_t pscale, xy_t pos, int interp)
@@ -268,6 +270,7 @@ void blit_scale(raster_t *r, xy_t pscale, xy_t pos, int interp)
 
 void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)
 {
+#ifndef __wasm__
 	int i, ix, iy;
 	int32_t *di;
 	float *df;
@@ -346,6 +349,7 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
 		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
 			drawq_add_sector_id(iy*fb->sector_w + ix);	// add sector reference
+#endif	// __wasm__
 }
 
 void blit_scale_rotated(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_t rot_centre, int interp)

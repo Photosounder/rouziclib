@@ -1,7 +1,9 @@
 // in fileio/dir_struct.h:
 // DIR_CHAR, fs_file_t, fs_dir_t
 
-#ifndef __wasm__
+#ifdef __wasm__
+  #define DIR_CHAR '/'
+#else
 
 #ifdef _WIN32
 

@@ -344,6 +344,7 @@ void draw_line_thin_frgb(xy_t p1, xy_t p2, double radius, frgb_t colour, const b
 
 void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
+#ifndef __wasm__
 	double grad;
 	int32_t ix, iy;
 	float *df;
@@ -445,10 +446,12 @@ void draw_line_thin_dq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int
 			}
 		}
 	}
+#endif	// __wasm__
 }
 
 void draw_line_thin_dqnq(xy_t p1, xy_t p2, double radius, frgb_t colour, const int bf, double intensity, int quality)
 {
+#ifndef __wasm__
 	const enum dqnq_type type = DQNQT_LINE_THIN_ADD;
 
 	// Get pointer to data buffer
@@ -466,6 +469,7 @@ void draw_line_thin_dqnq(xy_t p1, xy_t p2, double radius, frgb_t colour, const i
 	write_LE32(&p, float_as_u32(colour.a * intensity));
 
 	dqnq_finish_entry(type);
+#endif	// __wasm__
 }
 
 void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_func_t bf, double intensity)

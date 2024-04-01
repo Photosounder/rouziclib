@@ -116,7 +116,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 		zoom_key_released(zc, &mouse->zoom_flag, 1);
 
 	if (mouse->b.mmb == 2 && mouse->zoom_allowed)
-		zc->zoom_key_time = get_time_ms();
+		zc->zoom_key_time = get_time_hr();
 
 	mouse->u = to_world_coord_xy(*zc, mouse->a);
 	xy_t du = div_xy(neg_y(mouse->d), set_xy(zc->scrscale*fb->pixel_scale));
@@ -160,7 +160,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 
 	if (mouse->zoom_flag && mouse->window_focus_flag == -2)	// if we left the window while zoom is on
 	{
-		zc->zoom_key_time = get_time_ms();
+		zc->zoom_key_time = get_time_hr();
 		zoom_key_released(zc, &mouse->zoom_flag, 1);
 	}
 

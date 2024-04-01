@@ -94,7 +94,7 @@ void zoom_reset(zoom_t *zc, int *flag_zoom_key)
 	zc->offset_u = XY0;
 	zc->offset_uq = XYQ0;
 	zc->just_reset = 1;
-	zc->zoom_key_time = 0;
+	zc->zoom_key_time = 0.;
 
 	if (*flag_zoom_key == 1)
 		zoom_toggle(zc, flag_zoom_key);
@@ -104,17 +104,17 @@ void zoom_reset(zoom_t *zc, int *flag_zoom_key)
 
 void zoom_key_released(zoom_t *zc, int *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down
 {
-	int td;
+	double td;
 	int zko = *flag_zoom_key;						// save the original zoom_key state
 
-	td = get_time_ms() - zc->zoom_key_time;					// time difference
+	td = get_time_hr() - zc->zoom_key_time;					// time difference
 
 	if (source==1 && *flag_zoom_key==0 && zc->zoom_key_time)		// if the button was just released as the zoom was off and the timer running
 		zoom_toggle(zc, flag_zoom_key);					// turn the zoom on
-	else if (source==1 && *flag_zoom_key && zc->zoom_key_time && td <= 500)	// if the button has been pressed for less than 0.5s and released
+	else if (source==1 && *flag_zoom_key && zc->zoom_key_time && td <= 0.5)	// if the button has been pressed for less than 0.5s and released
 		zoom_toggle(zc, flag_zoom_key);					// turn off the zoom mode, don't reset the view
 
-	if (source==2 && zc->zoom_key_time && td > 500)				// if the button is held down and for more than 0.5s and the button timer is running
+	if (source==2 && zc->zoom_key_time && td > 0.5)				// if the button is held down and for more than 0.5s and the button timer is running
 		zoom_reset(zc, flag_zoom_key);					// reset everything
 }
 
@@ -211,7 +211,7 @@ void change_zoom(xy_t pos, double zoom_scale)
 
 void change_zoom_and_turn_off_zoom_mode(xy_t pos, double zoom_scale)
 {
-	zc.zoom_key_time = get_time_ms();
+	zc.zoom_key_time = get_time_hr();
 
 	if (mouse.zoom_flag)
 		zoom_key_released(&zc, &mouse.zoom_flag, 1);

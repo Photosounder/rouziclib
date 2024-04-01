@@ -1,3 +1,5 @@
+#ifndef WAHE_MODULE
+
 #define C_FOPEN_UTF8
 FILE *fopen_utf8(const char *path, const char *mode)
 {
@@ -237,3 +239,5 @@ int check_dir_exists(const char *path)
 
 	return ret;
 }
+
+#endif	// WAHE_MODULE

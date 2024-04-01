@@ -686,7 +686,7 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 
 void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness)
 {
-	static uint32_t t0=0;
+	static double t0 = 0.;
 	double frame_s;
 	const double oscAp = 0.75;
 	static double oscAn;
@@ -695,10 +695,10 @@ void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, 
 	const col_t col2 = make_colour(1., 0.125, 0., 0.);
 	col_t col;
 
-	if (t0==0)
-		t0 = get_time_ms();
+	if (t0 == 0.)
+		t0 = get_time_hr();
 
-	frame_s = (double) get_time_diff(&t0) * 0.001;
+	frame_s = get_time_diff_hr(&t0);
 	frame_s = rangelimit(frame_s, 0., 0.1);
 	oscAn = fmod(oscAn + frame_s / oscAp, 1.);
 

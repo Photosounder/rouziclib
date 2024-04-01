@@ -1,14 +1,16 @@
-#ifdef _WIN32
-	#define fseek(stream, offset, origin)	_fseeki64(stream, offset, origin)
-	#define ftell(stream)			_ftelli64(stream)
-#else
-	#if defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__wasi__)
-		#define fseek(stream, offset, origin)	fseeko(stream, offset, origin)
-		#define ftell(stream)			ftello(stream)
-	#else
-		#define fseek(stream, offset, origin)	fseeko64(stream, offset, origin)	// only needed when large file support isn't the default, but when is that?
-		#define ftell(stream)			ftello64(stream)
-	#endif
+#ifndef WAHE_MODULE
+  #ifdef _WIN32
+    #define fseek(stream, offset, origin)	_fseeki64(stream, offset, origin)
+    #define ftell(stream)			_ftelli64(stream)
+  #else
+    #if defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__wasi__)
+      #define fseek(stream, offset, origin)	fseeko(stream, offset, origin)
+      #define ftell(stream)			ftello(stream)
+    #else
+      #define fseek(stream, offset, origin)	fseeko64(stream, offset, origin)	// only needed when large file support isn't the default, but when is that?
+      #define ftell(stream)			ftello64(stream)
+    #endif
+  #endif
 #endif
 
 #define H_FOPEN_UTF8

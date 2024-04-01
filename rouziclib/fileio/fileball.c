@@ -1,3 +1,5 @@
+#ifndef WAHE_MODULE
+
 void fileball_add_file(buffer_t *sout, const char *path, const char *name, int abs_path_len)
 {
 	uint8_t *data;
@@ -171,6 +173,8 @@ void fileball_extract_z_file_to_path(const char *in_path, const char *extract_pa
 	fileball_extract_z_mem_to_path(&zball, extract_path);
 	free_buf(&zball);
 }
+
+#endif	// WAHE_MODULE
 
 fileball_t fileball_extract_z_mem_to_struct(buffer_t *zball)
 {

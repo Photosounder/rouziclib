@@ -1,4 +1,4 @@
-#define TEXTUNDO_SAVE_DELAY	500	// milliseconds
+#define TEXTUNDO_SAVE_DELAY	0.5	// seconds
 
 void textundo_remove_later_states(textedit_t *te)
 {
@@ -74,7 +74,7 @@ void textundo_restore_state(textedit_t *te)
 
 void textundo_update(textedit_t *te, int forced_save)
 {
-	uint32_t timestamp = get_time_ms();
+	double timestamp = get_time_hr();
 
 	if (te->undo.alloc_count==0)
 	{
@@ -95,7 +95,7 @@ void textundo_update(textedit_t *te, int forced_save)
 	te->undo.timestamp = timestamp;
 
 	//for (int i=0; i<te->undo.state_count; i++)
-	//	fprintf_rl(stdout, "State #%d: %d B, time %d ms, \"%s\"\n\n", i, te->undo.state[i].alloc_size, timestamp - te->undo.state[i].timestamp, te->undo.state[i].string);
+	//	fprintf_rl(stdout, "State #%d: %d B, time %g sec, \"%s\"\n\n", i, te->undo.state[i].alloc_size, timestamp - te->undo.state[i].timestamp, te->undo.state[i].string);
 }
 
 void textundo_undo(textedit_t *te)

@@ -9,14 +9,14 @@ typedef struct
 	char *string;
 	size_t alloc_size;
 	int curpos;
-	uint32_t timestamp;
+	double timestamp;
 } textundostate_t;
 
 typedef struct
 {
 	textundostate_t *state;
 	int alloc_count, state_count, cur_state_index, latest_is_saved;
-	uint32_t timestamp;
+	double timestamp;
 } textundo_t;
 
 typedef struct

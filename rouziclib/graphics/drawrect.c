@@ -1,5 +1,6 @@
 void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, double intensity)
 {
+#ifndef __wasm__
 	float *df;
 	double grad;
 	xyi_t ip;
@@ -64,6 +65,7 @@ void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, double intensit
 		for (ip.x=fri.p0.x; ip.x<=fri.p1.x; ip.x++)
 			if (check_point_within_box_int(xyi(ip.x, ip.y), fri)==1)	// if we're inside the plain fill area
 				drawq_add_sector_id(ip.y*fb->sector_w + ip.x);		// add sector reference
+#endif	// __wasm__
 }
 
 void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
@@ -229,6 +231,7 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 
 void draw_rect_full_dqnq(rect_t box, double radius, frgb_t colour, double intensity)
 {
+#ifndef __wasm__
 	const enum dqnq_type type = DQNQT_RECT_FULL;
 
 	// Get pointer to data buffer
@@ -245,6 +248,7 @@ void draw_rect_full_dqnq(rect_t box, double radius, frgb_t colour, double intens
 	write_LE32(&p, float_as_u32(colour.b * intensity));
 
 	dqnq_finish_entry(type);
+#endif	// __wasm__
 }
 
 void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t bf, double intensity)
@@ -265,6 +269,7 @@ void draw_rect_full(rect_t box, double radius, col_t colour, const blend_func_t 
 
 void draw_black_rect_dq(rect_t box, double radius, double intensity)
 {
+#ifndef __wasm__
 	float *df;
 	double grad;
 	xyi_t ip;
@@ -296,10 +301,12 @@ void draw_black_rect_dq(rect_t box, double radius, double intensity)
 		}
 
 	// TODO clear lists in obscured sectors, don't add to empty sectors
+#endif	// __wasm__
 }
 
 void draw_black_rect_dqnq(rect_t box, double radius, double intensity)
 {
+#ifndef __wasm__
 	const enum dqnq_type type = DQNQT_RECT_BLACK;
 
 	// Get pointer to data buffer
@@ -314,6 +321,7 @@ void draw_black_rect_dqnq(rect_t box, double radius, double intensity)
 	write_LE32(&p, float_as_u32(intensity));
 
 	dqnq_finish_entry(type);
+#endif	// __wasm__
 }
 
 void draw_black_rect(rect_t box, double radius, double intensity)
@@ -334,6 +342,7 @@ void draw_black_rect(rect_t box, double radius, double intensity)
 
 void draw_black_rect_inverted_dq(rect_t box, double radius, double intensity)
 {
+#ifndef __wasm__
 	float *df;
 	double grad;
 	xyi_t ip;
@@ -364,10 +373,12 @@ void draw_black_rect_inverted_dq(rect_t box, double radius, double intensity)
 				if (fb->sector_count[sector_id] > 0 && fb->pending_bracket[sector_id] == 0)	// if the sector contains something at the current bracket level
 					drawq_add_sector_id(sector_id);	// add sector reference
 			}
+#endif	// __wasm__
 }
 
 void draw_black_rect_inverted_dqnq(rect_t box, double radius, double intensity)
 {
+#ifndef __wasm__
 	const enum dqnq_type type = DQNQT_RECT_BLACK_INV;
 
 	// Get pointer to data buffer
@@ -382,6 +393,7 @@ void draw_black_rect_inverted_dqnq(rect_t box, double radius, double intensity)
 	write_LE32(&p, float_as_u32(intensity));
 
 	dqnq_finish_entry(type);
+#endif	// __wasm__
 }
 
 void draw_black_rect_inverted(rect_t box, double radius, double intensity)

@@ -185,6 +185,38 @@ char *extract_file_extension(const char *path, char *ext)
 	return ext;
 }
 
+int check_path_against_extension_list(const char *path, const char *list_ext[], size_t list_count)
+{
+	int i;
+	char ext[32];		// file extension
+
+	extract_file_extension(path, ext);
+	if (ext[0] == '\0')
+		return 0;
+
+	for (i=0; i < list_count; i++)
+		if (strcmp(ext, list_ext[i])==0)
+			return 1;			// indicate it's a valid extension
+
+	return 0;
+}
+
+int is_path_image_file(const char *path)
+{
+	const char *list_ext[] = {"jpg", "jpeg", "png", "tga", "targa", "bmp", "psd", "gif", "tif", "tiff", "fts"};
+
+	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
+}
+
+int is_path_video_file(const char *path)
+{
+	const char *list_ext[] = {"avi", "mp4", "mkv", "mov", "webm", "m2ts", "flv"};
+
+	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
+}
+
+#ifndef WAHE_MODULE
+
 #ifdef _WIN32
 #ifndef SHFOLDERAPI
 #if defined(_SHFOLDER_) || defined(_SHELL32_)
@@ -264,36 +296,6 @@ char *make_appdata_path(const char *dirname, const char *filename, const int mak
 	return path;
 }
 
-int check_path_against_extension_list(const char *path, const char *list_ext[], size_t list_count)
-{
-	int i;
-	char ext[32];		// file extension
-
-	extract_file_extension(path, ext);
-	if (ext[0] == '\0')
-		return 0;
-
-	for (i=0; i < list_count; i++)
-		if (strcmp(ext, list_ext[i])==0)
-			return 1;			// indicate it's a valid extension
-
-	return 0;
-}
-
-int is_path_image_file(const char *path)
-{
-	const char *list_ext[] = {"jpg", "jpeg", "png", "tga", "targa", "bmp", "psd", "gif", "tif", "tiff", "fts"};
-
-	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
-}
-
-int is_path_video_file(const char *path)
-{
-	const char *list_ext[] = {"avi", "mp4", "mkv", "mov", "webm", "m2ts", "flv"};
-
-	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
-}
-
 int chdir_utf8(const char *dirname)
 {
 #ifdef _WIN32
@@ -309,3 +311,5 @@ int chdir_utf8(const char *dirname)
 	return chdir(dirname);
 #endif
 }
+
+#endif	// WAHE_MODULE

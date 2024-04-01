@@ -1,3 +1,5 @@
+#ifndef WAHE_MODULE
+
 pref_file_t pref_def={0};
 rl_mutex_t pref_save_mutex={0};
 
@@ -326,3 +328,5 @@ void pref_set_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double 
 {
 	pref_handle_2val(pf, loc, v1, v_delim, v2, suffix, 1);
 }
+
+#endif	// WAHE_MODULE

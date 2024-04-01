@@ -68,6 +68,7 @@
 #include "graphics/drawrect.c"
 #include "graphics/drawpolygon.c"
 #include "graphics/drawprimitives.c"
+#ifndef __wasm__
 #include "graphics/drawqueue.c"
 #include "graphics/drawqueue_enqueue.c"
 #include "graphics/drawqueue/drawqueue_soft.c"
@@ -75,6 +76,7 @@
 #include "graphics/drawqueue/drawline.c"
 #include "graphics/drawqueue/blit.c"
 #include "graphics/draw_effects.c"
+#endif	// __wasm__
 #include "graphics/processing.c"
 #include "graphics/mipmap.c"
 #include "graphics/cl_memory.c"
