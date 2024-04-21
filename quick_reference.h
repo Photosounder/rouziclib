@@ -999,6 +999,9 @@ void my_window_function(double *arg1, double *arg2)
 		__m128 vf = _mm_load_ps((float *) &cf);
 		_mm_storeu_ps((float *) &cf, vf);
 
+	// Typedef enum
+		typedef enum { zero, one } my_enum_t;
+
 	// Enums, named but without typedef
 		enum my_enum_name { zero, one };
 		enum my_enum_name my_var = zero;
