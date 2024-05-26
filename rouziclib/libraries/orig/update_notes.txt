@@ -93,3 +93,4 @@ ttf2mesh:
 	Oct 28, 2023
 	only download ttf2mesh.[ch]
 	Comment out the "General OS selection definition" block
+	Comment out standard library includes in both files

@@ -134,7 +134,8 @@ void draw_rangebox(rect_t box, const char *label, col_t colour)
 	draw_rect_full(sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
 	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.5 - bg_intensity*0.5);
 
-	draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, 1. - bg_intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	if (rect_min_side(sc_rect(box)) > 4.)
+		draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, 1. - bg_intensity, drawing_thickness, ALIG_CENTRE, NULL);
 }
 
 void draw_rangebox_fade_to_solid(rect_t box, const char *label, col_t colour)
@@ -147,5 +148,6 @@ void draw_rangebox_fade_to_solid(rect_t box, const char *label, col_t colour)
 	draw_rect_full(sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
 	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, (1.-bg_intensity)*intensity*0.5);
 
-	draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+	if (rect_min_side(sc_rect(box)) > 4.)
+		draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, ALIG_CENTRE, NULL);
 }

@@ -86,7 +86,7 @@ typedef struct
 	volatile int *exit_flag;
 	const char *window_name;
 	void (*func)();
-	int use_drawq, maximise_window, gui_toolbar;
+	int use_drawq, maximise_window, gui_toolbar, show_cursor;
 	xyi_t wind_dim, wind_pos;
 } sdl_main_param_t;
 

@@ -66,7 +66,7 @@ void world_os_to_pinned_os(xy_t world_offset, double world_sm, xy_t *pinned_offs
 	*pinned_offset = div_xy(sub_xy(world_offset, zc.offset_u), set_xy(world_sm));
 }
 
-void zoom_toggle(zoom_t *zc, int *flag_zoom_key)
+void zoom_toggle(zoom_t *zc, int8_t *flag_zoom_key)
 {
 	*flag_zoom_key ^= 1;		// toggle zoom
 
@@ -88,7 +88,7 @@ void zoom_toggle(zoom_t *zc, int *flag_zoom_key)
 	calc_screen_limits(zc);
 }
 
-void zoom_reset(zoom_t *zc, int *flag_zoom_key)
+void zoom_reset(zoom_t *zc, int8_t *flag_zoom_key)
 {
 	zc->zoomscale = 1.;
 	zc->offset_u = XY0;
@@ -102,7 +102,7 @@ void zoom_reset(zoom_t *zc, int *flag_zoom_key)
 		calc_screen_limits(zc);
 }
 
-void zoom_key_released(zoom_t *zc, int *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down
+void zoom_key_released(zoom_t *zc, int8_t *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down
 {
 	double td;
 	int zko = *flag_zoom_key;						// save the original zoom_key state
@@ -118,7 +118,7 @@ void zoom_key_released(zoom_t *zc, int *flag_zoom_key, int source)	// source 1 i
 		zoom_reset(zc, flag_zoom_key);					// reset everything
 }
 
-void zoom_wheel(zoom_t *zc, int flag_zoom_key, int y)
+void zoom_wheel(zoom_t *zc, int8_t flag_zoom_key, int y)
 {
 	double ratio;
 
@@ -219,7 +219,7 @@ void change_zoom_and_turn_off_zoom_mode(xy_t pos, double zoom_scale)
 	change_zoom(pos, zoom_scale);
 }
 
-void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key)
+void zoom_keyboard_control(zoom_t *zc, int8_t *flag_zoom_key)
 {
 	xy_t move_vector=XY0;
 	double zoom_way = 0.;
@@ -265,7 +265,7 @@ void zoom_keyboard_control(zoom_t *zc, int *flag_zoom_key)
 	}
 }
 
-void zoom_overlay_control(zoom_t *zc, int *flag_zoom_key)
+void zoom_overlay_control(zoom_t *zc, int8_t *flag_zoom_key)
 {
 	xy_t move_vector=XY0;
 	double zoom_way = 0.;

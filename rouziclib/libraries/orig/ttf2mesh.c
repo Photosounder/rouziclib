@@ -55,10 +55,10 @@
 #endif*/
 
 #include "ttf2mesh.h"
-#include <string.h>
+/*#include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <stdio.h>*/
 
 #if defined(TTF_NO_SIGNAL_H)
 #   define TTF_BREAKPOINT

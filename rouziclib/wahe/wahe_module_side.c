@@ -83,7 +83,7 @@ void wahe_rl_module_init(xyi_t fb_dim, const int mode)
 	fb->pixel_scale = 1;
 	zc = init_zoom(&mouse, drawing_thickness);
 	calc_screen_limits(&zc);
-	mouse = init_mouse();
+	init_mouse();
 	mouse.mouse_focus_flag = 1;
 	mouse.window_focus_flag = 1;
 	mouse.zoom_allowed = 0;
@@ -92,7 +92,7 @@ void wahe_rl_module_init(xyi_t fb_dim, const int mode)
 #ifdef RL_INCL_VECTOR_TYPE_FILEBALL
 	vector_font_load_from_header();
 #else
-	make_fallback_font(font);
+	make_fallback_font(font = init_font());
 #endif
 
 	// Prepare framebuffer

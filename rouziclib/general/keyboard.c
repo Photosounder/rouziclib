@@ -55,7 +55,7 @@ int get_kb_alt()    { return get_key_state_fusion(RL_SCANCODE_LALT, RL_SCANCODE_
 int get_kb_enter()  { return get_key_state_fusion(RL_SCANCODE_RETURN, RL_SCANCODE_RETURN2, RL_SCANCODE_KP_ENTER); }
 int get_kb_all_mods() { return (get_kb_shift()!=-1) + (get_kb_ctrl()!=-1) + (get_kb_guikey()!=-1) + (get_kb_alt()!=-1); }
 
-void flag_update_keyboard_button(int *b, int *quick_b)
+void flag_update_keyboard_button(int8_t *b, int8_t *quick_b)
 {
 	flag_update(*b);
 
@@ -74,7 +74,7 @@ void keyboard_pre_event_proc(mouse_t *mouse)
 		flag_update_keyboard_button(&mouse->key_state[i], &mouse->key_quick[i]);
 }
 
-void keyboard_button_event(int *b, int *quick_b, int way, int repeat)
+void keyboard_button_event(int8_t *b, int8_t *quick_b, int way, int repeat)
 {
 	if (*b * way == -2)		// if quick press situation
 		*quick_b = way;

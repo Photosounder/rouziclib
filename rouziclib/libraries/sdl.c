@@ -1163,7 +1163,7 @@ void rl_sdl_standard_main_loop(sdl_main_param_t param)
 
 		zc = init_zoom(&mouse, drawing_thickness);
 		calc_screen_limits(&zc);
-		mouse = init_mouse();
+		init_mouse();
 
 		#ifdef RL_INCL_VECTOR_TYPE_FILEBALL
 		vector_font_load_from_header();
@@ -1214,6 +1214,8 @@ void rl_sdl_standard_main_loop(sdl_main_param_t param)
 		#endif
 		window_manager();
 
+		if (param.show_cursor)
+			mouse.showcursor = 1;
 		mousecursor_logic_and_draw();
 
 		sdl_flip_fb();

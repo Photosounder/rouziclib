@@ -1033,3 +1033,8 @@ void my_window_function(double *arg1, double *arg2)
 	layout.elem[111].data
 	// becomes
 	layout.elem[111]->data
+
+	// 240524
+	mouse = init_mouse();
+	// becomes
+	init_mouse();

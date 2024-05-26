@@ -755,21 +755,24 @@ void make_font_aliases_from_struct(fileball_t *s, char *path, vector_font_t *fon
 
 void process_one_glyph(vector_font_t *font, int i)
 {
-	glyphdata_t gd;
+	glyphdata_t *gd = calloc(1, sizeof(glyphdata_t));
 
 	if (i < 0 || i >= font->letter_count)
-		return ;
+		goto end;
 
 	if (font->l[i].alias || font->l[i].obj)
-		return ;
+		goto end;
 
 	if (font->l[i].glyphdata)
 	{
-		process_glyphdata(font, &font->l[i], &gd);
-		make_glyph_vobj(&font->l[i], &gd);
+		process_glyphdata(font, &font->l[i], gd);
+		make_glyph_vobj(&font->l[i], gd);
 	}
 	else
 		make_cjkdec_vobj(font, &font->l[i]);
+
+end:
+	free(gd);
 }
 
 vector_font_t *init_font()

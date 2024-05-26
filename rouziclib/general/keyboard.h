@@ -10,7 +10,7 @@ extern int get_kb_alt();
 extern int get_kb_enter();
 extern int get_kb_all_mods();
 extern void keyboard_pre_event_proc(mouse_t *mouse);
-extern void keyboard_button_event(int *b, int *quick_b, int way, int repeat);
+extern void keyboard_button_event(int8_t *b, int8_t *quick_b, int way, int repeat);
 
 #ifdef __APPLE__
 #define get_kb_cmd	get_kb_guikey
