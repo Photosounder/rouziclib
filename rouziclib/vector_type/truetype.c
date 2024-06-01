@@ -99,7 +99,7 @@ vector_font_t *load_truetype_font_as_triangles(const uint8_t *data, size_t size,
 polynomial_grid_t mesh_to_polynomial(vobj_tri_t *mesh, double radius, double max_grid_step, int degree)
 {
 	polynomial_grid_t grid = {0};
-	xyi_t ic, ip, p_count;
+	xyi_t ic, id, ip, p_count;
 	xy_t pos;
 
 	// Alloc cell samples and node positions
@@ -124,6 +124,18 @@ polynomial_grid_t mesh_to_polynomial(vobj_tri_t *mesh, double radius, double max
 	grid.step = div_xy(get_rect_dim(grid.bound), xyi_to_xy(grid.dim));
 	grid.inv_step = inv_xy(grid.step);
 	grid.cell = (polynomial_cell_t **) calloc_2d_contig(grid.dim.y, grid.dim.x, sizeof(polynomial_cell_t));
+	xy_t span = mul_xy(grid.step, mul_xy(node_scale, set_xy(0.5)));
+
+	// Precalculate polynomial coefs for each input sample
+	double *sample_coefs = calloc(mul_x_by_y_xyi(p_count) * mul_x_by_y_xyi(set_xyi(degree + 1)), sizeof(double));
+	for (int i=0; i < mul_x_by_y_xyi(p_count); i++)
+	{
+		z[0][i] = 1.;
+		double **c = polynomial_fit_on_points_by_dct_2d(z, p_count, neg_xy(span), span, NULL, set_xyi(degree));
+		memcpy(&sample_coefs[i * mul_x_by_y_xyi(set_xyi(degree + 1))], *c, mul_x_by_y_xyi(set_xyi(degree + 1)) * sizeof(double));
+		free_2d(c, 1);
+		z[0][i] = 0.;
+	}
 
 	// Go through every cell
 	for (ic.y=0; ic.y < grid.dim.y; ic.y++)
@@ -162,16 +174,24 @@ polynomial_grid_t mesh_to_polynomial(vobj_tri_t *mesh, double radius, double max
 			cell->bound = make_rect_off(start, grid.step, XY0);
 			cell->eval_offset = get_rect_centre(cell->bound);
 			cell->degree = set_xyi(degree);
-			xy_t span = mul_xy(grid.step, mul_xy(node_scale, set_xy(0.5)));
-			double **c = polynomial_fit_on_points_by_dct_2d(z, p_count, neg_xy(span), span, NULL, set_xyi(degree));
 
-			// Add to coef array
+			// Alloc in coef array
 			cell->array_index = grid.coef_count;
 			alloc_enough(&grid.coef, grid.coef_count += mul_x_by_y_xyi(add_xyi(cell->degree, XYI1)), &grid.coef_as, sizeof(double), 1.4);
-			memcpy(&grid.coef[cell->array_index], *c, mul_x_by_y_xyi(add_xyi(cell->degree, XYI1)) * sizeof(double));
-			free_2d(c, 1);
+
+			// Turn input samples into coefficients (only works if cell->degree = set_xyi(degree);)
+			for (id.y=0; id.y <= degree; id.y++)
+				for (id.x=0; id.x <= degree; id.x++)
+				{
+					double sum = 0.;
+					for (ip.y=0; ip.y < p_count.y; ip.y++)
+						for (ip.x=0; ip.x < p_count.x; ip.x++)
+							sum += z[ip.y][ip.x] * sample_coefs[((ip.y * p_count.x + ip.x) * (degree+1) + id.y) * (degree+1) + id.x];
+					grid.coef[cell->array_index + id.y * (cell->degree.x+1) + id.x] = sum;
+				}
 		}
 
+	free(sample_coefs);
 	free_2d(z, 1);
 	free_2d(node, 1);
 	grid.coef_as = grid.coef_count;
@@ -199,10 +219,10 @@ plot v1 = v0^2
 plot v3 = v0^2 + (poly(x)^2-v0^2)*10
 
 			err:	1/200
-			Deg 1		0.400 @ 0.379	3.90"
+			Deg 1	0.400 @ 0.379	3.90"
 			Deg 2	1.222 @-0.343	1.96"
-			Deg 3		1.705 @ 0.246	1.77"
-			Deg 4		2.376 @-0.329	2.08"
+			Deg 3	1.705 @ 0.246	1.77"
+			Deg 4	2.376 @-0.329	2.08"
 			Deg 5	
 			Deg 6	
 			Deg 9	
