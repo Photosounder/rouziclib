@@ -163,11 +163,19 @@ polynomial_grid_t mesh_to_polynomial(vobj_tri_t *mesh, double radius, double max
 			cell->eval_offset = get_rect_centre(cell->bound);
 			cell->degree = set_xyi(degree);
 			xy_t span = mul_xy(grid.step, mul_xy(node_scale, set_xy(0.5)));
-			cell->c = polynomial_fit_on_points_by_dct_2d(z, p_count, neg_xy(span), span, NULL, set_xyi(degree));
+			double **c = polynomial_fit_on_points_by_dct_2d(z, p_count, neg_xy(span), span, NULL, set_xyi(degree));
+
+			// Add to coef array
+			cell->array_index = grid.coef_count;
+			alloc_enough(&grid.coef, grid.coef_count += mul_x_by_y_xyi(add_xyi(cell->degree, XYI1)), &grid.coef_as, sizeof(double), 1.4);
+			memcpy(&grid.coef[cell->array_index], *c, mul_x_by_y_xyi(add_xyi(cell->degree, XYI1)) * sizeof(double));
+			free_2d(c, 1);
 		}
 
 	free_2d(z, 1);
 	free_2d(node, 1);
+	grid.coef_as = grid.coef_count;
+	grid.coef = realloc(grid.coef, grid.coef_as * sizeof(double));
 
 	return grid;
 }
@@ -204,6 +212,25 @@ plot v3 = v0^2 + (poly(x)^2-v0^2)*10
 
 #endif
 
+double eval_polynomial_2d_flat_array(xy_t p, double *c, xyi_t degree)
+{
+	double sum=0., sum_line=0.;
+	xyi_t id;
+
+	for (id.y=degree.y; id.y >= 0; id.y--)
+	{
+		sum_line = 0.;
+
+		for (id.x=degree.x; id.x > 0; id.x--)
+			sum_line = (sum_line + c[id.y*(degree.x+1) + id.x]) * p.x;
+		sum_line += c[id.y*(degree.x+1) + 0];
+
+		sum = sum * p.y + sum_line;
+	}
+
+	return sum;
+}
+
 void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, double angle, lrgb_t colour, const blend_func_t bf)
 {
 	xyi_t ip, ic;
@@ -228,7 +255,8 @@ void draw_polynomial_grid_lrgb(polynomial_grid_t *grid, xy_t pos, double scale, 
 
 			ic = rangelimit_xyi(ic, XYI0, sub_xyi(grid->dim, XYI1));
 
-			pix = eval_polynomial_2d(sub_xy(p, grid->cell[ic.y][ic.x].eval_offset), grid->cell[ic.y][ic.x].c, grid->cell[ic.y][ic.x].degree);
+			polynomial_cell_t *cell = &grid->cell[ic.y][ic.x];
+			pix = eval_polynomial_2d_flat_array(sub_xy(p, cell->eval_offset), &grid->coef[cell->array_index], cell->degree);
 			pix *= pix;
 
 			bf(&fb->r.l[ip.y*fb->r.dim.x + ip.x], colour, pix * ONEF + 0.5);

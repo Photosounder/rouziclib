@@ -1,7 +1,7 @@
 typedef struct
 {
 	rect_t bound;
-	double **c;
+	size_t array_index;
 	xyi_t degree;
 	xy_t eval_offset;
 } polynomial_cell_t;
@@ -12,6 +12,9 @@ typedef struct
 	xyi_t dim;
 	xy_t step, inv_step;
 	polynomial_cell_t **cell;
+
+	double *coef;
+	size_t coef_count, coef_as;
 } polynomial_grid_t;
 
 typedef struct

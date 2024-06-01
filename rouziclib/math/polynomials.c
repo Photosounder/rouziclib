@@ -101,9 +101,7 @@ double eval_polynomial_2d(xy_t p, double **c, xyi_t degree)
 		sum_line = 0.;
 
 		for (id.x=degree.x; id.x > 0; id.x--)
-		{
 			sum_line = (sum_line + c[id.y][id.x]) * p.x;
-		}
 		sum_line += c[id.y][0];
 
 		sum = sum * p.y + sum_line;

@@ -72,13 +72,22 @@ void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t
 	return array;
 }
 
-void **calloc_2d_contig(const size_t ptr_count, const size_t size_buffers, const size_t size_elem)	// 2D calloc using one large contiguous buffer and an array pointer. Must be freed with free_2d(array, 1);
+// 2D calloc using one large contiguous buffer and an array pointer. Must be freed with free_2d(array, 1);
+void **calloc_2d_contig_fullarg(const size_t ptr_count, const size_t size_buffers, const size_t size_elem, const char *filename, const char *func, int line)
 {
 	size_t i;
 	uint8_t **array;
 
+#ifdef ADD_CITA_INFO
+	ADD_CITA_INFO
+#endif
+
 	array = calloc(ptr_count, sizeof(void *));
 	array[0] = calloc(ptr_count*size_buffers, size_elem);
+
+#ifdef ADD_CITA_INFO
+	cita_input_info = NULL;
+#endif
 
 	for (i=1; i < ptr_count; i++)
 		array[i] = &array[0][i*size_buffers*size_elem];
