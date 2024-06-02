@@ -210,9 +210,19 @@ void font_gen_polynomial_grids(vector_font_t *font, double asc_height_px, double
 		l = &font->l[il];
 
 		if (l->tri_mesh.tri)
-			l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*0.8, 2);
+			l->polynomial_grid = mesh_to_polynomial(&l->tri_mesh, scaled_radius, scaled_radius*2.2, 4);
 
 		/*
+		   Deg/Step	Time	New time	FPS
+		   2 / 0.8	1.609"			9.4
+		   3 / 1.4	0.984"
+		   3 / 1.5 is too much
+		   4 / 2.2	0.652"	0.610"		9.2
+		   4 / 2.3 is barely too much
+		   5 / 3.2	0.556"	0.476"		7.6
+		   5 / 3.3 too much for "w"
+		   5 / 3.4 is barely too much except for "w"
+
 plot v0 = sqrt(erfr(x))
 fit sqrt(erfr(t))
 plot v1 = v0^2
@@ -223,8 +233,8 @@ plot v3 = v0^2 + (poly(x)^2-v0^2)*10
 			Deg 2	1.222 @-0.343	1.96"
 			Deg 3	1.705 @ 0.246	1.77"
 			Deg 4	2.376 @-0.329	2.08"
-			Deg 5	
-			Deg 6	
+			Deg 5	3.857 @ 0.28
+			Deg 6	4.710 @-0.394
 			Deg 9	
 		   */
 	}

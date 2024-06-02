@@ -29,7 +29,7 @@ extern void polynomial_x_substitution(double *a, int adeg, double *xs, int xsdeg
 
 extern double *chebyshev_coefs(int degree);
 extern const double *chebyshev_coefs_cached(int degree);
-extern double **chebyshev_coefs_2d(xyi_t degree);
+extern double **chebyshev_coefs_2d(xyi_t degree, double **t);
 extern double chebyshev_node(double degree, double node);
 extern ddouble_t chebyshev_node_q(double degree, double node);
 

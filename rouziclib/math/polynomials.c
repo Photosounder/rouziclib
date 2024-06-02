@@ -712,16 +712,16 @@ const double *chebyshev_coefs_cached(int degree)
 }
 
 
-double **chebyshev_coefs_2d(xyi_t degree)
+double **chebyshev_coefs_2d(xyi_t degree, double **t)
 {
 	xyi_t id;
 	const double *tx, *ty;
-	double **t;
 
 	tx = chebyshev_coefs_cached(degree.x);
 	ty = chebyshev_coefs_cached(degree.y);
 
-	t = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
+	if (t == NULL)
+		t = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
 
 	for (id.y=0; id.y <= degree.y; id.y++)
 		for (id.x=0; id.x <= degree.x; id.x++)
@@ -968,6 +968,7 @@ void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_
 	xyi_t id;
 	double **cc, xs[2], ys[2];
 
+	cc = (double **) calloc_2d_contig(degree.y+1, degree.x+1, sizeof(double));
 	memset_2d(c, 0, (degree.x+1)*sizeof(double), degree.y+1);
 
 	// x and y substitution for the shifting where x' = x*xs[1] + xs[0]
@@ -985,12 +986,11 @@ void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_
 				xy_t ie;	// ie = (xs[1] ^ ia.x , ys[1] ^ ia.y)
 				xyi_t ia;
 
-				cc = chebyshev_coefs_2d(id);						// get the default polynomial coeficients
+				chebyshev_coefs_2d(id, cc);						// get the default polynomial coeficients
 				polynomial_scalar_mul_2d(cc, id, cm[id.y][id.x], cc);			// apply the multiplier
 				for (ie.y=1., ia.y=0; ia.y <= id.y; ia.y++, ie.y*=ys[1])
 					for (ie.x=1., ia.x=0; ia.x <= id.x; ia.x++, ie.x*=xs[1])
 						c[ia.y][ia.x] += cc[ia.y][ia.x] * ie.x * ie.y;		// multiply the coefficients by the exponentiated scale and add to c
-				free_2d(cc, 1);
 			}
 	}
 	else
@@ -998,12 +998,13 @@ void chebyshev_coefs_to_polynomial_2d(double **cm, xyi_t degree, xy_t start, xy_
 		for (id.y=0; id.y <= degree.y; id.y++)
 			for (id.x=0; id.x <= degree.x; id.x++)
 			{
-				cc = chebyshev_coefs_2d(id);					// get the default polynomial coeficients
+				chebyshev_coefs_2d(id, cc);					// get the default polynomial coeficients
 				polynomial_scalar_mul_2d(cc, id, cm[id.y][id.x], cc);		// apply the multiplier
 				polynomial_x_substitution_2d(cc, id, xs, ys, xyi(1, 1), c);	// shift the polynomial and add to c
-				free_2d(cc, 1);
 			}
 	}
+
+	free_2d(cc, 1);
 }
 
 double **chebyshev_fit_on_points_by_dct_2d(double **z, xyi_t p_count, xyi_t degree)

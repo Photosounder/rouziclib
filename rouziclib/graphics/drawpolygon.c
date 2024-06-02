@@ -1,3 +1,11 @@
+float expf_approx_for_acute_integral(float x)	// x = [-4.3 , -1.834], max error < 2.52e-6
+{
+	if (x < -2.93f)
+		return (((0.00114811f*x + 0.02122094f)*x + 0.15357232f)*x + 0.5222234f)*x + 0.7142764f;
+	else
+		return (((0.00390672f*x + 0.05290861f)*x + 0.29126263f)*x + 0.79052235f)*x + 0.9120924f;
+}
+
 float erf_right_triangle_acute_integral(float x, float y)
 {
 	float x2 = x*x, y2 = y*y;
@@ -7,7 +15,7 @@ float erf_right_triangle_acute_integral(float x, float y)
 			(-0.003881739f*y2 + 0.0523013844f)*y2 + 0.04582956f)*x2 +
 			((-0.00368418f*y2 + 0.03692744f)*y2 - 0.1996548f)*y2 - 0.50360028f)*x2 +
 			((-0.0012717f*y2 - 0.0101518f)*y2 + 0.0109084f)*y2 - 1.836892f;
-	return expf(v) * x2 * y;
+	return expf_approx_for_acute_integral(v) * x2 * y;
 }
 
 float fast_atan2pi_unitrange(float x)
