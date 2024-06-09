@@ -9,11 +9,19 @@ void blend_solid(lrgb_t *bg, lrgb_t fg, int32_t p)
 
 void blend_add(lrgb_t *bg, lrgb_t fg, int32_t p)
 {
-	int32_t r, g, b;
+	uint16_t *vfg16 = (uint16_t *) &fg;
+	uint16_t *vbg16 = (uint16_t *) bg;
+	int32_t i, vfg[4], vbg[4];
 
-	r = (fg.r * p >> 15) + bg->r;	if (r>ONE) bg->r = ONE; else bg->r = r;
-	g = (fg.g * p >> 15) + bg->g;	if (g>ONE) bg->g = ONE; else bg->g = g;
-	b = (fg.b * p >> 15) + bg->b;	if (b>ONE) bg->b = ONE; else bg->b = b;
+	for (i=0; i < 4; i++)
+	{
+		vfg[i] = vfg16[i];
+		vbg[i] = vbg16[i];
+		vbg[i] = (vfg[i] * p + 16384 >> 15) + vbg[i];
+		if (vbg[i] > ONE)
+			vbg[i] = ONE;
+		vbg16[i] = vbg[i];
+	}
 }
 
 void blend_add_fl(frgb_t *bg, frgb_t fg, float p)
@@ -113,6 +121,13 @@ lrgb_t blend_alphablend_sep_alpha(lrgb_t Cb, lrgb_t Ca, int Ab, int Aa)	// pixel
 void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)
 {
 	*bg = blend_alphablend_sep_alpha(*bg, fg, LBD_TO_Q15(bg->a), LBD_TO_Q15(fg.a) * p >> 15);
+}
+
+void blend_alphablend_behind(lrgb_t *bg, lrgb_t fg, int32_t p)
+{
+	int Ab = LBD_TO_Q15(fg.a) * p >> 15;
+	fg = mul_scalar_lrgba(fg, Ab);
+	*bg = blend_alphablend_sep_alpha(fg, *bg, Ab, LBD_TO_Q15(bg->a));
 }
 
 void blend_alphablendfg(lrgb_t *bg, lrgb_t fg, int32_t p)	// alpha blending (doesn't take framebuffer's alpha into account though, assumed to be 1.0)

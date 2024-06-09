@@ -353,6 +353,6 @@ void draw_vobj_tri(vobj_tri_t o, xy_t p, double scale, double angle, double line
 		tri.a = add_xy(neg_y(tri.a), p);
 		tri.b = add_xy(neg_y(tri.b), p);
 		tri.c = add_xy(neg_y(tri.c), p);
-		draw_triangle(tri, line_thick, colour, 1.);
+		draw_triangle(tri, line_thick, colour, blend_add, 1.);
 	}
 }

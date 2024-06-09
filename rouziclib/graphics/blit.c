@@ -79,16 +79,16 @@ void blit_sprite(raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vm
 	}
 }
 
-void blit_layout(raster_t r)
+void blit_overlay(raster_t r)
 {
-	int32_t i, wh;
+	size_t i, wh;
 	lrgb_t *p;
 
-	// Current layout: ONES: 349998   MIDS: 20470   ZEROS: 169436
-	// Cycles:	ONES: 7		MIDS: 11	ZEROS: ~0
+	// Current overlay: ONES: 349998   MIDS: 20470   ZEROS: 169436
+	// Cycles:	    ONES: 7	   MIDS: 11	 ZEROS: ~0
 
-	wh = fb->r.dim.x * fb->r.dim.y;
-	for (i=0; i<wh; i++)
+	wh = mul_x_by_y_xyi(fb->r.dim);
+	for (i=0; i < wh; i++)
 	{
 		p = &r.l[i];
 

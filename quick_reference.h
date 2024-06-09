@@ -107,7 +107,7 @@
 
 	// Full polygon
 		xy_t p[4] = {...};
-		draw_polygon_wc(p, 4, drawing_thickness, colour, intensity);
+		draw_polygon_wc(p, 4, drawing_thickness, colour, blend_add, intensity);
 
 	// Text label
 		// world coordinates

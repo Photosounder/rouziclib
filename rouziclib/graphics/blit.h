@@ -22,7 +22,7 @@ extern int sprite_offsets_old(int32_t fbw, int32_t fbh, int32_t spw, int32_t sph
 extern int sprite_offsets(raster_t r, xyi_t *pos, xyi_t *offset, xyi_t *start, xyi_t *stop, int hmode, int vmode);
 extern int calc_blit_bounds(xyi_t in_dim, xyi_t out_dim, xyi_t offset, recti_t *bounds);
 extern void blit_sprite(raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vmode);
-extern void blit_layout(raster_t r);
+extern void blit_overlay(raster_t r);
 extern void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale_frgb(raster_t r, xy_t pscale, xy_t pos, int interp);
 extern void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp);

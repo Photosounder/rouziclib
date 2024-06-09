@@ -12,7 +12,7 @@ void fileball_add_file(buffer_t *sout, const char *path, const char *name, int a
 	// Saving the relative path
 	strcpy(savepath, &fullpath[abs_path_len]);
 	replace_char(savepath, DIR_CHAR, '/');
-	bufprintf(sout, "\n%s\n%d\n", savepath, fsize);
+	bufprintf(sout, "\n%s\n%zu\n", savepath, fsize);
 
 	// Save data
 	bufwrite(sout, data, fsize);

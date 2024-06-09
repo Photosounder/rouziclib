@@ -3,9 +3,11 @@ char *vbufprintf(buffer_t *s, const char *format, va_list args)		// like vfprint
 	if (s==NULL)
 		return NULL;
 
-	vsprintf_realloc(&s->buf, &s->as, 1, format, args);
+	int added_len = vstrlenf(format, args);
+	alloc_enough(&s->buf, s->len+added_len+1, &s->as, sizeof(char), s->as ? 1.5 : 1.);
 
-	s->len = strlen(s->buf);
+	vsnprintf(&s->buf[s->len], s->as - s->len, format, args);
+	s->len += added_len;
 
 	return s->buf;
 }

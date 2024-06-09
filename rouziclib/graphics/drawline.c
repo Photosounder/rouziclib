@@ -13,10 +13,9 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 	int32_t th, costh, sinth;
 	const int32_t fp=16, fpi=30-fp;
 	const double fpratio = (double) (1<<fp);
+	int32_t intens_q15 = float_to_fixedpoint_15(intensity);
 
-	// Apply intensity to colour and calculate the Gaussian radius limit
-	colour = mul_scalar_lrgb(colour, intensity*ONEF+0.5);
-	intensity = (double) max_of_lrgb(colour) / ONEF;
+	// Calculate the Gaussian radius limit
 	grad = GAUSSRAD(intensity, radius);	// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002
 	bradius = grad * sqrt(2.);		// bounding radius, the maximum radius necessary at each end of the line
 
@@ -157,6 +156,7 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 				p -= fperfr_d0(xrp-xr2) >> 15;
 				p *= fpgauss_d0(yrp-yr1) >> 15;
 				p >>= 15;
+				p = p * intens_q15 >> 15;
 
 				bf(&fb->r.l[fbi], colour, p);
 			}

@@ -133,10 +133,7 @@ float eval_polygon_at_pos(xy_t *p, int p_count, double radius, xy_t pos)
 	return weight;
 }
 
-#ifdef GNU_SSE
-__attribute__((__target__("sse4.1")))
-#endif
-void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, double intensity)
+void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int i;
 	size_t fbi;
@@ -155,7 +152,6 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 		return;
 
 	// Prepare parameters
-	colour = mul_scalar_lrgb(colour, intensity*ONEF+0.5);
 	rad = 1./radius;
 
 	#ifdef RL_INTEL_INTR
@@ -188,36 +184,16 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, doubl
 			}
 
 			weight = MAXN(0.f, weight);
+			weight *= (float) intensity;
 			int weight_fp = float_to_fixedpoint_15(weight);
 
 			// Apply weight to colour
-
-			#ifndef RL_INTEL_INTR
-
-			blend_add(&fb->r.l[fbi], colour, weight_fp);
-
-			#else
-
-			// Put the background pixel and the weight in xmm registers
-			lrgb_t bg = fb->r.l[fbi];
-			__m128i bg_xmm = _mm_set_epi32(0, bg.b, bg.g, bg.r);
-			__m128i weight_xmm = _mm_set1_epi32(weight_fp);
-
-			// Multiply, shift and add
-			__m128i res_xmm = _mm_mullo_epi32(col_xmm, weight_xmm);		// SSE4.1
-			res_xmm = _mm_srli_epi32(res_xmm, 15);
-			res_xmm = _mm_add_epi32(res_xmm, bg_xmm);
-
-			// Convert from 32-bit integers to 16-bit
-			res_xmm = _mm_cvtepu32_epi16(res_xmm);		// SSSE3
-			_mm_storeu_si64(&fb->r.l[fbi], res_xmm);	// store the 4 16-bit ints in the result
-
-			#endif
+			bf(&fb->r.l[fbi], colour, weight_fp);
 		}
 	}
 }
 
-void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, double intensity)
+void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, const int bf, double intensity)
 {
 #ifndef __wasm__
 	int i;
@@ -290,7 +266,7 @@ int get_dq_bounding_box_for_polygon(xy_t *p, int p_count, xy_t rad, recti_t *bbi
 	return 1;
 }
 
-void draw_polygon(xy_t *p, int p_count, double radius, col_t colour, double intensity)
+void draw_polygon(xy_t *p, int p_count, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	if (fb->discard)
 		return;
@@ -298,12 +274,12 @@ void draw_polygon(xy_t *p, int p_count, double radius, col_t colour, double inte
 	radius = drawing_focus_adjust(focus_rlg, radius, NULL, 0);	// adjusts the focus
 
 	if (fb->use_drawq)
-		draw_polygon_dq(p, p_count, radius, col_to_frgb(colour), intensity);
+		draw_polygon_dq(p, p_count, radius, col_to_frgb(colour), 0, intensity);
 	else if (fb->r.use_frgb == 0)
-		draw_polygon_lrgb(p, p_count, radius, col_to_lrgb(colour), intensity);
+		draw_polygon_lrgb(p, p_count, radius, col_to_lrgb(colour), bf, intensity);
 }
 
-void draw_polygon_wc(xy_t *p, int p_count, double radius, col_t colour, double intensity)
+void draw_polygon_wc(xy_t *p, int p_count, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
 	int i;
 	xy_t p_sc[16];
@@ -312,15 +288,15 @@ void draw_polygon_wc(xy_t *p, int p_count, double radius, col_t colour, double i
 	for (i=0; i < p_count; i++)
 		p_sc[p_count-1-i] = sc_xy(p[i]);
 
-	draw_polygon(p_sc, p_count, radius, colour, intensity);
+	draw_polygon(p_sc, p_count, radius, colour, bf, intensity);
 }
 
-void draw_triangle(triangle_t tri, double radius, col_t colour, double intensity)
+void draw_triangle(triangle_t tri, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
-	draw_polygon((xy_t *) &tri, 3, radius, colour, intensity);
+	draw_polygon((xy_t *) &tri, 3, radius, colour, bf, intensity);
 }
 
-void draw_triangle_wc(triangle_t tri, double radius, col_t colour, double intensity)
+void draw_triangle_wc(triangle_t tri, double radius, col_t colour, const blend_func_t bf, double intensity)
 {
-	draw_polygon_wc((xy_t *) &tri, 3, radius, colour, intensity);
+	draw_polygon_wc((xy_t *) &tri, 3, radius, colour, bf, intensity);
 }

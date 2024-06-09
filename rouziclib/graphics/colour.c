@@ -803,6 +803,21 @@ lrgb_t mul_scalar_lrgb(lrgb_t a, int m)
 	return a;
 }
 
+lrgb_t mul_scalar_lrgba(lrgb_t a, int m)
+{
+        uint16_t *va16 = (uint16_t *) &a;
+        int32_t i, va[4];
+
+        for (i=0; i < 4; i++)
+        {
+                va[i] = va16[i];
+                va[i] = va[i] * m + ONE/2 >> LBD;
+                va16[i] = va[i];
+        }
+
+	return a;
+}
+
 frgb_t func1_frgb(frgb_t a, float (*f)(float))
 {
 	a.r = f(a.r);

@@ -35,7 +35,7 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 			else
 				draw_vobj(l->obj, pos, scale, 0., line_thick, col_thin);
 		else
-			if (l->polynomial_grid.cell)
+			if (l->polynomial_grid.cell && font->use_mesh == 0)
 				draw_polynomial_grid(&l->polynomial_grid, pos, scale, 0., col_poly, vector_font_blending_mode);
 			else
 				draw_vobj_tri(l->tri_mesh, pos, scale, 0., line_thick, col_poly);
