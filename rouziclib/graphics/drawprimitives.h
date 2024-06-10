@@ -19,5 +19,6 @@ extern void draw_point_frgb(xy_t pos, double radius, frgb_t colour, const blend_
 extern void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity);
 extern void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_point_on_row(xy_t pos, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
+extern void draw_light_above_surface_lrgb(xy_t pos, double height, double intensity);
 extern void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, const blend_func_t bf, double intensity);
 extern void draw_mousecursor(xy_t pos);

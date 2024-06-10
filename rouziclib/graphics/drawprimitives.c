@@ -591,6 +591,30 @@ void draw_point_on_row(xy_t pos, double radius, lrgb_t colour, const blend_func_
 	}
 }
 
+void draw_light_above_surface_lrgb(xy_t pos, double height, double intensity)
+{
+	xyi_t ip;
+	double h2 = sq(height);
+
+	for (ip.y=0; ip.y < fb->h; ip.y++)
+		for (ip.x=0; ip.x < fb->w; ip.x++)
+		{
+			size_t fbi = ip.y * fb->w + ip.x;
+
+			xy_t p = sub_xy(pos, xyi_to_xy(ip));
+
+			double v = h2 + p.x*p.x + p.y*p.y;
+			v = height / sqrt(v*v*v);
+			v *= intensity;
+
+			int32_t vi = v * 32768. + 0.5;
+
+			fb->r.l[fbi].r = fb->r.l[fbi].r * vi >> 15;
+			fb->r.l[fbi].g = fb->r.l[fbi].g * vi >> 15;
+			fb->r.l[fbi].b = fb->r.l[fbi].b * vi >> 15;
+		}
+}
+
 void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, const blend_func_t bf, double intensity)
 {
 	draw_line_thin(tr.a, tr.c, drawing_thickness, col, bf, intensity);
