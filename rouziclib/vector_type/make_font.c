@@ -298,8 +298,9 @@ void font_parse_bounds_line(char *line, letter_t *l)
 
 	p = skip_string(line, " bounds %n");
 
-	p = string_parse_fractional_12(p, &l->bl);
-	p = string_parse_fractional_12(p, &l->br);
+	double v;
+	p = string_parse_fractional_12(p, &v);		l->bl = v;
+	p = string_parse_fractional_12(p, &v);		l->br = v;
 }
 
 void font_parse_vbounds_line(char *line, letter_t *l)
@@ -308,8 +309,9 @@ void font_parse_vbounds_line(char *line, letter_t *l)
 
 	p = skip_string(line, " vbounds %n");
 
-	p = string_parse_fractional_12(p, &l->bb);
-	p = string_parse_fractional_12(p, &l->bt);
+	double v;
+	p = string_parse_fractional_12(p, &v);		l->bb = v;
+	p = string_parse_fractional_12(p, &v);		l->bt = v;
 }
 
 void font_parse_transform_line(char *line, char *a, letter_t *l, glyphdata_t *gd, int group_start, int last_start)
@@ -793,10 +795,13 @@ vector_font_t *init_font()
 vector_font_t *make_font(char *index_path)
 {
 	vector_font_t *font;
-	char dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
+	char *dirpath, **line, a[16], *path;
 	int i, linecount, range0, range1;
 
 	font = init_font();
+
+	dirpath = calloc(PATH_MAX*4, sizeof(char));
+	path = calloc(PATH_MAX*4, sizeof(char));
 
 	remove_name_from_path(dirpath, index_path);
 	dirpath[strlen(dirpath)+1] = '\0';
@@ -812,7 +817,7 @@ vector_font_t *make_font(char *index_path)
 	for (i=0; i < linecount; i++)			// read the index file
 	{
 		a[0] = '\0';
-		sscanf(line[i], "%s", a);
+		sscanf(line[i], "%15s", a);
 
 		if (strcmp(a, "range")==0)
 		{
@@ -836,6 +841,8 @@ vector_font_t *make_font(char *index_path)
 		}
 	}
 
+	free(dirpath);
+	free(path);
 	free_2d(line, 1);
 
 	return font;
@@ -844,10 +851,13 @@ vector_font_t *make_font(char *index_path)
 vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename)
 {
 	vector_font_t *font;
-	char dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
+	char *dirpath, **line, a[16], *path;
 	int i, linecount, range0, range1;
 
 	font = init_font();
+
+	dirpath = calloc(PATH_MAX*4, sizeof(char));
+	path = calloc(PATH_MAX*4, sizeof(char));
 
 	fileball_subfile_t *subfile = fileball_find_subfile(s, index_filename);
 	if (subfile==NULL)
@@ -866,7 +876,7 @@ vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename
 	for (i=0; i < linecount; i++)			// read the index file
 	{
 		a[0] = '\0';
-		sscanf(line[i], "%s", a);
+		sscanf(line[i], "%15s", a);
 
 		if (strcmp(a, "range")==0)
 		{
@@ -887,6 +897,8 @@ vector_font_t *make_font_from_fileball(fileball_t *s, const char *index_filename
 		}*/
 	}
 
+	free(dirpath);
+	free(path);
 	free_2d(line, 1);
 
 	return font;
@@ -993,10 +1005,13 @@ void save_font_block(char *path, vector_font_t *font, int range0, int range1, ch
 
 void save_font(vector_font_t *font, char *index_path)
 {
-	char *cp_saved, dirpath[PATH_MAX*4], **line, a[128], path[PATH_MAX*4];
+	char *cp_saved, *dirpath, **line, a[8], *path;
 	int i, linecount, range0, range1;
 
 	cp_saved = calloc(font->letter_count, sizeof(char));
+
+	dirpath = calloc(PATH_MAX*4, sizeof(char));
+	path = calloc(PATH_MAX*4, sizeof(char));
 
 	remove_name_from_path(dirpath, index_path);
 	dirpath[strlen(dirpath)+1] = '\0';
@@ -1013,7 +1028,7 @@ void save_font(vector_font_t *font, char *index_path)
 	for (i=0; i < linecount; i++)		// read the index file
 	{
 		a[0] = '\0';
-		sscanf(line[i], "%s", a);
+		sscanf(line[i], "%7s", a);
 
 		if (strcmp(a, "range")==0)
 		{
@@ -1023,6 +1038,8 @@ void save_font(vector_font_t *font, char *index_path)
 		}
 	}
 
+	free(dirpath);
+	free(path);
 	free(cp_saved);
 	free_2d(line, 1);
 

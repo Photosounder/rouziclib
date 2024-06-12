@@ -414,7 +414,7 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 	void **to_free=NULL;
 	size_t to_free_count=0, to_free_as=0;
 	rlip_t data={0};
-	rlip_data_t extra_data={0}, *ed=&extra_data;
+	rlip_data_t *ed = calloc(1, sizeof(rlip_data_t));
 	char *p, s0[32], s1[32], s2[32], s3[32], cmd_arg_type[16];
 	int arg_ir[16];
 	uint64_t hash;
@@ -1094,6 +1094,8 @@ invalid_prog:
 	io = alloc_opcode(ed, 1);
 	ed->op[io] = op_end;
 
+	data.op = ed->op;
+
 	// Free stuff
 	free_2d(line, 1);
 	free_2d(to_free, to_free_count);
@@ -1105,7 +1107,7 @@ invalid_prog:
 	}
 	free(ed->loc);
 	free(ed->reg);
+	free(ed);
 
-	data.op = ed->op;
 	return data;
 }

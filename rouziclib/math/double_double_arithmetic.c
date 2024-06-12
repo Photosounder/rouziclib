@@ -306,9 +306,16 @@ ddouble_t string_to_ddouble(const char *string, char **endptr)
 	int i, neg=0, digits_end=0, separator_pos, p_len, exponent=0, digit_count, dest_index, carry;
 	const int print = 0;	// set to 1 to print buffer contents
 	const char *p;
-	char *endptr2=NULL, buf_a[635+2], buf_b[635+2];
+	char *endptr2 = NULL;
+	static char *buf_a = NULL, *buf_b = NULL;
 	double vd, a, digit_mul;
 	ddouble_t r={0};
+
+	if (buf_a == NULL)
+	{
+		buf_a = calloc(635+2, sizeof(char));
+		buf_b = calloc(635+2, sizeof(char));
+	}
 
 	// Let strtod reveal invalid strings, NANs, INFs and zeros
 	vd = strtod(string, &endptr2);

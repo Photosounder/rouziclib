@@ -437,12 +437,12 @@ void draw_string(vector_font_t *font, const char *string, xy_t p, double scale, 
 void print_to_screen(xy_t pos, double scale, col_t colour, double intensity, const int32_t mode, const char *format, ...)
 {
 	va_list args;
-	char string[4096];
+	static buffer_t string={0};
 
-	va_start (args, format);
-	//vsnprintf (string, LOGLINEMAX, format, args);		// print new text to a
-	vsprintf (string, format, args);		// print new text to a
-	va_end (args);
+	va_start(args, format);
+	clear_buf(&string);
+	vbufprintf(&string, format, args);
+	va_end(args);
 
-	draw_string(font, string, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, mode, NULL);
+	draw_string(font, string.buf, sc_xy(pos), scale*zc.scrscale, colour, intensity, drawing_thickness, mode, NULL);
 }

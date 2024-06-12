@@ -84,7 +84,7 @@ void load_dir(const char *path, fs_dir_t *dir)
 void load_dir_depth(const char *path, fs_dir_t *dir, int max_depth)	// a max_depth of -1 means infinite, 0 excludes subfolders
 {
 	int i;
-	char subdir_path[PATH_MAX*4];
+	char *subdir_path;
 
 	load_dir(path, dir);
 
@@ -94,8 +94,9 @@ void load_dir_depth(const char *path, fs_dir_t *dir, int max_depth)	// a max_dep
 		if (strcmp(dir->subdir[i].name, ".") && strcmp(dir->subdir[i].name, ".."))
 		{
 			//fprintf_rl(stdout, "[%s]\n", dir->subdir[i]);
-			append_name_to_path(subdir_path, path, dir->subdir[i].name);
+			subdir_path = append_name_to_path(NULL, path, dir->subdir[i].name);
 			load_dir_depth(subdir_path, &dir->subdir[i], max_depth-1);
+			free(subdir_path);
 		}
 	}
 }
@@ -340,9 +341,10 @@ int64_t get_volume_free_space(const char *path)
 {
 #ifdef _WIN32
 	uint64_t free_space=0;
-	wchar_t wpath[PATH_MAX*4];
+	wchar_t *wpath;
 	FILE *file;
 
+	wpath = calloc(strlen_utf8_to_utf16(path), sizeof(wchar_t));
 	utf8_to_wchar(path, wpath);
 
 	if (GetDiskFreeSpaceExW(wpath, (PULARGE_INTEGER) &free_space, NULL, NULL)==0)
@@ -350,6 +352,8 @@ int64_t get_volume_free_space(const char *path)
 		fprintf_rl(stderr, "GetLastError() in get_volume_free_space(): %ld\n", GetLastError());
 		return -1;
 	}
+
+	free(wpath);
 
 	return free_space;
 

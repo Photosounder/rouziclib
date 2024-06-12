@@ -372,11 +372,12 @@ void convert_file_to_header_const_string(const char *in_path)
 {
 	int ret, i;
 	FILE *fin, *fout;
-	uint8_t out_path[PATH_MAX*4], c0=0, c1;
+	uint8_t *out_path, c0=0, c1;
 
 	fin = fopen_utf8(in_path, "rb");
-	sprintf(out_path, "%s.h", in_path);	// the output path is in_path + '.h'
+	out_path = sprintf_alloc("%s.h", in_path);	// the output path is in_path + '.h'
 	fout = fopen_utf8(out_path, "wb");
+	free(out_path);
 
 	fprintf(fout, "\"");
 

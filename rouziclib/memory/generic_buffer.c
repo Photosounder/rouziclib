@@ -57,6 +57,7 @@ char *bufwrite(buffer_t *s, const uint8_t *ptr, size_t size)		// like fwrite exc
 		alloc_enough(&s->buf, size + s->len+1, &s->as, sizeof(char), 1.5);
 		memcpy(&s->buf[s->len], ptr, size);
 		s->len += size;
+		s->buf[s->len] = '\0';
 	}
 
 	return s->buf;

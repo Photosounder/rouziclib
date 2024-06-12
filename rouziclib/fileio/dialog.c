@@ -3,9 +3,11 @@
 
 char *open_file_dialog(const char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif;*.tiff\1"
 {
-	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;
+	wchar_t *wpath, *wfilter;
 	OPENFILENAMEW ofn={0};
 	int i, ret=0;
+
+	wpath = calloc(_MAX_PATH*2, sizeof(wchar_t));
 
 	// Details on the fields at https://docs.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-openfilenamew
 	ofn.lStructSize = sizeof(OPENFILENAMEW);
@@ -32,16 +34,22 @@ char *open_file_dialog(const char *filter)		// the filter must use \1 instead of
 	#endif
 
 	if (ret)
-		return utf16_to_utf8(wpath, NULL);
+	{
+		char *path = utf16_to_utf8(wpath, NULL);
+		free(wpath);
+		return path;
+	}
 
 	return NULL;
 }
 
 char *save_file_dialog(const char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif\1"
 {
-	wchar_t wpath[_MAX_PATH*2]={0}, *wfilter;
+	wchar_t *wpath, *wfilter;
 	OPENFILENAMEW ofn={0};
 	int i, ret=0;
+
+	wpath = calloc(_MAX_PATH*2, sizeof(wchar_t));
 
 	// Details on the fields at https://docs.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-openfilenamew
 	ofn.lStructSize = sizeof(OPENFILENAMEW);
@@ -69,7 +77,11 @@ char *save_file_dialog(const char *filter)		// the filter must use \1 instead of
 	#endif
 
 	if (ret)
-		return utf16_to_utf8(wpath, NULL);
+	{
+		char *path = utf16_to_utf8(wpath, NULL);
+		free(wpath);
+		return path;
+	}
 
 	return NULL;
 }

@@ -169,8 +169,8 @@ static int64_t real_mpfr_cvt_r_i(mpfr_t *a) { return mpfr_get_sj(*a, MPFR_RNDN);
 static void real_mpfr_cvt_i_r(mpfr_t *r, int64_t a) { mpfr_set_sj(*r, a, MPFR_RNDN); }
 static int real_mpfr_cmp(mpfr_t *a, mpfr_t *b) { return mpfr_cmp(*a, *b); }
 static void real_mpfr_ator(mpfr_t *r, const char *string, char **endptr) { mpfr_strtofr(*r, string, endptr, 10, MPFR_RNDN); }
-static void real_mpft_var_init(mpfr_t *r) { mpfr_init_set_d(*r, 0., MPFR_RNDN); }
-static void real_mpft_var_deinit(mpfr_t *r) { mpfr_clear(*r); }
+static void real_mpfr_var_init(mpfr_t *r) { mpfr_init_set_d(*r, 0., MPFR_RNDN); }
+static void real_mpfr_var_deinit(mpfr_t *r) { mpfr_clear(*r); }
 
 static void real_mpfr_add(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_add(*r, *a, *b, MPFR_RNDN); }
 static void real_mpfr_sub(mpfr_t *r, mpfr_t *a, mpfr_t *b) { mpfr_sub(*r, *a, *b, MPFR_RNDN); }
@@ -211,8 +211,8 @@ static rlip_real_functions_t real_mpfr_functions = {
 	(void (*)(uint8_t *))				real_mpfr_pi,
 	(void (*)(uint8_t *))				real_mpfr_e,
 	(void (*)(uint8_t *))				real_mpfr_nan,
-	(void (*)(uint8_t *))				real_mpft_var_init,
-	(void (*)(uint8_t *))				real_mpft_var_deinit,
+	(void (*)(uint8_t *))				real_mpfr_var_init,
+	(void (*)(uint8_t *))				real_mpfr_var_deinit,
 };
 
 // Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_REAL_MPFR, RLIP_FUNC, {"x", &x, "pr"}, ... };

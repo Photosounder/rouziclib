@@ -310,7 +310,7 @@ raster_t load_file_tiles_to_raster(const char *dir_path, const char *filename_fm
 {
 	xyi_t it, tile_count={0};
 	raster_t full_im={0}, *tile_r;
-	char filename[PATH_MAX*4], path[PATH_MAX*4];
+	char *filename, *path;
 	int iy, pixel_size = get_raster_mode_elem_size(mode);
 
 	// Find and count the tile files
@@ -320,11 +320,12 @@ raster_t load_file_tiles_to_raster(const char *dir_path, const char *filename_fm
 		{
 			// look for the file with a name containing x and y
 			if (x_first)
-				sprintf(filename, filename_fmt, it.x, it.y);
+				filename = sprintf_alloc(filename_fmt, it.x, it.y);
 			else
-				sprintf(filename, filename_fmt, it.y, it.x);
+				filename = sprintf_alloc(filename_fmt, it.y, it.x);
 
-			append_name_to_path(path, dir_path, filename);
+			path = append_name_to_path(NULL, dir_path, filename);
+			free(filename);
 
 			// stop going up x for this line this one was missing
 			if (check_file_is_readable(path)==0)
@@ -332,6 +333,7 @@ raster_t load_file_tiles_to_raster(const char *dir_path, const char *filename_fm
 				tile_count.x = MAXN(tile_count.x, it.x);
 				break;
 			}
+			free(path);
 		}
 
 		// stop going up y if there was no x=0 tile
@@ -349,13 +351,15 @@ raster_t load_file_tiles_to_raster(const char *dir_path, const char *filename_fm
 		for (it.x=0; it.x < tile_count.x; it.x++)
 		{
 			if (x_first)
-				sprintf(filename, filename_fmt, it.x, it.y);
+				filename = sprintf_alloc(filename_fmt, it.x, it.y);
 			else
-				sprintf(filename, filename_fmt, it.y, it.x);
+				filename = sprintf_alloc(filename_fmt, it.y, it.x);
 
-			append_name_to_path(path, dir_path, filename);
+			path = append_name_to_path(NULL, dir_path, filename);
+			free(filename);
 
 			tile_r[it.y*tile_count.x + it.x] = load_image(path, mode);
+			free(path);
 		}
 
 	// Get the X dim

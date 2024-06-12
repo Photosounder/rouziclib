@@ -4,15 +4,17 @@ void fileball_add_file(buffer_t *sout, const char *path, const char *name, int a
 {
 	uint8_t *data;
 	size_t i, fsize;
-	char fullpath[PATH_MAX*4], savepath[PATH_MAX*4];
+	char *fullpath, *savepath;
 
-	append_name_to_path(fullpath, path, name);
+	fullpath = append_name_to_path(NULL, path, name);
 	data = load_raw_file(fullpath, &fsize);
 
 	// Saving the relative path
-	strcpy(savepath, &fullpath[abs_path_len]);
+	savepath = sprintf_alloc("%s", &fullpath[abs_path_len]);
+	free(fullpath);
 	replace_char(savepath, DIR_CHAR, '/');
 	bufprintf(sout, "\n%s\n%zu\n", savepath, fsize);
+	free(savepath);
 
 	// Save data
 	bufwrite(sout, data, fsize);
@@ -121,7 +123,8 @@ void fileball_make_header_file(char *out_path, char **paths, int path_count, con
 void fileball_extract_mem_to_path(buffer_t *ball, const char *extract_path)
 {
 	int n=0, filesize;
-	char *p, *pend, abs_path[PATH_MAX*4], rel_path[PATH_MAX*4];
+	char *p, *pend, *abs_path;
+	buffer_t rel_path={0};
 	double version=0.;
 
 	p = ball->buf;
@@ -130,15 +133,20 @@ void fileball_extract_mem_to_path(buffer_t *ball, const char *extract_path)
 	sscanf(p, "fileball %lg%n", &version, &n);
 	p = &p[n];
 	if (n==0)
-		return ;
+		return;
 	n = 0;
 	while (p < pend)
 	{
-		// read the relative path to extract to
-		sscanf(p, "\n%[^\n]\n%n", rel_path, &n);
+		int start=0, end=0;
+		clear_buf(&rel_path);
+
+		// Read the relative path to extract to
+		sscanf(p, "\n%n%*[^\n]%n\n%n", &start, &end, &n);
+		if (end)
+			bufwrite(&rel_path, &p[start], end-start);
 		p = &p[n];
 		if (n==0)
-			break ;
+			break;
 		n = 0;
 
 		// read the size of the file to write
@@ -146,16 +154,19 @@ void fileball_extract_mem_to_path(buffer_t *ball, const char *extract_path)
 		sscanf(p, "%d\n%n", &filesize, &n);
 		p = &p[n];
 		if (n==0)
-			break ;
+			break;
 		n = 0;
 
 		// save the file
-		replace_char(rel_path, '/', DIR_CHAR);
-		append_name_to_path(abs_path, extract_path, rel_path);
+		replace_char(rel_path.buf, '/', DIR_CHAR);
+		abs_path = append_name_to_path(NULL, extract_path, rel_path.buf);
 		create_dirs_for_file(abs_path);
 		save_raw_file(abs_path, "wb", p, filesize);
+		free(abs_path);
 		p = &p[filesize];
 	}
+
+	free_buf(&rel_path);
 }
 
 void fileball_extract_z_mem_to_path(buffer_t *zball, const char *extract_path)
