@@ -114,7 +114,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 	if (mouse->b.mmb == 2 && mouse->zoom_allowed)
 		zc->zoom_key_time = get_time_hr();
 
-	mouse->u = to_world_coord_xy(*zc, mouse->a);
+	mouse->u = to_world_coord_xy(mouse->a);
 	xy_t du = div_xy(neg_y(mouse->d), set_xy(zc->scrscale*fb->pixel_scale));
 
 	if (mouse->zoom_flag && mouse->zoom_scroll_freeze==0)	// if we're scrolling the zoom

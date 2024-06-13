@@ -11,45 +11,45 @@ zoom_t init_zoom(mouse_t *mouse, double drawing_thickness)
 	return zc;
 }
 
-double to_screen_coord_x(zoom_t zc, double x)
+double to_screen_coord_x(double x)
 {
 	x -= zc.offset_u.x;
 
 	return x * zc.scrscale + 0.5*(double)fb->w - 0.5;
 }
 
-double to_screen_coord_y(zoom_t zc, double y)
+double to_screen_coord_y(double y)
 {
 	y -= zc.offset_u.y;
 	return -y * zc.scrscale + 0.5*(double)fb->h - 0.5;
 }
 
-xy_t to_screen_coord_xy(zoom_t zc, xy_t p)
+xy_t to_screen_coord_xy(xy_t p)
 {
-	return xy(to_screen_coord_x(zc, p.x), to_screen_coord_y(zc, p.y));
+	return xy(to_screen_coord_x(p.x), to_screen_coord_y(p.y));
 }
 
-double to_world_coord_x(zoom_t zc, double x)
+double to_world_coord_x(double x)
 {
 	return (x - 0.5*(double)fb->w + 0.5) * zc.iscrscale + zc.offset_u.x;
 }
 
-double to_world_coord_y(zoom_t zc, double y)
+double to_world_coord_y(double y)
 {
 	return -(y - 0.5*(double)fb->h + 0.5) * zc.iscrscale + zc.offset_u.y;
 }
 
-xy_t to_world_coord_xy(zoom_t zc, xy_t p)
+xy_t to_world_coord_xy(xy_t p)
 {
-	return xy(to_world_coord_x(zc, p.x), to_world_coord_y(zc, p.y));
+	return xy(to_world_coord_x(p.x), to_world_coord_y(p.y));
 }
 
-rect_t to_screen_coord_rect(zoom_t zc, rect_t r)
+rect_t to_screen_coord_rect(rect_t r)
 {
 	return rect( sc_xy(r.p0) , sc_xy(r.p1) );
 }
 
-rect_t to_world_coord_rect(zoom_t zc, rect_t r)
+rect_t to_world_coord_rect(rect_t r)
 {
 	return rect( wc_xy(r.p0) , wc_xy(r.p1) );
 }
@@ -78,7 +78,7 @@ void zoom_toggle(zoom_t *zc, int8_t *flag_zoom_key)
 		SDL_WarpMouseInWindow(fb->window, fb->real_dim.x/2, fb->real_dim.y/2);
 		#endif
 		zc->mouse->a = xyi_to_xy(div_xyi(fb->real_dim, set_xyi(2)));
-		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
+		zc->mouse->u = to_world_coord_xy(zc->mouse->a);
 
 		#ifdef __EMSCRIPTEN__
 		em_release_cursor();
@@ -260,7 +260,7 @@ void zoom_keyboard_control(zoom_t *zc, int8_t *flag_zoom_key)
 		zc->offset_u = add_xy(zc->offset_u, move_vector);
 		#endif
 		calc_screen_limits(zc);
-		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
+		zc->mouse->u = to_world_coord_xy(zc->mouse->a);
 		zc->mouse->b.orig = zc->mouse->u;
 	}
 }
@@ -311,7 +311,7 @@ void zoom_overlay_control(zoom_t *zc, int8_t *flag_zoom_key)
 		zc->offset_u = add_xy(zc->offset_u, move_vector);
 		#endif
 		calc_screen_limits(zc);
-		zc->mouse->u = to_world_coord_xy(*zc, zc->mouse->a);
+		zc->mouse->u = to_world_coord_xy(zc->mouse->a);
 		zc->mouse->b.orig = zc->mouse->u;
 	}
 }
