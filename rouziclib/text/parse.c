@@ -267,6 +267,7 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 	return array;
 }
 
+#ifndef RL_EXCL_STRICMP
 int stricmp(const char *a, const char *b)
 {
 	int i;
@@ -277,6 +278,7 @@ int stricmp(const char *a, const char *b)
 
 	return tolower(a[i]) - tolower(b[i]);
 }
+#endif
 
 const char *strstr_i(const char *fullstr, const char *substr)		// case insensitive substring search
 {

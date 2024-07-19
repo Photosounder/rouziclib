@@ -993,7 +993,7 @@ void my_window_function(double *arg1, double *arg2)
 		fprintf_rl(stdout, "\033[0m");		// reset colour
 
 	// Macro to printf/fprintf
-		#define REPORT(fmt, ...) { fprintf(stderr, (fmt"\n"), ##__VA_ARGS__); fflush(stdout); }
+		#define REPORT(fmt, ...) { fprintf(stderr, (fmt"\n"), ##__VA_ARGS__); fflush(stderr); }
 
 	// Convert between float and __m128
 		__m128 vf = _mm_load_ps((float *) &cf);
