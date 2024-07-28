@@ -1,12 +1,15 @@
-int xy_array_to_bezier_seg_array(xy_t *pa, int p_count, bezier_seg_t **bap, size_t *ba_as)
+// If it loops the last point must be like pa[0] but at the looped x position
+int xy_array_to_bezier_seg_array(xy_t *pa, int p_count, bezier_seg_t **bap, size_t *ba_as, int loops)
 {
-	int i, b_count = p_count-1;
+	int i, b_count;
 	double slope;
 	bezier_seg_t *ba;
 
-	if (b_count <= 0)
+	if (p_count <= 1)
 		return 0;
 
+	// Alloc
+	b_count = p_count-1;
 	alloc_enough(bap, b_count, ba_as, sizeof(bezier_seg_t), 1.);
 	ba = *bap;
 
@@ -26,21 +29,38 @@ int xy_array_to_bezier_seg_array(xy_t *pa, int p_count, bezier_seg_t **bap, size
 	}
 
 	// Set control points except the first and last
-	for (i=1; i < b_count; i++)
+	for (i = 1; i < b_count; i++)
 	{
-		ba[i-1].p2.x = mix(pa[i].x, pa[i-1].x, 1./3.);
-		ba[ i ].p1.x = mix(pa[i].x, pa[i+1].x, 1./3.);
+		int im1 = i-1;
+		int ip1 = i+1;
+		ba[im1].p2.x = mix(pa[i].x, pa[im1].x, 1./3.);
+		ba[ i ].p1.x = mix(pa[i].x, pa[ip1].x, 1./3.);
 
-		slope = (pa[i+1].y - pa[i-1].y) / (pa[i+1].x - pa[i-1].x);
-		ba[i-1].p2.y = pa[i].y + slope * 1./3. * (pa[i-1].x - pa[i].x);
-		ba[ i ].p1.y = pa[i].y + slope * 1./3. * (pa[i+1].x - pa[i].x);
+		slope = (pa[ip1].y - pa[im1].y) / (pa[ip1].x - pa[im1].x);
+		ba[im1].p2.y = pa[i].y + slope * (1./3.) * (pa[im1].x - pa[i].x);
+		ba[ i ].p1.y = pa[i].y + slope * (1./3.) * (pa[ip1].x - pa[i].x);
 	}
 
-	// Make the first handle point to the second handle
-	ba[0].p1 = mix_xy(ba[0].p0, ba[0].p2, set_xy(0.5));
-	// and the last handle point to the penultimate handle
-	i = b_count-1;
-	ba[i].p2 = mix_xy(ba[i].p3, ba[i].p1, set_xy(0.5));
+	// Set the first and last control points
+	if (loops == 0)
+	{
+		// Make the first handle point to the second handle
+		ba[0].p1 = mix_xy(ba[0].p0, ba[0].p2, set_xy(0.5));
+		// and the last handle point to the penultimate handle
+		i = b_count-1;
+		ba[i].p2 = mix_xy(ba[i].p3, ba[i].p1, set_xy(0.5));
+	}
+	else
+	{
+		int im1 = i-1;
+		int ip1 = 1;
+		ba[im1].p2.x = mix(pa[i].x, pa[im1].x, 1./3.);
+		ba[ 0 ].p1.x = mix(pa[0].x, pa[ip1].x, 1./3.);
+
+		slope = (pa[ip1].y - pa[im1].y) / (pa[ip1].x + (pa[i].x - pa[0].x) - pa[im1].x);
+		ba[im1].p2.y = pa[i].y + slope * (1./3.) * (pa[im1].x - pa[i].x);
+		ba[ 0 ].p1.y = pa[i].y + slope * (1./3.) * (pa[ip1].x - pa[0].x);
+	}
 
 	return b_count;
 }
@@ -125,7 +145,7 @@ double bezier_seg_array_eval_x(bezier_seg_t *ba, int b_count, double x, int ret_
 
 	// Find t from x
 	t = bezier_seg_x_to_t(ba[i], x);
-	tc = 1. - t; 
+	tc = 1. - t;
 
 	// Compute y
 	return tc*tc*tc*ba[i].p0.y + 3.*tc*tc*t*ba[i].p1.y + 3.*tc*t*t*ba[i].p2.y + t*t*t*ba[i].p3.y;
