@@ -1,6 +1,7 @@
-extern char *make_string_copy(const char *orig);
-extern char *make_string_copy_len(const char *orig, size_t len);
-extern char *make_string_copy_between_ptrs(const char *start, const char *end);
+extern char *make_string_copy_fullarg(const char *orig, size_t len, const char *filename, const char *func, int line);
+#define make_string_copy(o) make_string_copy_fullarg((o), strlen(o), __FILE__, __func__, __LINE__)
+#define make_string_copy_len(o, l) make_string_copy_fullarg((o), (l), __FILE__, __func__, __LINE__)
+#define make_string_copy_between_ptrs(s, e) make_string_copy_fullarg((s), (e)-(s), __FILE__, __func__, __LINE__)
 extern char **make_string_array_copy(const char **orig, const size_t count);
 extern void strcpy_then_free(char *dest, char *src);
 extern char *replace_char(char *str, char find, char replace);

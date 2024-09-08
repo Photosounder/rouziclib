@@ -1,34 +1,22 @@
-char *make_string_copy(const char *orig)
+char *make_string_copy_fullarg(const char *orig, size_t len, const char *filename, const char *func, int line)
 {
 	char *copy;
 
 	if (orig==NULL)
 		return NULL;
 
-	copy = calloc(strlen(orig)+1, sizeof(char));
-	strcpy(copy, orig);
-
-	return copy;
-}
-
-char *make_string_copy_len(const char *orig, size_t len)
-{
-	char *copy;
-
-	if (orig==NULL)
-		return NULL;
-
-	len = MINN(len, strlen(orig));
+#ifdef ADD_CITA_INFO
+	ADD_CITA_INFO
+#endif
 
 	copy = calloc(len+1, sizeof(char));
-	strncpy(copy, orig, len);
+	memcpy(copy, orig, len);
+
+#ifdef ADD_CITA_INFO
+	cita_input_info = NULL;
+#endif
 
 	return copy;
-}
-
-char *make_string_copy_between_ptrs(const char *start, const char *end)		// copies a string between two points. The char that end points to is excluded
-{
-	return make_string_copy_len(start, end-start);
 }
 
 char **make_string_array_copy(const char **orig, const size_t count)
