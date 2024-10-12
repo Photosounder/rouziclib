@@ -202,8 +202,22 @@ void draw_polygon_dq(xy_t *p, int p_count, double radius, frgb_t colour, const i
 	xyi_t ip;
 	recti_t bbi;
 
-	if (p_count < 3 || p_count > 4)
+	if (p_count < 3)
 		return;
+
+	// Handle pentagons and higher by subdivision
+	if (p_count > 4)
+	{
+		xy_t psub[4];
+		psub[0] = p[0];
+		for (i=1; i < p_count-1; i += 2)
+		{
+			int psub_count = p_count-i < 3 ? 3 : 4;
+			memcpy(&psub[1], &p[i], (psub_count-1) * sizeof(xy_t));
+			draw_polygon_dq(psub, psub_count, radius, colour, bf, intensity);
+		}
+		return;
+	}
 
 	grad = 3. * radius;
 
@@ -287,6 +301,22 @@ void draw_polygon_wc(xy_t *p, int p_count, double radius, col_t colour, const bl
 	// Convert to screen coordinates in reverse order
 	for (i=0; i < p_count; i++)
 		p_sc[p_count-1-i] = sc_xy(p[i]);
+
+	draw_polygon(p_sc, p_count, radius, colour, bf, intensity);
+}
+
+void draw_polygon_bothsides_wc(xy_t *p, int p_count, double radius, col_t colour, const blend_func_t bf, double intensity)
+{
+	int i, rev = 1;
+	xy_t p_sc[16];
+
+	// Check if the order must be reversed
+	if (polygon_signed_area(p, p_count) < 0.)
+		rev = 0;
+
+	// Convert to screen coordinates in reverse order
+	for (i=0; i < p_count; i++)
+		p_sc[rev ? p_count-1-i : i] = sc_xy(p[i]);
 
 	draw_polygon(p_sc, p_count, radius, colour, bf, intensity);
 }
