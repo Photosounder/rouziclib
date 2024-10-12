@@ -6,8 +6,8 @@
 int miniaudio_init_wasapi_loopback(void *data_callback, void *user_data)
 {
 	int ret;
-	static ma_device_config dev_cfg;
-	static ma_device device;
+	ma_device_config dev_cfg = {0};
+	ma_device device;
 	ma_backend backends[] = { ma_backend_wasapi };
 
 	dev_cfg = ma_device_config_init(ma_device_type_loopback);
@@ -21,7 +21,7 @@ int miniaudio_init_wasapi_loopback(void *data_callback, void *user_data)
 	ret = ma_device_init_ex(backends, sizeof(backends)/sizeof(backends[0]), NULL, &dev_cfg, &device);
 	if (ret != MA_SUCCESS)
 	{
-		fprintf_rl(stderr, "Failed to initialize loopback device in miniaudio_init_wasapi_loopback().\n");
+		fprintf_rl(stderr, "Failed to initialize the loopback device in miniaudio_init_wasapi_loopback().\n");
 		return -2;
 	}
 

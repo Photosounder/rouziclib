@@ -68,7 +68,7 @@ void swap_mem(void *a, void *b, size_t size)
 
 	// Swap 4 bytes at a time
 	for (i=0; i <= size-4; i+=4)
-		swap_i32((int32_t *) a+i, (int32_t *) b+i);
+		swap_i32((int32_t *) ((uint8_t *) a+i), (int32_t*) ((uint8_t *) b+i));
 
 	// Return if there aren't any trailing bytes
 	if (i == size)
