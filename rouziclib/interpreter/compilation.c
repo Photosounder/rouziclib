@@ -1,9 +1,3 @@
-// FIXME Problem inputs:
-/*
-expr d v = cos(x)
-return v v v
-*/	// the first line can't be an 'expr' somehow
-
 enum opcode_table
 {
 	table_none=0,
@@ -498,10 +492,13 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 				memmove(&line[il+expr_linecount], &line[il+1], (prev_linecount-(il+1)) * sizeof(void *));	// move the lines of the original listing that follow
 				memcpy(&line[il], expr_line, expr_linecount * sizeof(void *));
 
-				// Add buffer to be freed at the end of the compilation
-				alloc_enough((void **) &to_free, to_free_count+=1, &to_free_as, sizeof(void *), 1.5);
-				to_free[to_free_count-1] = expr_line[0];
-				free(expr_line);
+				if (il)
+				{
+					// Add buffer to be freed at the end of the compilation
+					alloc_enough((void **) &to_free, to_free_count+=1, &to_free_as, sizeof(void *), 1.5);
+					to_free[to_free_count-1] = expr_line[0];
+					free(expr_line);
+				}
 			}
 			else
 			{
