@@ -122,11 +122,12 @@ int rlip_execute_opcode(rlip_t *d)
 
 			// 6 word ops
 			break;	case op_func3_dddd:	vd[op[1]] = ((double (*)(double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]]);
-			break;	case op_func3_dddi:	vd[op[1]] = ((double (*)(double,double,int)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vi[op[5]]);
+			break;	case op_func3_dddi:	vd[op[1]] = ((double (*)(double,double,int   )) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vi[op[5]]);
 			break;	case op_func3_rrrr:	((void (*)(uint8_t *,uint8_t *,uint8_t *,uint8_t *)) d->ptr[op[2]])(&vr[op[1]], &vr[op[3]], &vr[op[4]], &vr[op[5]]);
 
 			// 7 word ops
 			break;	case op_func4_ddddd:	vd[op[1]] = ((double (*)(double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]]);
+			break;	case op_func4_diddi:	vd[op[1]] = ((double (*)(int   ,double,double,int   )) d->ptr[op[2]])(vi[op[3]], vd[op[4]], vd[op[5]], vi[op[6]]);
 
 			// 8 word ops
 			break;	case op_func5_dddddd:	vd[op[1]] = ((double (*)(double,double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]], vd[op[7]]);

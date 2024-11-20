@@ -96,6 +96,7 @@ enum opcode
 
 	op_7word_ops = 7168,
 	op_func4_ddddd,
+	op_func4_diddi,
 
 	op_8word_ops = 8192,
 	op_func5_dddddd,
