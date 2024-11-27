@@ -401,9 +401,9 @@ int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed
 	return 0;
 }
 
-rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, int ret_count, buffer_t *comp_log)
+rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, int max_ret_count, buffer_t *comp_log)
 {
-	int i, io, ir, il, ret, linecount, n, add_var_type, dest_ir, ret_cmd_done=0, cmd_found, fwd_jumps=0;
+	int i, io, ir, il, ret, linecount, n, add_var_type, dest_ir, cmd_found, fwd_jumps=0;
 	char **line = arrayise_text(make_string_copy(source), &linecount);
 	void **to_free=NULL;
 	size_t to_free_count=0, to_free_as=0;
@@ -436,12 +436,12 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 			ed->rr[i] = rlip_add_value(sprintf_ret(s0, "rr%d", i), NULL, "r", ed);
 
 	// Alloc and init return value arrays
-	ed->d->return_value = calloc(ret_count, sizeof(double));
+	ed->d->return_value = calloc(max_ret_count, sizeof(double));
 	if (ed->valid_reals)
 	{
-		ed->d->return_real = calloc(ret_count, ed->d->rf.size_of_real);
+		ed->d->return_real = calloc(max_ret_count, ed->d->rf.size_of_real);
 		if (ed->d->rf.var_init)
-			for (i=0; i < ret_count; i++)
+			for (i=0; i < max_ret_count; i++)
 				ed->d->rf.var_init(&ed->d->return_real[i]);
 	}
 
@@ -926,10 +926,11 @@ add_command:
 			{
 				enum opcode *ret_op;
 				char **ret_arg_type;
-				enum opcode ret_op_d[] = { 0, op_ret_d, op_ret_dd, op_ret_ddd, op_ret_dddd };
-				char *ret_arg_type_d[] = { "", "d", "dd", "ddd", "dddd" };
-				enum opcode ret_op_r[] = { 0, op_ret_r, op_ret_rr, op_ret_rrr, op_ret_rrrr };
-				char *ret_arg_type_r[] = { "", "r", "rr", "rrr", "rrrr" };
+				const int top_op_ret_count = 8;
+				enum opcode ret_op_d[] = { 0, op_ret1_d, op_ret2_d, op_ret3_d, op_ret4_d, op_ret5_d, op_ret6_d, op_ret7_d, op_ret8_d };
+				char *ret_arg_type_d[] = { "", "d", "dd", "ddd", "dddd", "ddddd", "dddddd", "ddddddd", "dddddddd" };
+				enum opcode ret_op_r[] = { 0, op_ret1_r, op_ret2_r, op_ret3_r, op_ret4_r, op_ret5_r, op_ret6_r, op_ret7_r, op_ret8_r };
+				char *ret_arg_type_r[] = { "", "r", "rr", "rrr", "rrrr", "rrrrr", "rrrrrr", "rrrrrrr", "rrrrrrrr" };
 
 				if (strcmp(s0, "return")==0)
 				{
@@ -945,19 +946,26 @@ add_command:
 				n = 0;
 				sscanf(p, "%*s %n", &n);
 
+				// Count arguments
+				ed->d->ret_count = string_count_words(&p[n]);
+				int actual_max_ret_count = MINN(max_ret_count, top_op_ret_count);
+				if (ed->d->ret_count <= 0 || ed->d->ret_count > max_ret_count)
+				{
+					bufprintf(comp_log, "Number of return arguments is %d when it should be between 1 and %d, in line %d: '%s'\n", ed->d->ret_count, max_ret_count, il, line[il]);
+					goto invalid_prog;
+				}
+
 				// Get/convert arguments
-				if (rlip_get_arguments(&p[n], ret_arg_type[ret_count], arg_ir, ed, il, line))
+				if (rlip_get_arguments(&p[n], ret_arg_type[ed->d->ret_count], arg_ir, ed, il, line))
 					goto invalid_prog;
 
 				// Add return opcode
-				io = alloc_opcode(ed, 1 + ret_count);
-				ed->op[io] = ret_op[ret_count];
+				io = alloc_opcode(ed, 1 + ed->d->ret_count);
+				ed->op[io] = ret_op[ed->d->ret_count];
 
 				// Add arguments
-				for (i=0; i < ret_count; i++)
+				for (i=0; i < ed->d->ret_count; i++)
 					ed->op[io+1+i] = ed->reg[arg_ir[i]].index;
-
-				ret_cmd_done = 1;
 			}
 
 			// If <condition result> goto <location>
@@ -1071,7 +1079,7 @@ add_command:
 
 	// free_rlip() needs these values
 	ed->d->vr_count = ed->vr_count;
-	ed->d->ret_count = ret_count;
+	ed->d->ret_as = max_ret_count;
 
 	// If not all forward jumps were resolved
 	if (fwd_jumps != 0)
@@ -1080,10 +1088,9 @@ add_command:
 		data.valid_prog = 0;
 	}
 
-	// If the return command is missing
-	if (ret_cmd_done==0)
+	// Invalid program jump
+	if (0)
 	{
-		bufprintf(comp_log, "The 'return' command is missing or invalid\n");
 invalid_prog:
 		data.valid_prog = 0;
 	}

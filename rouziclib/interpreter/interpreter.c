@@ -7,7 +7,7 @@ void free_rlip(rlip_t *prog)
 		for (i=0; i < prog->vr_count; i++)
 			prog->rf.var_deinit(&prog->vr[i * prog->rf.size_of_real]);
 
-		for (i=0; i < prog->ret_count; i++)
+		for (i=0; i < prog->ret_as; i++)
 			prog->rf.var_deinit(&prog->return_real[i]);
 	}
 

@@ -4,8 +4,8 @@ enum opcode
 	op_end,
 
 	op_2word_ops = 2048,
-	op_ret_d,
-	op_ret_r,
+	op_ret1_d,
+	op_ret1_r,
 	op_jmp,
 	nop_jmp,
 	op_set0_d,
@@ -14,8 +14,8 @@ enum opcode
 	op_inc1_i,
 
 	op_3word_ops = 3072,
-	op_ret_dd,
-	op_ret_rr,
+	op_ret2_d,
+	op_ret2_r,
 	op_load_d,
 	op_load_i,
 	op_load_r,
@@ -37,8 +37,8 @@ enum opcode
 	op_func0_r,
 
 	op_4word_ops = 4096,
-	op_ret_ddd,
-	op_ret_rrr,
+	op_ret3_d,
+	op_ret3_r,
 	op_add_dd,
 	op_add_ii,
 	op_sub_dd,
@@ -80,8 +80,8 @@ enum opcode
 	op_func1_rr,
 
 	op_5word_ops = 5120,
-	op_ret_dddd,
-	op_ret_rrrr,
+	op_ret4_d,
+	op_ret4_r,
 	op_aad_ddd,
 	op_mmul_ddd,
 	op_mad_ddd,
@@ -90,18 +90,26 @@ enum opcode
 	op_func2_rrr,
 
 	op_6word_ops = 6144,
+	op_ret5_d,
+	op_ret5_r,
 	op_func3_dddd,
 	op_func3_dddi,
 	op_func3_rrrr,
 
 	op_7word_ops = 7168,
+	op_ret6_d,
+	op_ret6_r,
 	op_func4_ddddd,
 	op_func4_diddi,
 
 	op_8word_ops = 8192,
+	op_ret7_d,
+	op_ret7_r,
 	op_func5_dddddd,
 
 	op_9word_ops = 9216,
+	op_ret8_d,
+	op_ret8_r,
 	op_func6_ddddddd,
 
 	op_10word_ops = 10240,
@@ -139,7 +147,7 @@ typedef struct
 	void **ptr;
 	double *return_value;
 	uint8_t *return_real;
-	int vr_count, ret_count;
+	int vr_count, ret_count, ret_as;
 } rlip_t;
 
 typedef struct

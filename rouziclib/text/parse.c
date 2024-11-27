@@ -15,6 +15,24 @@ const char *skip_line(const char *string)
 	return skip_string(string, "%*[^\n]\n%n");
 }
 
+int string_count_words(const char *string)
+{
+	const char *p = string;
+	int count = 0, n;
+
+	do
+	{
+		n = 0;
+		sscanf(p, "%*s %n", &n);
+		p = &p[n];
+		if (n)
+			count++;
+	}
+	while (n);
+
+	return count;
+}
+
 int string_count_fields(const char *string, const char *delim)
 {
 	int count = 0;

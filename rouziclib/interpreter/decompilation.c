@@ -8,8 +8,8 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_end:    	return "op_end";
 
 		case op_2word_ops:    	return "op_2word_ops";
-		case op_ret_d:    	return "op_ret_d";
-		case op_ret_r:    	return "op_ret_r";
+		case op_ret1_d:    	return "op_ret1_d";
+		case op_ret1_r:    	return "op_ret1_r";
 		case op_jmp:    	return "op_jmp";
 		case nop_jmp:    	return "nop_jmp";
 		case op_set0_d:    	return "op_set0_d";
@@ -18,8 +18,8 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_inc1_i:    	return "op_inc1_i";
 
 		case op_3word_ops:    	return "op_3word_ops";
-		case op_ret_dd:    	return "op_ret_dd";
-		case op_ret_rr:    	return "op_ret_rr";
+		case op_ret2_d:    	return "op_ret2_d";
+		case op_ret2_r:    	return "op_ret2_r";
 		case op_load_d:    	return "op_load_d";
 		case op_load_i:    	return "op_load_i";
 		case op_load_r:    	return "op_load_r";
@@ -41,8 +41,8 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_func0_r:    	return "op_func0_r";
 
 		case op_4word_ops:    	return "op_4word_ops";
-		case op_ret_ddd:    	return "op_ret_ddd";
-		case op_ret_rrr:    	return "op_ret_rrr";
+		case op_ret3_d:    	return "op_ret3_d";
+		case op_ret3_r:    	return "op_ret3_r";
 		case op_add_dd:    	return "op_add_dd";
 		case op_add_ii:    	return "op_add_ii";
 		case op_sub_dd:    	return "op_sub_dd";
@@ -84,8 +84,8 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_func1_rr:    	return "op_func1_rr";
 
 		case op_5word_ops:    	return "op_5word_ops";
-		case op_ret_dddd:    	return "op_ret_dddd";
-		case op_ret_rrrr:    	return "op_ret_rrrr";
+		case op_ret4_d:    	return "op_ret4_d";
+		case op_ret4_r:    	return "op_ret4_r";
 		case op_aad_ddd:    	return "op_aad_ddd";
 		case op_mmul_ddd:    	return "op_mmul_ddd";
 		case op_mad_ddd:    	return "op_mad_ddd";
@@ -94,18 +94,26 @@ const char *rlip_get_op_name(enum opcode op)
 		case op_func2_rrr:    	return "op_func2_rrr";
 
 		case op_6word_ops:    	return "op_6word_ops";
+		case op_ret5_d:    	return "op_ret5_d";
+		case op_ret5_r:    	return "op_ret5_r";
 		case op_func3_dddd:    	return "op_func3_dddd";
 		case op_func3_dddi:    	return "op_func3_dddi";
 		case op_func3_rrrr:    	return "op_func3_rrrr";
 
 		case op_7word_ops:    	return "op_7word_ops";
+		case op_ret6_d:    	return "op_ret6_d";
+		case op_ret6_r:    	return "op_ret6_r";
 		case op_func4_ddddd:   	return "op_func4_ddddd";
 		case op_func4_diddi:   	return "op_func4_diddi";
 
 		case op_8word_ops:    	return "op_8word_ops";
+		case op_ret7_d:    	return "op_ret7_d";
+		case op_ret7_r:    	return "op_ret7_r";
 		case op_func5_dddddd:  	return "op_func5_dddddd";
 
 		case op_9word_ops:    	return "op_9word_ops";
+		case op_ret8_d:    	return "op_ret8_d";
+		case op_ret8_r:    	return "op_ret8_r";
 		case op_func6_ddddddd: 	return "op_func6_ddddddd";
 
 		case op_10word_ops:    	return "op_9word_ops";

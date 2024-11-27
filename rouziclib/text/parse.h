@@ -6,6 +6,7 @@
 extern const char *skip_string(const char *string, const char *skipstring);
 extern const char *skip_whitespace(const char *string);
 extern const char *skip_line(const char *string);
+extern int string_count_words(const char *string);
 extern int string_count_fields(const char *string, const char *delim);
 extern int string_get_field(const char *string, const char *delim, int n, char *field);
 extern const char *string_parse_fractional_12(const char *string, double *v);
