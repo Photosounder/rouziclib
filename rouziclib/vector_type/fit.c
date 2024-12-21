@@ -189,6 +189,11 @@ void draw_string_maxwidth(vector_font_t *font, const uint8_t *string, word_stats
 	// Vertical alignment
 	if (mode & ALIG_TOP)
 		p.y = box.p0.y + 8.*scale;
+	if (mode & ALIG_BOTTOM)
+	{
+		p.y = box.p1.y - 2.*scale;
+		p.y -= (double) (nlines-1) * font->line_vspacing * scale;	// shift it up depending on the number of lines
+	}
 	else
 	{
 		p.y = 0.5*(box.p0.y+box.p1.y) + 3.*scale;			// puts the text right in the vertical middle of the box

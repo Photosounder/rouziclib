@@ -8,6 +8,7 @@
 #define MONOSPACE	4
 #define MONODIGITS	8
 #define ALIG_TOP	16
+#define ALIG_BOTTOM	32
 
 #define LOWERCASESCALE	0.75
 

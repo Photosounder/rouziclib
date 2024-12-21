@@ -335,6 +335,19 @@ recti_t recti_boolean_intersection(recti_t a, recti_t b)
 	return c;
 }
 
+rect_t rect_boolean_union(rect_t a, rect_t b)
+{
+	rect_t c;
+
+	a = sort_rect(a);
+	b = sort_rect(b);
+
+	c.p0 = min_xy(a.p0, b.p0);
+	c.p1 = max_xy(a.p1, b.p1);
+
+	return c;
+}
+
 // Inputs are range, a rectangle in destination coordinates, and dim, an image dimension in pixels
 // scale and offset are used to turn integer coordinates within dim into real coordinates within the range rect
 // like: pos = mad_xy(xyi_to_xy(ip), r_scale, r_offset);

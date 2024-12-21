@@ -637,6 +637,26 @@ col_t get_colour_seq(double x, xyz_t freq, xyz_t phase)
 	return get_colour_seq_fullarg(x, freq, phase, 0.5, 0.5);
 }
 
+col_t get_default_colour_seq(double x)
+{
+	double L_thresh = 0.25, grey, L, m;
+	col_t col = get_colour_seq(x+1.5, xyz(0.36, 0.187, 0.13), set_xyz(0.2));
+
+	if (MAXN(col.r, MAXN(col.g, col.b))==0.)
+		col = make_colour_srgb(150, 40, 10, 255);
+
+	// Brighten darker colours
+	grey = frgb_to_grey_level(col_to_frgb(col));
+	L = linear_to_Lab_L(grey);
+	L = pow(1.-L, 1./L_thresh) * L_thresh + L;
+	m = Lab_L_to_linear(L) / grey;
+	col.r *= m;
+	col.g *= m;
+	col.b *= m;
+
+	return col;
+}
+
 col_t colour_mul(col_t col, double m)
 {
 	return xyz_to_col(mul_xyz(col_to_xyz(col), set_xyz(m)));

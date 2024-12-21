@@ -93,6 +93,7 @@ extern void rangelimit_frgb(frgb_t *c);
 extern col_t get_colour_seq_linear(double x, xyz_t freq, xyz_t phase, double m, double a);
 extern col_t get_colour_seq_fullarg(double x, xyz_t freq, xyz_t phase, double m, double a);
 extern col_t get_colour_seq(double x, xyz_t freq, xyz_t phase);
+extern col_t get_default_colour_seq(double x);
 extern col_t colour_mul(col_t col, double m);
 extern col_t mix_colours(col_t a, col_t b, double t);
 extern col_t adjust_colour_lum(col_t col, double target_lum);
