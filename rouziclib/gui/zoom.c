@@ -74,7 +74,11 @@ void zoom_toggle(zoom_t *zc, int8_t *flag_zoom_key)
 	{
 		// Uncapture and move cursor to the centre of the screen
 		#ifdef RL_SDL
+		#if RL_SDL == 2
 		SDL_SetRelativeMouseMode(0);
+		#else
+		SDL_SetWindowRelativeMouseMode(fb->window, 0);
+		#endif
 		SDL_WarpMouseInWindow(fb->window, fb->real_dim.x/2, fb->real_dim.y/2);
 		#endif
 		zc->mouse->a = xyi_to_xy(div_xyi(fb->real_dim, set_xyi(2)));

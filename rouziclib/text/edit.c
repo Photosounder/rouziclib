@@ -143,7 +143,7 @@ int textedit_find_next_wordend(textedit_t *te)
 	}
 }
 
-void textedit_set_new_text(textedit_t *te, char *str)	// sets a whole new text from the string
+void textedit_set_new_text(textedit_t *te, const char *str)	// sets a whole new text from the string
 {
 	int sel0, sel1, len;
 
@@ -160,7 +160,7 @@ void textedit_set_new_text(textedit_t *te, char *str)	// sets a whole new text f
 	te->sel0 = te->sel1 = 0;
 }
 
-void textedit_clear_then_set_new_text(textedit_t *te, char *str)	// sets a whole new text from the string
+void textedit_clear_then_set_new_text(textedit_t *te, const char *str)	// sets a whole new text from the string
 {
 	int sel0, sel1, len=0;
 
@@ -187,7 +187,7 @@ void textedit_clear_then_set_new_text(textedit_t *te, char *str)	// sets a whole
 	}
 }
 
-void textedit_add(textedit_t *te, char *str)
+void textedit_add(textedit_t *te, const char *str)
 {
 	int orig_len=0, ins_len, new_pos, char_len;
 	char *clipboard=NULL, *p;

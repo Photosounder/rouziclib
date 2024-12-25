@@ -1,7 +1,7 @@
 #ifdef RL_SDL
 
 #if RL_SDL == 3
-#include <SDL3/SDL_syswm.h>
+//#include <SDL3/SDL_syswm.h>
 #else
 #include <SDL2/SDL_syswm.h>
 #endif
@@ -71,10 +71,15 @@ void sdl_set_window_rect(SDL_Window *window, recti_t r)
 xyi_t sdl_get_display_dim(int display_id)
 {
 #if RL_SDL == 3
-	const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(display_id);
+	int num_displays;
+	SDL_DisplayID *displays = SDL_GetDisplays(&num_displays);	
+	if (display_id < num_displays)
+	{
+		const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(displays[display_id]);
 
-	if (mode)
-		return xyi(mode->w, mode->h);
+		if (mode)
+			return xyi(mode->w, mode->h);
+	}
 
 	fprintf_rl(stderr, "SDL_GetCurrentDisplayMode failed: %s\n", SDL_GetError());
 #else
@@ -102,9 +107,20 @@ recti_t sdl_get_display_rect(int display_id)
 {
 	SDL_Rect r;
 
+#if RL_SDL == 2
 	if (display_id < sdl_get_display_count())
 		if (SDL_GetDisplayBounds(display_id, &r)==0)
+		{
+#else
+	int num_displays;
+	SDL_DisplayID *displays = SDL_GetDisplays(&num_displays);	
+	if (display_id < num_displays)
+		if (SDL_GetDisplayBounds(displays[display_id], &r))
+		{
+			SDL_free(displays);
+#endif
 			return recti( xyi(r.x, r.y), xyi(r.x+r.w-1, r.y+r.h-1));
+		}
 
 	return recti(xyi(0,0), xyi(0,0));
 }
@@ -113,11 +129,22 @@ recti_t sdl_get_display_usable_rect(int display_id)
 {
 	SDL_Rect r;
 
+#if RL_SDL == 2
 	if (display_id < sdl_get_display_count())
 		if (SDL_GetDisplayUsableBounds(display_id, &r)==0)
+		{
+#else
+	int num_displays;
+	SDL_DisplayID *displays = SDL_GetDisplays(&num_displays);	
+	if (display_id < num_displays)
+		if (SDL_GetDisplayUsableBounds(displays[display_id], &r))
+		{
+			SDL_free(displays);
+#endif
 			return recti( xyi(r.x, r.y), xyi(r.x+r.w-1, r.y+r.h-1));
+		}
 
-	return recti(xyi(0,0), xyi(0,0));
+	return recti(XYI0, XYI0);
 }
 
 recti_t sdl_screen_max_window_rect()
@@ -187,11 +214,7 @@ int sdl_is_window_maximised(SDL_Window *window)
 HWND sdl_get_window_hwnd(SDL_Window *window)
 {
 #if RL_SDL == 3
-	SDL_SysWMinfo wmInfo = {0};
-
-	SDL_GetWindowWMInfo(window, &wmInfo, SDL_SYSWM_CURRENT_VERSION);
-
-	return wmInfo.info.win.window;
+	return (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
 #else
 	SDL_SysWMinfo wmInfo;
 
@@ -350,11 +373,17 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 
 void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event)
 {
+#if RL_SDL == 2
+	int scancode = event.key.keysym.scancode;
+#else
+	int scancode = event.key.scancode;
+#endif
+
 	if (event.type == SDL_KEYDOWN)
-		keyboard_button_event(&mouse->key_state[event.key.keysym.scancode], &mouse->key_quick[event.key.keysym.scancode], 1, event.key.repeat);
+		keyboard_button_event(&mouse->key_state[scancode], &mouse->key_quick[scancode], 1, event.key.repeat);
 
 	if (event.type == SDL_KEYUP)
-		keyboard_button_event(&mouse->key_state[event.key.keysym.scancode], &mouse->key_quick[event.key.keysym.scancode], -1, event.key.repeat);
+		keyboard_button_event(&mouse->key_state[scancode], &mouse->key_quick[scancode], -1, event.key.repeat);
 
 	if (event.type == SDL_TEXTINPUT)
 		textedit_add(cur_textedit, event.text.text);
@@ -455,7 +484,11 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 	if (init)
 	{
 		init = 0;
+#if RL_SDL == 2
 		if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+#else
+		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+#endif
 			fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
 
 		#ifdef __EMSCRIPTEN__
@@ -469,13 +502,26 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 		fb->pixel_scale = 1;
 
 	// Create window from handle
+#if RL_SDL == 2
 	SDL_Window *temp_window = SDL_CreateWindow("", 0, 0, 1, 1, flags | SDL_WINDOW_HIDDEN);	// flags could be something like SDL_WINDOW_OPENGL
+#else
+	SDL_Window *temp_window = SDL_CreateWindow("", 1, 1, flags | SDL_WINDOW_HIDDEN);	// flags could be something like SDL_WINDOW_OPENGL
+#endif
 	char hint[32];
 	sprintf(hint, "%p", temp_window);
+#if RL_SDL == 2
 	SDL_SetHint(SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, hint);
+#else
+	SDL_SetHint(SDL_PROP_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER, hint);
+#endif
 	if (flags & SDL_WINDOW_OPENGL)
+#if RL_SDL == 2
 		SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_OPENGL, "1");
+#else
+		SDL_SetHint(SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, "1");
+#endif
 
+#if RL_SDL == 2
 	fb->window = SDL_CreateWindowFrom(window_handle);
 	if (fb->window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindowFrom failed: %s\n", SDL_GetError());
@@ -568,6 +614,9 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 	#ifdef __EMSCRIPTEN__
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#screen");
 	#endif
+#else
+	// TODO
+#endif
 }
 
 void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags)
@@ -578,7 +627,11 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	if (init)
 	{
 		init = 0;
+#if RL_SDL == 2
 		if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+#else
+		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+#endif
 			fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
 
 		#ifdef __EMSCRIPTEN__
@@ -609,10 +662,18 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	// FIXME SDL_WINDOW_MAXIMIZED flag should probably be dealt with because it doesn't work well with the maxdim initialisation
 
 #if RL_SDL == 3
-	fb->window = SDL_CreateWindowWithPosition
+	fb->window = SDL_CreateWindow
+			( window_name,			// window title
+			  fb->maxdim.x,			// width, in pixels
+			  fb->maxdim.y,			// height, in pixels
+		#ifdef RL_VULKAN
+			  SDL_WINDOW_VULKAN | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		#else
+			  SDL_WINDOW_OPENGL | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		#endif
+			);
 #else
 	fb->window = SDL_CreateWindow
-#endif
 			( window_name,			// window title
 			  -fb->maxdim.x-100,		// initial x position
 			  SDL_WINDOWPOS_UNDEFINED,	// initial y position
@@ -624,6 +685,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 			  SDL_WINDOW_OPENGL | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
 		#endif
 			);
+#endif
 
 	if (fb->window==NULL)
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
@@ -658,7 +720,8 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		#ifdef RL_OPENCL_GL
 		fb->gl_ctx = init_sdl_gl(fb->window);
 		#if RL_SDL == 3
-		fb->renderer = SDL_CreateRenderer(fb->window, "opengl", SDL_RENDERER_PRESENTVSYNC);
+		fb->renderer = SDL_CreateRenderer(fb->window, "opengl");
+		SDL_SetRenderVSync(fb->renderer, SDL_RENDERER_VSYNC_ADAPTIVE);
 		#else
 		fb->renderer = SDL_CreateRenderer(fb->window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
 		#endif
@@ -670,7 +733,8 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	else
 	{
 		#if RL_SDL == 3
-		fb->renderer = SDL_CreateRenderer(fb->window, NULL, SDL_RENDERER_PRESENTVSYNC);
+		fb->renderer = SDL_CreateRenderer(fb->window, NULL);
+		SDL_SetRenderVSync(fb->renderer, SDL_RENDERER_VSYNC_ADAPTIVE);
 		#else
 		fb->renderer = SDL_CreateRenderer(fb->window, -1, SDL_RENDERER_PRESENTVSYNC);
 		#endif
@@ -705,6 +769,10 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	#endif
 	fb->r.dim = xyi(fb->w, fb->h);
 
+#if RL_SDL == 3
+	SDL_StartTextInput(fb->window);
+#endif
+
 	// focus flags, useless since SDL_WINDOW_INPUT_FOCUS is always on when it shouldn't be
 /*	mouse.mouse_focus_flag = 1;
 	mouse.window_focus_flag = 1;
@@ -730,7 +798,11 @@ void sdl_graphics_init_autosize(const char *window_name, int flags, int window_i
 {
 	recti_t r;
 
+#if RL_SDL==2
 	if (SDL_Init(SDL_INIT_VIDEO))
+#else
+	if (!SDL_Init(SDL_INIT_VIDEO))
+#endif
 		fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
 
 	r = sdl_get_display_usable_rect(window_index);
@@ -1067,12 +1139,19 @@ char *sdl_get_clipboard_dos_conv()
 // Misc
 void sdl_print_sdl_version()
 {
+#if RL_SDL == 2
 	SDL_version compiled, linked;
 
 	SDL_VERSION(&compiled);
 	SDL_GetVersion(&linked);
 	fprintf_rl(stdout, "Compilation SDL version %d.%d.%d\n", compiled.major, compiled.minor, compiled.patch);
 	fprintf_rl(stdout, "Linked SDL version %d.%d.%d %s\n", linked.major, linked.minor, linked.patch, SDL_GetRevision());
+#else
+	int v = SDL_VERSION;
+	fprintf_rl(stdout, "Compilation SDL version %d.%d.%d\n", SDL_VERSIONNUM_MAJOR(v), SDL_VERSIONNUM_MINOR(v), SDL_VERSIONNUM_MICRO(v));
+	v = SDL_GetVersion();
+	fprintf_rl(stdout, "Linked SDL version %d.%d.%d %s\n", SDL_VERSIONNUM_MAJOR(v), SDL_VERSIONNUM_MINOR(v), SDL_VERSIONNUM_MICRO(v), SDL_GetRevision());
+#endif
 }
 
 void sdl_box_printf(const char *title, const char *format, ...)
@@ -1101,8 +1180,12 @@ void dropfile_event_proc(SDL_Event event)
 		dropfile.id_last++;
 		alloc_enough((void **) &dropfile.path, dropfile.id_last+1, &dropfile.path_as, sizeof(char *), 1.5);
 
+#if RL_SDL == 2
 		dropfile.path[dropfile.id_last] = make_string_copy(event.drop.file);
 		SDL_free(event.drop.file);
+#else
+		dropfile.path[dropfile.id_last] = make_string_copy(event.drop.data);
+#endif
 	}
 }
 

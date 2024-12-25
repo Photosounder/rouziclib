@@ -227,7 +227,11 @@ void mousecursor_logic_and_draw()
 	if (mouse.zoom_flag)
 	{
 		#ifdef RL_SDL
+		#if RL_SDL == 2
 		SDL_SetRelativeMouseMode(1);
+		#else
+		SDL_SetWindowRelativeMouseMode(fb->window, 1);
+		#endif
 		sdl_set_mouse_pos_world(mouse.u);
 		#endif
 
@@ -237,7 +241,11 @@ void mousecursor_logic_and_draw()
 	else
 	{
 		#ifdef RL_SDL
+		#if RL_SDL == 2
 		SDL_SetRelativeMouseMode(mouse.warp);
+		#else
+		SDL_SetWindowRelativeMouseMode(fb->window, mouse.warp);
+		#endif
 
 		if (mouse.warp_prev || mouse.warp)		// set the mouse position during warp or after exiting warp mode
 			sdl_set_mouse_pos_world(mouse.b.orig);

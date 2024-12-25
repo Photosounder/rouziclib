@@ -1,7 +1,11 @@
 int get_scancode_by_key_name(const char *name)
 {
 	#ifdef RL_SDL
+	#if RL_SDL == 2
 	return SDL_GetScancodeFromKey(SDL_GetKeyFromName(name));
+	#else
+	return SDL_GetScancodeFromKey(SDL_GetKeyFromName(name), NULL);
+	#endif
 	#endif
 
 	return -1;

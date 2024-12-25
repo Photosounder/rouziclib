@@ -148,6 +148,7 @@ void sdl_audiosys_init(int def_buflen)
 	SDL_AudioInit(SDL_GetAudioDriver(driver_index));	// initialise it
 #endif
 
+#if RL_SDL == 2
 	// Load preferred output device name from pref file
 	if (pref_def.path)
 		device_name = pref_get_string(&pref_def, "Audio output:Preferred device", SDL_GetAudioDeviceName(device_index, 0));
@@ -182,9 +183,12 @@ void sdl_audiosys_init(int def_buflen)
 
 	audiosys.sec_per_buf = (double) audiosys.buffer_len / audiosys.samplerate;
 	audiosys.sec_per_sample = 1. / audiosys.samplerate;
+#else
+	// TODO
+#endif
 
 	#if RL_SDL == 3
-	SDL_PlayAudioDevice(audiosys.device_id);
+	SDL_PauseAudioDevice(audiosys.device_id);
 	#else
 	SDL_PauseAudioDevice(audiosys.device_id, 0);
 	#endif
