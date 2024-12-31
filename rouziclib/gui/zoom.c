@@ -319,3 +319,58 @@ void zoom_overlay_control(zoom_t *zc, int8_t *flag_zoom_key)
 		zc->mouse->b.orig = zc->mouse->u;
 	}
 }
+
+// Zoom transition from one focus point to another
+void prepare_focus_transition(filter_focus_t *focus)
+{
+	focus->pos0 = xyq_to_xy(zc.offset_uq);
+
+	focus->zoomscale_base = zc.zoomscale;
+	focus->zoomscale_top = MINN(focus->zoomscale_base, 14. / hypot_xy(focus->pos0, focus->pos1));
+
+	focus->time0 = get_time_hr();
+	focus->time1 = focus->time0 + 0.13 * (focus->zoomscale_base != focus->zoomscale_top);
+	focus->time2 = focus->time1 + 0.5 * MAXN(0., hypot_xy(focus->pos0, focus->pos1) * focus->zoomscale_top - 7.) / (14.-7.);
+	focus->time3 = focus->time2 + 0.13 * (focus->zoomscale_base != focus->zoomscale_top);
+	focus->zoom_transition_on = 1;
+}
+
+void perform_focus_transition(filter_focus_t *focus)
+{
+	double now, t;
+
+	if (focus->zoom_transition_on == 0)
+		return;
+
+	now = get_time_hr();
+
+	if (now <= focus->time1)	// zoom out at pos0
+	{
+		zc.offset_uq = xy_to_xyq(focus->pos0);
+		t = (now - focus->time0) / (focus->time1 - focus->time0);
+		//t = floor(t * 2.) / 2.;
+		zc.zoomscale = exp(mix(log(focus->zoomscale_base), log(focus->zoomscale_top), t));
+	}
+	else if (now <= focus->time2)	// travel from pos0 to pos1 zoomed out
+	{
+		t = (now - focus->time1) / (focus->time2 - focus->time1);
+		//t = floor(t * 3.) / 3.;
+		zc.offset_uq = xy_to_xyq(mix_xy(focus->pos0, focus->pos1, set_xy(t)));
+		zc.zoomscale = focus->zoomscale_top;
+	}
+	else if (now <= focus->time3)	// zoom in at pos1
+	{
+		zc.offset_uq = xy_to_xyq(focus->pos1);
+		t = (now - focus->time2) / (focus->time3 - focus->time2);
+		//t = floor(t * 2.) / 2.;
+		zc.zoomscale = exp(mix(log(focus->zoomscale_top), log(focus->zoomscale_base), t));
+	}
+	else				// end the transition
+	{
+		zc.offset_uq = xy_to_xyq(focus->pos1);
+		zc.zoomscale = focus->zoomscale_base;
+		focus->zoom_transition_on = 0;
+	}
+
+	calc_screen_limits(&zc);
+}

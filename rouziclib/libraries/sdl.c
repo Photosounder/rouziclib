@@ -445,6 +445,16 @@ int get_sdl_opengl_renderer_index()
 }
 #endif
 
+double get_sdl_window_screen_refresh_rate(SDL_Window *window)
+{
+#if RL_SDL == 3
+	const SDL_DisplayMode *mode = SDL_GetDesktopDisplayMode(SDL_GetDisplayForWindow(window));
+	if (mode)
+		return (double) mode->refresh_rate_numerator / (double) mode->refresh_rate_denominator;
+#endif
+	return NAN;
+}
+
 SDL_GLContext init_sdl_gl(SDL_Window *window)
 {
 	SDL_GLContext ctx=NULL;
@@ -664,8 +674,8 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 #if RL_SDL == 3
 	fb->window = SDL_CreateWindow
 			( window_name,			// window title
-			  fb->maxdim.x,			// width, in pixels
-			  fb->maxdim.y,			// height, in pixels
+			  fb->w,			// width, in pixels
+			  fb->h,			// height, in pixels
 		#ifdef RL_VULKAN
 			  SDL_WINDOW_VULKAN | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
 		#else
@@ -762,11 +772,11 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		drawq_alloc();
 	}
 
-	SDL_SetWindowSize(fb->window, fb->w, fb->h);
-	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	#ifndef __APPLE__	// see https://bugzilla.libsdl.org/show_bug.cgi?id=4401
 	SDL_SetWindowPosition(fb->window, pos.x, pos.y);
 	#endif
+	SDL_SetWindowSize(fb->window, fb->w, fb->h);
+	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	fb->r.dim = xyi(fb->w, fb->h);
 
 #if RL_SDL == 3
@@ -1033,18 +1043,26 @@ int sdl_toggle_borderless_fullscreen()
 
 	if (fb->fullscreen_on)
 	{
+#if RL_SDL == 2
 		fb->wind_rect = sdl_get_window_rect(fb->window);
 
 		SDL_SetWindowResizable(fb->window, SDL_FALSE);
 		SDL_SetWindowBordered(fb->window, SDL_TRUE);
 		sdl_set_window_rect(fb->window, sdl_get_display_rect(sdl_get_window_cur_display()));
+#else
+		SDL_SetWindowFullscreen(fb->window, 1);
+#endif
 	}
 	else
 	{
+#if RL_SDL == 2
 		sdl_set_window_rect(fb->window, fb->wind_rect);
 
 		SDL_SetWindowResizable(fb->window, SDL_TRUE);
 		SDL_SetWindowBordered(fb->window, SDL_TRUE);
+#else
+		SDL_SetWindowFullscreen(fb->window, 0);
+#endif
 	}
 
 	#ifdef __EMSCRIPTEN__

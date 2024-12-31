@@ -63,6 +63,7 @@ extern void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event);
 extern void sdl_set_mouse_pos_screen(xy_t pos);
 extern void sdl_set_mouse_pos_world(xy_t world_pos);
 
+extern double get_sdl_window_screen_refresh_rate(SDL_Window *window);
 extern SDL_GLContext init_sdl_gl(SDL_Window *window);
 extern void sdl_graphics_init_from_handle(const void *window_handle, int flags);
 extern void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags);

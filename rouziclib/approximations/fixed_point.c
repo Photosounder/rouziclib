@@ -33,6 +33,9 @@ int64_t fastabs64(int64_t x)
 
 int32_t log2_ffo32(uint32_t x)	// returns the number of bits up to the most significant set bit so that 2^return > x >= 2^(return-1)
 {
+#if defined(__GNUC__)
+	return x ? 32 - __builtin_clz(x) : 0;
+#endif
 	/*
 	   Max iterations vs table size:
 	   4 iterations,  8-bit index (0.25 kB)
@@ -48,6 +51,9 @@ int32_t log2_ffo32(uint32_t x)	// returns the number of bits up to the most sign
 
 int32_t log2_ffo64(uint64_t x)	// returns the number of bits up to the most significant set bit so that 2^return > x >= 2^(return-1)
 {
+#if defined(__GNUC__)
+	return x ? 64 - __builtin_clzll(x) : 0;
+#endif
 	/*
 	   Max iterations vs table size:
 	   8 iterations,  8-bit index (0.25 kB)

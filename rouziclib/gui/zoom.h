@@ -33,3 +33,6 @@ extern void zoom_overlay_control(zoom_t *zc, int8_t *flag_zoom_key);
 #define wc_y(p) to_world_coord_y(p)
 #define wc_xy(p) to_world_coord_xy(p)
 #define wc_rect(r) to_world_coord_rect(r)
+
+extern void prepare_focus_transition(filter_focus_t *focus);
+extern void perform_focus_transition(filter_focus_t *focus);

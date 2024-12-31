@@ -352,7 +352,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (mouse.window_focus_flag >= 0)
 	{
 		knob->knob_state = proc_mouse_knob_ctrl(box);
-		t_off = knob->knob_state.vert_delta * 2./1728.;
+		t_off = knob->knob_state.vert_delta * 1./1024.;		// was 2./1728. until 2024
 
 		if (knob->knob_state.downonce)
 		{
@@ -362,7 +362,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 		if (get_kb_alt() > 0 && knob->knob_state.down)
 		{
-			t_rate += t_off * 1./144.;
+			t_rate += t_off * 1./1024.;			// was 1./144. until 2024
 			t_off = t_rate;
 		}
 

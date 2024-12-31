@@ -264,11 +264,13 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box)
 
 				if (mouse.mod_key[mouse_mod_shift])
 				{
-					state.vert_delta *= 1./32.;
+					state.vert_delta *= 1./24.;	// was 1./32. until 2024
 
 					if (mouse.mod_key[mouse_mod_ctrl])
-						state.vert_delta *= 1./256.;
+						state.vert_delta *= 1./96.;	// was 1./256. until 2024
 				}
+				else if (mouse.mod_key[mouse_mod_ctrl])
+					state.vert_delta *= 1./(32.*64.*128.);
 			}
 
 			if (mouse.b.lmb > 0)
