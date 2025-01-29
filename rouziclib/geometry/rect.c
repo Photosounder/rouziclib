@@ -347,32 +347,3 @@ rect_t rect_boolean_union(rect_t a, rect_t b)
 
 	return c;
 }
-
-// Inputs are range, a rectangle in destination coordinates, and dim, an image dimension in pixels
-// scale and offset are used to turn integer coordinates within dim into real coordinates within the range rect
-// like: pos = mad_xy(xyi_to_xy(ip), r_scale, r_offset);
-void rect_range_and_dim_to_scale_offset(rect_t range, xyi_t dim, xy_t *r_scale, xy_t *r_offset, int range_edge_is_pix_centre)
-{
-	rect_t r_dim;
-
-	if (range_edge_is_pix_centre)	// range rect = centre of edge pixels
-		r_dim = rect(xy(0., dim.y-1.), xy(dim.x-1., 0.));
-	else				// range rect = outer edge of edge pixels
-		r_dim = rect(xy(-0.5, dim.y-0.5), xy(dim.x-0.5, -0.5));
-
-	*r_scale = div_xy(sub_xy(range.p1, range.p0), sub_xy(r_dim.p1, r_dim.p0));
-	*r_offset = sub_xy(range.p0, mul_xy(*r_scale, r_dim.p0));
-}
-
-// Inverse of the above so that: pix_pos = mad_xy(pos, r_scale, r_offset);
-void rect_range_and_dim_to_scale_offset_inv(rect_t range, xyi_t dim, xy_t *r_scale, xy_t *r_offset, int range_edge_is_pix_centre)
-{
-	rect_range_and_dim_to_scale_offset(range, dim, r_scale, r_offset, range_edge_is_pix_centre);
-	inverse_scale_offset(r_scale, r_offset);
-}
-
-void inverse_scale_offset(xy_t *scale, xy_t *offset)
-{
-	*scale = inv_xy(*scale);
-	*offset = mul_xy(neg_xy(*offset), *scale);
-}

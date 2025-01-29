@@ -479,6 +479,7 @@ void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_f
 
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 0);	// adjusts the focus
 
+#ifndef RL_ONLY_DRAW_LRGB
 	if (fb->use_drawq)
 		if (fb->use_dqnq)
 			draw_line_thin_dqnq(p1, p2, radius, col_to_frgb(colour), 0, intensity, 0);
@@ -487,6 +488,7 @@ void draw_line_thin(xy_t p1, xy_t p2, double radius, col_t colour, const blend_f
 	else if (fb->r.use_frgb)
 		draw_line_thin_frgb(p1, p2, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
+#endif
 		draw_line_thin_lrgb(p1, p2, radius, col_to_lrgb(colour), bf, intensity);
 }
 

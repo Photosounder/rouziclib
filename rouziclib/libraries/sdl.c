@@ -365,10 +365,10 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	// state of modifier keys
 	mod_state = SDL_GetModState();
 
-	mouse->mod_key[mouse_mod_ctrl] = mod_state & KMOD_CTRL;
-	mouse->mod_key[mouse_mod_alt] = mod_state & KMOD_ALT;
-	mouse->mod_key[mouse_mod_shift] = mod_state & KMOD_SHIFT;
-	mouse->mod_key[mouse_mod_gui] = mod_state & KMOD_GUI;
+	mouse->mod_key[mouse_mod_ctrl] = (mod_state & KMOD_CTRL) != 0;
+	mouse->mod_key[mouse_mod_alt] = (mod_state & KMOD_ALT) != 0;
+	mouse->mod_key[mouse_mod_shift] = (mod_state & KMOD_SHIFT) != 0;
+	mouse->mod_key[mouse_mod_gui] = (mod_state & KMOD_GUI) != 0;
 }
 
 void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event)

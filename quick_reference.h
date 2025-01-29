@@ -10,6 +10,9 @@
 #define LBD 12
 	// Sets the bit depth for the LRGB graphics system. Should be between 12 and 15, 15 is the default when this is not defined.
 
+#define RL_ONLY_DRAW_LRGB
+	// Prevents non-LRGB drawing functions from linking when they're not needed.
+
 #define GAUSSLIMIT 0.001
 	// Intensity limit for drawing Gaussian drawing functions. Can be set if you want better quality or more trimmed Gaussians for speed. Default is 0.0002.
 
@@ -30,13 +33,17 @@
 	// Includes more detailed Unicode data for each Unicode character, which takes more room
 
 #define RL_SDL
+#define RL_SDL 3
 #define RL_OPENCL
 #define RL_OPENCL_GL
 #define RL_BUILTIN_GLEW
-	// Includes the parts of rouziclib that use SDL2, OpenCL, the OpenCL-OpenGL interop and my cut-down version of GLEW for using OpenGL
+	// Includes the parts of rouziclib that use SDL2/SDL3, OpenCL, the OpenCL-OpenGL interop and my cut-down version of GLEW for using OpenGL
 
 #define RL_EXCL_APPROX
 	// Excludes the approximation functions that use lookup tables
+
+#define RL_EXCL_THREADING
+	// Exclude threading code
 
 #define RL_GDI32
 	// Includes Windows code for taking screenshots. Needs linking to gdi32.lib
@@ -65,6 +72,7 @@
 #define RL_SOUND_FILE
 #define RL_FFTPACK
 #define RL_CFFTPACK
+#define RL_TRUETYPE
 	// Include various libraries and the code that use them. Some are excluded by default due to requiring external dependencies, others are excluded due to code size.
 
 #define RL_ZLIB
@@ -1005,6 +1013,10 @@ void my_window_function(double *arg1, double *arg2)
 	// Enums, named but without typedef
 		enum my_enum_name { zero, one };
 		enum my_enum_name my_var = zero;
+
+	// Macro to deal with pointer size
+		#if INTPTR_MAX == INT64_MAX
+		#if INTPTR_MAX == INT32_MAX
 
 // How to transition code
 	// 190610 transition that involves removing any 'fb' from any function call, making it a TLS global only

@@ -251,7 +251,9 @@ void free_raster(raster_t *r)
 
 	while (ptr)	// free every possible buffer
 	{
+		#ifndef RL_ONLY_DRAW_LRGB
 		cl_data_table_remove_entry_by_host_ptr(*ptr);	// remove reference from cl data table
+		#endif
 
 		free_null(ptr);
 

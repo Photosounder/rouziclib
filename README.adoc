@@ -176,7 +176,7 @@ Contains often-needed comparison functions that like `strcmp()` can be used with
 * link:rouziclib/geometry[geometry/]
 
 ** link:rouziclib/geometry/rect.c[rect.c] / link:rouziclib/geometry/rect.h[rect.h] and link:rouziclib/geometry/rect_struct.h[rect_struct.h] +
-Vectors for rectangles, integer rectangles and triangles, and functions to create, transform or get information from such rectangles. Also function to scale coordinates between pixel coordinates and the area rectangle the image fits into.
+Vectors for rectangles, integer rectangles and triangles, and functions to create, transform or get information from such rectangles.
 
 ** link:rouziclib/geometry/intersection.c[intersection.c] / link:rouziclib/geometry/intersection.h[intersection.h] +
 Functions to computer intersections between lines, find the distance between a point and a line, find the segment of a line inside a rectangle, intersect rectangles, intersect a circle with a rectangle, find if a point is inside a rectangle or circle, or find the angular radius of a circle from a point.
@@ -185,7 +185,7 @@ Functions to computer intersections between lines, find the distance between a p
 Handle 2D and 3D vector rotation.
 
 ** link:rouziclib/geometry/fit.c[fit.c] / link:rouziclib/geometry/fit.h[fit.h] +
-Functions to find how to best fit squares or rectangles in an area, manage a Hilbert curve grid, fit a rectangle inside a rectangular area or subdivide a rectangle.
+Functions to find how to best fit squares or rectangles in an area, manage a Hilbert curve grid, fit a rectangle inside a rectangular area or subdivide a rectangle, scale coordinates between pixel or rectangle coordinates and the area rectangle it fits into.
 
 ** link:rouziclib/geometry/distance.c[distance.c] / link:rouziclib/geometry/distance.h[distance.h] +
 Calculate the hypothenuse in 2D and 3D and move a point away from another point using a given distance multiplier.

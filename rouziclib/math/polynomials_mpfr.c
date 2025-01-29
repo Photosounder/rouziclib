@@ -31,7 +31,7 @@ void eval_chebyshev_polynomial_mpfr(real_t y, real_t x, real_t *cm, int degree)
 
 	r_rmuld(x2, x, 2.);
 
-	// Clenshaw evaluation
+	// Clenshaw summation
 	r_set(y, cm[degree]);
 	for (id = degree-1; id >= 1; id--)
 	{

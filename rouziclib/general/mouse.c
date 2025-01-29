@@ -208,6 +208,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 
 	reset_insert_rect_array();			// nothing to do with the mouse but this is about the right place to put it
 
+	#ifndef RL_ONLY_DRAW_LRGB
 	// Drawing queue discard logic
 	if (fb->use_drawq && mouse->window_minimised_flag == 2)
 	{
@@ -220,6 +221,7 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 		fb->discard = 0;
 		data_cl_realloc(1L << 20);
 	}
+	#endif
 }
 
 void mousecursor_logic_and_draw()

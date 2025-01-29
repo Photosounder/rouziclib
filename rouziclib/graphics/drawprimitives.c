@@ -545,6 +545,7 @@ void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, do
 
 	radius = drawing_focus_adjust(focus_rlg, radius, &intensity, 1);	// adjusts the focus
 
+#ifndef RL_ONLY_DRAW_LRGB
 	if (fb->use_drawq)
 		if (fb->use_dqnq)
 			draw_point_dqnq(pos, radius, col_to_frgb(colour), intensity);
@@ -553,6 +554,7 @@ void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, do
 	else if (fb->r.use_frgb)
 		draw_point_frgb(pos, radius, col_to_frgb(colour), get_blend_fl_equivalent(bf), intensity);
 	else
+#endif
 		draw_point_lrgb(pos, radius, col_to_lrgb(colour), bf, intensity);
 }
 

@@ -118,7 +118,7 @@ double eval_chebyshev_polynomial(double x, double *cm, int degree)
 	if (degree == 0)
 		return cm[0];
 
-	// Clenshaw evaluation
+	// Clenshaw summation
 	y = cm[degree];
 	for (id = degree-1; id >= 1; id--)
 	{
@@ -132,6 +132,28 @@ double eval_chebyshev_polynomial(double x, double *cm, int degree)
 	return y;
 }
 
+double eval_chebyshev_polynomial_2d(xy_t p, double **cm, xyi_t degree)
+{
+	int id;
+	double b1=0., b2, z, y2 = 2.*p.y;
+
+	if (degree.y == 0)
+		return eval_chebyshev_polynomial(p.x, cm[0], degree.x);
+
+	// Clenshaw summation
+	z = eval_chebyshev_polynomial(p.x, cm[degree.y], degree.x);
+	for (id = degree.y-1; id >= 1; id--)
+	{
+		b2 = b1;
+		b1 = z;
+		z = eval_chebyshev_polynomial(p.x, cm[id], degree.x) + y2*b1 - b2;
+	}
+
+	z = eval_chebyshev_polynomial(p.x, cm[0], degree.x) + p.y*z - b1;
+
+	return z;
+}
+
 double eval_chebyshev_polynomial_even(double x, double *cm, int degree)		// here degree is /2, cm is multipliers for T_0, T_2, T_4, ...
 {
 	int id;
@@ -140,7 +162,7 @@ double eval_chebyshev_polynomial_even(double x, double *cm, int degree)		// here
 	if (degree == 0)
 		return cm[0];
 
-	// Clenshaw evaluation
+	// Clenshaw summation
 	y = cm[degree];
 	for (id = degree-1; id >= 1; id--)
 	{
@@ -168,7 +190,7 @@ ddouble_t eval_chebyshev_polynomial_q(ddouble_t x, ddouble_t *cm, int degree)
 	if (degree == 0)
 		return cm[0];
 
-	// Clenshaw evaluation
+	// Clenshaw summation
 	y = cm[degree];
 	for (id = degree-1; id >= 1; id--)
 	{
@@ -197,7 +219,7 @@ ddouble_t eval_chebyshev_polynomial_even_q(ddouble_t x, ddouble_t *cm, int degre
 	if (degree == 0)
 		return cm[0];
 
-	// Clenshaw evaluation
+	// Clenshaw summation
 	y = cm[degree];
 	for (id = degree-1; id >= 1; id--)
 	{
@@ -240,7 +262,7 @@ xy_t eval_chebyshev_polynomial_xy(xy_t x, xy_t *cm, int degree)
 	if (degree == 0)
 		return cm[0];
 
-	// Clenshaw evaluation
+	// Clenshaw summation
 	y = cm[degree];
 	for (id = degree-1; id >= 1; id--)
 	{
