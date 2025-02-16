@@ -179,7 +179,7 @@ Contains often-needed comparison functions that like `strcmp()` can be used with
 Vectors for rectangles, integer rectangles and triangles, and functions to create, transform or get information from such rectangles.
 
 ** link:rouziclib/geometry/intersection.c[intersection.c] / link:rouziclib/geometry/intersection.h[intersection.h] +
-Functions to computer intersections between lines, find the distance between a point and a line, find the segment of a line inside a rectangle, intersect rectangles, intersect a circle with a rectangle, find if a point is inside a rectangle or circle, or find the angular radius of a circle from a point.
+Functions to compute intersections between lines, find the distance between a point and a line, find the segment of a line inside a rectangle, intersect rectangles, intersect a circle with a rectangle, find if a point is inside a rectangle or circle, or find the angular radius of a circle from a point.
 
 ** link:rouziclib/geometry/rotation.c[rotation.c] / link:rouziclib/geometry/rotation.h[rotation.h] +
 Handle 2D and 3D vector rotation.
