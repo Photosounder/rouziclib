@@ -1,7 +1,7 @@
 //**** Double ****
 static void real_d_set(double *r, double *a) { *r = *a; }
 static double real_d_cvt_r_d(double *a) { return *a; }
-static void real_d_cvt_d_r(double *r, double a) { *r = a; };
+static void real_d_cvt_d_r(double *r, double a) { *r = a; }
 static int64_t real_d_cvt_r_i(double *a) { return (int64_t) *a; }
 static void real_d_cvt_i_r(double *r, int64_t a) { *r = (double) a; }
 static void real_d_ator(double *r, const char *string, char **endptr) { *r = strtod(string, endptr); }
@@ -79,7 +79,7 @@ static rlip_real_functions_t real_d_functions = {
 //**** Double-double ****
 static void real_q_set(ddouble_t *r, ddouble_t *a) { *r = *a; }
 static double real_q_cvt_r_d(ddouble_t *a) { return a->hi; }
-static void real_q_cvt_d_r(ddouble_t *r, double a) { *r = ddouble(a); };
+static void real_q_cvt_d_r(ddouble_t *r, double a) { *r = ddouble(a); }
 static int64_t real_q_cvt_r_i(ddouble_t *a) { return (int64_t) a->hi; }
 static void real_q_cvt_i_r(ddouble_t *r, int64_t a) { *r = ddouble((double) a); }
 static void real_q_ator(ddouble_t *r, const char *string, char **endptr) { *r = string_to_ddouble(string, endptr); }
@@ -164,7 +164,7 @@ static rlip_real_functions_t real_q_functions = {
 #ifdef RL_MPFR
 static void real_mpfr_set(mpfr_t *r, mpfr_t *a) { mpfr_set(*r, *a, MPFR_RNDN); }
 static double real_mpfr_cvt_r_d(mpfr_t *a) { return mpfr_get_d(*a, MPFR_RNDN); }
-static void real_mpfr_cvt_d_r(mpfr_t *r, double a) { mpfr_set_d(*r, a, MPFR_RNDN); };
+static void real_mpfr_cvt_d_r(mpfr_t *r, double a) { mpfr_set_d(*r, a, MPFR_RNDN); }
 static int64_t real_mpfr_cvt_r_i(mpfr_t *a) { return mpfr_get_sj(*a, MPFR_RNDN); }
 static void real_mpfr_cvt_i_r(mpfr_t *r, int64_t a) { mpfr_set_sj(*r, a, MPFR_RNDN); }
 static int real_mpfr_cmp(mpfr_t *a, mpfr_t *b) { return mpfr_cmp(*a, *b); }

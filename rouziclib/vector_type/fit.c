@@ -272,10 +272,12 @@ double draw_string_bestfit_asis(vector_font_t *font, const uint8_t *string, rect
 	//fitrect = make_rect_off( box.p0, fitdim, XY0 );
 	//draw_rect_full(fitrect, line_thick, colour, intensity);
 
-	p = box.p0;
-	p.x += 2.*scale;
-	p.y += 8.*scale;
-	draw_string(font, string, p, scale, colour, intensity, line_thick, mode, tp);
+	p = box.p0;		// FIXME
+	if (mode & ALIG_RIGHT)
+		p.x = box.p1.x - maxwidth * scale;
+	p.x += 2. * scale;
+	p.y += 8. * scale;
+	draw_string(font, string, p, scale, colour, intensity, line_thick, ALIG_LEFT, tp);
 
 	return scale;
 }

@@ -97,6 +97,7 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_func1_dd:	vd[op[1]] = ((double (*)(double)) d->ptr[op[2]])(vd[op[3]]);	// <var> = <func> <var/ptr/expr>
 			break;	case op_func1_di:	vd[op[1]] = ((double (*)(int64_t)) d->ptr[op[2]])(vi[op[3]]);
 			break;	case op_func1_ii:	vi[op[1]] = ((int64_t (*)(int64_t)) d->ptr[op[2]])(vi[op[3]]);
+			break;	case op_func1_id:	vi[op[1]] = ((int64_t (*)(double)) d->ptr[op[2]])(vd[op[3]]);
 			break;	case op_func1_rr:	((void (*)(uint8_t *,uint8_t *)) d->ptr[op[2]])(&vr[op[1]], &vr[op[3]]);
 
 			// 5 word ops
@@ -107,6 +108,7 @@ int rlip_execute_opcode(rlip_t *d)
 			break;	case op_mad_ddd:	vd[op[1]] = vd[op[2]] * vd[op[3]] + vd[op[4]];			// mad (multiply-add)
 			break;	case op_adm_ddd:	vd[op[1]] = (vd[op[2]] + vd[op[3]]) * vd[op[4]];		// adm (multiplication of sum)
 			break;	case op_func2_ddd:	vd[op[1]] = ((double (*)(double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]]);
+			break;	case op_func2_iii:	vi[op[1]] = ((int64_t (*)(int64_t,int64_t)) d->ptr[op[2]])(vi[op[3]], vi[op[4]]);
 			break;	case op_func2_rrr:	((void (*)(uint8_t *,uint8_t *,uint8_t *)) d->ptr[op[2]])(&vr[op[1]], &vr[op[3]], &vr[op[4]]);
 
 			// 6 word ops

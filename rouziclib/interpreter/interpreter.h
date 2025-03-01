@@ -77,6 +77,7 @@ enum opcode
 	op_func1_dd,
 	op_func1_di,
 	op_func1_ii,
+	op_func1_id,
 	op_func1_rr,
 
 	op_5word_ops = 5120,
@@ -87,6 +88,7 @@ enum opcode
 	op_mad_ddd,
 	op_adm_ddd,
 	op_func2_ddd,
+	op_func2_iii,
 	op_func2_rrr,
 
 	op_6word_ops = 6144,
@@ -163,6 +165,12 @@ extern double rlip_builtin_min(double a, double b);
 extern double rlip_builtin_max(double a, double b);
 extern double rlip_builtin_clamp(double v);
 extern double rlip_builtin_sign(double v);
+extern int64_t rlip_builtin_float_as_u32(double vd);
+extern double rlip_builtin_u32_as_float(int64_t vi);
+extern int64_t rlip_builtin_bit_xor(int64_t a, int64_t b);
+extern int64_t rlip_builtin_bit_shl(int64_t a, int64_t b);
+extern int64_t rlip_builtin_bit_shr(int64_t a, int64_t b);
+extern int64_t rlip_builtin_bit_neg(int64_t a);
 
 // Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"}, ... };
 #define RLIP_FUNC							\
@@ -208,4 +216,10 @@ extern double rlip_builtin_sign(double v);
 	{"mix", mix, "fdddd"},						\
 	{"sign", rlip_builtin_sign, "fdd"},				\
 	{"trunc", (double(*)(double)) trunc, "fdd"},			\
+	{"float_as_u32", rlip_builtin_float_as_u32, "fid"},		\
+	{"u32_as_float", rlip_builtin_u32_as_float, "fdi"},		\
+	{"xor", rlip_builtin_bit_xor, "fiii"},				\
+	{"shl", rlip_builtin_bit_shl, "fiii"},				\
+	{"shr", rlip_builtin_bit_shr, "fiii"},				\
+	{"neg", rlip_builtin_bit_neg, "fii"},				\
 	{"rand01", rlip_builtin_rand01, "fdi"}

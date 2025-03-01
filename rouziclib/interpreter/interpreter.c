@@ -27,28 +27,13 @@ double rlip_builtin_rand01(int64_t pos)
 	return (double) raw_value * (1./4294967295.);
 }
 
-double rlip_builtin_min(double a, double b)
-{
-	return MINN(a, b);
-}
-
-double rlip_builtin_max(double a, double b)
-{
-	return MAXN(a, b);
-}
-
-double rlip_builtin_clamp(double v)
-{
-	return rangelimit(v, 0., 1.);
-}
-
-double rlip_builtin_sign(double v)
-{
-	if (v < 0.)
-		return -1.;
-
-	if (v > 0.)
-		return 1.;
-
-	return 0.;
-}
+double rlip_builtin_min(double a, double b) { return MINN(a, b); }
+double rlip_builtin_max(double a, double b) { return MAXN(a, b); }
+double rlip_builtin_clamp(double v) { return rangelimit(v, 0., 1.); }
+double rlip_builtin_sign(double v) { return v < 0. ? -1. : (v > 0. ? 1. : 0.); }
+int64_t rlip_builtin_float_as_u32(double vd) { return (int64_t) float_as_u32((float) vd); }
+double rlip_builtin_u32_as_float(int64_t vi) { return (double) u32_as_float((uint32_t) vi); }
+int64_t rlip_builtin_bit_xor(int64_t a, int64_t b) { return a ^ b; }
+int64_t rlip_builtin_bit_shl(int64_t a, int64_t b) { return a << b; }
+int64_t rlip_builtin_bit_shr(int64_t a, int64_t b) { return a >> b; }
+int64_t rlip_builtin_bit_neg(int64_t a) { return ~a; }
