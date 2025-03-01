@@ -2,6 +2,12 @@
 
 = rouziclib
 
+++++
+<p align="center">
+  <img src="./tools/img/rouziclib_bytes.png">
+</p>
+++++
+
 This is my library of code that is common to all my different projects such as https://photosounder.com[Photosounder], https://photosounder.com/spiral/[Spiral] and https://photosounder.com/splineeq/[SplineEQ], but also lesser projects such as my minimalistic https://github.com/Photosounder/rouziclib-picture-viewer[picture viewer], my https://github.com/Photosounder/screenshot-tool[screenshot tool] or my modernised version of NASA's https://github.com/Photosounder/Voyager-Image-Decoder[Voyager Image Decoder] as well as projects you don't know about such as my private project Spacewar where all my new code is born.
 
 == What it does
