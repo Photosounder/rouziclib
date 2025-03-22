@@ -116,6 +116,9 @@ enum opcode
 
 	op_10word_ops = 10240,
 	op_func7_dddddddd,
+
+	op_11word_ops = 11264,
+	op_func8_ddddddddd,
 };
 
 typedef struct

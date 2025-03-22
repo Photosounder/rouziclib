@@ -137,6 +137,9 @@ int rlip_execute_opcode(rlip_t *d)
 			// 10 word ops
 			break;	case op_func7_dddddddd:	vd[op[1]] = ((double (*)(double,double,double,double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]], vd[op[7]], vd[op[8]], vd[op[9]]);
 
+			// 10 word ops
+			break;	case op_func8_ddddddddd: vd[op[1]] = ((double (*)(double,double,double,double,double,double,double,double)) d->ptr[op[2]])(vd[op[3]], vd[op[4]], vd[op[5]], vd[op[6]], vd[op[7]], vd[op[8]], vd[op[9]], vd[op[10]]);
+
 			break;
 			default:
 				fprintf_rl(stderr, "Invalid opcode '%d' at op[%zu]\n", op[0], (op - d->op) / sizeof(opint_t));
