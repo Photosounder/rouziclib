@@ -297,6 +297,12 @@ knob_t make_knob(char *main_label, double default_value, const knob_func_t func,
 	return knob;
 }
 
+void knob_te_draw_on_top(textedit_t *te, rect_t *area, col_t *colour)
+{
+	draw_black_rect(sc_rect(*area), drawing_thickness, 11./12.);
+	ctrl_textedit_draw(te, *area, *colour);
+}
+
 int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 {
 	int ret, val_set_by_edit=0;
@@ -429,7 +435,22 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
 	else
 	{
-		ret = ctrl_textedit(&knob->edit, gui_layout_elem_comp_area_os(&layout, 10, XY0), colour);
+		// Calculate editor area (which is enlarged at low sizes) and process the text editor
+		rect_t edit_area = gui_layout_elem_comp_area_os(&layout, 10, XY0);
+		const double height_limit = 1.25;
+		if (get_rect_dim(edit_area).y * zc.zoomscale < height_limit)
+		{
+			edit_area = rect_size_mul(edit_area, set_xy(height_limit / (get_rect_dim(edit_area).y * zc.zoomscale)));
+
+			// Register "window" to display the editor
+			static rect_t ontop_area;	ontop_area = edit_area;
+			static col_t ontop_colour;	ontop_colour = colour;
+			window_late_register(knob_te_draw_on_top, NULL, 3, &knob->edit, &ontop_area, &ontop_colour);
+
+			ret = ctrl_textedit_invis(&knob->edit, edit_area);
+		}
+		else
+			ret = ctrl_textedit(&knob->edit, edit_area, colour);
 
 		if (ret==1 || ret==2 || ret==3)
 		{

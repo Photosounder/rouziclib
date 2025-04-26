@@ -406,10 +406,9 @@ void textedit_prev_next_logic(textedit_t *te)	// Logic for finding the next and 
 		prev_textedit = te;		// prev_textedit is only accurate when te is cur_textedit, which is fine
 }
 
-int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
+int ctrl_textedit_invis(textedit_t *te, rect_t box)
 {
 	int ret;
-	double intensity = 1.;
 	double scale = rect_min_side(box);
 	ctrl_button_state_t butt_state={0};
 	rect_t boxb;
@@ -485,7 +484,33 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		te->curpos_down = strlen(te->string);
 	te->cur_screen_pos_prev = te->cur_screen_pos;
 
-	//**** Draw ****
+	// Selection (te->curpos is set by the draw_string_* function)
+	if (mouse.b.clicks==1)
+	{
+		if (te->sel_all==0)
+		{
+			if (butt_state.once && mouse.mod_key[mouse_mod_shift]==0)
+				te->sel0 = te->curpos;
+			if (butt_state.orig && mouse.b.lmb > 0)
+				te->sel1 = te->curpos;
+		}
+
+		if (butt_state.uponce)
+			te->sel_all = 0;
+	}
+
+	prev_textedit = te;		// set prev_textedit to te in case there is only one textedit left to avoid referencing one that's gone
+
+	ret = te->return_flag;
+	te->return_flag = 0;
+	return ret;			// returns 1 if Enter used, 2 if clicked out, 3 if Tab used, 4 if probably modified
+}
+
+void ctrl_textedit_draw(textedit_t *te, rect_t box, col_t colour)
+{
+	double scale = rect_min_side(box);
+
+	double intensity = 1.;
 	intensity *= rect_ctrl_intensity_scale(box);
 	// TODO maybe don't draw anything if off screen
 
@@ -514,8 +539,8 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 		xy_t scroll_limit = xy(maxwidth, (double) nlines * font->line_vspacing);
 
 		// Calc scale and span
-		scale = get_rect_dim(text_area).x / te->scroll_mode_scale;
-		xy_t vis_span = div_xy(get_rect_dim(text_area), set_xy(scale));
+		double vis_scale = get_rect_dim(text_area).x / te->scroll_mode_scale;
+		xy_t vis_span = div_xy(get_rect_dim(text_area), set_xy(vis_scale));
 
 		// Mouse wheel scrolling up and down
 		if (check_point_within_box(mouse.u, box) && mouse.zoom_flag==0 && mouse.b.wheel)
@@ -654,34 +679,19 @@ int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
 	}
 	else
 		draw_string_bestfit_asis(font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, te->draw_string_mode, NULL);
-	//draw_string_bestfit(font, te->string, sc_rect(box), 0., te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
-	//draw_string_fixed_thresh(font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
+		//draw_string_bestfit(font, te->string, sc_rect(box), 0., te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
+		//draw_string_fixed_thresh(font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 
 	// Rectangle frame drawing
 	if (te->rect_brightness > 0.)
 		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, intensity * te->rect_brightness);
-	//---- Draw ----
+}
 
-	// Selection (te->curpos is set by the draw_string_* function)
-	if (mouse.b.clicks==1)
-	{
-		if (te->sel_all==0)
-		{
-			if (butt_state.once && mouse.mod_key[mouse_mod_shift]==0)
-				te->sel0 = te->curpos;
-			if (butt_state.orig && mouse.b.lmb > 0)
-				te->sel1 = te->curpos;
-		}
-
-		if (butt_state.uponce)
-			te->sel_all = 0;
-	}
-
-	prev_textedit = te;		// set prev_textedit to te in case there is only one textedit left to avoid referencing one that's gone
-
-	ret = te->return_flag;
-	te->return_flag = 0;
-	return ret;			// returns 1 if Enter used, 2 if clicked out, 3 if Tab used, 4 if probably modified
+int ctrl_textedit(textedit_t *te, rect_t box, col_t colour)
+{
+	int ret = ctrl_textedit_invis(te, box);
+	ctrl_textedit_draw(te, box, colour);
+	return ret;
 }
 
 void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness)

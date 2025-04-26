@@ -136,6 +136,31 @@ skip_add2:
 	return i;
 }
 
+int window_late_register(void *window_func, void *window_data, int num_args, ...)
+{
+	int i, ia;
+	va_list ap;
+	window_manager_entry_t *entry=NULL, entry_s={0};
+
+	// Add new window at the end of the late registry
+	i = wind_man.late_window_count;
+	alloc_enough(&wind_man.late_window, wind_man.late_window_count+=1, &wind_man.late_window_as, sizeof(window_manager_entry_t), 2.);
+
+	entry = &wind_man.late_window[i];
+	entry->window_func = window_func;
+	entry->window_data = window_data;
+	entry->ptr_count = num_args;
+	entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));	// TODO maybe not alloc every time
+
+	// Copy pointers to array
+	va_start(ap, num_args);
+	for (ia=0; ia < num_args; ia++)
+		entry->ptr_array[ia] = va_arg(ap, void *);
+	va_end(ap);
+
+	return i;
+}
+
 int cmp_window_man_order(const window_manager_entry_t **a, const window_manager_entry_t **b)
 {
 	return (*a)->order - (*b)->order;
@@ -201,6 +226,15 @@ void window_manager()
 		wind_man.window[i].dereg = 1;
 		wind_man.window[i].already_ran = 0;
 	}
+
+	// Run all late windows in the order they were registered
+	for (i=0; i < wind_man.late_window_count; i++)
+	{
+		window_run(&wind_man.late_window[i]);
+		free(wind_man.late_window[i].ptr_array);
+		memset(&wind_man.late_window[i], 0, sizeof(window_manager_entry_t));
+	}
+	wind_man.late_window_count = 0;
 }
 
 int window_find_id_by_func(void *window_func, void *window_data)

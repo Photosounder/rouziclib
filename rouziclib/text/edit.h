@@ -15,6 +15,8 @@ extern void textedit_set_new_text(textedit_t *te, const char *str);
 extern void textedit_clear_then_set_new_text(textedit_t *te, const char *str);
 extern void textedit_add(textedit_t *te, const char *str);
 extern void textedit_prev_next_logic(textedit_t *te);
+extern int ctrl_textedit_invis(textedit_t *te, rect_t box);
+extern void ctrl_textedit_draw(textedit_t *te, rect_t box, col_t colour);
 extern int ctrl_textedit(textedit_t *te, rect_t box, col_t colour);
 extern void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness);
 

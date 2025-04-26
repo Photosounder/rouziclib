@@ -2,6 +2,7 @@
 // window_manager_entry_t, window_manager_t
 
 extern int window_register(int priority, void *window_func, void *window_data, rect_t parent_area, int *wind_on, int num_args, ...);
+extern int window_late_register(void *window_func, void *window_data, int num_args, ...);
 extern void window_manager();
 extern int window_find_id_by_func(void *window_func, void *window_data);
 extern void window_set_parent(void *window_func, void *window_data, void *parent_window_func, void *parent_window_data);
