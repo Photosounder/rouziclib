@@ -297,6 +297,12 @@ knob_t make_knob(char *main_label, double default_value, const knob_func_t func,
 	return knob;
 }
 
+void knob_value_draw_on_top(const char *str, double *scale, rect_t *area, col_t *colour)
+{
+	draw_black_rect(sc_rect(*area), drawing_thickness, 10./12.);
+	draw_string_bestfit(font, str, sc_rect(*area), 0., *scale, *colour, 1., drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+}
+
 void knob_te_draw_on_top(textedit_t *te, rect_t *area, col_t *colour)
 {
 	draw_black_rect(sc_rect(*area), drawing_thickness, 11./12.);
@@ -308,7 +314,6 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	int ret, val_set_by_edit=0;
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	char str[64];
 	double v=NAN, t, t_off=0., th;
 	static double t_rate=0., v_downonce=NAN;
 	xy_t p0, p1, centre = get_rect_centre(box);
@@ -378,14 +383,13 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 			// Print editor value
 			if (knob->editor_print_func)
-				knob->editor_print_func(str, knob, v);
+				knob->editor_print_func(knob->printed_label, knob, v);
 			else
-				sprintf(str, "%.10g", v);
+				sprintf(knob->printed_label, "%.10g", v);
 
-			textedit_set_new_text(&knob->edit, str);
+			textedit_set_new_text(&knob->edit, knob->printed_label);
 			knob->edit.rect_brightness = 0.125;
 			cur_textedit = &knob->edit;
-			// TODO add pop up window if field is too small
 		}
 	}
 	else	// release the mouse if the window focus is lost
@@ -426,13 +430,30 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	// Print value
 	if (knob->display_print_func)
-		knob->display_print_func(str, knob, v);
+		knob->display_print_func(knob->printed_label, knob, v);
 	else
-		sprintf(str, knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
+		sprintf(knob->printed_label, knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
 
 	// Draw value string
 	if (knob->edit_open==0)
-		draw_string_bestfit(font, str, sc_rect(gui_layout_elem_comp_area_os(&layout, 11, XY0)), 0., 0.03*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+	{
+		rect_t label_area = gui_layout_elem_comp_area_os(&layout, 11, XY0);
+		const double height_limit = 0.75;
+		double orig_height = get_rect_dim(label_area).y * zc.zoomscale;
+		if (orig_height < height_limit && knob->knob_state.down)
+		{
+			label_area = rect_size_mul(label_area, set_xy(height_limit / (get_rect_dim(label_area).y * zc.zoomscale)));
+			keep_box_inside_area(&label_area, rect_add_margin(zc.corners, set_xy(-1./12.)));
+
+			// Register "window" to display the string
+			static double ontop_scale;	ontop_scale = 0.03*scale*zc.scrscale * height_limit/orig_height;
+			static rect_t ontop_area;	ontop_area = label_area;
+			static col_t ontop_colour;	ontop_colour = colour;
+			window_late_register(knob_value_draw_on_top, NULL, 4, knob->printed_label, &ontop_scale, &ontop_area, &ontop_colour);
+		}
+		else
+			draw_string_bestfit(font, knob->printed_label, sc_rect(label_area), 0., 0.03*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+	}
 	else
 	{
 		// Calculate editor area (which is enlarged at low sizes) and process the text editor
@@ -441,6 +462,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		if (get_rect_dim(edit_area).y * zc.zoomscale < height_limit)
 		{
 			edit_area = rect_size_mul(edit_area, set_xy(height_limit / (get_rect_dim(edit_area).y * zc.zoomscale)));
+			keep_box_inside_area(&edit_area, rect_add_margin(zc.corners, set_xy(-1./12.)));
 
 			// Register "window" to display the editor
 			static rect_t ontop_area;	ontop_area = edit_area;

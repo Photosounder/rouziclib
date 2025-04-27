@@ -4,7 +4,7 @@ typedef double (*knob_parse_func_t)(const char *, void *);
 
 typedef struct
 {
-	char *main_label, *fmt_str, *unit_label;
+	char *main_label, *fmt_str, *unit_label, printed_label[32];
 	knob_func_t func;
 	double min, max, default_value, arg[4];
 	ctrl_knob_state_t knob_state;
