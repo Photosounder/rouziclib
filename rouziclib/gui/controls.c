@@ -443,7 +443,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		if (orig_height < height_limit && knob->knob_state.down)
 		{
 			label_area = rect_size_mul(label_area, set_xy(height_limit / (get_rect_dim(label_area).y * zc.zoomscale)));
-			keep_box_inside_area(&label_area, rect_add_margin(zc.corners, set_xy(-1./12.)));
+			keep_box_inside_area(&label_area, rect_add_margin(zc.corners, set_xy((-1./12.)/zc.zoomscale)));
 
 			// Register "window" to display the string
 			static double ontop_scale;	ontop_scale = 0.03*scale*zc.scrscale * height_limit/orig_height;
@@ -462,7 +462,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		if (get_rect_dim(edit_area).y * zc.zoomscale < height_limit)
 		{
 			edit_area = rect_size_mul(edit_area, set_xy(height_limit / (get_rect_dim(edit_area).y * zc.zoomscale)));
-			keep_box_inside_area(&edit_area, rect_add_margin(zc.corners, set_xy(-1./12.)));
+			keep_box_inside_area(&edit_area, rect_add_margin(zc.corners, set_xy((-1./12.)/zc.zoomscale)));
 
 			// Register "window" to display the editor
 			static rect_t ontop_area;	ontop_area = edit_area;
