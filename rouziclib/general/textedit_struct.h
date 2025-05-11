@@ -24,6 +24,7 @@ typedef struct
 	char *string;
 	size_t alloc_size;
 	int curpos, curpos_up, curpos_down, sel0, sel1;
+	int8_t set_sel0, set_sel1;
 	xy_t click;
 	xy_t cur_screen_pos, cur_screen_pos_prev;
 	int click_on;

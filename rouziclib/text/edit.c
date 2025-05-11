@@ -485,14 +485,16 @@ int ctrl_textedit_invis(textedit_t *te, rect_t box)
 	te->cur_screen_pos_prev = te->cur_screen_pos;
 
 	// Selection (te->curpos is set by the draw_string_* function)
-	if (mouse.b.clicks==1)
+	te->set_sel0 = 0;
+	te->set_sel1 = 0;
+	if (cur_textedit == te && mouse.b.clicks == 1)
 	{
 		if (te->sel_all==0)
 		{
 			if (butt_state.once && mouse.mod_key[mouse_mod_shift]==0)
-				te->sel0 = te->curpos;
+				te->set_sel0 = 1;
 			if (butt_state.orig && mouse.b.lmb > 0)
-				te->sel1 = te->curpos;
+				te->set_sel1 = 1;
 		}
 
 		if (butt_state.uponce)
@@ -648,10 +650,10 @@ void ctrl_textedit_draw(textedit_t *te, rect_t box, col_t colour)
 
 		// Draw string
 		xy_t pos = rect_p01(text_area);
-		pos = mad_xy(add_xy(neg_y(te->scroll_pos), xy(2., -8.)), set_xy(scale), pos);
+		pos = mad_xy(add_xy(neg_y(te->scroll_pos), xy(2., -8.)), set_xy(vis_scale), pos);
 
 		drawq_bracket_open();	// FIXME brackets are not portable
-		draw_string(font, te->string, sc_xy(pos), scale*zc.scrscale, colour, 1., drawing_thickness, te->draw_string_mode, NULL);
+		draw_string(font, te->string, sc_xy(pos), vis_scale*zc.scrscale, colour, 1., drawing_thickness, te->draw_string_mode, NULL);
 		draw_black_rect_inverted(sc_rect(text_area), drawing_thickness, 1.);
 		drawq_bracket_close(DQB_ADD);
 
@@ -681,6 +683,12 @@ void ctrl_textedit_draw(textedit_t *te, rect_t box, col_t colour)
 		draw_string_bestfit_asis(font, te->string, sc_rect(box), 1./12., te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, te->draw_string_mode, NULL);
 		//draw_string_bestfit(font, te->string, sc_rect(box), 0., te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
 		//draw_string_fixed_thresh(font, te->string, sc_rect(box), 66.*5.5, te->max_scale*0.1*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_LEFT, NULL);
+
+	// Set cursor position
+	if (te->set_sel0)
+		te->sel0 = te->curpos;
+	if (te->set_sel1)
+		te->sel1 = te->curpos;
 
 	// Rectangle frame drawing
 	if (te->rect_brightness > 0.)

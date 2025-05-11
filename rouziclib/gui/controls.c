@@ -440,7 +440,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		rect_t label_area = gui_layout_elem_comp_area_os(&layout, 11, XY0);
 		const double height_limit = 0.75;
 		double orig_height = get_rect_dim(label_area).y * zc.zoomscale;
-		if (orig_height < height_limit && knob->knob_state.down)
+		if (orig_height*1.5 < height_limit && knob->knob_state.down)
 		{
 			label_area = rect_size_mul(label_area, set_xy(height_limit / (get_rect_dim(label_area).y * zc.zoomscale)));
 			keep_box_inside_area(&label_area, rect_add_margin(zc.corners, set_xy((-1./12.)/zc.zoomscale)));
@@ -459,7 +459,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		// Calculate editor area (which is enlarged at low sizes) and process the text editor
 		rect_t edit_area = gui_layout_elem_comp_area_os(&layout, 10, XY0);
 		const double height_limit = 1.25;
-		if (get_rect_dim(edit_area).y * zc.zoomscale < height_limit)
+		if (get_rect_dim(edit_area).y * zc.zoomscale * 1.5 < height_limit)
 		{
 			edit_area = rect_size_mul(edit_area, set_xy(height_limit / (get_rect_dim(edit_area).y * zc.zoomscale)));
 			keep_box_inside_area(&edit_area, rect_add_margin(zc.corners, set_xy((-1./12.)/zc.zoomscale)));
