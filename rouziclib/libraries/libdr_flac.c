@@ -15,7 +15,7 @@ float *load_sound_flac_file(const char *path, size_t *sample_count, int *channel
 	float *snd = drflac_open_memory_and_read_pcm_frames_f32(data.buf, data.len, channels, samplerate, &total_sample_count, NULL);
 	free_buf(&data);
 
-	*sample_count = total_sample_count / *channels;
+	*sample_count = total_sample_count;
 
 	return snd;
 #else
