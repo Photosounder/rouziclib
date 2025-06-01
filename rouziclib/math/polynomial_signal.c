@@ -27,8 +27,6 @@ polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size
 	if (analytic)
 		ps.coef_imag = calloc(ps.chunk_count * ps.node_count, sizeof(float));
 
-	sinc_freq /= sample_rate;
-
 	// Precalculate node offsets
 	double *node = calloc(ps.node_count, sizeof(double));
 	double end_node_scale = 1. / chebyshev_node(ps.node_count, 0.);
