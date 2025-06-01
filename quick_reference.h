@@ -802,6 +802,11 @@ void my_window_function(double *arg1, double *arg2)
 		remove_extension_from_path(outpath, fullpath);	// removes the extension
 		create_dirs_for_file(filepath);			// create the necessary folders, good to call before writing a file
 
+		// Remove a path's extension and replace it with something else
+		buffer_t decomp_path = buf_string_copy(bin_path);
+		buf_remove_extension_from_path(&decomp_path);
+		bufprintf(&decomp_path, "_decomp.c");
+
 	// Folders
 		// This loads a folder, the 3rd argument is -1 for full tree loading, 0 for excluding subfolders, >0 for a given depth level
 		fs_dir_t dir={0};

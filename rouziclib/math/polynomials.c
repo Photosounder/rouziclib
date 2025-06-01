@@ -132,6 +132,28 @@ double eval_chebyshev_polynomial(double x, double *cm, int degree)
 	return y;
 }
 
+double eval_chebyshev_polynomial_float_coefs(double x, float *cm, int degree)
+{
+	int id;
+	double b1=0., b2, y, x2 = 2.*x;
+
+	if (degree == 0)
+		return (double) cm[0];
+
+	// Clenshaw summation
+	y = (double) cm[degree];
+	for (id = degree-1; id >= 1; id--)
+	{
+		b2 = b1;
+		b1 = y;
+		y = (double) cm[id] + x2*b1 - b2;
+	}
+
+	y = (double) cm[0] + x*y - b1;
+
+	return y;
+}
+
 double eval_chebyshev_polynomial_2d(xy_t p, double **cm, xyi_t degree)
 {
 	int id;

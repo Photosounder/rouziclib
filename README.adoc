@@ -237,6 +237,9 @@ Polynomial evaluation (1D and 2D), error calculation for approximations, coeffic
 ** link:rouziclib/math/polynomials_mpfr.c[polynomials_mpfr.c] / link:rouziclib/math/polynomials_mpfr.h[polynomials_mpfr.h] +
 MPFR-based versions of the functions of link:rouziclib/math/polynomials.c[polynomials.c] for fitting and evaluating polynomials at high arbitrary precisions, usually for the purpose of generating lookup tables.
 
+** link:rouziclib/math/polynomial_signal.c[polynomial_signal.c] / link:rouziclib/math/polynomial_signal.h[polynomial_signal.h] +
+Functions to turn a sampled signal (like a sampled sound) into a "polynomial signal" which is a series of polynomial chunks that represent the signal in a continuous manner according to sinc interpolation, and a function to quickly evaluate values at any point in the signal. The point is to have access to perfect sinc interpolation for individual points with none of the computational cost.
+
 ** link:rouziclib/math/gaussian_polygon.c[gaussian_polygon.c] / link:rouziclib/math/gaussian_polygon.h[gaussian_polygon.h] +
 Reference implementation and reference approximation for the acute angle Gaussian polynomial. Implementation approximations are fitted on this.
 

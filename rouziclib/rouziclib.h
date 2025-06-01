@@ -129,6 +129,7 @@ extern "C" {
 #include "math/debug.h"
 #include "math/polynomials.h"
 #include "math/polynomials_mpfr.h"		// used if RL_MPFR is defined
+#include "math/polynomial_signal.h"
 #include "math/gaussian_polygon.h"
 #include "approximations/fixed_point.h"		// unused if RL_EXCL_APPROX is defined
 #include "approximations/fast_float.h"		// unused if RL_EXCL_APPROX is defined

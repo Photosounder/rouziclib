@@ -12,6 +12,7 @@ extern float root_mean_squaref_chan(float *s, const size_t n, const int ic, cons
 extern double db_to_vol(double db);
 extern double vol_to_db(double vol);
 extern double sinc(double x, double fc);
+extern double sinc_hilbert(double x, double fc);
 extern double blackman(double x, double range);
 extern double short_gaussian_window(double x, double range, double w);
 extern double short_erf(double x, double w);

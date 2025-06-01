@@ -50,7 +50,7 @@ char *remove_name_from_path(char *dirpath, const char *fullpath)	// removes the 
 char *remove_extension_from_path(char *truncpath, const char *fullpath)
 {
 	char *p;
-	int len;
+	size_t len;
 
 	if (truncpath)
 		truncpath[0] = '\0';
@@ -74,6 +74,26 @@ char *remove_extension_from_path(char *truncpath, const char *fullpath)
 	truncpath[len] = 0;
 
 	return truncpath;
+}
+
+char *buf_remove_extension_from_path(buffer_t *s)
+{
+	char *p;
+
+	if (s->buf==NULL)
+	{
+		fprintf_rl(stderr, "Input is NULL in buf_remove_extension_from_path()\n");
+		return NULL;
+	}
+
+	p = strrchr(s->buf, '.');
+	if (p == NULL)
+		return NULL;
+	*p = '\0';
+
+	s->len = p - (char *)s->buf;
+
+	return s->buf;
 }
 
 const char *get_filename_from_path(const char *fullpath)	// returns a pointer to the filename in the path
@@ -204,6 +224,13 @@ int check_path_against_extension_list(const char *path, const char *list_ext[], 
 int is_path_image_file(const char *path)
 {
 	const char *list_ext[] = {"jpg", "jpeg", "png", "tga", "targa", "bmp", "psd", "gif", "tif", "tiff", "fts"};
+
+	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
+}
+
+int is_path_audio_file(const char *path)
+{
+	const char *list_ext[] = {"mp3", "aif", "aiff", "wav", "wave", "flac", "fla", "ogg", "oga"};
 
 	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
 }

@@ -121,7 +121,18 @@ double sinc(double x, double fc)		// fc is the cutoff frequency as a multiple of
 		return 1.;
 
 	a = 2.*pi * x*fc;
-	return sin(a)/(a);
+	return sin(a) / a;
+}
+
+double sinc_hilbert(double x, double fc)
+{
+	double a;
+
+	if (x==0.)
+		return 1.;
+
+	a = 2.*pi * x*fc;
+	return (1. - cos(a)) / a;
 }
 
 double blackman(double x, double range)		// spans ]-range , +range[
