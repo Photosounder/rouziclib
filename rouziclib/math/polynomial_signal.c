@@ -1,4 +1,4 @@
-polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size_t sample_count, double (*sampling_func)(void*,size_t), double sample_rate, double max_freq, double sinc_freq, double rolloff_bandwidth, const int analytic)
+polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size_t sample_count, double (*sampling_func)(void*,size_t), double sample_rate, double max_freq, double sinc_freq, double rolloff_bandwidth, const int analytic, double quant_error)
 {
 	polynomial_signal_t ps = {0};
 
@@ -23,9 +23,9 @@ polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size
 	ps.max_freq = MINN(max_freq, sinc_freq + 0.5*rolloff_bandwidth);
 	ps.chunk_count = nearbyint((ps.end_time - ps.start_time) / ps.chunk_dur);
 	ps.node_count = 10;		// degree 9 gives 10 coefs per chunk and a worst precision of 5.3e-8 with nodes at ends
-	ps.coef_real = calloc(ps.chunk_count * ps.node_count, sizeof(float));
-	if (analytic)
-		ps.coef_imag = calloc(ps.chunk_count * ps.node_count, sizeof(float));
+	ps.degree_bits = calloc(ps.node_count, sizeof(int8_t));
+	ps.degree_mul = calloc(ps.node_count, sizeof(double));
+	ps.coef_buffer = calloc(ps.node_count, sizeof(double));
 
 	// Precalculate node offsets
 	double *node = calloc(ps.node_count, sizeof(double));
@@ -89,7 +89,10 @@ polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size
 			scale *= 2.;
 	}
 
-	// Chebyshev polynomial analysis
+	double *sum_max = calloc(ps.node_count, sizeof(double));
+	double *degree_mul = calloc(ps.node_count, sizeof(double));
+
+	// Chebyshev polynomial analysis - finding max coefs
 	for (int ic=0; ic < ps.chunk_count; ic++)
 	{
 		for (int id=0; id < ps.node_count; id++)
@@ -97,7 +100,7 @@ polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size
 			double sum = 0.;
 			for (int i=0; i < ps.node_count; i++)
 				sum += conv_re[ic*ps.node_count + i] * cos_coef[id*ps.node_count + i];
-			ps.coef_real[ic*ps.node_count + id] = sum;
+			sum_max[id] = MAXN(sum_max[id], fabs(sum));
 		}
 
 		if (analytic)
@@ -106,10 +109,58 @@ polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size
 			double sum = 0.;
 			for (int i=0; i < ps.node_count; i++)
 				sum += conv_im[ic*ps.node_count + i] * cos_coef[id*ps.node_count + i];
-			ps.coef_imag[ic*ps.node_count + id] = sum;
+			sum_max[id] = MAXN(sum_max[id], fabs(sum));
 		}
 	}
 
+	// Calculate bits required and multipliers for each degree
+	ps.bits_per_chunk = 0;
+	for (int id=0; id < ps.node_count; id++)
+	{
+		ps.degree_bits[id] = log2_ffo64(ceil(sum_max[id] / quant_error));
+		ps.bits_per_chunk += ps.degree_bits[id] + 1;
+
+		double max_v = (1LL << ps.degree_bits[id]) - 1LL;
+		degree_mul[id] = max_v / sum_max[id];
+		ps.degree_mul[id] = sum_max[id] / max_v;
+	}
+
+	// Allocate coef bit streams
+	size_t byte_count = (ps.chunk_count * ps.bits_per_chunk + 7) >> 3;
+	ps.coef_real = calloc(byte_count, 1);
+	if (analytic)
+		ps.coef_imag = calloc(byte_count, 1);
+
+	// Chebyshev polynomial analysis - saving coefs
+	size_t ib_re = 0, ib_im = 0;
+	for (int ic=0; ic < ps.chunk_count; ic++)
+	{
+		for (int id=0; id < ps.node_count; id++)
+		{
+			double sum = 0.;
+			for (int i=0; i < ps.node_count; i++)
+				sum += conv_re[ic*ps.node_count + i] * cos_coef[id*ps.node_count + i];
+
+			double scaled_sum = sum * degree_mul[id];
+			set_bits_in_stream_inc(ps.coef_real, &ib_re, 1, scaled_sum >= 0.);
+			set_bits_in_stream_inc(ps.coef_real, &ib_re, ps.degree_bits[id], nearbyint(fabs(scaled_sum)));
+		}
+
+		if (analytic)
+		for (int id=0; id < ps.node_count; id++)
+		{
+			double sum = 0.;
+			for (int i=0; i < ps.node_count; i++)
+				sum += conv_im[ic*ps.node_count + i] * cos_coef[id*ps.node_count + i];
+
+			double scaled_sum = sum * degree_mul[id];
+			set_bits_in_stream_inc(ps.coef_imag, &ib_im, 1, scaled_sum >= 0.);
+			set_bits_in_stream_inc(ps.coef_imag, &ib_im, ps.degree_bits[id], nearbyint(fabs(scaled_sum)));
+		}
+	}
+
+	free(degree_mul);
+	free(sum_max);
 	free(cos_coef);
 	free(conv_im);
 	free(conv_re);
@@ -150,13 +201,31 @@ void polynomial_signal_eval(polynomial_signal_t *ps, double t_start, double t_st
 		double tc0 = (double) ic * ps->chunk_dur + ps->start_time;	 // chunk start time
 		double tc = ((t - tc0) * chunk_rate * 2. - 1.) * end_node_scale; // time relative to the chunk in [-1 , 1]
 
+		// Calculate coefs
+		size_t ib_re = ic * ps->bits_per_chunk;
+		for (int id=0; id < ps->node_count; id++)
+		{
+			int neg = get_bits_in_stream_inc(ps->coef_real, &ib_re, 1);
+			ps->coef_buffer[id] = (neg ? -1. : 1.) * ps->degree_mul[id] * (double) get_bits_in_stream_inc(ps->coef_real, &ib_re, ps->degree_bits[id]);
+		}
+
 		// Evaluation
-		double v_re = eval_chebyshev_polynomial_float_coefs(tc, &ps->coef_real[ic*ps->node_count], degree);
+		double v_re = eval_chebyshev_polynomial(tc, ps->coef_buffer, degree);
 
 		if (analytic)
 		{
-			double v_im = eval_chebyshev_polynomial_float_coefs(tc, &ps->coef_imag[ic*ps->node_count], degree);
+			// Calculate coefs
+			size_t ib_im = ic * ps->bits_per_chunk;
+			for (int id=0; id < ps->node_count; id++)
+			{
+				int neg = get_bits_in_stream_inc(ps->coef_imag, &ib_im, 1);
+				ps->coef_buffer[id] = (neg ? -1. : 1.) * ps->degree_mul[id] * (double) get_bits_in_stream_inc(ps->coef_imag, &ib_im, ps->degree_bits[id]);
+			}
 
+			// Evaluation
+			double v_im = eval_chebyshev_polynomial(tc, ps->coef_buffer, degree);
+
+			// Storage
 			if (outd)
 			{
 				outd[(is<<1)    ] += v_re;
@@ -171,6 +240,7 @@ void polynomial_signal_eval(polynomial_signal_t *ps, double t_start, double t_st
 		}
 		else
 		{
+			// Storage
 			if (outd)
 				outd[is] += v_re;
 			if (outf)
