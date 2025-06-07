@@ -63,7 +63,7 @@ float *load_sound_aiff_mem(const uint8_t *data, size_t data_len, size_t *sample_
 	// Prepare decoding parameters
 	full_count = *sample_count * (size_t) *channels;
 	byte_depth = ceil_rshift(bit_depth, 3);		// bytes per sample
-	vol = 1.f / (float) (1LL << 8*byte_depth);	// volume multiplier
+	vol = 2.f / (float) (1LL << 8*byte_depth);	// volume multiplier
 	switch (byte_depth)
 	{
 		case 2:	func_read = compression==1 ? read_LE16s : read_BE16s;	break;	

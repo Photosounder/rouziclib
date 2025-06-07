@@ -30,7 +30,7 @@ float *load_sound_wav_mem(const uint8_t *data, size_t data_len, size_t *sample_c
 		{
 			// Prepare decoding parameters
 			byte_depth = ceil_rshift(bit_depth, 3);		// bytes per sample
-			vol = 1.f / (float) (1LL << 8*byte_depth);	// volume multiplier
+			vol = 2.f / (float) (1LL << 8*byte_depth);	// volume multiplier
 
 			*sample_count = chunk_size / (*channels * byte_depth);
 			full_count = *sample_count * (size_t) *channels;
