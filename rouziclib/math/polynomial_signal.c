@@ -329,3 +329,36 @@ double sampling_func_float_mono(void *ptr, size_t index)
 	float *s = (float *) ptr;
 	return (double) s[index];
 }
+
+void polynomial_signal_to_file(void *file, polynomial_signal_t *ps)
+{
+	int id;
+	size_t byte_count = (ps->chunk_count * ps->bits_per_chunk + 7) >> 3;
+
+	fprintf_override(file, "Start time: %.17g sec\n", ps->start_time);
+	fprintf_override(file, "Original start time: %.17g sec\n", ps->orig_start_time);
+	fprintf_override(file, "Original end time: %.17g sec\n", ps->orig_end_time);
+	fprintf_override(file, "End time: %.17g sec\n", ps->end_time);
+	fprintf_override(file, "Chunk duration: %.17g sec\n", ps->chunk_dur);
+	fprintf_override(file, "Max freq: %.17g Hz\n", ps->max_freq);
+	fprintf_override(file, "Chunk count: %zd\n", ps->chunk_count);
+
+	fprintf_override(file, "\nBits per chunk: %d\n", ps->bits_per_chunk);
+	fprintf_override(file, "Degree %d\n", ps->node_count - 1);
+	fprintf_override(file, "Degree bit depths:\n");
+	for (id=0; id < ps->node_count; id++)
+		fprintf_override(file, "%d\n", ps->degree_bits[id]);
+
+	fprintf_override(file, "\nDegree multipliers:\n");
+	for (id=0; id < ps->node_count; id++)
+		fprintf_override(file, "%.17g\n", ps->degree_mul[id]);
+
+	fprintf_override(file, "\nReal coefs:\n");
+	fwrite_override(ps->coef_real, sizeof(uint8_t), byte_count, file);
+
+	if (ps->coef_imag)
+	{
+		fprintf_override(file, "\nImaginary coefs:\n");
+		fwrite_override(file, sizeof(uint8_t), byte_count, ps->coef_imag);
+	}
+}
