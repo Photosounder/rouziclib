@@ -59,6 +59,7 @@ void node_samples_to_polynomial_signal(polynomial_signal_t *ps, double *node_sam
 		ps->bits_per_chunk += ps->degree_bits[id] + 1;
 
 		double max_v = (1LL << ps->degree_bits[id]) - 1LL;
+		max_v += 0.5;	// this is so that the top possible reconstructed value doesn't represent the maximum but rather something more common
 		degree_mul[id] = max_v / sum_max[id];
 		ps->degree_mul[id] = sum_max[id] / max_v;
 	}
@@ -83,7 +84,9 @@ void node_samples_to_polynomial_signal(polynomial_signal_t *ps, double *node_sam
 
 			double scaled_sum = sum * degree_mul[id];
 			set_bits_in_stream_inc(ps->coef_real, &ib_re, 1, scaled_sum < 0.);
-			set_bits_in_stream_inc(ps->coef_real, &ib_re, ps->degree_bits[id], nearbyint(fabs(scaled_sum)));
+			uint64_t v = nearbyint(fabs(scaled_sum));
+			v = MINN(v, 1ULL << ps->degree_bits[id]);
+			set_bits_in_stream_inc(ps->coef_real, &ib_re, ps->degree_bits[id], v);
 		}
 
 		if (node_sample_im)
@@ -94,8 +97,10 @@ void node_samples_to_polynomial_signal(polynomial_signal_t *ps, double *node_sam
 				sum += node_sample_im[ic*ps->node_count + i] * cos_coef[id*ps->node_count + i];
 
 			double scaled_sum = sum * degree_mul[id];
-			set_bits_in_stream_inc(ps->coef_imag, &ib_im, 1, scaled_sum >= 0.);
-			set_bits_in_stream_inc(ps->coef_imag, &ib_im, ps->degree_bits[id], nearbyint(fabs(scaled_sum)));
+			set_bits_in_stream_inc(ps->coef_imag, &ib_im, 1, scaled_sum < 0.);
+			uint64_t v = nearbyint(fabs(scaled_sum));
+			v = MINN(v, 1ULL << ps->degree_bits[id]);
+			set_bits_in_stream_inc(ps->coef_imag, &ib_im, ps->degree_bits[id], v);
 		}
 	}
 
@@ -287,7 +292,7 @@ void polynomial_signal_eval(polynomial_signal_t *ps, double t_start, double t_st
 		// Evaluation
 		double v_re = eval_chebyshev_polynomial(tc, ps->coef_buffer, degree);
 
-		if (analytic)
+		if (analytic && ps->coef_imag)
 		{
 			// Calculate coefs
 			size_t ib_im = ic * ps->bits_per_chunk;
@@ -358,7 +363,7 @@ void polynomial_signal_to_file(void *file, polynomial_signal_t *ps)
 
 	if (ps->coef_imag)
 	{
-		fprintf_override(file, "\nImaginary coefs:\n");
-		fwrite_override(file, sizeof(uint8_t), byte_count, ps->coef_imag);
+		fprintf_override(file, "\n\nImaginary coefs:\n");
+		fwrite_override(ps->coef_imag, sizeof(uint8_t), byte_count, file);
 	}
 }
