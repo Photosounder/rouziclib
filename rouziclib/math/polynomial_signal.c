@@ -85,7 +85,7 @@ void node_samples_to_polynomial_signal(polynomial_signal_t *ps, double *node_sam
 			double scaled_sum = sum * degree_mul[id];
 			set_bits_in_stream_inc(ps->coef_real, &ib_re, 1, scaled_sum < 0.);
 			uint64_t v = nearbyint(fabs(scaled_sum));
-			v = MINN(v, 1ULL << ps->degree_bits[id]);
+			v = MINN(v, (1ULL << ps->degree_bits[id]) - 1);
 			set_bits_in_stream_inc(ps->coef_real, &ib_re, ps->degree_bits[id], v);
 		}
 
@@ -99,7 +99,7 @@ void node_samples_to_polynomial_signal(polynomial_signal_t *ps, double *node_sam
 			double scaled_sum = sum * degree_mul[id];
 			set_bits_in_stream_inc(ps->coef_imag, &ib_im, 1, scaled_sum < 0.);
 			uint64_t v = nearbyint(fabs(scaled_sum));
-			v = MINN(v, 1ULL << ps->degree_bits[id]);
+			v = MINN(v, (1ULL << ps->degree_bits[id]) - 1);
 			set_bits_in_stream_inc(ps->coef_imag, &ib_im, ps->degree_bits[id], v);
 		}
 	}
