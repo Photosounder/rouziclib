@@ -1,6 +1,7 @@
 void polynomial_signal_free(polynomial_signal_t *ps)
 {
-	free_null(&ps->coef_buffer);
+	free_null(&ps->coef_cache_im);
+	free_null(&ps->coef_cache_re);
 	free_null(&ps->coef_imag);
 	free_null(&ps->coef_real);
 	free_null(&ps->degree_mul);
@@ -135,7 +136,10 @@ polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size
 	ps->node_count = degree + 1;
 	ps->degree_bits = calloc(ps->node_count, sizeof(int8_t));
 	ps->degree_mul = calloc(ps->node_count, sizeof(double));
-	ps->coef_buffer = calloc(ps->node_count, sizeof(double));
+	ps->coef_cache_re = calloc(ps->node_count, sizeof(double));
+	if (analytic)
+		ps->coef_cache_im = calloc(ps->node_count, sizeof(double));
+	ps->cache_chunk_id = -1;
 
 	// Precalculate node offsets
 	double *node = calloc(ps->node_count, sizeof(double));
@@ -211,7 +215,10 @@ polynomial_signal_t polynomial_signal_to_polynomial_signal(polynomial_signal_t *
 	ps->node_count = degree + 1;
 	ps->degree_bits = calloc(ps->node_count, sizeof(int8_t));
 	ps->degree_mul = calloc(ps->node_count, sizeof(double));
-	ps->coef_buffer = calloc(ps->node_count, sizeof(double));
+	ps->coef_cache_re = calloc(ps->node_count, sizeof(double));
+	if (analytic)
+		ps->coef_cache_im = calloc(ps->node_count, sizeof(double));
+	ps->cache_chunk_id = -1;
 
 	// Precalculate node offsets
 	double *node = calloc(ps->node_count, sizeof(double));
@@ -281,29 +288,35 @@ void polynomial_signal_eval(polynomial_signal_t *ps, double t_start, double t_st
 		double tc0 = (double) ic * ps->chunk_dur + ps->start_time;	 // chunk start time
 		double tc = ((t - tc0) * chunk_rate * 2. - 1.) * end_node_scale; // time relative to the chunk in [-1 , 1]
 
-		// Calculate coefs
-		size_t ib_re = ic * ps->bits_per_chunk;
-		for (int id=0; id < ps->node_count; id++)
+		// Calculate coefs if they're not cached
+		if (ic != ps->cache_chunk_id)
 		{
-			int neg = get_bits_in_stream_inc(ps->coef_real, &ib_re, 1);
-			ps->coef_buffer[id] = (neg ? -1. : 1.) * ps->degree_mul[id] * (double) get_bits_in_stream_inc(ps->coef_real, &ib_re, ps->degree_bits[id]);
+			size_t ib_re = ic * ps->bits_per_chunk;
+			for (int id=0; id < ps->node_count; id++)
+			{
+				int neg = get_bits_in_stream_inc(ps->coef_real, &ib_re, 1);
+				ps->coef_cache_re[id] = (neg ? -1. : 1.) * ps->degree_mul[id] * (double) get_bits_in_stream_inc(ps->coef_real, &ib_re, ps->degree_bits[id]);
+			}
 		}
 
 		// Evaluation
-		double v_re = eval_chebyshev_polynomial(tc, ps->coef_buffer, degree);
+		double v_re = eval_chebyshev_polynomial(tc, ps->coef_cache_re, degree);
 
 		if (analytic && ps->coef_imag)
 		{
-			// Calculate coefs
-			size_t ib_im = ic * ps->bits_per_chunk;
-			for (int id=0; id < ps->node_count; id++)
+			// Calculate coefs if they're not cached
+			if (ic != ps->cache_chunk_id)
 			{
-				int neg = get_bits_in_stream_inc(ps->coef_imag, &ib_im, 1);
-				ps->coef_buffer[id] = (neg ? -1. : 1.) * ps->degree_mul[id] * (double) get_bits_in_stream_inc(ps->coef_imag, &ib_im, ps->degree_bits[id]);
+				size_t ib_im = ic * ps->bits_per_chunk;
+				for (int id=0; id < ps->node_count; id++)
+				{
+					int neg = get_bits_in_stream_inc(ps->coef_imag, &ib_im, 1);
+					ps->coef_cache_im[id] = (neg ? -1. : 1.) * ps->degree_mul[id] * (double) get_bits_in_stream_inc(ps->coef_imag, &ib_im, ps->degree_bits[id]);
+				}
 			}
 
 			// Evaluation
-			double v_im = eval_chebyshev_polynomial(tc, ps->coef_buffer, degree);
+			double v_im = eval_chebyshev_polynomial(tc, ps->coef_cache_im, degree);
 
 			// Storage
 			if (outd)
@@ -326,6 +339,8 @@ void polynomial_signal_eval(polynomial_signal_t *ps, double t_start, double t_st
 			if (outf)
 				outf[is] += v_re;
 		}
+
+		ps->cache_chunk_id = ic;
 	}
 }
 

@@ -6,7 +6,8 @@ typedef struct
 	int8_t *degree_bits;
 	double *degree_mul;
 	uint8_t *coef_real, *coef_imag;
-	double *coef_buffer;
+	double *coef_cache_re, *coef_cache_im;
+	size_t cache_chunk_id;
 } polynomial_signal_t;
 
 extern void polynomial_signal_free(polynomial_signal_t *ps);
