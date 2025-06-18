@@ -9,7 +9,7 @@
 
 #endif
 
-void *load_full_mp3_fullarg(char *in_path, size_t *sample_count, int *channel_count, int *samplerate, int (*bytes_per_sample_func)(int), int (*conv_func)(void*,void*,size_t,int))
+void *load_full_mp3_fullarg(const char *in_path, size_t *sample_count, int *channel_count, int *samplerate, int (*bytes_per_sample_func)(int), int (*conv_func)(void*,void*,size_t,int))
 {
 #ifdef RL_SOUND_FILE
 	uint8_t *raw_data;
@@ -71,7 +71,7 @@ void *load_full_mp3_fullarg(char *in_path, size_t *sample_count, int *channel_co
 #endif
 }
 
-float *load_full_mp3_float_select_chan(char *in_path, size_t *sample_count, int *channel_count, int *samplerate, int sel_chan)
+float *load_full_mp3_float_select_chan(const char *in_path, size_t *sample_count, int *channel_count, int *samplerate, int sel_chan)
 {
 	switch (sel_chan)
 	{
