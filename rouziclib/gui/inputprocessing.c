@@ -42,24 +42,24 @@ int equal_ctrl_id(ctrl_id_t a, ctrl_id_t b, int check_id)	// returns 1 if the co
 	switch (a.type)
 	{
 		case ctrl_type_rect:
-			if (equal_rect(a.box, b.box) == 0)
+			if (equal_ulp_rect(a.box, b.box, 2) == 0)
 				return 0;
 			break;
 
 		case ctrl_type_polygon:
-			if (equal_rect(a.box, b.box) == 0)
+			if (equal_ulp_rect(a.box, b.box, 2) == 0)
 				return 0;
 
 			if (a.vertex_count != b.vertex_count)
 				return 0;
 
 			for (int i=0; i < a.vertex_count; i++)
-				if (equal_xy(a.vertex[i], b.vertex[i]) == 0)
+				if (equal_ulp_xy(a.vertex[i], b.vertex[i], 2) == 0)
 					return 0;
 			break;
 
 		case ctrl_type_circle:
-			if (equal_xy(a.pos, b.pos) == 0 || a.radius != b.radius)
+			if (equal_ulp_xy(a.pos, b.pos, 2) == 0 || a.radius != b.radius)
 				return 0;
 			break;
 	}
@@ -90,7 +90,7 @@ int check_ctrl_id(rect_t box, xy_t pos, double radius, enum ctrl_type_t type)	//
 		if (equal_ctrl_id(mouse.ctrl_id->hover_new, mouse.ctrl_id->current, 0))
 			mouse.ctrl_id->current.id++;				// increment the ID to differentiate between stacked same-box controls
 		// else if it matches the previous frame's hovered control
-		else if ((type==ctrl_type_rect && equal_rect(mouse.ctrl_id->hover.box, box)) || (type==ctrl_type_circle && equal_xy(mouse.ctrl_id->hover.pos, pos) && mouse.ctrl_id->hover.radius == radius))
+		else if ((type==ctrl_type_rect && equal_ulp_rect(mouse.ctrl_id->hover.box, box, 2)) || (type==ctrl_type_circle && equal_ulp_xy(mouse.ctrl_id->hover.pos, pos, 2) && mouse.ctrl_id->hover.radius == radius))
 		{
 			if (mouse.ctrl_id->hover_box_matched==0)	// if this control is the first one that matches the previous frame's hover control
 				mouse.ctrl_id->hover_box_matched = 1;	// only mark it as matched to avoid incrementing once too many

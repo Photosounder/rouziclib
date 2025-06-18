@@ -284,6 +284,14 @@ int equal_rect(rect_t r1, rect_t r2)
 	return equal_xy(r1.p0, r2.p0) && equal_xy(r1.p1, r2.p1);
 }
 
+int equal_ulp_rect(rect_t r1, rect_t r2, const int64_t ulp_tolerance)
+{
+	r1 = sort_rect(r1);
+	r2 = sort_rect(r2);
+
+	return equal_ulp_xy(r1.p0, r2.p0, ulp_tolerance) && equal_ulp_xy(r1.p1, r2.p1, ulp_tolerance);
+}
+
 int isnan_rect(rect_t r)
 {
 	return isnan_xy(r.p0) || isnan_xy(r.p1);
