@@ -87,19 +87,12 @@ double roundaway(double x)	// round away from 0
 
 double rangewrap(double x, double low, double high)
 {
-	double range;
-
 	if (isnan(x))
 		return x;
 
-	range = high-low;
-
-	while (x < low)
-		x += range;
-
-	while (x > high)
-		x -= range;
-
+	double range = high - low;
+	x -= low;
+	x = x - range * floor(x / range) + low;
 	return x;
 }
 
