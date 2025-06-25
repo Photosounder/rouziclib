@@ -436,10 +436,12 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 			ed->rr[i] = rlip_add_value(sprintf_ret(s0, "rr%d", i), NULL, "r", ed);
 
 	// Alloc and init return value arrays
-	ed->d->return_value = calloc(max_ret_count, sizeof(double));
+	if (max_ret_count)
+		ed->d->return_value = calloc(max_ret_count, sizeof(double));
 	if (ed->valid_reals)
 	{
-		ed->d->return_real = calloc(max_ret_count, ed->d->rf.size_of_real);
+		if (max_ret_count)
+			ed->d->return_real = calloc(max_ret_count, ed->d->rf.size_of_real);
 		if (ed->d->rf.var_init)
 			for (i=0; i < max_ret_count; i++)
 				ed->d->rf.var_init(&ed->d->return_real[i]);
@@ -956,7 +958,10 @@ add_command:
 				int actual_max_ret_count = MINN(max_ret_count, top_op_ret_count);
 				if (ed->d->ret_count <= 0 || ed->d->ret_count > max_ret_count)
 				{
-					bufprintf(comp_log, "Number of return arguments is %d when it should be between 1 and %d, in line %d: '%s'\n", ed->d->ret_count, max_ret_count, il, line[il]);
+					if (max_ret_count)
+						bufprintf(comp_log, "Number of return arguments is %d when it should be between 1 and %d, in line %d: '%s'\n", ed->d->ret_count, max_ret_count, il, line[il]);
+					else
+						bufprintf(comp_log, "Number of return arguments is %d when it should be 0, in line %d: '%s'\n", ed->d->ret_count, il, line[il]);
 					goto invalid_prog;
 				}
 
