@@ -369,13 +369,13 @@ void rlip_convert_mismatched_var_to_register(int *ir, char expected_type, int i,
 int rlip_get_arguments(char *p, char *cmd_arg_type, int *arg_ir, rlip_data_t *ed, int il, char **line)
 {
 	int i, n=0, ret;
-	char s1[32];
+	char s1[128];
 
 	for (i=0; cmd_arg_type[i]; i++)
 	{
 		p = &p[n];
 		n = 0;
-		ret = sscanf(p, "%30s %n", s1, &n);
+		ret = sscanf(p, "%127s %n", s1, &n);
 
 		if (ret == 1)
 		{
@@ -409,7 +409,7 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 	size_t to_free_count=0, to_free_as=0;
 	rlip_t data={0};
 	rlip_data_t *ed = calloc(1, sizeof(rlip_data_t));
-	char *p, s0[32], s1[32], s2[32], s3[32], cmd_arg_type[16];
+	char *p, s0[128], s1[128], s2[128], s3[128], cmd_arg_type[16];
 	int arg_ir[16];
 	uint64_t hash;
 	enum opcode new_opcode;
@@ -454,7 +454,7 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 		s0[0] = '\0';
 		p = line[il];
 		n = 0;
-		sscanf(p, "%30s %n", s0, &n);
+		sscanf(p, "%127s %n", s0, &n);
 		p = &p[n];
 
 		if (strcmp(s0, "expr")==0)
@@ -525,7 +525,7 @@ line_proc_start:
 		s2[0] = '\0';
 		s3[0] = '\0';
 		n = 0;
-		sscanf(p, "%30s %*s = %n", s0, &n);
+		sscanf(p, "%127s %*s = %n", s0, &n);
 
 		// Declaring a new variable by its type
 		if (n && (strcmp(s0, "d")==0 || strcmp(s0, "i")==0 || strcmp(s0, "r")==0))
@@ -555,7 +555,7 @@ line_proc_start:
 		}
 
 		n = 0;
-		sscanf(p, "%30s = %n", s0, &n);
+		sscanf(p, "%127s = %n", s0, &n);
 
 		// Declaring a location
 		if (s0[0] && s0[strlen(s0) - 1] == ':')
@@ -637,7 +637,7 @@ line_proc_start:
 
 			// Read command
 			n = 0;
-			ret = sscanf(p, "%30s %n", s0, &n);
+			ret = sscanf(p, "%127s %n", s0, &n);
 			cmd_found = 0;
 
 			if (ret == 1)
@@ -768,7 +768,7 @@ add_command:
 							sprintf(cmd_arg_type, "irr");
 
 						n = 0;
-						ret = sscanf(p, "%*s %30s %30s %30s %n", s1, s2, s3, &n);
+						ret = sscanf(p, "%*s %127s %127s %127s %n", s1, s2, s3, &n);
 						
 						if (ret == 3)
 						{
@@ -981,7 +981,7 @@ add_command:
 			// If <condition result> goto <location>
 			if (strcmp(s0, "if")==0)
 			{
-				ret = sscanf(p, "%*s %30s goto %30s", s1, s2);
+				ret = sscanf(p, "%*s %127s goto %127s", s1, s2);
 
 				if (ret == 2)
 				{
@@ -1031,7 +1031,7 @@ add_command:
 
 			if (strcmp(s0, "set0")==0)
 			{
-				sscanf(p, "%*s %30s", s1);
+				sscanf(p, "%*s %127s", s1);
 				ir = rlip_find_value(s1, ed);
 
 				// Add opcode
@@ -1058,7 +1058,7 @@ add_command:
 
 			if (strcmp(s0, "inc1")==0)
 			{
-				sscanf(p, "%*s %30s", s1);
+				sscanf(p, "%*s %127s", s1);
 				ir = rlip_find_value(s1, ed);
 
 				// Add opcode

@@ -165,17 +165,91 @@ double normalised_notation_split(double number, double *m)	// splits number into
 
 int count_decimal_places(double v)
 {
-    int i;
-    double m=1.;
+	int i;
+	double m=1.;
 
-    for (i=0; i < 310; i++)
-    {
-        if (llabs(double_diff_ulp(v, nearbyint(v*m)/m)) < 2)
-            return i;
-        m *= 10.;
-    }
+	for (i=0; i < 310; i++)
+	{
+		if (llabs(double_diff_ulp(v, nearbyint(v*m)/m)) < 2)
+			return i;
+		m *= 10.;
+	}
 
-    return -1;
+	return -1;
+}
+
+double make_power_of_10_positive(int p)
+{
+	double v = 1.;
+
+	int neg = p < 0 ? 1 : 0;
+	if (neg)
+		p = -p;
+
+	while (p >= 25) { v *= 1e25; p -= 25; }
+	while (p >= 5)  { v *= 1e5;  p -= 5; }
+	while (p >= 1)  { v *= 10.;  p -= 1; }
+
+	if (neg)
+		v = 1. / v;
+
+	return v;
+}
+
+double estimate_cost_of_mul_factor(double v)
+{
+	const double cost_of_digit = 0.08,
+	      cost_of_index	= 0.001,
+	      cost_of_adding	= 0.4,
+	      cost_of_0		= 0.,
+	      cost_of_1		= 0.2,
+	      cost_of_old	= 0.25,
+	      cost_of_new	= 1.,
+	      cost_of_neg	= 1.4,
+	      cost_of_carry	= 0.9,
+	      cost_of_dec	= 0.09;
+	const double carry_prob[10] = { 0., 0.05, 0.5, 0.6, 0.7, 0.8, 0.81, 0.82, 0.83, 0.84 };
+
+	int dec_count = count_decimal_places(v);					// 9.009e-3 -> 6
+	uint64_t v_whole = nearbyint(fabs(v) * make_power_of_10_positive(dec_count));	// 9.009e-3 -> 9009
+	int8_t digit_seen[10] = {0};
+
+	double cost = -cost_of_adding;
+
+	// Cost of sign
+	if (v < 0.)
+		cost += cost_of_neg;
+
+	// Cost of digits
+	uint64_t vd = v_whole;
+	for (int i=0; vd; i++, vd /= 10)
+	{
+		int dig = vd % 10;
+		cost += cost_of_digit + cost_of_index * i * dig;
+		cost += cost_of_adding;
+		if (dig == 0)
+			cost += cost_of_0 - cost_of_adding;
+		else if (dig == 1)
+			cost += cost_of_1;
+		else
+		{
+			// The cost of carry is proportional to the likelihood that the digit will cause overflow
+			cost += carry_prob[dig] * cost_of_carry;
+
+			if (digit_seen[dig])
+				cost += cost_of_old;
+			else
+			{
+				digit_seen[dig] = 1;
+				cost += cost_of_new;
+			}
+		}
+	}
+
+	// Cost of decimals
+	cost += cost_of_dec * dec_count;
+
+	return cost;
 }
 
 double fabs_min(double a, double b)

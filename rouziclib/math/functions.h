@@ -25,6 +25,8 @@ extern void minmax_double(double *a, double *b);
 extern void minmax_i32(int32_t *a, int32_t *b);
 extern double normalised_notation_split(double number, double *m);
 extern int count_decimal_places(double v);
+extern double make_power_of_10_positive(int p);
+extern double estimate_cost_of_mul_factor(double v);
 extern double fabs_min(double a, double b);
 extern double fabs_max(double a, double b);
 extern int ceil_rshift(int v, int sh);
