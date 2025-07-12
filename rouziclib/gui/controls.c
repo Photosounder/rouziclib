@@ -385,7 +385,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			if (knob->editor_print_func)
 				knob->editor_print_func(knob->printed_label, knob, v);
 			else
-				sprintf(knob->printed_label, "%.10g", v);
+				snprintf(knob->printed_label, sizeof(knob->printed_label), "%.10g", v);
 
 			textedit_set_new_text(&knob->edit, knob->printed_label);
 			knob->edit.rect_brightness = 0.125;
@@ -432,7 +432,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	if (knob->display_print_func)
 		knob->display_print_func(knob->printed_label, knob, v);
 	else
-		sprintf(knob->printed_label, knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
+		snprintf(knob->printed_label, sizeof(knob->printed_label), knob->fmt_str ? knob->fmt_str : VALFMT_DEFAULT, v);
 
 	// Draw value string
 	if (knob->edit_open==0)
