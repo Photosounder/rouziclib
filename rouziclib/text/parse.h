@@ -1,5 +1,4 @@
 #ifdef _MSC_VER
-#define snprintf _snprintf	// Microsoft is stupid, like seriously
 #define strcasecmp stricmp
 #endif
 
