@@ -287,7 +287,7 @@ int convert_expression_to_variable(const char *name, rlip_data_t *ed)
 			}
 		}
 
-		if (isnan(vd)==0)					// if it's a valid expression
+		if (isnan(vd)==0 || strcmp("0/0", name)==0)			// if it's a valid expression
 			ir = rlip_add_value(name, &vd, "d", ed);		// add the value as a variable with the original expression as its name
 		else
 		{

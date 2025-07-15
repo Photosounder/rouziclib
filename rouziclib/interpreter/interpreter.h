@@ -173,6 +173,8 @@ extern double rlip_builtin_min(double a, double b);
 extern double rlip_builtin_max(double a, double b);
 extern double rlip_builtin_clamp(double v);
 extern double rlip_builtin_sign(double v);
+extern int64_t rlip_builtin_isnan(double v);
+extern int64_t rlip_builtin_isfinite(double v);
 extern int64_t rlip_builtin_float_as_u32(double vd);
 extern int64_t rlip_builtin_double_as_u64(double vd);
 extern double rlip_builtin_u32_as_float(int64_t vi);
@@ -226,6 +228,8 @@ extern int64_t rlip_builtin_bit_neg(int64_t a);
 	{"mix", mix, "fdddd"},						\
 	{"sign", rlip_builtin_sign, "fdd"},				\
 	{"trunc", (double(*)(double)) trunc, "fdd"},			\
+	{"isnan", rlip_builtin_isnan, "fid"},				\
+	{"isfinite", rlip_builtin_isfinite, "fid"},			\
 	{"float_as_u32", rlip_builtin_float_as_u32, "fid"},		\
 	{"double_as_u64", rlip_builtin_double_as_u64, "fid"},		\
 	{"u32_as_float", rlip_builtin_u32_as_float, "fdi"},		\

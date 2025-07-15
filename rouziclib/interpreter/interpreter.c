@@ -31,6 +31,8 @@ double rlip_builtin_min(double a, double b) { return MINN(a, b); }
 double rlip_builtin_max(double a, double b) { return MAXN(a, b); }
 double rlip_builtin_clamp(double v) { return rangelimit(v, 0., 1.); }
 double rlip_builtin_sign(double v) { return v < 0. ? -1. : (v > 0. ? 1. : 0.); }
+int64_t rlip_builtin_isnan(double v) { return isnan(v); }
+int64_t rlip_builtin_isfinite(double v) { return isfinite(v); }
 int64_t rlip_builtin_float_as_u32(double vd) { return (int64_t) float_as_u32((float) vd); }
 int64_t rlip_builtin_double_as_u64(double vd) { return double_as_u64(vd); }
 double rlip_builtin_u32_as_float(int64_t vi) { return (double) u32_as_float((uint32_t) vi); }
