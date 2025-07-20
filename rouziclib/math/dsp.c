@@ -148,7 +148,35 @@ double blackman(double x, double range)		// spans ]-range , +range[
 	return 0.42 + 0.5*cos(x) + 0.08*cos(2.*x);
 }
 
-double short_gaussian_window(double x, double range, double w)	// x = ]-range , +range[, w is the sigma span of the gaussian, high w means more gaussian and thin
+double short_gaussian_window_range(double w, double p)
+{
+	return w * sqrt(p) / sqrt(1. - gaussian(w));
+}
+
+double short_gaussian_window(double x, double range, double w, double p)	// x = ]-range , +range[, w is the width multiplier of the gaussian, high w means more gaussian and thin, p is the exponent, p = 1 is more parabolic, higher p gives a smoother start
+{
+	double sp = sqrt(p);
+	double gw = gaussian(w);
+	double gwm = 1. - gw;
+	double sgwm = sqrt(gwm);
+	double natural_range = w * sp / sgwm;
+
+	// Range of 0 indicates using the natural range
+	if (range > 0.)
+		x *= natural_range / range;
+
+	ffabs(&x);
+	if (x >= natural_range)
+		return 0.;
+
+	if (w < 1e-4)
+		return pow(1. - sq(x/sp), p);
+
+	double v = (gaussian((x/sp) * sgwm) - gw) / gwm;
+	return pow(MAXN(0., v), p);
+}
+
+double short_gaussian_window_sq(double x, double range, double w)	// x = ]-range , +range[, w is the width multiplier of the gaussian, high w means more gaussian and thin
 {
 	x /= range;
 	ffabs(&x);
@@ -156,7 +184,7 @@ double short_gaussian_window(double x, double range, double w)	// x = ]-range , 
 	if (x >= 1.)
 		return 0.;
 
-	w *= 0.7071067811865475244;		// scale w so that the given value matches the sigma of a regular gaussian function
+	w *= 0.7071067811865475244;		// scale w so that the given value matches the width of a regular gaussian function
 
 	if (w < 1e-4)
 		return sq(1. - sq(x));		// squared parabola window

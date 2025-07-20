@@ -161,7 +161,7 @@ polynomial_signal_t sample_signal_to_polynomial_signal(void *sample_signal, size
 		{
 			double t = t_chunk + node[i] * ps->chunk_dur;
 
-			double w = short_gaussian_window(t, sinc_dur*0.5, 2.5);
+			double w = short_gaussian_window_sq(t, sinc_dur*0.5, 2.5);
 			sinc_re[ic*ps->node_count + i] = w * sinc(t, sinc_freq);
 			if (analytic)
 				sinc_im[ic*ps->node_count + i] = w * sinc_hilbert(t, sinc_freq);

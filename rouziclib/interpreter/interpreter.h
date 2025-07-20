@@ -210,6 +210,7 @@ extern int64_t rlip_builtin_bit_neg(int64_t a);
 	{"erfr", erfr, "fdd"},						\
 	{"erfinv", erfinv, "fdd"},					\
 	{"integral_erfr", integral_of_erfr, "fdd"},			\
+	{"short_gauss", short_gaussian_window, "fddddd"},		\
 	{"short_erf", short_erf, "fddd"},				\
 	{"sinc", sinc, "fddd"},						\
 	{"lab_to_linear", Lab_L_to_linear, "fdd"},			\
