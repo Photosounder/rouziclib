@@ -68,6 +68,10 @@ extern "C" {
   #define assert(x)	((void)0)	// this suppresses assert() used by some of the libs below
 #endif
 
+#ifndef __FILE_NAME__
+  #define __FILE_NAME__ __FILE__
+#endif
+
 // Structs and includes needed elsewhere
 #include "general/intrinsics.h"
 #include "general/threading.h"
