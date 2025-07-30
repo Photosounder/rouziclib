@@ -155,6 +155,8 @@ double short_gaussian_window_range(double w, double p)
 
 double short_gaussian_window(double x, double range, double w, double p)	// x = ]-range , +range[, w is the width multiplier of the gaussian, high w means more gaussian and thin, p is the exponent, p = 1 is more parabolic, higher p gives a smoother start
 {
+	ffabs(&w);
+	w = MAXN(w, 1e-4);
 	double sp = sqrt(p);
 	double gw = gaussian(w);
 	double gwm = 1. - gw;
@@ -168,9 +170,6 @@ double short_gaussian_window(double x, double range, double w, double p)	// x = 
 	ffabs(&x);
 	if (x >= natural_range)
 		return 0.;
-
-	if (w < 1e-4)
-		return pow(1. - sq(x/sp), p);
 
 	double v = (gaussian((x/sp) * sgwm) - gw) / gwm;
 	return pow(MAXN(0., v), p);
