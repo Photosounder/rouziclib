@@ -765,7 +765,7 @@ void process_one_glyph(vector_font_t *font, int i)
 
 	if (font->l[i].glyphdata)
 	{
-		glyphdata_t* gd = calloc(1, sizeof(glyphdata_t));
+		glyphdata_t *gd = calloc(1, sizeof(glyphdata_t));
 		process_glyphdata(font, &font->l[i], gd);
 		make_glyph_vobj(&font->l[i], gd);
 		free(gd);

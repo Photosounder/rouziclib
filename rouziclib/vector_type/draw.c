@@ -7,6 +7,9 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 	unicode_data_t ucd;
 	int found = 0;
 
+	if (c == 0)
+		return found;
+
 	// Algorithmic substitution
 	if (bidi == -2)
 		c = substitute_rtl_punctuation(c);
