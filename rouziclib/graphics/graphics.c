@@ -44,7 +44,7 @@ raster_t make_raster(void *data, const xyi_t dim, xyi_t maxdim, const int mode)	
 
 	if (data)
 		*ptr = data;
-	else if (r.as)
+	else if (r.as && ptr)
 		*ptr = calloc(r.as, get_raster_mode_elem_size(mode));
 
 	return r;
