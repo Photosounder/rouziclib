@@ -44,6 +44,16 @@ void wahe_rl_parse_inputs(const char *line, int *received_input)
 		*received_input = 1;
 	}
 
+	// Mouse scroll
+	char way_name[5];
+	double scroll_incs;
+	if (sscanf(line, "Mouse scroll %4s %lg", way_name, &scroll_incs) == 2)
+	{
+		mouse.b.wheel = nearbyint(scroll_incs) * (strcmp(way_name, "up") ? -1. : 1.);
+		zoom_wheel(&zc, mouse.zoom_flag, mouse.b.wheel);
+		*received_input = 1;
+	}
+
 	// Text input
 	n = 0;
 	int n2 = 0;
@@ -86,7 +96,7 @@ void wahe_rl_module_init(xyi_t fb_dim, const int mode)
 	init_mouse();
 	mouse.mouse_focus_flag = 1;
 	mouse.window_focus_flag = 1;
-	mouse.zoom_allowed = 0;
+	//mouse.zoom_allowed = 0;
 	mouse.a = set_xy(1e30);
 
 #ifdef RL_INCL_VECTOR_TYPE_FILEBALL
