@@ -39,7 +39,7 @@ raster_t make_raster(void *data, const xyi_t dim, xyi_t maxdim, const int mode)	
 
 	r.dim = dim;
 	r.table_index = -1;
-	r.as = mul_x_by_y_xyi(maxdim);
+	r.as = (size_t) maxdim.x * (size_t) maxdim.y;
 	ptr = get_raster_buffer_for_mode_ptr(&r, mode);
 
 	if (data)

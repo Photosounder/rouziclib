@@ -37,7 +37,7 @@ typedef struct
 	size_t buf_size;	// buffer size in bytes
 	int buf_fmt;		// format of the buffer, 10 for YUV 8-bit, 11 for YUV 10-bit, 12 for YUV 12-bit, 20+ for compressed texture formats, 31 to 33 for custom channel count float format
 	int use_frgb;
-	int as;			// alloc size in pixels
+	size_t as;		// alloc size in pixels
 
 	int table_index;	// index in the cl_data allocation table
 } raster_t;
