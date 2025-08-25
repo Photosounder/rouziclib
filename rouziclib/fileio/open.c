@@ -240,4 +240,44 @@ int check_dir_exists(const char *path)
 	return ret;
 }
 
+#else	// WAHE_MODULE
+
+uint8_t *load_raw_file(const char *path, size_t *size)
+{
+	char *msg = sprintf_alloc("Load raw file at path %s", path);
+	char *rsp = wahe_run_command(msg);
+	free(msg);
+
+	*size = 0;
+
+	if (rsp == NULL)
+		return NULL;
+
+	size_t addr = 0;
+	sscanf(rsp, "Data location: %zi bytes at %zi", size, &addr);
+	free(rsp);
+	return (uint8_t *) addr;
+}
+
+int save_raw_file(const char *path, const char *mode, uint8_t *data, size_t data_size)
+{
+	char *msg = sprintf_alloc("Save raw file to path %s\nData location: %zu bytes at %#zx (module %s)", path, data_size, (size_t) data, module_id);
+	char *rsp = wahe_run_command(msg);
+	free(msg);
+
+	if (rsp)
+	{
+		int n = 0;
+		sscanf(rsp, "Error%n", &n);
+		if (n)
+		{
+			free(rsp);
+			return 0;
+		}
+	}
+
+	free(rsp);
+	return 1;
+}
+
 #endif	// WAHE_MODULE

@@ -251,4 +251,14 @@ void show_file_in_explorer(const char *path)
 	free(wpath);
 }
 
+#else	// WAHE_MODULE
+
+void show_file_in_explorer(const char *path)
+{
+	char *msg = sprintf_alloc("Show file in system at path %s", path);
+	char *rsp = wahe_run_command(msg);
+	free(msg);
+	free(rsp);
+}
+
 #endif	// WAHE_MODULE
