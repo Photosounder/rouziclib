@@ -278,7 +278,7 @@ void zoom_overlay_control(zoom_t *zc, int8_t *flag_zoom_key)
 	if (zc->overlay_ctrl)
 	{
 		static gui_layout_t layout={0};
-		const char *layout_src[] = {
+		static const char *layout_src[] = {
 			"v 1	1;3", "",
 			"elem 10", "type button", "label \342\207\247", "pos	0	3", "dim	v1", "off	0;6", "",
 			"elem 11", "type button", "label \342\207\251", "pos	0	-3", "dim	v1", "off	0;6", "",

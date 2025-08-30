@@ -581,7 +581,7 @@ double rlip_expression_interp_double(const char *expression, buffer_t *comp_log)
 	}
 
 	// Listing to opcodes
-	rlip_inputs_t inputs[] = { RLIP_FUNC };
+	static rlip_inputs_t inputs[] = { RLIP_FUNC };
 	rlip_t prog = rlip_compile(listing.buf, inputs, sizeof(inputs)/sizeof(*inputs), 1, comp_log);
 	free_buf(&listing);
 

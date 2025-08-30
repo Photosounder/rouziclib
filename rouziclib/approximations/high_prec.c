@@ -27,7 +27,7 @@ ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.3e-32 (Chebyshev version, t
 	double endsign = 1.;
 	ddouble_t y;
 	#ifdef COS_Q_CHEB
-	ddouble_t cm[] = {
+	static ddouble_t cm[] = {
 		{0.47200121576823478, -1.5640151617803393e-17}, 	// T_0 (err 1.56e-34)
 		{-0.4994032582704071, 1.4758624598140668e-17},  	// T_1 (err 1.5e-35)
 		{0.027992079617547617, 7.3010368448985277e-19}, 	// T_2 (err 4.49e-35)
@@ -51,7 +51,7 @@ ddouble_t cos_tr_q(ddouble_t x)	// max error about 4.3e-32 (Chebyshev version, t
 		   */
 	};
 	#else
-	ddouble_t c[] = {
+	static ddouble_t c[] = {
 		{1, -5.2685651532657577e-36},   			// c0
 		{-19.739208802178716, -1.2530591017479423e-15}, 	// c1
 		{64.939394022668296, -4.2563201318878282e-15},  	// c2
@@ -178,7 +178,7 @@ ddouble_t exp2_q(ddouble_t x)	// max error < 7.3e-32 when x < 1
 	double em;
 	uint64_t em_int;
 
-	ddouble_t cm[] = {
+	static ddouble_t cm[] = {
 		{1.4569998750129629, 5.0865586328592469e-17},   	// T_0 (err -6.92e-34)
 		{0.49752486781044186, 2.3150358977957938e-17},  	// T_1 (err 1.41e-33)
 		{0.042893111989679641, -1.7882037061404992e-18},        // T_2 (err -2.23e-35)

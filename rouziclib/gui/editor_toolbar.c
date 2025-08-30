@@ -26,7 +26,7 @@ void gui_layout_markup_window(int *markup_te_ret, gui_layout_t **markup_layout)
 	static gui_layout_t layout={0}, *lp=NULL;
 	char **new_elem_src, string[64];
 
-	const char *layout_src[] = {
+	static const char *layout_src[] = {
 		"elem 0", "type rect", "label Markup", "pos	0	0", "dim	5;6	8;9", "off	0	1", "",
 		"elem 80", "type textedit", "pos	0;3	-0;9", "dim	5	7;9", "off	0	1", "",
 	};
@@ -66,7 +66,7 @@ void gui_layout_edit_toolbar_core(int *toggle_edit_on, int *markup_te_ret, gui_l
 	static gui_layout_t layout={0}, *lp=NULL;
 	char **new_elem_src, string[64];
 
-	const char *layout_src[] = {
+	static const char *layout_src[] = {
 		"v 1	0;0;6	0;4;6", "v 2	1;10	0;4", "v 3	0	-0;8", "v 4	2	0;6", "v 5	0	-0;7", "v 6	2;4	0;1", "v 7	0;4;6	0;0;11", "",
 		"elem 0", "type rect", "label GUI Layout Editor", "pos	0	-0;6", "dim	2;4	12;11", "off	0;6	1", "",
 		"elem 20", "type textedit", "pos	-0;1	-2;3", "dim	0;11	0;6", "off	1", "",

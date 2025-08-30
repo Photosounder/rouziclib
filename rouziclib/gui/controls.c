@@ -314,7 +314,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	static double t_rate=0., v_downonce=NAN;
 	xy_t p0, p1, centre = get_rect_centre(box);
 	static gui_layout_t layout={0};
-	const char *layout_src[] = {
+	static const char *layout_src[] = {
 		"elem 0", "type none", "pos	0	0", "dim	2", "off	0;6", "",
 		"elem 10", "type none", "pos	0	0", "dim	1;6	0;8", "off	0;6", "",
 		"elem 11", "type none", "pos	0	0", "dim	1;5	0;9", "off	0;6", "",

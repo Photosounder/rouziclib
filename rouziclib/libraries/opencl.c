@@ -577,7 +577,7 @@ void dialog_cl_gl_interop_options()
 	#ifdef RL_OPENCL
 	// GUI layout
 	static gui_layout_t layout={0};
-	const char *layout_src[] = {
+	static const char *layout_src[] = {
 		"elem 0", "type none", "label OpenCL/GL Interop Options", "pos	-0;6	8;3", "dim	4	9;4", "off	0	1", "",
 		"elem 10", "type checkbox", "label clFinish()", "pos	0	5;11", "dim	3	0;10", "off	0	1", "",
 		"elem 11", "type checkbox", "label glFinish()", "link_pos_id 10._b", "pos	0	-0;1", "dim	3	0;10", "off	0	1", "",

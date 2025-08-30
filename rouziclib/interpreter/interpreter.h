@@ -184,7 +184,7 @@ extern int64_t rlip_builtin_bit_shl(int64_t a, int64_t b);
 extern int64_t rlip_builtin_bit_shr(int64_t a, int64_t b);
 extern int64_t rlip_builtin_bit_neg(int64_t a);
 
-// Add these defaults to your inputs by doing rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"}, ... };
+// Add these defaults to your inputs by doing static rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"}, ... };
 #define RLIP_FUNC							\
 	{"abs", (double(*)(double)) fabs,	"fdd"},			\
 	{"acos", (double(*)(double)) acos,	"fdd"},			\

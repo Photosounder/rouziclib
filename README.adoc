@@ -768,7 +768,7 @@ Let's first look at how to run a basic example:
 ----
 // Inputs
 static double x;
-rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
+static rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
 const char source[] = "d v1 = cos x\n return v1";
 
 // Compilation
@@ -960,7 +960,7 @@ The file link:rouziclib/interpreter/real_functions.h[real_functions.h] shows how
 
 [source,C]
 ----
-rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLEDOUBLE, RLIP_FUNC, {"x", &x, "pd"} };
+static rlip_inputs_t inputs[] = { RLIP_REAL_DOUBLEDOUBLE, RLIP_FUNC, {"x", &x, "pd"} };
 ----
 
 An example RLIP program would be `const char source[] = "r v1 = cos_ x\n return_real v1";`, `v1` is declared as a `r` which is our custom real format (in this case a double-double), and `cos_` is defined in link:rouziclib/interpreter/real_functions.h[real_functions.h] as the double-double implementation of `cos`. Finally we use `return_real` instead of `return` to return the number in our format instead of `double`. We can read the higher precision result like so:
@@ -999,7 +999,7 @@ An expression may be compiled and executed multiple times like so:
 // Inputs
 const char expression[] = "0.5 + 0.5erf(2x)";
 static double x;
-rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
+static rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"} };
 
 // Expression interpretation + compilation to opcodes
 rlip_t prog = rlip_expression_compile(expression, inputs, sizeof(inputs)/sizeof(*inputs), 0, NULL);

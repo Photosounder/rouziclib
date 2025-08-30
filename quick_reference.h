@@ -213,7 +213,7 @@
 
 	// How to make a new layout
 		static gui_layout_t layout={0};
-		const char *layout_src[] = {""};
+		static const char *layout_src[] = {""};
 
 		gui_layout_init_pos_scale(&layout, XY0, 1., XY0, 0);
 		make_gui_layout(&layout, layout_src, sizeof(layout_src)/sizeof(char *), "Layout name");
@@ -251,7 +251,7 @@
 
 	// Floating pinned window full template
 		static gui_layout_t layout={0};
-		const char *layout_src[] = {
+		static const char *layout_src[] = {
 			"elem 0", "type none", "label Window Bar Title", "pos	0", "dim	8	6", "off	0	1", "",
 		};
 
@@ -360,7 +360,7 @@
 void my_window_function(double *arg1, double *arg2)
 {
 	static gui_layout_t layout={0};
-	const char *layout_src[] = {
+	static const char *layout_src[] = {
 		"elem 0", "type none", "label Window_title", "pos	0	0", "dim	4	4", "off	0	1", "",
 	};
 
@@ -388,7 +388,7 @@ void my_window_function(double *arg1, double *arg2)
 		{
 			static flwindow_t window={0};
 			static gui_layout_t layout={0};
-			const char *layout_src[] = {
+			static const char *layout_src[] = {
 				"elem 0", "type none", "label Parent window", "pos	0	0", "dim	7;2;6	5;9", "off	0	1", "",
 				"elem 100", "type rect", "pos	0;6	-1", "dim	1;9	4", "off	0	1", "",
 				"elem 110", "type rect", "link_pos_id 100", "pos	2;1	0", "dim	2;10	2;6", "off	0	1", "",
@@ -426,7 +426,7 @@ void my_window_function(double *arg1, double *arg2)
 		void child1_func()
 		{
 			static gui_layout_t layout={0};
-			const char *layout_src[] = {
+			static const char *layout_src[] = {
 				"elem 0", "type none", "label Child1 window", "pos	0	0", "dim	3	3;6", "off	0	1", "",
 			};
 
@@ -449,7 +449,7 @@ void my_window_function(double *arg1, double *arg2)
 	void some_options_window(double *value)
 	{
 		static gui_layout_t layout={0};
-		const char *layout_src[] = {
+		static const char *layout_src[] = {
 			"elem 0", "type none", "label Options", "pos	-0;6	1", "dim	3	3;6", "off	0	1", "",
 			"elem 10", "type knob", "label Value", "knob 0 0 1 linear", "pos	0	0", "dim	2	2", "off	0	1", "",	
 		};
@@ -831,7 +831,7 @@ void my_window_function(double *arg1, double *arg2)
 
 	// Generate a video from tls framebuffer and layout
 		static gui_layout_t layout={0};
-		const char *layout_src[] = {
+		static const char *layout_src[] = {
 			"elem 10", "type none", "pos	0	0", "dim	32	18", "off	0.5", "",
 			"elem 20", "type label", "pos	-8	8", "dim	3	2", "off	0	1", "",
 		};
