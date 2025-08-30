@@ -27,7 +27,7 @@ extern void free_alloc_list(alloc_list_t *list);
 
 // alloc_count was originally a pointer, however callers sent a mix of int and size_t which was a problem
 #ifndef alloc_enough
-#define alloc_enough(b, nc, acp, se, ir)	(*acp) = alloc_enough_pattern(b, nc, (*acp), se, ir, 0)
+#define alloc_enough(b, nc, acp, se, ir)	*(acp) = alloc_enough_pattern(b, nc, *(acp), se, ir, 0)
 #endif
-#define alloc_enough_and_copy(b, cs, nc, acp, se, ir)	(*acp) = alloc_enough_and_copy2(b, cs, nc, (*acp), se, ir)
-#define alloc_enough_mutex(b, nc, acp, se, ir, m)	(*acp) = alloc_enough_mutex2(b, nc, (*acp), se, ir, m)
+#define alloc_enough_and_copy(b, cs, nc, acp, se, ir)	*(acp) = alloc_enough_and_copy2(b, cs, nc, *(acp), se, ir)
+#define alloc_enough_mutex(b, nc, acp, se, ir, m)	*(acp) = alloc_enough_mutex2(b, nc, *(acp), se, ir, m)

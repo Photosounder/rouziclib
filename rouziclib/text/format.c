@@ -251,13 +251,11 @@ char *sprint_duration(char *string, double sec)
 
 char *sprint_timestamp(char *string, double t, int prec)
 {
-	char *p=string;
 	int ti, ts, pm;
 
 	if (t < 0.)
 	{
-		p[0] = '-';
-		p = &p[1];
+		string[0] = '-';
 		t = -t;
 	}
 
@@ -275,13 +273,11 @@ char *sprint_timestamp(char *string, double t, int prec)
 
 char *sprint_timestamp_short(char *string, double t, int prec)
 {
-	char *p=string;
 	int ti, ts, pm;
 
 	if (t < 0.)
 	{
-		p[0] = '-';
-		p = &p[1];
+		string[0] = '-';
 		t = -t;
 	}
 

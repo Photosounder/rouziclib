@@ -34,7 +34,6 @@ uint32_t fastcos_get_param(double *xp, double *endsign, const int quads)
 uint32_t fastcosf_get_param(float *xp)
 {
 	float x=*xp, xoff;
-	uint32_t *xint = (uint32_t *) &x;
 	uint32_t lutind;
 
 	// x = ]-inf , +inf[ --> x = [0 , 1]

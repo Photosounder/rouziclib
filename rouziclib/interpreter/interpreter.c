@@ -15,7 +15,7 @@ void free_rlip(rlip_t *prog)
 	free(prog->vd);
 	free(prog->vi);
 	free(prog->vr);
-	free(prog->ptr);
+	free((void *) prog->ptr);
 	free(prog->return_value);
 	free(prog->return_real);
 	memset(prog, 0, sizeof(rlip_t));

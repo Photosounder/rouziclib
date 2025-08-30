@@ -486,9 +486,7 @@ void write_tiff_ifd_entry(FILE *file, size_t *misc_start, int tag, int type, uin
 	// Write the value or offset to the value data
 	for (i=0; i < write_count; i++)
 	{
-		if (val_size > 4)
-			fwrite_LE32(file, value);
-		else if (tiff_tag_type_size(type) == 4)
+		if (val_size > 4 || tiff_tag_type_size(type) == 4)
 			fwrite_LE32(file, value);
 		else if (tiff_tag_type_size(type) == 2)
 			fwrite_LE16(file, value);

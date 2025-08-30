@@ -224,7 +224,7 @@ int mz_inflateEnd(mz_streamp pStream)
         {                                                                                                                                                        \
             TINFL_CR_RETURN(state_index, (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS); \
         }                                                                                                                                                        \
-        c = *pIn_buf_cur++;                                                                                                                                      \
+        (c) = *pIn_buf_cur++;                                                                                                                                    \
     }                                                                                                                                                            \
     MZ_MACRO_END
 
@@ -254,7 +254,7 @@ int mz_inflateEnd(mz_streamp pStream)
         {                                    \
             TINFL_NEED_BITS(state_index, n); \
         }                                    \
-        b = bit_buf & ((1 << (n)) - 1);      \
+        (b) = bit_buf & ((1 << (n)) - 1);    \
         bit_buf >>= (n);                     \
         num_bits -= (n);                     \
     }                                        \
@@ -267,7 +267,7 @@ int mz_inflateEnd(mz_streamp pStream)
 #define TINFL_HUFF_BITBUF_FILL(state_index, pLookUp, pTree)                    \
     do                                                                         \
     {                                                                          \
-        temp = pLookUp[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)];                \
+        temp = (pLookUp)[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)];              \
         if (temp >= 0)                                                         \
         {                                                                      \
             code_len = temp >> 9;                                              \
@@ -279,7 +279,7 @@ int mz_inflateEnd(mz_streamp pStream)
             code_len = TINFL_FAST_LOOKUP_BITS;                                 \
             do                                                                 \
             {                                                                  \
-                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];           \
+                temp = (pTree)[~temp + ((bit_buf >> code_len++) & 1)];           \
             } while ((temp < 0) && (num_bits >= (code_len + 1)));              \
             if (temp >= 0)                                                     \
                 break;                                                         \
@@ -313,17 +313,17 @@ int mz_inflateEnd(mz_streamp pStream)
                 num_bits += 16;                                                                                                     \
             }                                                                                                                       \
         }                                                                                                                           \
-        if ((temp = pLookUp[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)]) >= 0)                                                          \
+        if ((temp = (pLookUp)[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)]) >= 0)                                                          \
             code_len = temp >> 9, temp &= 511;                                                                                      \
         else                                                                                                                        \
         {                                                                                                                           \
             code_len = TINFL_FAST_LOOKUP_BITS;                                                                                      \
             do                                                                                                                      \
             {                                                                                                                       \
-                temp = pTree[~temp + ((bit_buf >> code_len++) & 1)];                                                                \
+                temp = (pTree)[~temp + ((bit_buf >> code_len++) & 1)];                                                                \
             } while (temp < 0);                                                                                                     \
         }                                                                                                                           \
-        sym = temp;                                                                                                                 \
+        (sym) = temp;                                                                                                                 \
         bit_buf >>= code_len;                                                                                                       \
         num_bits -= code_len;                                                                                                       \
     }                                                                                                                               \
@@ -542,7 +542,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_nex
                         else
                             tree_cur = pTree[-tree_cur - 1];
                     }
-                    tree_cur -= ((rev_code >>= 1) & 1);
+                    tree_cur -= ((rev_code >> 1) & 1);
                     pTree[-tree_cur - 1] = (mz_int16)sym_index;
                 }
                 if (r->m_type == 2)

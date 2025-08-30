@@ -58,7 +58,6 @@ ctrl_button_state_t ctrl_button_chamf_state(const uint8_t *name, rect_t box, col
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 	rect_t boxb;
 	xy_t dim;
@@ -95,7 +94,6 @@ int ctrl_checkbox(int *state, const uint8_t *name, rect_t box, col_t colour)
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 
 	ctrl_button_invis(box, &butt_state);
@@ -126,14 +124,13 @@ ctrl_button_state_t ctrl_checkbox_pin(int *state, rect_t box, col_t colour)
 {
 	double intensity = 1.;
 	double scale = rect_min_side(box);
-	double total_scale = scale*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 
 	ctrl_button_invis(box, &butt_state);
 	if (butt_state.too_small || butt_state.out_of_screen)
 		return butt_state;
 
-	intensity *= intensity_scaling(total_scale, 24.);
+	intensity *= intensity_scaling(scale*zc.scrscale, 24.);
 
 	if (butt_state.over && butt_state.down==0)
 		draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.25*intensity);
@@ -190,7 +187,6 @@ rect_t selectmenu_rect(rect_t box, const int id)
 int ctrl_selectmenu(ctrl_selectmenu_state_t *state, rect_t box, col_t colour)
 {
 	double intensity = 1.;
-	double total_scale = rect_min_side(box)*zc.scrscale;
 	ctrl_button_state_t butt_state={0}, subbutt_state={0};
 	rect_t open_box, entry_box;
 	int i, ret = 0, over_something=0;

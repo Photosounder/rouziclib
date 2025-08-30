@@ -163,7 +163,7 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 
 			mean_lum = sum / sumw;
 			mean_col = mul_scalar_frgb(mean_col, 1./sumw);
-			sd = s0 = s1 = s2 = 0.;
+			s0 = s1 = s2 = 0.;
 
 			if (cp.bits_per_pixel==0)
 			{
@@ -264,7 +264,6 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 				memset(&col0, 0, sizeof(frgb_t));
 				memset(&col1, 0, sizeof(frgb_t));
 				memset(&colmid, 0, sizeof(frgb_t));
-				sumw = 0.;
 
 				int sec_count = cp.block_size*cp.block_size >> (cp.bits_per_pixel+1);
 				for (i=0; i < sec_count; i++)
@@ -279,7 +278,8 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 
 				// Find middle colour (between the luminosities of col0 and col1)
 				double /*mid, width,*/ weight;
-				/*mid = 0.5 * (col0.a + col1.a);
+				/*sumw = 0.;
+				mid = 0.5 * (col0.a + col1.a);
 				if (col1.a > col0.a)
 					width = 8. / (col1.a-col0.a);
 				else

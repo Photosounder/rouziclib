@@ -1,7 +1,7 @@
 // in vector/vector_struct.h:
 // seg_t, vobj_t
 
-#define NOC -98765.4321e30	// no coordinate provided
+#define NOC (-98765.4321e30)	// no coordinate provided
 
 extern vobj_t *alloc_vobj(int32_t count);
 extern void free_vobj(vobj_t *o);

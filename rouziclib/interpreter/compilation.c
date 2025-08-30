@@ -491,15 +491,15 @@ rlip_t rlip_compile(const char *source, rlip_inputs_t *inputs, int input_count, 
 				// Insert new lines into RLIP listing line array
 				size_t as = linecount, prev_linecount = linecount;
 				alloc_enough((void **) &line, linecount+=expr_linecount-1, &as, sizeof(void *), 1.5);		// expand the line array
-				memmove(&line[il+expr_linecount], &line[il+1], (prev_linecount-(il+1)) * sizeof(void *));	// move the lines of the original listing that follow
-				memcpy(&line[il], expr_line, expr_linecount * sizeof(void *));
+				memmove((void *) &line[il+expr_linecount], (void *) &line[il+1], (prev_linecount-(il+1)) * sizeof(void *));	// move the lines of the original listing that follow
+				memcpy((void *) &line[il], (void *) expr_line, expr_linecount * sizeof(void *));
 
 				if (il)
 				{
 					// Add buffer to be freed at the end of the compilation
 					alloc_enough((void **) &to_free, to_free_count+=1, &to_free_as, sizeof(void *), 1.5);
 					to_free[to_free_count-1] = expr_line[0];
-					free(expr_line);
+					free((void *) expr_line);
 				}
 			}
 			else
@@ -608,7 +608,7 @@ line_proc_start:
 			else
 			{
 				// Add location in table
-				ir = rlip_add_value(s0, &ed->op_count, "l", ed);
+				rlip_add_value(s0, &ed->op_count, "l", ed);
 			}
 		}
 
@@ -960,7 +960,6 @@ add_command:
 
 				// Count arguments
 				ed->d->ret_count = string_count_words(&p[n]);
-				int actual_max_ret_count = MINN(max_ret_count, top_op_ret_count);
 				if (ed->d->ret_count <= 0 || ed->d->ret_count > max_ret_count)
 				{
 					if (max_ret_count)

@@ -704,7 +704,6 @@ int parse_simple_glyph(ttf_glyph_t *glyph, int glyph_index, uint8_t *p, int avai
     glyph->outline = allocate_ttf_outline(glyph->ncontours, glyph->npoints);
     if (glyph->outline == NULL) return TTF_ERR_NOMEM;
 
-    j = 0;
     n = -1;
     for (i = 0; i < glyph->ncontours; i++)
     {

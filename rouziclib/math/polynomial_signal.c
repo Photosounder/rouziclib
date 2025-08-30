@@ -272,10 +272,7 @@ void polynomial_signal_eval(polynomial_signal_t *ps, double t_start, double t_st
 
 	// If it starts out of bounds skip ahead
 	if (ic < 0)
-	{
 		is = ceil((ps->start_time - t_start) / t_step);		// set the index of the first output sample
-		ic = 0;
-	}
 
 	double end_node_scale = chebyshev_node(ps->node_count, 0.);
 

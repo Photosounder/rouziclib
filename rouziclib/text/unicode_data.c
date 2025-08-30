@@ -74,7 +74,7 @@ unicode_data_t *load_unicode_data_from_file(uint8_t *ucd_path, int16_t ***codepo
 
 	linecount = count_linebreaks(udf) + 1;
 	ucd = calloc(linecount, sizeof(unicode_data_t));
-	(*codepoint_lut) = calloc(0x110000>>LUT_SHIFT, sizeof(int16_t *));
+	*codepoint_lut = (int16_t **) calloc(0x110000>>LUT_SHIFT, sizeof(int16_t *));
 
 	ic = 0;
 	while (fgets(line, sizeof(line), udf))
@@ -195,7 +195,7 @@ void init_unicode_data()
 	if (codepoint_lut)
 		return ;
 
-	codepoint_lut = calloc(0x110000>>LUT_SHIFT, sizeof(int16_t *));
+	codepoint_lut = (int16_t **) calloc(0x110000>>LUT_SHIFT, sizeof(int16_t *));
 
 	for (ic=0; ic < sizeof(unicode_data)/sizeof(*unicode_data); ic++)
 	{

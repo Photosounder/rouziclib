@@ -315,10 +315,7 @@ double intensity_scaling(double scale, double scale_limit)	// gives an intensity
 	double ratio = 1., x;
 	const double knee_width = 0.25, y_offset = sqrt(1.+knee_width) - 1.;
 
-	if (scale < scale_limit)
-		ratio = scale / scale_limit;
-
-	// linear adjust knee smoothing
+	// Linear adjust knee smoothing
 	x = scale / scale_limit;
 	ratio = sqrt(sq(x-1.)+knee_width) - x - 1. - y_offset;
 	ratio *= -0.5;

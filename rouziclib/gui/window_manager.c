@@ -74,7 +74,7 @@ int window_register(int priority, void *window_func, void *window_data, rect_t p
 		entry->window_func = window_func;
 		entry->window_data = window_data;
 		entry->ptr_count = num_args;
-		entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));
+		entry->ptr_array = (void **) calloc(entry->ptr_count, sizeof(void *));
 		i = -1;
 
 		goto skip_add2;		// skip to filling the entry and run the function
@@ -104,7 +104,7 @@ skip_add1:
 	entry->window_func = window_func;
 	entry->window_data = window_data;
 	entry->ptr_count = num_args;
-	entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));
+	entry->ptr_array = (void **) calloc(entry->ptr_count, sizeof(void *));
 	entry->newly_registered = 1;
 
 	// Set window orders
@@ -131,7 +131,7 @@ skip_add2:
 			window_run(entry);
 
 	if (wind_man.manager_is_calling)
-		free(entry->ptr_array);
+		free((void *) entry->ptr_array);
 
 	return i;
 }
@@ -150,7 +150,7 @@ int window_late_register(void *window_func, void *window_data, int num_args, ...
 	entry->window_func = window_func;
 	entry->window_data = window_data;
 	entry->ptr_count = num_args;
-	entry->ptr_array = calloc(entry->ptr_count, sizeof(void *));	// TODO maybe not alloc every time
+	entry->ptr_array = (void **) calloc(entry->ptr_count, sizeof(void *));	// TODO maybe not alloc every time
 
 	// Copy pointers to array
 	va_start(ap, num_args);
@@ -179,7 +179,7 @@ void window_man_sort(int reg_count)
 			j++;
 		}
 
-	qsort(wind_man.wsor, reg_count, sizeof(window_manager_entry_t *), cmp_window_man_order);
+	qsort((void *) wind_man.wsor, reg_count, sizeof(window_manager_entry_t *), cmp_window_man_order);
 
 	// Set new order
 	for (i=0; i < reg_count; i++)
@@ -196,7 +196,7 @@ void window_manager()
 	for (i=0; i < wind_man.window_count; i++)
 		if (wind_man.window[i].dereg)
 		{
-			free(wind_man.window[i].ptr_array);
+			free((void *) wind_man.window[i].ptr_array);
 			memset(&wind_man.window[i], 0, sizeof(window_manager_entry_t));
 		}
 		else if (wind_man.window[i].window_func)
@@ -231,7 +231,7 @@ void window_manager()
 	for (i=0; i < wind_man.late_window_count; i++)
 	{
 		window_run(&wind_man.late_window[i]);
-		free(wind_man.late_window[i].ptr_array);
+		free((void *) wind_man.late_window[i].ptr_array);
 		memset(&wind_man.late_window[i], 0, sizeof(window_manager_entry_t));
 	}
 	wind_man.late_window_count = 0;

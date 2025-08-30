@@ -679,7 +679,7 @@ void polynomial_x_substitution_2d(double **a, xyi_t adeg, double *xs, double *ys
 			free_2d(es, 1);
 		}
 
-	free(ys);
+	free((void *) ys);
 }
 
 double *chebyshev_coefs(int degree)
@@ -1216,7 +1216,7 @@ double minmax_find_k(int p_count, double *y, double *a, double *b, double *an, d
 	// Initial error
 	for (err0=0., i=0; i < p_count; i++)
 		err0 = MAXN(err0, fabs(y[i] - a[i]));
-	err2 = err1 = err0;
+	err1 = err0;
 
 	for (it=0; it < 200; it++)
 	{
@@ -1258,7 +1258,7 @@ double minmax_find_k(int p_count, double *y, double *a, double *b, double *an, d
 				k2 *= 1./8.;
 			else
 				k2 = k0;		// go back to k0
-			err2 = err1 = err0;
+			err1 = err0;
 			step = pow(step, decrement);	// lower the step
 			k2 *= step;
 		}

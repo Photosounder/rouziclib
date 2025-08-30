@@ -1,4 +1,4 @@
-#define strend(x)	&x[strlen(x)]
+#define strend(x)	&(x)[strlen(x)]
 
 #ifndef fprintf_rl
 #define fprintf_rl fprintf

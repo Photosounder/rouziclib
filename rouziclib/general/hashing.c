@@ -2,7 +2,7 @@
 
 uint64_t get_pointer_hash(const void *ptr)
 {
-	return XXH64(&ptr, sizeof(void *), 0);
+	return XXH64((void *) &ptr, sizeof(void *), 0);
 }
 
 uint64_t get_buffer_hash(const void *ptr, size_t size)

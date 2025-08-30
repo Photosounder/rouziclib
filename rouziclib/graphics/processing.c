@@ -150,7 +150,7 @@ float *get_pixel_address_contig(void *ptr, xyi_t dim, xyi_t ip, int channels)
 
 float *get_pixel_address_2d(void *ptr, xyi_t dim, xyi_t ip, int channels)
 {
-	float **array = ptr;
+	float **array = (float **) ptr;
 
 	return &array[ip.y][ip.x*channels];
 }

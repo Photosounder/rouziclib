@@ -108,10 +108,7 @@ void zoom_reset(zoom_t *zc, int8_t *flag_zoom_key)
 
 void zoom_key_released(zoom_t *zc, int8_t *flag_zoom_key, int source)	// source 1 is when the button is released, source 2 is while the button is being held down
 {
-	double td;
-	int zko = *flag_zoom_key;						// save the original zoom_key state
-
-	td = get_time_hr() - zc->zoom_key_time;					// time difference
+	double td = get_time_hr() - zc->zoom_key_time;				// time difference
 
 	if (source==1 && *flag_zoom_key==0 && zc->zoom_key_time)		// if the button was just released as the zoom was off and the timer running
 		zoom_toggle(zc, flag_zoom_key);					// turn the zoom on

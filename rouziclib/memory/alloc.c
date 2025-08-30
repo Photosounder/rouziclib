@@ -64,7 +64,7 @@ void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t
 	size_t i;
 	void **array;
 
-	array = calloc(ptr_count, sizeof(void *));
+	array = (void **) calloc(ptr_count, sizeof(void *));
 
 	for (i=0; i < ptr_count; i++)
 		array[i] = calloc(size_buffers, size_elem);
@@ -82,7 +82,7 @@ void **calloc_2d_contig_fullarg(const size_t ptr_count, const size_t size_buffer
 	ADD_CITA_INFO
 #endif
 
-	array = calloc(ptr_count, sizeof(void *));
+	array = (uint8_t **) calloc(ptr_count, sizeof(void *));
 	array[0] = calloc(ptr_count*size_buffers, size_elem);
 
 #ifdef ADD_CITA_INFO
@@ -100,7 +100,7 @@ void **array_1d_to_2d_contig(void *array_1d, const size_t ptr_count, const size_
 	size_t i;
 	uint8_t **array;
 
-	array = calloc(ptr_count, sizeof(void *));
+	array = (uint8_t **) calloc(ptr_count, sizeof(void *));
 	array[0] = array_1d;
 
 	for (i=1; i < ptr_count; i++)
@@ -127,7 +127,7 @@ void **copy_2d(void **ptr, const size_t ptr_count, const size_t size_buffers)
 	size_t i;
 	void **array;
 
-	array = calloc(ptr_count, sizeof(void *));
+	array = (void **) calloc(ptr_count, sizeof(void *));
 	if (array==NULL)
 		return NULL;
 
@@ -170,7 +170,7 @@ void free_2d(void **ptr, const size_t count)
 	for (i=0; i < count; i++)
 		free(ptr[i]);
 
-	free(ptr);
+	free((void *) ptr);
 }
 
 void free_null_2d(void ***ptr, const size_t count)
@@ -232,6 +232,6 @@ void free_alloc_list(alloc_list_t *list)
 	for (int i=0; i < list->len; i++)
 		free_null(&list->list[i]);
 
-	free(list->list);
+	free((void *) list->list);
 	memset(list, 0, sizeof(alloc_list_t));
 }

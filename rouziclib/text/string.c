@@ -24,7 +24,7 @@ char **make_string_array_copy(const char **orig, const size_t count)
 	size_t i;
 	char **copy;
 
-	copy = calloc(count, sizeof(char *));
+	copy = (char **) calloc(count, sizeof(char *));
 	if (copy==NULL)
 		return NULL;
 

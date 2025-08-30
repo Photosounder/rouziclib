@@ -10,7 +10,7 @@ double **erf_polygon_ref_polynomial(xyi_t deg2d, xy_t range, int opt_transformat
 	ddouble_t *cm = calloc(degree+2, sizeof(ddouble_t));
 	ddouble_t *cmi = calloc(degree+3, sizeof(ddouble_t));
 	double **im = (double **) calloc_2d_contig(slope_count, p_count, sizeof(double));
-	double **cm2d = (double **) calloc_2d_contig(deg2d.y, deg2d.x, sizeof(double));
+	double **cm2d = NULL;
 
 	// Make the integral of the polynomial for every slope
 	for (id.y=0; id.y < slope_count; id.y++)

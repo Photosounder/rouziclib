@@ -53,8 +53,7 @@ void free_gui_layout(gui_layout_t *layout)
 
 	for (i=0; i < layout->elem_as; i++)
 		free_layout_elem(layout->elem[i]);
-
-	free(layout->elem);
+	free((void *) layout->elem);
 	free(layout->value);
 
 	memset(layout, 0, sizeof(gui_layout_t));
@@ -313,7 +312,7 @@ void make_gui_layout(gui_layout_t *layout, const char **src, const int linecount
 		{
 			p = string_parse_fractional_12(p, &cur_elem->pos_off.x);
 			if (p[0])
-				p = string_parse_fractional_12(p, &cur_elem->pos_off.y);
+				string_parse_fractional_12(p, &cur_elem->pos_off.y);
 			else
 				cur_elem->pos_off.y = cur_elem->pos_off.x;
 		}

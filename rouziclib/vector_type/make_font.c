@@ -67,7 +67,7 @@ void font_parse_p_line(char *line, xy_t *pv, int *pid, letter_t *l)
 
 		p = &p[n];
 		p = string_parse_fractional_12(p, &pv[l->point_count].x);
-		p = string_parse_fractional_12(p, &pv[l->point_count].y);
+		string_parse_fractional_12(p, &pv[l->point_count].y);
 		pid[ip + l->pid_offset] = l->point_count;
 		l->point_count++;
 
@@ -139,7 +139,7 @@ void font_parse_rect_line(char *line, xy_t *pv, int *pid, letter_t *l)
 	p = string_parse_fractional_12(p, &r.p0.x);
 	p = string_parse_fractional_12(p, &r.p0.y);
 	p = string_parse_fractional_12(p, &r.p1.x);
-	p = string_parse_fractional_12(p, &r.p1.y);
+	string_parse_fractional_12(p, &r.p1.y);
 
 	for (i=0; i<4; i++)
 	{
@@ -168,7 +168,7 @@ void font_parse_circle_line(char *line, xy_t *pv, int *pid, letter_t *l)
 	p = string_parse_fractional_12(p, &radius);
 	p = string_parse_fractional_12(p, &centre.x);
 	p = string_parse_fractional_12(p, &centre.y);
-	p = string_parse_fractional_12(p, &start_angle);
+	string_parse_fractional_12(p, &start_angle);
 	start_angle = (start_angle + 0.) * -2.*pi / 12.;	// makes positive angles go clockwise
 
 	if (radius==0.)
@@ -200,7 +200,7 @@ void font_parse_mirror_line(char *line, xy_t *pv, int *pid, letter_t *l)
 	sscanf(p, " mirror %c %n%*s p%d p%d p%d", &hv, &n, &p_first, &p_last, &p_start);
 	p = &p[n];
 
-	p = string_parse_fractional_12(p, &mirror_pos);
+	string_parse_fractional_12(p, &mirror_pos);
 
 	for (op=p_first; op<=p_last; op++)
 	{
@@ -300,7 +300,7 @@ void font_parse_bounds_line(char *line, letter_t *l)
 
 	double v;
 	p = string_parse_fractional_12(p, &v);		l->bl = v;
-	p = string_parse_fractional_12(p, &v);		l->br = v;
+	string_parse_fractional_12(p, &v);		l->br = v;
 }
 
 void font_parse_vbounds_line(char *line, letter_t *l)
@@ -311,7 +311,7 @@ void font_parse_vbounds_line(char *line, letter_t *l)
 
 	double v;
 	p = string_parse_fractional_12(p, &v);		l->bb = v;
-	p = string_parse_fractional_12(p, &v);		l->bt = v;
+	string_parse_fractional_12(p, &v);		l->bt = v;
 }
 
 void font_parse_transform_line(char *line, char *a, letter_t *l, glyphdata_t *gd, int group_start, int last_start)
@@ -401,8 +401,8 @@ void font_parse_transform_line(char *line, char *a, letter_t *l, glyphdata_t *gd
 		// get point to transform around
 		if (to_offset)
 		{
-			p = string_parse_fractional_12(p, &o.x);		// origin X
-			p = string_parse_fractional_12(p, &o.y);		// origin Y
+			p = string_parse_fractional_12(p, &o.x);	// origin X
+			string_parse_fractional_12(p, &o.y);		// origin Y
 			m.x.z = o.x - o.x * m.x.x - o.y * m.x.y;
 			m.y.z = o.y - o.x * m.y.x - o.y * m.y.y;
 		}
@@ -781,7 +781,7 @@ vector_font_t *init_font()
 	font = calloc(1, sizeof(vector_font_t));
 
 	font->l = calloc(font->alloc_count = 256, sizeof(letter_t));
-	font->codepoint_letter_lut = calloc(0x110000>>CODEPOINT_LUT_SHIFT, sizeof(int32_t *));
+	font->codepoint_letter_lut = (int32_t **) calloc(0x110000>>CODEPOINT_LUT_SHIFT, sizeof(int32_t *));
 
 	font->letter_spacing = 1.5;	// spacing between each letter
 	font->line_vspacing = 10.;	// offset for each line
