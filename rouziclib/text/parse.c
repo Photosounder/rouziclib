@@ -259,7 +259,7 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 	len = strlen(text);
 	if (len==0)		// if the text is empty
 	{
-		array = calloc(1, sizeof(char *));
+		array = (char **) calloc(1, sizeof(char *));
 		array[0] = text;
 
 		return array;
@@ -267,7 +267,7 @@ char **arrayise_text(char *text, int *linecount)	// turns line breaks into null 
 
 	*linecount = get_string_linecount(text, len);
 
-	array = calloc(*linecount, sizeof(char *));
+	array = (char **) calloc(*linecount, sizeof(char *));
 	array[0] = text;
 
 	// Set the pointers to the start of each line and replace all line breaks with \0
@@ -415,19 +415,28 @@ const char *find_date_time_in_string(const char *str)
 
 double parse_timestamp(const char *ts)
 {
-	double t = NAN, hh=0., mm=0., ss=0.;
+	double hh=0., mm=0., ss=0.;
 	const char *p;
+	int n = 0;
 
 	if (p = find_pattern_in_string(ts, "\376\376:\376\376:\376\376"))	// see if it contains hours (HH)
-		sscanf(p, "%lg:%lg:%lg", &hh, &mm, &ss);
+		sscanf(p, "%lg:%lg:%lg%n", &hh, &mm, &ss, &n);
 	else if (p = find_pattern_in_string(ts, "\376:\376\376:\376\376"))	// see if it contains hours (H)
-		sscanf(p, "%lg:%lg:%lg", &hh, &mm, &ss);
+		sscanf(p, "%lg:%lg:%lg%n", &hh, &mm, &ss, &n);
 	else if (p = find_pattern_in_string(ts, "\376\376:\376\376"))		// see if it contains minutes (MM)
-		sscanf(p, "%lg:%lg", &mm, &ss);
+		sscanf(p, "%lg:%lg%n", &mm, &ss, &n);
 	else if (p = find_pattern_in_string(ts, "\376:\376\376"))		// see if it contains minutes (M)
-		sscanf(p, "%lg:%lg", &mm, &ss);
+		sscanf(p, "%lg:%lg%n", &mm, &ss, &n);
 	else									// it contains only seconds
-		sscanf(ts, "%lg", &ss);
+		sscanf(ts, "%lg%n", &ss, &n);
+
+	// Find milliseconds after a comma
+	if (p[n] == ',')
+	{
+		uint8_t d[3] = {0};
+		sscanf(&p[n+1], "%1"SCNu8 "%1"SCNu8 "%1"SCNu8, &d[2], &d[1], &d[0]);
+		ss += (d[2]*100. + d[1]*10. + d[0]) / 100.;
+	}
 
 	return (hh*60. + mm)*60. + ss;
 }
