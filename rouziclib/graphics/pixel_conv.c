@@ -142,10 +142,10 @@ lrgb_t frgb_to_lrgb(frgb_t cf)
 #ifndef RL_INTEL_INTR
 	lrgb_t c;
 
-	c.r = MINN(1., cf.r) * ONEF + 0.5;
-	c.g = MINN(1., cf.g) * ONEF + 0.5;
-	c.b = MINN(1., cf.b) * ONEF + 0.5;
-	c.a = MINN(1., cf.a) * ONEF + 0.5;
+	c.r = MINN(1., cf.r) * ONEF + 0.5f;
+	c.g = MINN(1., cf.g) * ONEF + 0.5f;
+	c.b = MINN(1., cf.b) * ONEF + 0.5f;
+	c.a = MINN(1., cf.a) * ONEF + 0.5f;
 
 	return c;
 #else
@@ -157,10 +157,10 @@ srgb_t frgb_to_srgb(frgb_t cf)
 {
 	srgb_t c;
 
-	c.r = fast_lsrgbf(MINN(1., cf.r)) * 255.f + 0.5;
-	c.g = fast_lsrgbf(MINN(1., cf.g)) * 255.f + 0.5;
-	c.b = fast_lsrgbf(MINN(1., cf.b)) * 255.f + 0.5;
-	c.a = fast_lsrgbf(MINN(1., cf.a)) * 255.f + 0.5;
+	c.r = fast_lsrgbf(MINN(1., cf.r)) * 255.f + 0.5f;
+	c.g = fast_lsrgbf(MINN(1., cf.g)) * 255.f + 0.5f;
+	c.b = fast_lsrgbf(MINN(1., cf.b)) * 255.f + 0.5f;
+	c.a = fast_lsrgbf(MINN(1., cf.a)) * 255.f + 0.5f;
 
 	return c;
 }
@@ -169,9 +169,20 @@ sqrgb_t frgb_to_sqrgb(frgb_t f)
 {
 	sqrgb_t s;
 
-	s.r = sqrtf(rangelimitf(f.r, 0.f, 1.f)) * 1023. + 0.5;
-	s.g = sqrtf(rangelimitf(f.g, 0.f, 1.f)) * 4092. + 0.5;
-	s.b = sqrtf(rangelimitf(f.b, 0.f, 1.f)) * 1023. + 0.5;
+	s.r = sqrtf(rangelimitf(f.r, 0.f, 1.f)) * 1023.f + 0.5f;
+	s.g = sqrtf(rangelimitf(f.g, 0.f, 1.f)) * 4092.f + 0.5f;
+	s.b = sqrtf(rangelimitf(f.b, 0.f, 1.f)) * 1023.f + 0.5f;
+
+	return s;
+}
+
+sqrgb_t lrgb_to_sqrgb(lrgb_t l)
+{
+	sqrgb_t s;
+
+	s.r = (uint32_t) sqrtf(l.r << (30-LBD)) * 1023 + 16384 >> 15;
+	s.g = (uint32_t) sqrtf(l.g << (30-LBD)) * 4092 + 16384 >> 15;
+	s.b = (uint32_t) sqrtf(l.b << (30-LBD)) * 1023 + 16384 >> 15;
 
 	return s;
 }

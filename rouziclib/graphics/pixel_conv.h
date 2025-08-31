@@ -16,6 +16,7 @@ extern __m128 _mm_get_raster_pixel_sqrgb_to_ps(raster_t *r, const size_t index);
 extern lrgb_t frgb_to_lrgb(frgb_t cf);
 extern srgb_t frgb_to_srgb(frgb_t cf);
 extern sqrgb_t frgb_to_sqrgb(frgb_t f);
+extern sqrgb_t lrgb_to_sqrgb(lrgb_t l);
 
 #ifdef RL_INTEL_INTR
 extern void _mm_set_raster_pixel_ps_to_frgb(raster_t *r, const size_t index, __m128 f);  // SSE
