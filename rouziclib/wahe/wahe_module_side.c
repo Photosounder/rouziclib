@@ -11,13 +11,15 @@ void wahe_rl_parse_inputs(const char *line, int *received_input)
 
 		if (isnan_xy(pos))
 		{
-			pos = set_xy(1e30);
+			//pos = set_xy(1e30);
 			*received_input = 0;
 		}
-
-		mouse.d = sub_xy(pos, mouse.a);
-		mouse.a = pos;
-		mouse.u = wc_xy(pos);
+		else
+		{
+			mouse.d = sub_xy(pos, mouse.a);
+			mouse.a = pos;
+			mouse.u = wc_xy(pos);
+		}
 	}
 
 	//if (sscanf(line, "Mouse delta %lg %lg", &pos.x, &pos.y) == 2)
