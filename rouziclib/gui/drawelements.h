@@ -13,5 +13,5 @@ extern void draw_rangebox_fade_to_solid(rect_t box, const char *label, col_t col
 #define draw_unit_grid(offset, sm)	draw_unit_grid_col(offset, sm, make_grey(0.012))
 
 #ifndef GUI_COL_DEF
-#define GUI_COL_DEF	make_grey(0.25)
+#define GUI_COL_DEF	make_grey(0.35)
 #endif
