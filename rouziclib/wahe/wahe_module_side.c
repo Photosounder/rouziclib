@@ -2,6 +2,12 @@ void wahe_rl_parse_inputs(const char *line, int *received_input)
 {
 	int i, n;
 
+	// Check for "Mouse" keyword
+	n = 0;
+	sscanf(line, "Mouse%n", &n);
+	if (n == 0)
+		goto skip_mouse;
+
 	// Generic user input
 	// Mouse position
 	xy_t pos;
@@ -22,8 +28,26 @@ void wahe_rl_parse_inputs(const char *line, int *received_input)
 		}
 	}
 
-	//if (sscanf(line, "Mouse delta %lg %lg", &pos.x, &pos.y) == 2)
-	//	mouse.d = pos;
+	if (sscanf(line, "Mouse delta %lg %lg", &pos.x, &pos.y) == 2)
+		mouse.d = pos;
+
+	// Mouse capture/release
+	n = 0;
+	sscanf(line, "Mouse capture%n", &n);
+	if (n)
+	{
+		mouse.warp = 1;
+		mouse.b.orig = zc.offset_u;
+	}
+
+	n = 0;
+	sscanf(line, "Mouse release%n", &n);
+	if (n)
+	{
+		mouse.warp = 0;
+		mouse.b.orig = zc.offset_u;
+		mouse.u = zc.offset_u;
+	}
 
 	// Mouse buttons
 	char mb_name[7], mb_state_name[7];
@@ -55,6 +79,7 @@ void wahe_rl_parse_inputs(const char *line, int *received_input)
 		zoom_wheel(&zc, mouse.zoom_flag, mouse.b.wheel);
 		*received_input = 1;
 	}
+skip_mouse:
 
 	// Text input
 	n = 0;

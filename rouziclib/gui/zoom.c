@@ -83,11 +83,14 @@ void zoom_toggle(zoom_t *zc, int8_t *flag_zoom_key)
 		#endif
 		zc->mouse->a = xyi_to_xy(div_xyi(fb->real_dim, set_xyi(2)));
 		zc->mouse->u = to_world_coord_xy(zc->mouse->a);
+		zc->mouse->b.orig = zc->mouse->u;
 
 		#ifdef __EMSCRIPTEN__
 		em_release_cursor();
 		#endif
 	}
+
+	mouse.warp = *flag_zoom_key;
 
 	calc_screen_limits(zc);
 }

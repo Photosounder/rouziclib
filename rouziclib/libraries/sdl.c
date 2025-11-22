@@ -244,10 +244,12 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 
 	#ifdef __EMSCRIPTEN__					// emscripten doesn't have SDL_GetGlobalMouseState
 	but_state = SDL_GetMouseState(&mpos_x, &mpos_y);
+	#endif
+
 	mpos = xy(mpos_x, mpos_y);
+	mpos = sub_xy(mpos, wr.p0);
 	wr.p1 = sub_xy(wr.p1, wr.p0);
 	wr.p0 = XY0;
-	#endif
 
 	inside_window = check_point_within_box(mpos, wr);
 
@@ -264,7 +266,7 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	}
 
 	if (mouse->warp==0)
-		mouse->a = div_xy(sub_xy(mpos, wr.p0), set_xy(fb->pixel_scale));
+		mouse->a = div_xy(mpos, set_xy(fb->pixel_scale));
 
 	if (mouse->mouse_focus_flag <= 0)	// only process global buttons if the mouse is outside the window
 	{

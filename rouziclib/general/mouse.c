@@ -128,21 +128,10 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 	}
 
 	// Post-input logic
-	#ifdef __EMSCRIPTEN__
-	if (mouse->warp != mouse->warp_prev)
-	{
-		if (mouse->warp)
-			em_capture_cursor();
-		else
-			em_release_cursor();
-	}
-	#endif
-
 	if (mouse->warp != mouse->warp_prev)	// prevent recording jumps when switching warp modes
 		mouse->discard_warp_first_move = 1;
 
-	mouse->warp_prev = mouse->warp;
-	if (mouse->warp_if_move==0)
+	if (mouse->warp_if_move == 0 && mouse->zoom_flag == 0)
 	{
 		mouse->showcursor = 0;
 		mouse->warp = 0;
@@ -254,6 +243,26 @@ void mousecursor_logic_and_draw()
 		#endif
 	}
 
+	#ifdef __EMSCRIPTEN__
+	if (mouse.warp != mouse.warp_prev)
+	{
+		if (mouse.warp)
+			em_capture_cursor();
+		else
+			em_release_cursor();
+	}
+	#endif
+
+	#ifdef WAHE_MODULE
+	if (mouse.warp != mouse.warp_prev)
+	{
+		if (mouse.warp)
+			wahe_run_command("Mouse capture");
+		else
+			wahe_run_command("Mouse release");
+	}
+	#endif
+
 	//if (mouse.window_focus_flag < 0)
 	//	mouse.showcursor = 0;
 
@@ -271,4 +280,6 @@ void mousecursor_logic_and_draw()
 
 	// Zoom overlay control
 	zoom_overlay_control(&zc, &mouse.zoom_flag);
+
+	mouse.warp_prev = mouse.warp;
 }
