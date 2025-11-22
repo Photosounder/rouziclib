@@ -15,46 +15,46 @@ ddouble_t ddouble(const double v)
 #ifdef _gcc_
 __attribute__((optimize("-fno-fast-math")))
 #endif
-ddouble_t add_dd_q_quick(double a, double b)
+ddouble_t add_dd_q_quick(double a, double b)	// 3.14, 900
 {
 	ddouble_t r;
-	r.hi = a + b;
-	r.lo = b - (r.hi - a);
+	r.hi = a + b;				// 903
+	r.lo = b - (r.hi - a);			// 900 - (903 - 3.14) = 900 - 900 = 0
+	return r;				// would be precise if a > b
+}
+
+#ifdef _gcc_
+__attribute__((optimize("-fno-fast-math")))
+#endif
+ddouble_t add_dd_q(double a, double b)		// 3.14, 900
+{
+	ddouble_t r;
+	r.hi = a + b;				// 903
+	double v = r.hi - a;			// 903 - 3.14 = 900
+	r.lo = (a - (r.hi - v)) + (b - v);	// (3.14 - (903 - 900)) + (900 - 900) = 0.14
 	return r;
 }
 
 #ifdef _gcc_
 __attribute__((optimize("-fno-fast-math")))
 #endif
-ddouble_t add_dd_q(double a, double b)
+ddouble_t sub_dd_q(double a, double b)		// 3.14, 900
 {
 	ddouble_t r;
-	r.hi = a + b;
-	double v = r.hi - a;
-	r.lo = (a - (r.hi - v)) + (b - v);
+	r.hi = a - b;				// 3.14 - 900 = -897
+	double v = r.hi - a;			// -897 - 3.14 = -900
+	r.lo = (a - (r.hi - v)) - (b + v);	// (3.14 - (-897 - -900)) - (900 + -900) = 0.14
 	return r;
 }
 
 #ifdef _gcc_
 __attribute__((optimize("-fno-fast-math")))
 #endif
-ddouble_t sub_dd_q(double a, double b)
+ddouble_t mul_dd_q(double a, double b)		// 6.28, 0.333
 {
 	ddouble_t r;
-	r.hi = a - b;
-	double v = r.hi - a;
-	r.lo = (a - (r.hi - v)) - (b + v);
-	return r;
-}
-
-#ifdef _gcc_
-__attribute__((optimize("-fno-fast-math")))
-#endif
-ddouble_t mul_dd_q(double a, double b)
-{
-	ddouble_t r;
-	r.hi = a * b;
-	r.lo = fma(a, b, -r.hi);
+	r.hi = a * b;				// 2.09
+	r.lo = fma(a, b, -r.hi);		// 2.09124 - 2.09 = 0.00124
 	return r;
 }
 
@@ -77,10 +77,10 @@ ddouble_t sub_dq(double a, ddouble_t b)
 	return add_qd(neg_q(b), a);
 }
 
-ddouble_t mul_qd(ddouble_t a, double b)
+ddouble_t mul_qd(ddouble_t a, double b)			  // 6.28319, 0.333
 {
-	ddouble_t c = mul_dd_q(a.hi, b);
-	return add_dd_q_quick(c.hi, fma(a.lo, b, c.lo));
+	ddouble_t c = mul_dd_q(a.hi, b);		  // 6.28 * 0.333 = 2.09124
+	return add_dd_q_quick(c.hi, fma(a.lo, b, c.lo));  // 2.09 + (0.00319 * 0.333 + 0.00124) = 2.09 + (0.00106 + 0.00124) = 2.09 + 0.00230
 }
 
 #ifdef _gcc_
@@ -122,26 +122,29 @@ ddouble_t sub_qq(ddouble_t a, ddouble_t b)
 }
 
 // Based on https://stackoverflow.com/a/31647953/1675589
-#ifdef _gcc_
-__attribute__((optimize("-fno-fast-math")))
-#endif
-ddouble_t mul_qq(ddouble_t a, ddouble_t b)
+ddouble_t mul_qq(ddouble_t a, ddouble_t b)			// 6.283 1853, 0.3333 3333
 {
-	ddouble_t r, m;
-	const double c = 134217729.;
-	double up, u1, u2, vp, v1, v2;
+	ddouble_t r;
+	double a1, a2, b1, b2;
 
-	up = a.hi*c;        vp = b.hi*c;
-	u1 = (a.hi-up)+up;  v1 = (b.hi-vp)+vp;
-	u2 = a.hi-u1;       v2 = b.hi-v1;
+	// Simple high multiplication
+	r.hi = a.hi * b.hi;					// 6.283 * 0.3333 = 2.094
 
-	m.hi = a.hi*b.hi;
-	m.lo = (((u1*v1-m.hi)+(u1*v2))+(u2*v1))+(u2*v2);
+	// Mantissa splitting by rounding the last 27 bits to 0
+	const uint64_t mm = 0xFFFFFFFFF8000000ULL, ma = 0x04000000ULL;
+	a1 = u64_as_double(double_as_u64(a.hi)+ma & mm);	// 6.283 -> 6.3
+	b1 = u64_as_double(double_as_u64(b.hi)+ma & mm);	// 0.3333 -> 0.33
+	a2 = a.hi - a1;						// 6.283 - 6.3 = -0.017
+	b2 = b.hi - b1;						// 0.3333 - 0.33 = 0.0033
 
-	m.lo += a.hi*b.lo + a.lo*b.hi;
-	r.hi = m.hi + m.lo;
-	r.lo = m.hi - r.hi + m.lo;
+	// Exact multiplications of half mantissas
+	r.lo = (a1*b1 - r.hi) + a1*b2 + a2*b1 + a2*b2;		// (6.3*0.33 - 2.094) + 6.3*0.0033 + -0.017*0.33 + -0.017*0.0033
+								// = (2.079 - 2.094) + 0.02079 + -0.00561 + -0.0000561 = -0.015+0.02079-0.00561-0.0000561 = 0.00579-0.00561-0.0000561 = 0.00018-0.0000561 = 0.0001239
+	// Add high-low multiplications
+	r.lo += a.hi*b.lo + a.lo*b.hi;				// 0.0001239 + (6.283 * 0.00003333 + 0.0001853 * 0.3333) = 0.0001239 + (0.0002094 + 0.00006176) = 0.0001239 + 0.0002712 = 0.0003951
 
+	// Canonical form
+	r = add_dd_q_quick(r.hi, r.lo);				// 2.094 + 0.0003951
 	return r;
 }
 
