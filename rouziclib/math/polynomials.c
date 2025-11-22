@@ -774,12 +774,17 @@ double **chebyshev_coefs_2d(xyi_t degree, double **t)
 	return t;
 }
 
+double chebyshev_node_edge_mode_degree = 0.;
+
 double chebyshev_node(double degree, double node)		// node = 0,...,degree-1  FIXME degree isn't really degree but degree+1
 {
 	if (degree < 1. || node+0.5 < 0. || node+0.5 > degree)
 		return 0.;
 
-	return cos(pi * (node + 0.5) / degree);
+	double v = cos(pi * (node + 0.5) / degree);
+	if (chebyshev_node_edge_mode_degree)
+		v /= cos(pi * 0.5 / (chebyshev_node_edge_mode_degree+1.));
+	return v;
 }
 
 ddouble_t chebyshev_node_q(double degree, double node)
@@ -920,6 +925,15 @@ void polynomial_fit_on_points_by_dct(double *y, int p_count, double start, doubl
 
 	memset(c, 0, (degree+1)*sizeof(double));
 	alloc_enough(&ccm, degree+1, &ccm_as, sizeof(double), 1.5);
+
+	// Enlarge the range in edge mode
+	if (chebyshev_node_edge_mode_degree)
+	{
+		double scale = 1. / cos(pi * 0.5 / (chebyshev_node_edge_mode_degree+1.));
+		double centre = (start + end) * 0.5;
+		end   = (end   - centre) * scale + centre;
+		start = (start - centre) * scale + centre;
+	}
 
 	// x substitution for the shifting
 	xs[0] = -2.*start/(end-start) - 1.;

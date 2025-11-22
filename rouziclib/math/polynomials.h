@@ -57,3 +57,5 @@ extern double reduce_digits(double (*f)(double), double segstart, double segend,
 extern double reduce_digits_2d(double (*f)(double,double), xy_t segstart, xy_t segend, double **c, const xyi_t degree, int errmode, double added_error_thresh, double digits);
 
 enum { NEGMODE, DIVMODE };
+
+extern double chebyshev_node_edge_mode_degree;
