@@ -431,7 +431,7 @@ double parse_timestamp(const char *ts)
 		sscanf(ts, "%lg%n", &ss, &n);
 
 	// Find milliseconds after a comma
-	if (p[n] == ',')
+	if (p && n && p[n] == ',')
 	{
 		uint8_t d[3] = {0};
 		sscanf(&p[n+1], "%1"SCNu8 "%1"SCNu8 "%1"SCNu8, &d[2], &d[1], &d[0]);
