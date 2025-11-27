@@ -144,6 +144,9 @@ Audio system that can call multiple callbacks, mix their outputs, register them,
 ** link:rouziclib/general/midi.c[midi.c] / link:rouziclib/general/midi.h[midi.h] +
 MIDI device input on Windows.
 
+** link:rouziclib/general/portable_simd.h[portable_simd.h] +
+Portable SIMD functions based on the WebAssembly SIMD feature set. The idea is that compilers can autovectorise these functions, otherwise it falls back to scalar loops.
+
 ** link:rouziclib/general/structs.h[structs.h] +
 Generic buffer structure and generic lookup table structure.
 
@@ -270,6 +273,9 @@ Conversions between different pixel formats, with Intel x86 SIMD versions.
 
 ** link:rouziclib/graphics/srgb.c[srgb.c] / link:rouziclib/graphics/srgb.h[srgb.h] +
 Conversions between linear valued and gamma-compressed sRGB.
+
+** link:rouziclib/graphics/srgb_simd.c[srgb_simd.c] / link:rouziclib/graphics/srgb_simd.h[srgb_simd.h] +
+SIMD approximations that are faster than even look up tables. Approximations for log2, exp2, non-overflowing integer division by 2.4 by right shifts, sRGB conversions.
 
 ** link:rouziclib/graphics/sqrgb.c[sqrgb.c] / link:rouziclib/graphics/sqrgb.h[sqrgb.h] +
 Conversions for the 10-bit square root pixel format.

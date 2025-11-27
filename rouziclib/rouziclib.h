@@ -106,6 +106,7 @@ extern "C" {
 #include "general/crash_dump.h"			// used if RL_CRASHDUMP is defined
 #include "general/audio.h"
 #include "general/midi.h"
+#include "general/portable_simd.h"
 
 #include "memory/alloc.h"
 #include "memory/fill.h"
@@ -144,6 +145,7 @@ extern "C" {
 #include "graphics/graphics.h"
 #include "graphics/pixel_conv.h"
 #include "graphics/srgb.h"
+#include "graphics/srgb_simd.h"
 #include "graphics/sqrgb.h"
 #include "graphics/yuv.h"
 #include "graphics/colour.h"

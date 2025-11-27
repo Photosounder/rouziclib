@@ -59,6 +59,7 @@
 #include "graphics/graphics.c"
 #include "graphics/pixel_conv.c"
 #include "graphics/srgb.c"
+#include "graphics/srgb_simd.c"
 #include "graphics/sqrgb.c"
 #include "graphics/yuv.c"
 #include "graphics/colour.c"
