@@ -14,10 +14,33 @@ typedef union
 } v128_t;
 
 // Utilities
-static inline int8_t  sat8_s(int16_t v)  { if (v > INT8_MAX)  v = INT8_MAX;  if (v < INT8_MIN)  v = INT8_MIN;  return v; }
+static inline int8_t  sat8_s(int16_t v) { if (v > INT8_MAX)  v = INT8_MAX;  if (v < INT8_MIN)  v = INT8_MIN;  return v; }
 static inline int16_t sat16_s(int32_t v) { if (v > INT16_MAX) v = INT16_MAX; if (v < INT16_MIN) v = INT16_MIN; return v; }
-static inline uint8_t  sat8_u(int16_t v)  { if (v > UINT8_MAX)  v = UINT8_MAX;  if (v < 0)  v = 0; return v; }
+static inline uint8_t  sat8_u(int16_t v) { if (v > UINT8_MAX)  v = UINT8_MAX;  if (v < 0)  v = 0; return v; }
 static inline uint16_t sat16_u(int32_t v) { if (v > UINT16_MAX) v = UINT16_MAX; if (v < 0)  v = 0; return v; }
+static inline float  sat32_sf32(float v) { if (v > (float)INT32_MAX)  v = (float)INT32_MAX;  if (v < (float)INT32_MIN) v = (float)INT32_MIN; return v; }
+static inline float  sat32_uf32(float v) { if (v > (float)UINT32_MAX) v = (float)UINT32_MAX; if (v < 0.f) v = 0.f; return v; }
+static inline double sat32_sf64(double v) { if (v > (double)INT32_MAX)  v = (double)INT32_MAX;  if (v < (double)INT32_MIN) v = (double)INT32_MIN; return v; }
+static inline double sat64_uf64(double v) { if (v > (double)UINT64_MAX) v = (double)UINT64_MAX; if (v < 0.) v = 0.; return v; }
+
+static inline uint8_t popcnt8(uint8_t x)
+{
+#if defined(__GNUC__)
+	return __builtin_popcount(x);
+#endif
+	x -= ((x >> 1) & 0x55);
+	x = (x & 0x33) + ((x >> 2) & 0x33);
+	return (x + (x >> 4)) & 0xF;
+}
+
+static inline float op96_f32_min(float a, float b) { if (isnan(a)) return b; if (isnan(b)) return a; return (a < b) ? a : b; }
+static inline float op97_f32_max(float a, float b) { if (isnan(a)) return b; if (isnan(b)) return a; return (a > b) ? a : b; }
+static inline double opA4_f64_min(double a, double b) { if (isnan(a)) return b; if (isnan(b)) return a; return MINN(a, b); }
+static inline double opA5_f64_max(double a, double b) { if (isnan(a)) return b; if (isnan(b)) return a; return MAXN(a, b); }
+static inline  int32_t opFC00_i32_trunc_sat_f32_s(float  v) { return isnan(v) ? 0 : (int32_t)sat32_sf32(v); }
+static inline uint32_t opFC01_i32_trunc_sat_f32_u(float  v) { return isnan(v) ? 0 : (uint32_t)sat32_uf32(v); }
+static inline  int32_t opFC02_i32_trunc_sat_f64_s(double v) { return isnan(v) ? 0 : (int32_t)sat32_sf64(v); }
+static inline uint64_t opFC07_i64_trunc_sat_f64_u(double v) { return isnan(v) ? 0 : (uint64_t)sat64_uf64(v); }
 
 // Const
 static inline v128_t v128_const(uint64_t a, uint64_t b) { v128_t r; r.u64[0] = a; r.u64[1] = b; return r; }
@@ -130,18 +153,6 @@ static inline int32_t i8x16_all_true(v128_t v) { for (int i=0; i<16; i++) if (v.
 static inline int32_t i16x8_all_true(v128_t v) { for (int i=0; i<8; i++) if (v.u16[i] == 0) return 0; return 1; }
 static inline int32_t i32x4_all_true(v128_t v) { for (int i=0; i<4; i++) if (v.u32[i] == 0) return 0; return 1; }
 static inline int32_t i64x2_all_true(v128_t v) { for (int i=0; i<2; i++) if (v.u64[i] == 0) return 0; return 1; }
-
-// Load/store
-static inline v128_t v128_load8_lane(const int al, const size_t off, const int lane, size_t addr, v128_t v) { v.u8[lane]  = op2D_i32_load8_u(al, off, addr); return v; }
-static inline v128_t v128_load16_lane(const int al, const size_t off, const int lane, size_t addr, v128_t v) { v.u16[lane] = op2F_i32_load16_u(al, off, addr); return v; }
-static inline v128_t v128_load32_lane(const int al, const size_t off, const int lane, size_t addr, v128_t v) { v.u32[lane] = op28_i32_load(al, off, addr); return v; }
-static inline v128_t v128_load64_lane(const int al, const size_t off, const int lane, size_t addr, v128_t v) { v.u64[lane] = op29_i64_load(al, off, addr); return v; }
-static inline void v128_store8_lane (const int al, const size_t off, const int lane, size_t addr, v128_t v) { uint8_t  e = v.u8 [lane]; memory_store(addr+off, &e, sizeof(e)); }
-static inline void v128_store16_lane(const int al, const size_t off, const int lane, size_t addr, v128_t v) { uint16_t e = v.u16[lane]; memory_store(addr+off, &e, sizeof(e)); }
-static inline void v128_store32_lane(const int al, const size_t off, const int lane, size_t addr, v128_t v) { uint32_t e = v.u32[lane]; memory_store(addr+off, &e, sizeof(e)); }
-static inline void v128_store64_lane(const int al, const size_t off, const int lane, size_t addr, v128_t v) { uint64_t e = v.u64[lane]; memory_store(addr+off, &e, sizeof(e)); }
-static inline v128_t v128_load32_zero(const int al, const size_t off, size_t addr) { v128_t v={0}; v = v128_load32_lane(al, off, 0, addr, v); return v; }
-static inline v128_t v128_load64_zero(const int al, const size_t off, size_t addr) { v128_t v={0}; v = v128_load64_lane(al, off, 0, addr, v); return v; }
 
 // Math
 static inline v128_t i8x16_abs(v128_t v) { for (int i=0; i<16; i++) v.u8[i] = abs(v.i8[i]); return v; }
@@ -307,5 +318,5 @@ static inline v128_t i32x4_dot_i16x8_s(v128_t a, v128_t b) { v128_t r; for (int 
 static inline int ext_i7(int8_t v) { return (int) (((int8_t) v << 1) >> 1); }
 static inline v128_t opFD112_i16x8_relaxed_dot_i8x16_i7x16_s(v128_t a, v128_t b) { v128_t r; for (int i=0; i<8; i++) { int i1=i*2, i2=i1+1; r.i16[i] = (int16_t)a.i8[i1] * ext_i7(b.i8[i1]) + (int16_t)a.i8[i2] * ext_i7(b.i8[i2]); } return r; }
 static inline v128_t opFD113_i32x4_relaxed_dot_i8x16_i7x16_add_s(v128_t a, v128_t b, v128_t c) { v128_t r; for (int i=0; i<4; i++) { int i4 = i * 4; int32_t d = 0; for (int j=i4; j<i4+4; j++) d += (int32_t) a.i8[j] * ext_i7(b.i8[j]); r.i32[i] = d + c.i32[i]; } return r; }
-static inline float bf16(uint16_t bf) { return int_as_float((uint32_t) bf << 16); }
+static inline float bf16(uint16_t bf) { return u32_as_float((uint32_t) bf << 16); }
 static inline v128_t opFD114_f32x4_relaxed_dot_bf16x8_add_f32x4(v128_t a, v128_t b, v128_t c) { v128_t r; for (int i=0; i<4; i++) { int i1=i*2, i2=i1+1; r.f32[i] = bf16(a.u16[i1]) * bf16(b.u16[i1]) + bf16(a.u16[i2]) * bf16(b.u16[i2]) + c.f32[i]; } return r; }

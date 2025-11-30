@@ -151,7 +151,7 @@ Portable SIMD functions based on the WebAssembly SIMD feature set. The idea is t
 Generic buffer structure and generic lookup table structure.
 
 ** link:rouziclib/general/macros.h[macros.h] +
-Stringify macros and a macro to detect GCC.
+Stringify macros, basic math macros and a macro to detect GCC.
 
 ** link:rouziclib/general/windows_includes.h[windows_includes.h] +
 Includes to minimise the Windows headers included and optimise compilation duration.

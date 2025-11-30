@@ -1,10 +1,3 @@
-#define RL_PI 3.1415926535897931
-#define pi RL_PI
-
-#define sign(x)		(((x) > 0) - ((x) < 0))
-#define MAXN(x, y)	(((x) > (y)) ? (x) : (y))
-#define MINN(x, y)	(((x) < (y)) ? (x) : (y))
-
 extern int32_t fphypot(int32_t x, int32_t y);
 extern double sq(double x);
 extern float sqf(float x);

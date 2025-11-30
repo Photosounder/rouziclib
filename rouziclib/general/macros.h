@@ -5,3 +5,10 @@
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 	#define _gcc_
 #endif
+
+#define RL_PI 3.1415926535897931
+#define pi RL_PI
+
+#define sign(x)		(((x) > 0) - ((x) < 0))
+#define MAXN(x, y)	(((x) > (y)) ? (x) : (y))
+#define MINN(x, y)	(((x) < (y)) ? (x) : (y))
