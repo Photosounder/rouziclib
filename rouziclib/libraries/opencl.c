@@ -192,9 +192,20 @@ cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform)
 	};
 	#endif
 
-	//c->context = clCreateContext(NULL, ret_num_devices, device_id, NULL, NULL, &ret);
-	c->context = clCreateContextFromType(properties, CL_DEVICE_TYPE_GPU, NULL, NULL, &ret);
-	CL_ERR_RET("clCreateContextFromType (in init_cl_context_from_gl)", ret);
+	// Get a pointer to clGetGLContextInfoKHR()
+	typedef cl_int (CL_API_CALL *clGetGLContextInfoKHR_fn)(const cl_context_properties *, cl_gl_context_info, size_t, void *, size_t *);
+	clGetGLContextInfoKHR_fn my_clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(platform, "clGetGLContextInfoKHR");
+	if (!my_clGetGLContextInfoKHR)
+		fprintf_rl(stderr, "In init_cl_context_from_gl(): clGetGLContextInfoKHR not found\n");
+
+	// Find the physical device that owns the GL context in 'properties'
+	size_t bytes = 0;
+	ret = my_clGetGLContextInfoKHR(properties, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, sizeof(cl_device_id), &c->device_id, &bytes);
+	CL_ERR_RET("clGetGLContextInfoKHR (in init_cl_context_from_gl)", ret);
+
+	// Create the OpenCL context on that device
+	c->context = clCreateContext(properties, 1, &c->device_id, NULL, NULL, &ret);
+	CL_ERR_RET("clCreateContext (in init_cl_context_from_gl)", ret);
 
 	#endif
 	return ret;
@@ -256,7 +267,7 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 		CL_ERR_RET("clCreateContext (in init_cl_context)", ret);
 	}
 
-	c->command_queue = clCreateCommandQueue(c->context, device_id[0], 0*CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | 1*CL_QUEUE_PROFILING_ENABLE, &ret);
+	c->command_queue = clCreateCommandQueue(c->context, c->device_id, 0*CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | 1*CL_QUEUE_PROFILING_ENABLE, &ret);
 	CL_ERR_RET("clCreateCommandQueue (in init_cl_context)", ret);
 
 	return ret;
