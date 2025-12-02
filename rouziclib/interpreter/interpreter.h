@@ -183,6 +183,10 @@ extern int64_t rlip_builtin_bit_xor(int64_t a, int64_t b);
 extern int64_t rlip_builtin_bit_shl(int64_t a, int64_t b);
 extern int64_t rlip_builtin_bit_shr(int64_t a, int64_t b);
 extern int64_t rlip_builtin_bit_neg(int64_t a);
+extern double rlip_builtin_ceil(double v);
+extern double rlip_builtin_floor(double v);
+extern double rlip_builtin_log2(double v);
+extern double rlip_builtin_copysign(double v, double s);
 
 // Add these defaults to your inputs by doing static rlip_inputs_t inputs[] = { RLIP_FUNC, {"x", &x, "pd"}, ... };
 #define RLIP_FUNC							\
@@ -191,14 +195,14 @@ extern int64_t rlip_builtin_bit_neg(int64_t a);
 	{"asin", (double(*)(double)) asin,	"fdd"},			\
 	{"atan", (double(*)(double)) atan,	"fdd"},			\
 	{"atan2", (double(*)(double,double)) atan2, "fddd"},		\
-	{"ceil", (double(*)(double)) ceil,	"fdd"},			\
+	{"ceil", (double(*)(double)) rlip_builtin_ceil,	"fdd"},		\
 	{"cos", (double(*)(double)) cos,	"fdd"},			\
 	{"cosh", (double(*)(double)) cosh,	"fdd"},			\
 	{"exp", (double(*)(double)) exp,	"fdd"},			\
-	{"floor", (double(*)(double)) floor, "fdd"},			\
+	{"floor", (double(*)(double)) rlip_builtin_floor, "fdd"},	\
 	{"log", (double(*)(double)) log,	"fdd"},			\
 	{"log10", (double(*)(double)) log10, "fdd"},			\
-	{"log2", (double(*)(double)) log2,	"fdd"},			\
+	{"log2", (double(*)(double)) rlip_builtin_log2,	"fdd"},		\
 	{"pow", (double(*)(double,double)) pow, "fddd"},		\
 	{"copysign", (double(*)(double,double)) copysign, "fddd"},	\
 	{"sin", (double(*)(double)) sin, "fdd"},			\

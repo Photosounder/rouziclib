@@ -41,3 +41,7 @@ int64_t rlip_builtin_bit_xor(int64_t a, int64_t b) { return a ^ b; }
 int64_t rlip_builtin_bit_shl(int64_t a, int64_t b) { return a << b; }
 int64_t rlip_builtin_bit_shr(int64_t a, int64_t b) { return a >> b; }
 int64_t rlip_builtin_bit_neg(int64_t a) { return ~a; }
+double rlip_builtin_ceil(double v) { return ceil(v); }
+double rlip_builtin_floor(double v) { return floor(v); }
+double rlip_builtin_log2(double v) { return log2(v); }
+double rlip_builtin_copysign(double v, double s) { return copysign(v, s); }

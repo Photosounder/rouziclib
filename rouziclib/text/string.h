@@ -1,5 +1,5 @@
 extern char *make_string_copy_fullarg(const char *orig, size_t len, const char *filename, const char *func, int line);
-#define make_string_copy(o) make_string_copy_fullarg((o), strlen(o), __FILE_NAME__, __func__, __LINE__)
+#define make_string_copy(o) make_string_copy_fullarg((o), (o) ? strlen(o) : 0, __FILE_NAME__, __func__, __LINE__)
 #define make_string_copy_len(o, l) make_string_copy_fullarg((o), (l), __FILE_NAME__, __func__, __LINE__)
 #define make_string_copy_between_ptrs(s, e) make_string_copy_fullarg((s), (e)-(s), __FILE_NAME__, __func__, __LINE__)
 extern char **make_string_array_copy(const char **orig, const size_t count);
