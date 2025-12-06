@@ -1,4 +1,4 @@
-char *make_string_copy_fullarg(const char *orig, size_t len, const char *filename, const char *func, int line)
+char *make_string_copy_len_fullarg(const char *orig, size_t len, const char *filename, const char *func, int line)
 {
 	char *copy;
 
@@ -17,6 +17,11 @@ char *make_string_copy_fullarg(const char *orig, size_t len, const char *filenam
 #endif
 
 	return copy;
+}
+
+char *make_string_copy_fullarg(const char *orig, const char *filename, const char *func, int line)
+{
+	return make_string_copy_len_fullarg(orig, orig ? strlen(orig) : 0, filename, func, line);
 }
 
 char **make_string_array_copy(const char **orig, const size_t count)
