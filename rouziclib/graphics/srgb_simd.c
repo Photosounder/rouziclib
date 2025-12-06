@@ -92,7 +92,7 @@ v128_t exp2_simd_q8_23_deg3(v128_t x)	// input is Q8.23, output is float
 	return v128_or(e, y);
 }
 
-v128_t div_by_2_4_simd(v128_t v)	// int32_t division like /3 but it's /2.4, max error 1 ULP
+v128_t div_by_2_4_simd(v128_t v)	// int32_t division like /3 but it's /2.4, max error 1 ULP, overflows if v > 1288490188 (0.6 * 2^31)
 {
 	// Division by 2.4 (multiplication by 0.011010101010... in binary)
 	v128_t q = i32x4_add(v, i32x4_shr_s(v, 2));	// 1.01
