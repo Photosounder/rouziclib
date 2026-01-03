@@ -14,9 +14,9 @@ typedef union
 } v128_t;
 
 // Utilities
-static inline int8_t  sat8_s(int16_t v) { if (v > INT8_MAX)  v = INT8_MAX;  if (v < INT8_MIN)  v = INT8_MIN;  return v; }
+static inline int8_t  sat8_s(int16_t v) { if (v > INT8_MAX)  v = INT8_MAX;  if (v < INT8_MIN)  v = INT8_MIN;  return (int8_t) v; }
 static inline int16_t sat16_s(int32_t v) { if (v > INT16_MAX) v = INT16_MAX; if (v < INT16_MIN) v = INT16_MIN; return v; }
-static inline uint8_t  sat8_u(int16_t v) { if (v > UINT8_MAX)  v = UINT8_MAX;  if (v < 0)  v = 0; return v; }
+static inline uint8_t  sat8_u(int16_t v) { if (v > UINT8_MAX)  v = UINT8_MAX;  if (v < 0)  v = 0; return (uint8_t) v; }
 static inline uint16_t sat16_u(int32_t v) { if (v > UINT16_MAX) v = UINT16_MAX; if (v < 0)  v = 0; return v; }
 static inline float  sat32_sf32(float v) { if (v > (float)INT32_MAX)  v = (float)INT32_MAX;  if (v < (float)INT32_MIN) v = (float)INT32_MIN; return v; }
 static inline float  sat32_uf32(float v) { if (v > (float)UINT32_MAX) v = (float)UINT32_MAX; if (v < 0.f) v = 0.f; return v; }
@@ -148,7 +148,7 @@ static inline int32_t i16x8_bitmask(v128_t v) { int32_t m=0; for (int i=0; i<8; 
 static inline int32_t i32x4_bitmask(v128_t v) { int32_t m=0; for (int i=0; i<4; i++) m |= ((v.i32[i] < 0) << i); return m; }
 static inline int32_t i64x2_bitmask(v128_t v) { int32_t m=0; for (int i=0; i<2; i++) m |= ((v.i64[i] < 0) << i); return m; }
 
-static inline int32_t v128_any_true(v128_t a) { return a.u64[0] != 0 | a.u64[1] != 0; }
+static inline int32_t v128_any_true(v128_t a) { return (a.u64[0] != 0) | (a.u64[1] != 0); }
 static inline int32_t i8x16_all_true(v128_t v) { for (int i=0; i<16; i++) if (v.u8[i] == 0) return 0; return 1; }
 static inline int32_t i16x8_all_true(v128_t v) { for (int i=0; i<8; i++) if (v.u16[i] == 0) return 0; return 1; }
 static inline int32_t i32x4_all_true(v128_t v) { for (int i=0; i<4; i++) if (v.u32[i] == 0) return 0; return 1; }
@@ -256,7 +256,7 @@ static inline v128_t f64x2_relaxed_madd(v128_t a, v128_t b, v128_t c)  { for (in
 static inline v128_t f64x2_relaxed_nmadd(v128_t a, v128_t b, v128_t c) { for (int i=0; i<2; i++) a.f64[i] = fma(-a.f64[i], b.f64[i], c.f64[i]); return a; }
 
 // Conversions
-static inline v128_t f32x4_demote_f64x2_zero(v128_t v) { v128_t r={0}; for (int i=0; i<2; i++) r.f32[i] = v.f64[i]; return r; }
+static inline v128_t f32x4_demote_f64x2_zero(v128_t v) { v128_t r={0}; for (int i=0; i<2; i++) r.f32[i] = (float) v.f64[i]; return r; }
 static inline v128_t f64x2_promote_low_f32x4(v128_t v) { v128_t r={0}; for (int i=0; i<2; i++) r.f64[i] = v.f32[i]; return r; }
 
 static inline v128_t i32x4_relaxed_trunc_f32x4_s(v128_t v) { for (int i=0; i<4; i++) v.i32[i] = (int32_t) v.f32[i]; return v; }
@@ -266,7 +266,7 @@ static inline v128_t i32x4_relaxed_trunc_f64x2_u_zero(v128_t v) { v128_t r={0}; 
 static inline v128_t i32x4_trunc_sat_f32x4_s(v128_t v) { v128_t r={0}; for (int i=0; i<4; i++) r.i32[i] = opFC00_i32_trunc_sat_f32_s(v.f32[i]); return r; }
 static inline v128_t i32x4_trunc_sat_f32x4_u(v128_t v) { v128_t r={0}; for (int i=0; i<4; i++) r.u32[i] = opFC01_i32_trunc_sat_f32_u(v.f32[i]); return r; }
 static inline v128_t i32x4_trunc_sat_f64x2_s_zero(v128_t v) { v128_t r={0}; for (int i=0; i<2; i++) r.i32[i] = opFC02_i32_trunc_sat_f64_s(v.f64[i]); return r; }
-static inline v128_t i32x4_trunc_sat_f64x2_u_zero(v128_t v) { v128_t r={0}; for (int i=0; i<2; i++) r.u32[i] = opFC07_i64_trunc_sat_f64_u(v.f64[i]); return r; }
+static inline v128_t i32x4_trunc_sat_f64x2_u_zero(v128_t v) { v128_t r={0}; for (int i=0; i<2; i++) r.u32[i] = (uint32_t) opFC07_i64_trunc_sat_f64_u(v.f64[i]); return r; }
 
 static inline v128_t f32x4_convert_i32x4_s(v128_t v) { for (int i=0; i<4; i++) v.f32[i] = (float) v.i32[i]; return v; }
 static inline v128_t f32x4_convert_i32x4_u(v128_t v) { for (int i=0; i<4; i++) v.f32[i] = (float) v.u32[i]; return v; }
