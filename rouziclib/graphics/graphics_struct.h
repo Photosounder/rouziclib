@@ -1,6 +1,6 @@
 typedef struct
 {
-	uint16_t r, g, b, a;	// in 1.LBD format (as it goes up to a fixed-point value of 1.0)
+	uint16_t r, g, b, a;	// in 1.LBD format (goes up to a fixed-point value of 1.0)
 } lrgb_t;			// linear RGB format
 
 typedef struct
@@ -18,7 +18,7 @@ typedef struct
 	uint32_t r:10;
 	uint32_t g:12;
 	uint32_t b:10;
-} sqrgb_t;			// squared RGB, the stored values are proportional to the square root of the linear value
+} sqrgb_t;			// square root RGB, the stored values are proportional to the square root of the linear value
 
 #ifdef COL_FRGB
 	#define col_t 	frgb_t
