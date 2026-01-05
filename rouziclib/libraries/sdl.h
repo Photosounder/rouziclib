@@ -8,7 +8,7 @@
 
 #if RL_SDL == 3
 
-  #ifdef _MSC_VER
+  #ifdef PRAGMA_COMMENT
     #pragma comment (lib, "SDL3.lib")
   #endif
 
@@ -19,7 +19,7 @@
 
 #else
 
-  #ifdef _MSC_VER
+  #ifdef PRAGMA_COMMENT
     #pragma comment (lib, "SDL2.lib")
     #pragma comment (lib, "SDL2main.lib")
   #endif

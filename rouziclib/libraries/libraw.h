@@ -1,6 +1,6 @@
 #ifdef RL_LIBRAW
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "libraw.lib")
 #endif
 

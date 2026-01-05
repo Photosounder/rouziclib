@@ -1,6 +1,6 @@
 #ifdef RL_DEVIL
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "DevIL.lib")
 #pragma comment (lib, "ILU.lib")
 #pragma comment (lib, "ILUT.lib")

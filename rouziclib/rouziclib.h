@@ -48,6 +48,7 @@ extern "C" {
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
   #pragma clang diagnostic ignored "-Wunused-variable"
+  #pragma clang diagnostic ignored "-Wunused-but-set-variable"
   #pragma clang diagnostic ignored "-Wpointer-sign"
   #pragma clang diagnostic ignored "-Wunused-function"
   #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -73,6 +74,7 @@ extern "C" {
 #endif
 
 // Structs and includes needed elsewhere
+#include "general/macros.h"
 #include "general/intrinsics.h"
 #include "general/threading.h"
 #include "general/structs.h"
@@ -96,7 +98,6 @@ extern "C" {
 #include "fileio/fileball_struct.h"
 #include "libraries/mpfr.h"			// used if RL_MPFR is defined
 
-#include "general/macros.h"
 #include "general/xyz.h"
 #include "general/time.h"
 #include "general/estimates.h"

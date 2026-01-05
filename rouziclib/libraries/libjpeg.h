@@ -1,6 +1,6 @@
 #ifdef RL_LIBJPEG
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "jpeg.lib")
 #endif
 

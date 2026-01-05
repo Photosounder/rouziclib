@@ -1,6 +1,9 @@
 #ifdef RL_ZLIB
 
-  #pragma comment(lib,"zlib.lib")
+  #ifdef PRAGMA_COMMENT
+    #pragma comment(lib,"zlib.lib")
+  #endif
+
   #include <zlib.h>
 
 #elif defined(RL_MINIZ)

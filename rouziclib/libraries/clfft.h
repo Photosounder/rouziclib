@@ -1,7 +1,7 @@
 #ifdef RL_OPENCL
 #ifdef RL_CLFFT
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "delayimp.lib")	// for delay-loading of the DLL
 #pragma comment (lib, "clfft.lib")
 #endif

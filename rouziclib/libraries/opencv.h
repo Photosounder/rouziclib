@@ -1,6 +1,6 @@
 #ifdef RL_OPENCV
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "opencv_world340.lib") 
 #endif
 

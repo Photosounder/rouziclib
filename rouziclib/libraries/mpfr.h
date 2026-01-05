@@ -1,6 +1,6 @@
 #ifdef RL_MPFR
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "mpfr.lib")	// check if correct
 #endif
 

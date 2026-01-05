@@ -4,7 +4,7 @@
 #include <timezoneapi.h>
 #include <DbgHelp.h>
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "DbgHelp.lib")
 #endif
 

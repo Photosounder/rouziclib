@@ -21,7 +21,7 @@
 		#endif
 	#endif
 
-	#ifdef _MSC_VER
+	#ifdef PRAGMA_COMMENT
 		#pragma comment (lib, "opengl32.lib")
 
 		#ifndef RL_BUILTIN_GLEW

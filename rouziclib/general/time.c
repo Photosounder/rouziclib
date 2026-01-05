@@ -1,6 +1,9 @@
 #ifdef _WIN32
 #include <mmsystem.h>
+
+#ifdef PRAGMA_COMMENT
 #pragma comment(lib, "winmm.lib")
+#endif
 
 uint32_t get_time_ms()
 {

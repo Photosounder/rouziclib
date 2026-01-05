@@ -3,7 +3,11 @@
 #define flag_update(x)	if (abs(x)>=2) (x) >>= 1
 
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-	#define _gcc_
+  #define _gcc_
+#endif
+
+#if defined(_MSC_VER) || defined(__clang__)
+  #define PRAGMA_COMMENT
 #endif
 
 #define RL_PI 3.1415926535897931

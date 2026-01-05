@@ -1,7 +1,7 @@
 #ifdef RL_VULKAN
 // SDL 2 is assumed
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "vulkan-1.lib")
 #endif
 

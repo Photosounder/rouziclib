@@ -1,6 +1,6 @@
 #ifdef RL_OPENAL
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "OpenAL32.lib") 
 #endif
 

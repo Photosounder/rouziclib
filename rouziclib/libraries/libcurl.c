@@ -6,7 +6,7 @@ typedef UINT_PTR        SOCKET;
 
 #include <curl/curl.h>
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "libcurl.dll.a")
 #endif
 

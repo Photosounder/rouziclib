@@ -1,6 +1,6 @@
 #ifdef RL_FFMPEG
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "avcodec.lib")
 #pragma comment (lib, "avformat.lib")
 //#pragma comment (lib, "swscale.lib")
@@ -40,6 +40,7 @@ typedef struct
 	volatile int64_t byte_pos;
 } ffstream_t;
 
+extern int ffmpeg_retval(const int ret);
 extern int ff_init_stream(ffstream_t *s, const int stream_type);
 extern ffstream_t ff_load_stream_init(char const *path, const int stream_type, const int thread_count);
 extern int ff_load_stream_packet(ffstream_t *s);

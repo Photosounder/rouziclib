@@ -86,7 +86,7 @@ WINBASEAPI BOOLEAN APIENTRY CreateSymbolicLinkW(_In_ LPCWSTR lpSymlinkFileName, 
 
 #endif
 
-#ifdef _MSC_VER
+#ifdef PRAGMA_COMMENT
 #pragma comment (lib, "Shell32.lib")
 #pragma comment (lib, "Ole32.lib")
 #pragma comment (lib, "Comdlg32.lib")

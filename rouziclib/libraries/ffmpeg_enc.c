@@ -161,7 +161,7 @@ int ff_frgb_to_frame(ff_videnc_t *d, raster_t *r)
 	int in_index, bpc, bit_depth;
 	float y[4], u, v, int_ratio;
 
-	if (r->f==NULL || (r->dim.x & 1) || (r->dim.y & 1) || d->frame->data==NULL)
+	if (r->f==NULL || (r->dim.x & 1) || (r->dim.y & 1))
 		return 0;
 
 	bpc = ff_pix_fmt_byte_count(d->codec_ctx->pix_fmt);
@@ -230,7 +230,7 @@ int ff_yuv_to_frame(ff_videnc_t *d, raster_t *r)
 	int iy, ip;
 	uint8_t *plane[3];
 
-	if (r->buf==NULL || (r->dim.x & 1) || (r->dim.y & 1) || d->frame->data==NULL)
+	if (r->buf==NULL || (r->dim.x & 1) || (r->dim.y & 1))
 		return 0;
 
 	bpc = ff_pix_fmt_byte_count(d->codec_ctx->pix_fmt);
@@ -259,9 +259,6 @@ int ff_yuv_to_frame(ff_videnc_t *d, raster_t *r)
 int ff_video_enc_write_raster(ff_videnc_t *d, raster_t *r)
 {
 	int done=0;
-
-	if (d->frame->data==NULL)
-		return -1;
 
 	if (ff_frgb_to_frame(d, r))		// try my own RGB to YUV conversion first
 		done = 1;
