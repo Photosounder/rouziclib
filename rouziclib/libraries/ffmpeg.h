@@ -72,4 +72,8 @@ extern float *ff_load_audio_fl32_full(const char *path, size_t *sample_count, in
 #define ff_load_video_next_raster(s, path, mode)	ff_load_video_raster(s, path, 0, 0., mode)
 #define ff_load_video_still(s, path, t, mode)		ff_load_video_raster(s, path, 1, t, mode)
 
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+    #define avcodec_close(x) (avcodec_free_context(&(x)), 0)
+#endif
+
 #endif

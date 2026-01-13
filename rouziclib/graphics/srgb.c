@@ -162,9 +162,8 @@ lut_t dither_lut_init()
 	dither_l.lutint = calloc (dither_l.lut_size, sizeof(int32_t));
 
 	for (i=0; i<dither_l.lut_size; i++)
-	{		
-		// The ratio is 16 instead of 32 because only 0.5x the noise intensity is needed
-		dither_l.lutint[i] = nearbyint((0.5 + gaussian_rand()) * 16.);	// in signed 2.5 format
+	{
+		dither_l.lutint[i] = nearbyint((0.5 + gaussian_rand()) * 22.6);	// in signed 2.5 format
 		//dither_l.lutint[i] = nearbyint(randrange(0., 32.));		// in signed 2.5 format
 	}
 

@@ -3,6 +3,9 @@ int ctrl_button_invis_box_or_polygon(rect_t box, xy_t *p, int p_count, ctrl_butt
 	double total_scale = rect_min_side(box)*zc.scrscale;
 	ctrl_button_state_t butt_state={0};
 
+	if (isnan_rect(box))
+		return 0;
+
 	if (butt_state_ptr)
 		*butt_state_ptr = butt_state;
 
