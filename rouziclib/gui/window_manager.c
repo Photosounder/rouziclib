@@ -104,7 +104,7 @@ skip_add1:
 	entry->window_func = window_func;
 	entry->window_data = window_data;
 	entry->ptr_count = num_args;
-	entry->ptr_array = (void **) calloc(entry->ptr_count, sizeof(void *));
+	entry->ptr_array = entry->ptr_count ? (void **) calloc(entry->ptr_count, sizeof(void *)) : NULL;
 	entry->newly_registered = 1;
 
 	// Set window orders

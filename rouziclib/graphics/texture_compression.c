@@ -80,7 +80,8 @@ raster_t frgb_to_compressed_texture(raster_t r0, compression_param1_t *cp_in)
 	else
 	{
 		cp.block_size = 8;
-		cp.window_base = calloc(cp.window_base_count = 0, sizeof(float));
+		cp.window_base_count = 0;
+		cp.window_base = cp.window_base_count ? calloc(cp.window_base_count, sizeof(float)) : NULL;
 		//cp.window_base[0] = 6.f/12.f;
 		/*cp.window_base[0] = 2.f/12.f;
 		cp.window_base[1] = 6.f/12.f;

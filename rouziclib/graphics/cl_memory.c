@@ -107,10 +107,7 @@ void data_cl_realloc(ssize_t buffer_size)
 
 	// Resize the local buffer and copy it back
 	if (fb->use_drawq)
-	{
 		alloc_enough(&fb->data, new_as, &fb->data_cl_as, 1, 1.);
-		fb->data_cl_as = new_as;
-	}
 
 	if (fb->use_drawq==1)
 		cl_copy_buffer_to_device(fb->data, 0, MINN(orig_as, fb->data_cl_as));	// enqueue copy of everything

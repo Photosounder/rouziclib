@@ -7,7 +7,8 @@ vobj_t *alloc_vobj(int32_t count)
 	o->scale = 1.;
 	o->c = XY0;
 
-	o->seg = calloc (o->count, sizeof(seg_t));
+	if (o->count)
+		o->seg = calloc(o->count, sizeof(seg_t));
 
 	return o;
 }

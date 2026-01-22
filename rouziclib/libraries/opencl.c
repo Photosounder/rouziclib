@@ -139,7 +139,7 @@ char *cl_get_device_string(clctx_t *c, cl_device_info param_name)
 	char *string=NULL;
 
 	clGetDeviceInfo(c->device_id, param_name, 0, NULL, &info_size);
-	string = calloc(info_size, sizeof(char));
+	string = info_size ? calloc(info_size, sizeof(char)) : 0;
 	clGetDeviceInfo(c->device_id, param_name, info_size, string, NULL);
 
 	return string;

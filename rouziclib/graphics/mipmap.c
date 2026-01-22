@@ -997,6 +997,8 @@ mipmap_t fread_mipmap(FILE *file)
 
 	// Read top level info
 	m.lvl_count = fread_byte8(file);
+	if (m.lvl_count == 0)
+		return m;
 	m.lvl = calloc(m.lvl_count, sizeof(mipmap_level_t));
 	m.fulldim.x = fread_LE32(file);
 	m.fulldim.y = fread_LE32(file);
@@ -1016,7 +1018,7 @@ mipmap_t fread_mipmap(FILE *file)
 		m.lvl[il].total_bytes = fread_LE32(file);
 
 		// Alloc contiguous pixel buffer for whole mipmap level
-		ptr = calloc(m.lvl[il].total_bytes - mul_x_by_y_xyi(m.lvl[il].tilecount) * sizeof(raster_t), 1);
+		ptr = m.lvl[il].total_bytes ? calloc(m.lvl[il].total_bytes - mul_x_by_y_xyi(m.lvl[il].tilecount) * sizeof(raster_t), 1) : NULL;
 
 		// Alloc array of tiles
 		if (mul_x_by_y_xyi(m.lvl[il].tilecount))
