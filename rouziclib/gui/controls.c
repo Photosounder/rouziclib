@@ -308,6 +308,39 @@ void knob_te_draw_on_top(textedit_t *te, rect_t *area, col_t *colour)
 	ctrl_textedit_draw(te, *area, *colour);
 }
 
+void knob_draw_on_top(gui_layout_t *layout, knob_t *knob, rect_t *area, col_t *colour, double *t)
+{
+	double th;
+	double scale = rect_min_side(*area);
+	xy_t p0, p1, centre = get_rect_centre(*area);
+
+	layout->offset = fit_into_area(*area, make_rect_off(XY0, xy(2., 2.), xy(0.5, 0.5)), 0., &layout->sm);
+
+	draw_black_rect(sc_rect(*area), drawing_thickness, 1. - 1./16.);
+
+	// Draw bottom label
+	draw_string_bestfit(font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, *colour, 1., drawing_thickness, ALIG_CENTRE, NULL);
+
+	// Draw units label
+	draw_string_bestfit(font, knob->unit_label, sc_rect(gui_layout_elem_comp_area_os(layout, knob->circular ? 31 : 30, XY0)), 0., 0.03*scale*zc.scrscale, *colour, 1., drawing_thickness, ALIG_CENTRE, NULL);
+
+	// Draw arc circle
+	draw_circle_arc(sc_xy(centre), set_xy(0.5*scale*zc.scrscale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, *colour, cur_blend, 0.5);
+
+	// Draw notch on the arc circle
+	if (knob->circular)
+		th = *t * -2.*pi;
+	else
+		th = (*t * 0.75 - 0.375) * -2.*pi;
+	p0 = rotate_xy2(xy(0., 0.5*scale), th);
+	p1 = rotate_xy2(xy(0., 0.4*scale), th);
+	draw_line_thin(sc_xy(add_xy(centre, p0)), sc_xy(add_xy(centre, p1)), drawing_thickness, *colour, cur_blend, 2.);
+
+	// Draw value
+	rect_t label_area = gui_layout_elem_comp_area_os(layout, 11, XY0);
+	draw_string_bestfit(font, knob->printed_label, sc_rect(label_area), 0., 0.03*scale*zc.scrscale, *colour, 1., drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
+}
+
 int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 {
 	int ret, val_set_by_edit=0;
@@ -441,6 +474,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 		double orig_height = get_rect_dim(label_area).y * zc.zoomscale;
 		if (orig_height*1.5 < height_limit && knob->knob_state.down)
 		{
+			#if 0
 			label_area = rect_size_mul(label_area, set_xy(height_limit / (get_rect_dim(label_area).y * zc.zoomscale)));
 			keep_box_inside_area(&label_area, rect_add_margin(zc.corners, set_xy((-1./12.)/zc.zoomscale)));
 
@@ -449,6 +483,12 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			static rect_t ontop_area;	ontop_area = label_area;
 			static col_t ontop_colour;	ontop_colour = colour;
 			window_late_register(knob_value_draw_on_top, NULL, 4, knob->printed_label, &ontop_scale, &ontop_area, &ontop_colour);
+			#else
+			static rect_t ontop_area;	ontop_area = rect_size_mul(box, set_xy(height_limit / (get_rect_dim(label_area).y * zc.zoomscale)));
+			static col_t ontop_colour;	ontop_colour = colour;
+			static double ontop_t;		ontop_t = t;
+			window_late_register(knob_draw_on_top, NULL, 5, &layout, knob, &ontop_area, &ontop_colour, &ontop_t);
+			#endif
 		}
 		else
 			draw_string_bestfit(font, knob->printed_label, sc_rect(label_area), 0., 0.03*scale*zc.scrscale, colour, 1., drawing_thickness, ALIG_CENTRE | MONODIGITS, NULL);
@@ -507,6 +547,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	// Draw arc circle
 	draw_circle_arc(sc_xy(centre), set_xy(0.5*scale*zc.scrscale), knob->circular ? 0. : -0.375, knob->circular ? 1. : 0.375, drawing_thickness, colour, cur_blend, 0.5*intensity);
 
+	// Draw notch on the arc circle
 	if (knob->circular)
 		th = t * -2.*pi;
 	else
