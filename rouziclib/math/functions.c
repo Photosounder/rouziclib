@@ -129,6 +129,17 @@ int32_t rangelimit_i32(int32_t x, int32_t min, int32_t max)
 	return x;
 }
 
+int64_t rangelimit_i64(int64_t x, int64_t min, int64_t max)
+{
+	if (x < min)
+		x = min;
+
+	if (x > max)
+		x = max;
+
+	return x;
+}
+
 void minmax_double(double *a, double *b)
 {
 	if (*a > *b)
