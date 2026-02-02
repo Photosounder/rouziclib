@@ -298,25 +298,45 @@ int stricmp(const char *a, const char *b)
 }
 #endif
 
-const char *strstr_i(const char *fullstr, const char *substr)		// case insensitive substring search
+// AI slop (Gemini 3.0 Pro Preview)
+const char *strnstr_i(const char *fullstr, const char *substr, size_t fullstr_len)
 {
-	char *fullstr_low, *substr_low;
-	const char *p, *ret = NULL;
+	size_t i;
 
 	if (fullstr==NULL || substr==NULL)
 		return NULL;
 
-	fullstr_low = string_tolower(make_string_copy(fullstr));	// make lowercase copy
-	substr_low = string_tolower(make_string_copy(substr));
+	size_t substr_len = strlen(substr);
 
-	p = strstr(fullstr_low, substr_low);
-	if (p)
-		ret = fullstr + (p - fullstr_low);
+	// If the buffer limit is smaller than the substr, it can't be there
+	if (fullstr_len < substr_len)
+		return NULL;
 
-	free(fullstr_low);
-	free(substr_low);
+	// Iterate through fullstr.
+	// We stop when the remaining 'fullstr_len' is smaller than the substr
+	// or we hit the null terminator of fullstr.
+	while (fullstr_len >= substr_len && *fullstr)
+	{
+		// Check if the current position matches the substr (case-insensitive)
+		for (i=0; i < substr_len; i++)
+			if (tolower(fullstr[i]) != tolower(substr[i]))
+				break;
 
-	return ret;
+		// If i reached substr_len, we found a match
+		if (i == substr_len)
+			return fullstr;
+
+		// Advance fullstr and decrease remaining allowance
+		fullstr++;
+		fullstr_len--;
+	}
+
+	return NULL;
+}
+
+const char *strstr_i(const char *fullstr, const char *substr)		// case insensitive substring search
+{
+	return strnstr_i(fullstr, substr, (size_t) -1);
 }
 
 const char *strstr_after(const char *fullstr, const char *substr)		// points to after the substring
