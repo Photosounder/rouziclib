@@ -635,6 +635,9 @@ void my_window_function(double *arg1, double *arg2)
 	// Declare buffer
 		buffer_t buf={0};
 
+	// Clear buffer (keeps its allocation but sets it to zero)
+		clear_buf(&buf);
+
 	// Free buffer
 		free_buf(&buf);
 
