@@ -316,7 +316,8 @@ void knob_draw_on_top(gui_layout_t *layout, knob_t *knob, rect_t *area, col_t *c
 
 	layout->offset = fit_into_area(*area, make_rect_off(XY0, xy(2., 2.), xy(0.5, 0.5)), 0., &layout->sm);
 
-	draw_black_rect(sc_rect(*area), drawing_thickness, 1. - 1./16.);
+	//draw_black_rect(sc_rect(rect_size_mul(*area, set_xy(1.+5./12.))), sqrt(sq(drawing_thickness) + sq(get_rect_dim(sc_rect(*area)).x * 2./12.)), 1. - 1./24.);
+	draw_black_circle(get_rect_centre(sc_rect(*area)), get_rect_dim(sc_rect(*area)).x * (7./12.), sqrt(sq(drawing_thickness) + sq(get_rect_dim(sc_rect(*area)).x * 1.5/12.)), 1. - 1./24.);
 
 	// Draw bottom label
 	draw_string_bestfit(font, knob->main_label, sc_rect(gui_layout_elem_comp_area_os(layout, knob->circular ? 21 : 20, XY0)), 0., 0.03*scale*zc.scrscale, *colour, 1., drawing_thickness, ALIG_CENTRE, NULL);
@@ -488,6 +489,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			static col_t ontop_colour;	ontop_colour = colour;
 			static double ontop_t;		ontop_t = t;
 			window_late_register(knob_draw_on_top, NULL, 5, &layout, knob, &ontop_area, &ontop_colour, &ontop_t);
+			goto skip_drawing;
 			#endif
 		}
 		else
@@ -555,6 +557,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 	p0 = rotate_xy2(xy(0., 0.5*scale), th);
 	p1 = rotate_xy2(xy(0., 0.4*scale), th);
 	draw_line_thin(sc_xy(add_xy(centre, p0)), sc_xy(add_xy(centre, p1)), drawing_thickness, colour, cur_blend, 2.*intensity);
+skip_drawing:
 
 	if (v_orig)
 		*v_orig = v;

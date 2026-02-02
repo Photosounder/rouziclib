@@ -1,12 +1,14 @@
 enum
 {
 	FULLCIRCLE,
+	BLACKCIRCLE,
 	HOLLOWCIRCLE,
 };
 
 extern void draw_circle_lrgb(const int circlemode, xy_t pos, double circrad, double radius, lrgb_t colour, const blend_func_t bf, double intensity);
 extern void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, double intensity);
 extern void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity);
+extern void draw_black_circle(xy_t pos, double circrad, double radius, double intensity);
 extern void draw_circle_with_lines(xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_rect(rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity);
 extern void draw_rect_chamfer(rect_t r, double radius, col_t colour, const blend_func_t bf, double intensity, double chamfer);

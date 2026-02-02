@@ -22,6 +22,26 @@ float4 draw_circle_full_add(global float *le, float4 pv, const float2 pf)
 	return pv;
 }
 
+float4 draw_black_circle(global float *le, float4 pv, const float2 pf)
+{
+	float2 pc;
+	float circrad, rad, dc, dn, df, intensity;
+
+	pc.x = le[0];
+	pc.y = le[1];
+	circrad = le[2];
+	rad = le[3];
+	intensity = le[4];
+
+	dc = fast_distance(pf, pc);	// Distance to center
+	dn = (circrad - dc) * rad;	// Near edge distance
+	df = -(circrad + dc) * rad;	// Far edge distance
+
+	pv *= 1.f - (erf_fast(dn) - erf_fast(df)) * 0.5f * intensity;
+
+	return pv;
+}
+
 float4 draw_circle_hollow_add(global float *le, float4 pv, const float2 pf)
 {
 	float4 col;

@@ -271,6 +271,7 @@ int32_t drawq_entry_size(const enum dq_type type)
 		case DQT_CLIP:			return 1;
 		case DQT_CLAMP:			return 0;
 		case DQT_CIRCLE_FULL:		return 7;
+		case DQT_CIRCLE_BLACK:		return 5;
 		case DQT_CIRCLE_HOLLOW:		return 7;
 		//case DQT_BLIT_BILINEAR:		return 8;
 		case DQT_BLIT_FLATTOP:		return 11;

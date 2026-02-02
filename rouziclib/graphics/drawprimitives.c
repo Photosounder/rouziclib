@@ -174,7 +174,7 @@ void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, 
 		return;
 
 	//if (circlemode!=HOLLOWCIRCLE)
-		radius = drawing_focus_adjust(focus_rlg, radius, circlemode==FULLCIRCLE ? NULL : &intensity, 0);	// adjusts the focus
+		radius = drawing_focus_adjust(focus_rlg, radius, circlemode==HOLLOWCIRCLE ? &intensity : NULL, 0);	// adjusts the focus
 
 	/*if (circlemode==HOLLOWCIRCLE)
 		draw_circle_with_lines(pos, circrad, radius, colour, blend_add, intensity);
@@ -186,6 +186,67 @@ void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, 
 				draw_circle_dq(circlemode, pos, circrad, radius, col_to_frgb(colour), intensity);
 		else
 			draw_circle_lrgb(circlemode, pos, circrad, radius, col_to_lrgb(colour), bf, intensity);
+}
+
+void draw_black_circle_dq(xy_t pos, double circrad, double radius, double intensity)
+{
+#ifndef __wasm__
+	float *df;
+	double grad, circum;
+	int32_t i, ix, iy;
+	rect_t bb, secbox, fr, screen_box = rect(XY0, xy(fb->w-1, fb->h-1));
+	recti_t bbi;
+
+	if (intensity==0.)
+		return ;
+
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+
+	// calculate the bounding box
+	bb.p0 = ceil_xy(sub_xy(pos, set_xy(grad+circrad)));
+	bb.p1 = floor_xy(add_xy(pos, set_xy(grad+circrad)));
+
+	if (check_box_box_intersection(bb, screen_box)==0)
+		return ;
+
+	bbi.p0 = xy_to_xyi(max_xy(bb.p0, screen_box.p0));
+	bbi.p1 = xy_to_xyi(min_xy(bb.p1, screen_box.p1));
+	bbi = rshift_recti(bbi, fb->sector_size);
+
+	// calculate the drawing parameters
+	circum = circrad/radius;
+	intensity *= (0.5 + 0.5 * erf(circum)) - (0.5 + 0.5 * erf(-circum));	// why is this needed?
+
+	// store the drawing parameters in the main drawing queue
+	df = drawq_add_to_main_queue(DQT_CIRCLE_BLACK);
+	df[0] = pos.x;
+	df[1] = pos.y;
+	df[2] = circrad;
+	df[3] = 1./radius;
+	df[4] = intensity;
+
+	// find the affected sectors
+	for (iy=bbi.p0.y; iy<=bbi.p1.y; iy++)
+		for (ix=bbi.p0.x; ix<=bbi.p1.x; ix++)
+		{
+			secbox.p0.x = ix << fb->sector_size;
+			secbox.p0.y = iy << fb->sector_size;
+			secbox.p1 = add_xy(secbox.p0, set_xy((1 << fb->sector_size) - 1));
+
+			if (check_box_circle_intersection(secbox, pos, circrad+grad))
+				drawq_add_sector_id(iy*fb->sector_w + ix);	// add sector reference
+		}
+#endif	// __wasm__
+}
+
+void draw_black_circle(xy_t pos, double circrad, double radius, double intensity)
+{
+	if (fb->discard)
+		return;
+
+	if (fb->use_drawq)
+		if (fb->use_dqnq == 0)
+			draw_black_circle_dq(pos, circrad, radius, intensity);
 }
 
 void draw_circle_arc(xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
