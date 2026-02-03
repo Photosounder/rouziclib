@@ -23,6 +23,7 @@ extern double make_power_of_10_positive(int p);
 extern double estimate_cost_of_mul_factor(double v);
 extern double fabs_min(double a, double b);
 extern double fabs_max(double a, double b);
+extern uint64_t signed_shift_u64(uint64_t v, int sh);
 extern int ceil_rshift(int v, int sh);
 extern int idiv_ceil(int a, int b);
 extern int find_largest_prime_factor(int n);

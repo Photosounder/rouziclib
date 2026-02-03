@@ -282,6 +282,13 @@ double fabs_max(double a, double b)
 		return b;
 }
 
+uint64_t signed_shift_u64(uint64_t v, int sh)
+{
+	if (sh >= 0)
+		return v << sh;
+	return v >> -sh;
+}
+
 int ceil_rshift(int v, int sh)	// does the ceiling version of a right shift, for instance ceil_rshift(65, 3) => 9
 {
 	int mask = (1 << sh) - 1;
