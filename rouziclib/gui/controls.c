@@ -486,6 +486,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			window_late_register(knob_value_draw_on_top, NULL, 4, knob->printed_label, &ontop_scale, &ontop_area, &ontop_colour);
 			#else
 			static rect_t ontop_area;	ontop_area = rect_size_mul(box, set_xy(height_limit / (get_rect_dim(label_area).y * zc.zoomscale)));
+			keep_box_inside_area(&ontop_area, rect_add_margin(zc.corners, set_xy((-1./12.)/zc.zoomscale)));
 			static col_t ontop_colour;	ontop_colour = colour;
 			static double ontop_t;		ontop_t = t;
 			window_late_register(knob_draw_on_top, NULL, 5, &layout, knob, &ontop_area, &ontop_colour, &ontop_t);
