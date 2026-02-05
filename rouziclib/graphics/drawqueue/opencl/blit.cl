@@ -160,26 +160,36 @@ float4 read_lrgb_pixel(global ushort *im, int index)
 	return pv;
 }
 
+float4 rec709_to_linear(float4 pv)
+{
+	float4 l = pv * (1.f/4.5f);
+	float4 c = pow((pv+0.09929682f)/1.0992968f, 1.f/0.45f);
+	return select(l, c, pv > 0.08125635f);
+}
+
+float4 rec709_ycbcr_to_rgb(float3 yuv)
+{
+	float4 pv;
+	pv.x = yuv.x + 1.7927f * yuv.z;
+        pv.y = yuv.x - 0.2132f * yuv.y - 0.5329f * yuv.z;
+        pv.z = yuv.x + 2.1124f * yuv.y;
+	pv.w = 1.f;
+	return pv;
+}
+
 float4 raw_yuv_to_lrgb(float3 raw, float depth_mul)
 {
 	float y, u, v, r, g, b;
 	float4 pv;
+	float3 yuv;
 
 	raw *= depth_mul;
-	y = raw.x - 16.f;
-	y *= 255.f / 219.f;
-	u = raw.y - 128.f;
-	v = raw.z - 128.f;
+	yuv.x = raw.x - 16.f/255.f;
+	yuv.x *= 255.f / 219.f;
+	yuv.y = raw.y - 128.f/255.f;
+	yuv.z = raw.z - 128.f/255.f;
 
-	r = y + 1.596f * v;
-        g = y - 0.813f * v - 0.391f * u;
-        b = y + 2.018f * u;
-
-	pv.x = s8lrgb(r);
-	pv.y = s8lrgb(g);
-	pv.z = s8lrgb(b);
-	pv.w = 1.f;
-
+	pv = rec709_to_linear(rec709_ycbcr_to_rgb(yuv));
 	return pv;
 }
 
@@ -218,7 +228,7 @@ float4 read_yuv420p8_pixel(global uchar *im, int2 im_dim, int2 i)
 	y_index = i.y * im_dim.x + i.x;
 	uv_index = i.y/2 * im_dimh.x + i.x/2;	// TODO fix for MPEG-2 layout
 
-	pv = raw_yuv_to_lrgb( (float3) (im[y_index], u_plane[uv_index], v_plane[uv_index]), 1.f );
+	pv = raw_yuv_to_lrgb( (float3) (im[y_index], u_plane[uv_index], v_plane[uv_index]), 1.f/255.f );
 
 	return pv;
 }
@@ -429,10 +439,10 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, com
 			return read_yuv420p8_pixel((global uchar *) im, im_dim, i);
 
 		case 11:	// YCbCr 420 planar 10-bit LE (AV_PIX_FMT_YUV420P10LE)
-			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.25f);
+			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.25f/255.f);
 
 		case 12:	// YCbCr 420 planar 12-bit LE (AV_PIX_FMT_YUV420P12LE)
-			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.0625f);
+			return read_yuv420pN_pixel((global ushort *) im, im_dim, i, 0.0625f/255.f);
 
 		case 15:	// YCbCr 420 planar full 0-255 range 8-bit (AV_PIX_FMT_YUVJ420P)
 			return read_yuvj420p8_pixel((global uchar *) im, im_dim, i);
