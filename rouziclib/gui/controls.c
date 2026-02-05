@@ -433,6 +433,7 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 
 	if (knob->knob_state.down)
 	{
+		mouse.showcursor = -1;
 		mouse.warp_if_move = 1;
 		mouse.zoom_scroll_freeze = 1;
 	}
