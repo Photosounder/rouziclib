@@ -704,6 +704,7 @@ void draw_mousecursor(xy_t pos)
 	// Out of focus diamond cursor
 	if (mouse.window_focus_flag < 0 && mouse.mouse_focus_flag > 0)	// if the window is out of focus but mouse is over the window
 	{
+		draw_clamp();
 		double d;
 
 		d = zc.iscrscale * (32. - sqrt(2.)) * pix_scale;
@@ -730,6 +731,7 @@ void draw_mousecursor(xy_t pos)
 	tr.b = sc_xy(add_xy(pos, xy(0.*sc, -1.*sc)));
 	tr.c = sc_xy(add_xy(pos, xy(0.64*sc, -0.76837*sc)));
 
+	draw_clamp();
 	drawq_bracket_open();
 	draw_triangle_thin(triangle_dilate(tr, -1./fb->pixel_scale), drawing_thickness, colb, blend_alphablendfg, 2./3.);
 	drawq_bracket_close(DQB_BLEND);
