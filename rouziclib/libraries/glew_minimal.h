@@ -316,6 +316,8 @@ typedef char GLchar;
 #define GL_TEXTURE_WRAP_S 0x2802			// NEEDED_0
 #define GL_TEXTURE_WRAP_T 0x2803			// NEEDED_0
 #define GL_RGBA8 0x8058			// NEEDED_0
+#define GL_RGBA8UI 0x8D7C
+#define GL_RGBA_INTEGER 0x8D99
 
 GLAPI void GLAPIENTRY glBegin (GLenum mode);			// NEEDED_0
 GLAPI void GLAPIENTRY glBindTexture (GLenum target, GLuint texture);			// NEEDED_0

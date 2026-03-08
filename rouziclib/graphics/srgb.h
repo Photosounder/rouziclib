@@ -23,7 +23,6 @@ extern float s16lrgb(uint16_t v16);
 extern lut_t get_lut_lsrgb_fl();
 extern int32_t lsrgb_fl(float v, int32_t *lut);
 extern lut_t dither_lut_init();
-extern lut_t bytecheck_lut_init(int border);
 extern void convert_lrgb_to_srgb(int mode);
 extern void convert_frgb_to_srgb(int mode);
 extern void blit_lrgb_on_srgb(srgb_t *srgb, srgb_t *srgb1);

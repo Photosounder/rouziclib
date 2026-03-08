@@ -456,7 +456,7 @@ void cl_make_srgb_tex()
 
 	if (fb->interop_sync==0)		// acquire the GL texture with OpenCL only once if no interop sync is needed
 	{
-		ret = clEnqueueAcquireGLObjects_wrap(fb->clctx.command_queue, 1,  &fb->cl_srgb, 0, 0, NULL);		// get the ownership of cl_srgb
+		ret = clEnqueueAcquireGLObjects_wrap(fb->clctx.command_queue, 1,  &fb->cl_srgb, 0, NULL, NULL);		// get the ownership of cl_srgb
 		CL_ERR_NORET("clEnqueueAcquireGLObjects (in cl_make_srgb_tex(), for fb->cl_srgb)", ret);
 
 		fb->opt_clfinish = 1;		// needed to prevent tearing

@@ -140,9 +140,10 @@ float4 read_srgb_pixel(global uint *im, int index)
 	uint v;
 
 	v = im[index];
-	pv.z = s8lrgb((v >> 16) & 255);
-	pv.y = s8lrgb((v >> 8) & 255);
-	pv.x = s8lrgb(v & 255);
+	pv.z = (v >> 16) & 255;
+	pv.y = (v >> 8)  & 255;
+	pv.x = v         & 255;
+	pv.xyz = s8lrgb(pv.xyz);
 	pv.w = 1.f;
 
 	return pv;
@@ -203,13 +204,11 @@ float4 raw_yuvj_to_lrgb(float3 raw, float depth_mul)
 	u = raw.y - 128.f;
 	v = raw.z - 128.f;
 
-	r = y + 1.596f * v;
-        g = y - 0.813f * v - 0.391f * u;
-        b = y + 2.018f * u;
+	pv.x = y + 1.596f * v;
+        pv.y = y - 0.813f * v - 0.391f * u;
+        pv.z = y + 2.018f * u;
 
-	pv.x = s8lrgb(r);
-	pv.y = s8lrgb(g);
-	pv.z = s8lrgb(b);
+	pv.xyz = s8lrgb(pv.xyz);
 	pv.w = 1.f;
 
 	return pv;

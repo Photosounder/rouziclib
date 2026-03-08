@@ -598,11 +598,11 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 		if (fb->renderer==NULL)
 			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
 
-		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
+		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
 		if (fb->texture==NULL)
 			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
 
-		fb->srgb_order = ORDER_BGRA;
+		fb->srgb_order = ORDER_RGBA;
 
 		if (fb->use_drawq==0)
 			fb->r = make_raster(NULL, XYI0, fb->maxdim, fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB);

@@ -158,46 +158,26 @@ lut_t dither_lut_init()
 	lut_t dither_l;
 
 	dither_l.lut_size = 16384;
-
-	dither_l.lutint = calloc (dither_l.lut_size, sizeof(int32_t));
+	dither_l.lutint = calloc(dither_l.lut_size, sizeof(int32_t));
 
 	for (i=0; i<dither_l.lut_size; i++)
 	{
-		dither_l.lutint[i] = nearbyint((0.5 + gaussian_rand()) * 22.6);	// in signed 2.5 format
+		dither_l.lutint[i] = nearbyint(gaussian_rand() * 22.6 + 16.);	// in signed 2.5 format
 		//dither_l.lutint[i] = nearbyint(randrange(0., 32.));		// in signed 2.5 format
 	}
 
 	return dither_l;
 }
 
-lut_t bytecheck_lut_init(int border)
-{
-	int32_t i;
-	lut_t bytecheck_l;
-
-	bytecheck_l.lut_size = 256+border*2;
-
-	bytecheck_l.lutb = calloc (bytecheck_l.lut_size, sizeof(uint8_t));
-	bytecheck_l.lutb = &bytecheck_l.lutb[border];
-
-	for (i=-border; i<bytecheck_l.lut_size-border; i++)
-	{		
-		bytecheck_l.lutb[i] = MAXN(MINN(i, 255), 0);
-	}
-
-	return bytecheck_l;
-}
-
 void convert_lrgb_to_srgb(int mode)
 {
-	int32_t i, id, stop, dither;
-	uint32_t dith_on;
+	size_t i, pixc = fb->w*fb->h;
+	static int init=1;
+	int id, stop, dither, dith_on;
 	lrgb_t p;
 	srgb_t ps;
-	static int init=1;
-	static lut_t lsrgb_l, dither_l, bytecheck_l;
+	static lut_t lsrgb_l, dither_l;
 	const int32_t black_threshold = (1. / (255.*12.92)) * ONEF + 0.5;	// 10 for LBD==15
-	int32_t pixc = fb->w*fb->h;
 
 	if (init)
 	{
@@ -205,16 +185,17 @@ void convert_lrgb_to_srgb(int mode)
 
 		lsrgb_l = get_lut_lsrgb();
 		dither_l = dither_lut_init();
-		bytecheck_l = bytecheck_lut_init(4);
 	}
 
+	// Calculate dither table starting range
 	id = rand() & 0x3FFF;
 	stop = (id + 100 + (rand() & 0x03FF)) & 0x3FFF;
 
-	if (mode==DITHER)	// Dithering takes about 14 extra cycles per full pixel
+	if (mode==DITHER)
 	{
-		for (i=0; i<pixc; i++)
+		for (i=0; i < pixc; i++)
 		{
+			// Load LRGB pixel
 			p = fb->r.l[i];
 
 			/*#ifdef _DEBUG
@@ -226,17 +207,20 @@ void convert_lrgb_to_srgb(int mode)
 				p.b = (rand()&1) << LBD;
 			#endif*/
 
-			dith_on = p.r+p.g+p.b >= black_threshold;	// 0 if the pixel is black, 1 otherwise
+			// Get dithering value from table
+			dith_on = p.r+p.g+p.b >= black_threshold;		// 0 if the pixel is black, 1 otherwise
 			dither = dither_l.lutint[id] * dith_on;
-			ps.b = bytecheck_l.lutb[lsrgb_l.lutint[p.r] + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
-			ps.g = bytecheck_l.lutb[lsrgb_l.lutint[p.g] + dither >> 5];
-			ps.r = bytecheck_l.lutb[lsrgb_l.lutint[p.b] + dither >> 5];
 
-			//fb->r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
+			// Convert to UQ8.5 sRGB, add dither, turn into 8-bit value
+			ps.b = sat8_u(lsrgb_l.lutint[p.r] + dither >> 5);	// UQ8.5 + UQ2.5 >> 5 = 8.0-bit sRGB
+			ps.g = sat8_u(lsrgb_l.lutint[p.g] + dither >> 5);
+			ps.r = sat8_u(lsrgb_l.lutint[p.b] + dither >> 5);
 			fb->r.srgb[i] = ps;
 
+			// Iterate dither table index
 			id = (id+1) & 0x3FFF;
 
+			// Calculate new dither table range when reaching the end of the current range
 			if (id==stop)
 			{
 				id = rand() & 0x3FFF;
@@ -266,7 +250,7 @@ void convert_frgb_to_srgb(int mode)
 	frgb_t p;
 	srgb_t ps;
 	static int init=1;
-	static lut_t lsrgb_fl_l, dither_l, bytecheck_l;
+	static lut_t lsrgb_fl_l, dither_l;
 	const float black_threshold = (1.f / (255.f*12.92f));
 	int32_t pixc = fb->w*fb->h;
 
@@ -276,7 +260,6 @@ void convert_frgb_to_srgb(int mode)
 
 		lsrgb_fl_l = get_lut_lsrgb_fl();
 		dither_l = dither_lut_init();
-		bytecheck_l = bytecheck_lut_init(4);
 	}
 
 	id = rand() & 0x3FFF;
@@ -299,9 +282,9 @@ void convert_frgb_to_srgb(int mode)
 
 			dith_on = p.r+p.g+p.b >= black_threshold;	// 0 if the pixel is black, 1 otherwise
 			dither = dither_l.lutint[id] * dith_on;
-			ps.r = bytecheck_l.lutb[lsrgb_fl(p.r, lsrgb_fl_l.lutint) + dither >> 5];		// 8.5 + 2.5 >> 5 = 8.0 sRGB
-			ps.g = bytecheck_l.lutb[lsrgb_fl(p.g, lsrgb_fl_l.lutint) + dither >> 5];
-			ps.b = bytecheck_l.lutb[lsrgb_fl(p.b, lsrgb_fl_l.lutint) + dither >> 5];
+			ps.r = sat8_u(lsrgb_fl(p.r, lsrgb_fl_l.lutint) + dither >> 5);		// 8.5 + 2.5 >> 5 = 8.0 sRGB
+			ps.g = sat8_u(lsrgb_fl(p.g, lsrgb_fl_l.lutint) + dither >> 5);
+			ps.b = sat8_u(lsrgb_fl(p.b, lsrgb_fl_l.lutint) + dither >> 5);
 
 			fb->r.srgb[i] = srgb_change_order_pixel(ps, ORDER_ABGR);
 

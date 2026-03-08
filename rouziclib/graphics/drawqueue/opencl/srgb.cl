@@ -27,86 +27,59 @@ float4 colour_blowout(float4 c)
 	return c;
 }
 
-float lsrgb(float l)	// converts a [0.0, 1.0] linear value into a [0.0, 1.0] sRGB value
+float3 lsrgb(float3 l)	// converts a [0.0, 1.0] linear value into a [0.0, 1.0] sRGB value
 {
-	float x, line, curve;
+	float3 x, line, curve;
 
 	// 13 FR every time + 2 FR once
 	line = l * 12.92f;	// 1 FR
 	x = native_sqrt(l);	// 4 FR
 	curve = ((((0.455f*x - 1.48f)*x + 1.92137f)*x - 1.373254f)*x + 1.51733216f)*x - 0.0404733783f;		// 5 FR + 2 FR once, error 0.145 sRGB units
 
-	return l <= 0.0031308f ? line : curve;	// 3 FR
+	return select(line, curve, l > 0.0031308f);	// 3 FR
 }
 
-float slrgb(float s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] linear value
+float3 slrgb(float3 s)	// converts a [0.0, 1.0] sRGB value into a [0.0, 1.0] linear value
 {
-	float line, curve;
+	float3 line, curve;
 
 	// ~8 FR
 	line = s * (1.f/12.92f);
 	curve = ((((0.05757f*s - 0.2357f)*s + 0.60668f)*s + 0.540468f)*s + 0.0299805f)*s + 0.001010107f;	// error 0.051 sRGB units
 
-	return s <= 0.04045f ? line : curve;
+	return select(line, curve, s > 0.04045f);
 }
 
-float s8lrgb(float s8)
+float3 s8lrgb(float3 s8)
 {
 	return slrgb(s8 * (1.f/255.f));
 }
 
 #define max_s 255.f
 
-float apply_dithering(float pv, float dv)
+float4 linear_to_srgb(float4 pl, uint seed)
 {
-	const float threshold = 1.2f / max_s;
-	const float it = 1.f / threshold;
-	const float rounding_offset = 0.5f / max_s;
-
-	// Reduce the scale of the dithering if pv is close to 0
-	if (pv < threshold)	// 1.2 is the threshold so that the crushing happens at 1.2*sqrt(2) = 1.7 sigma
-	{
-		if (pv <= 0.f)
-			return 0.f;
-		else
-			dv *= pv * it;
-	}
-
-	// Same if pv is close to 1
-	if (pv > 1.f - threshold)
-	{
-		if (pv >= 1.f)
-			return 1.f;
-		else
-			dv *= (1.f-pv) * it;
-	}
-
-	return pv += dv + rounding_offset;
-}
-
-float4 linear_to_srgb(float4 pl0, uint seed)
-{
-	float4 pl1;
-	float dith;
 	const float dith_scale = M_SQRT1_2_F / max_s;
+	const float trans0 = 0.3f * dith_scale;
+	const float trans1 = 0.9f * dith_scale;
+	const float trans_mul =  1.f / (trans1-trans0);
 
-	//pl0 = mix(colour_blowout(pl0), clamp(pl0, 0.f, 1.f), 0.666f);
-	pl0 = clamp(pl0, 0.f, 1.f);
+	// Convert to sRGB
+	float3 ps = lsrgb(clamp(pl.xyz, 0.f, 1.f));
 
-	pl1.s0 = lsrgb(pl0.s0);		// blue
-	pl1.s1 = lsrgb(pl0.s1);		// green
-	pl1.s2 = lsrgb(pl0.s2);		// red
+	// Random values for dithering
+	uint rand_uint = rand_xsm32(seed);
+	float rdm_u = (float) rand_uint * (2.3283064e-10f / max_s) - (0.5f / max_s);
+	float rdm_g = rand01_to_gaussian_approx((float) rand_uint * 2.3283064e-10f) * dith_scale;
 
-	// Dithering
-	dith = gaussian_rand_approx(seed) * dith_scale;
-
-	pl1.s0 = apply_dithering(pl1.s0, dith);
-	pl1.s1 = apply_dithering(pl1.s1, dith);
-	pl1.s2 = apply_dithering(pl1.s2, dith);
+	// Apply dithering
+	float3 t = clamp((min(ps, max_s-ps) - trans0) * trans_mul, 0.f, 1.f);
+	float3 rdm = mix(rdm_u, rdm_g, t);
+	ps = clamp(ps + rdm, 0.f, 1.f);
 
 	// Lower bit depth simulation
 	if (max_s < 255.f)
-		pl1 = round(pl1 * max_s) * (1.f/max_s);
+		ps = round(ps * max_s) * (1.f/max_s);
 
-	return pl1;
+	return (float4)(ps, 1.f);
 }
