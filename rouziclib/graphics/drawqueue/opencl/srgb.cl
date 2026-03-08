@@ -69,8 +69,8 @@ float4 linear_to_srgb(float4 pl, uint seed)
 
 	// Random values for dithering
 	uint rand_uint = rand_xsm32(seed);
-	float rdm_u = (float) rand_uint * (2.3283064e-10f / max_s) - (0.5f / max_s);
-	float rdm_g = rand01_to_gaussian_approx((float) rand_uint * 2.3283064e-10f) * dith_scale;
+	float rdm_u = (float) rand_uint * (2.3283064e-10f / max_s) - (0.5f / max_s);			// uniform distribution in [-0.5 , 0.5] sRGB units
+	float rdm_g = rand01_to_gaussian_approx((float) rand_uint * 2.3283064e-10f) * dith_scale;	// Gaussian distribution in [-3.54 , 3.54] sRGB units
 
 	// Apply dithering
 	float3 t = clamp((min(ps, max_s-ps) - trans0) * trans_mul, 0.f, 1.f);

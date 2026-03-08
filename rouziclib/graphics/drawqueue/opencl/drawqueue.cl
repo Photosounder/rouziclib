@@ -103,12 +103,10 @@ kernel /*__attribute__((reqd_work_group_size(16,16,1)))*/ void draw_queue_srgb_k
 
 	pv = draw_queue(df, poslist, entrylist, data_cl, sector_w, sector_size);
 
-	if (pv.s0==0.f)
-	if (pv.s1==0.f)
-	if (pv.s2==0.f)
+	if (pv.s0==0.f && pv.s1==0.f && pv.s2==0.f)
 	{
-		write_imageui(srgb, p, 0);
-		return ;
+		write_imagef(srgb, p, 0.f);
+		return;
 	}
 
 	write_imagef(srgb, p, linear_to_srgb(pv, randseed+fbi));
@@ -131,7 +129,7 @@ kernel void draw_queue_srgb_buf_kernel(const ulong df_index, const ulong poslist
 	if (pv.s2==0.f)
 	{
 		srgb[fbi] = 0;
-		return ;
+		return;
 	}
 
 	ps = convert_uchar4(linear_to_srgb(pv, randseed+fbi) * 255.f);
