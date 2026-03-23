@@ -414,7 +414,7 @@ cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size)
 	cl_int ret;
 	uint32_t z = 0;
 
-	ret = clEnqueueFillBuffer (c->command_queue, buffer, &z, sizeof(z), 0, size, 0, NULL, NULL);
+	ret = clEnqueueFillBuffer(c->command_queue, buffer, &z, sizeof(z), 0, size, 0, NULL, NULL);
 	CL_ERR_RET("clEnqueueFillBuffer (in zero_cl_mem)", ret);
 
 	return ret;
