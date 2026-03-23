@@ -3,39 +3,47 @@ int get_bit_32(const uint32_t word, const int pos)
 	return (word >> pos) & 1;
 }
 
-uint64_t get_bits_in_stream(uint8_t *stream, size_t start_bit, int bit_count)
+uint64_t get_bits_in_stream(const uint8_t *stream8, size_t start_bit, int bit_count)
 {
-	uint64_t r=0, b, start_byte, actual_start_bit;
-	int bits_to_read, b_sh;
-	uint8_t mask;
-
 	if (bit_count==0)
 		return 0;
 
-	start_byte = start_bit >> 3;
-	start_bit &= 7;
-	bits_to_read = MINN(8-start_bit, bit_count);
-	b_sh = MAXN(0, bit_count - bits_to_read);
+	// Make a 32-bit aligned pointer to the word that contains the first bits
+	uintptr_t byte_addr = (uintptr_t) stream8 + (start_bit >> 3);
+	uintptr_t aligned_addr = byte_addr & ~(uintptr_t)3;
+	const uint32_t *stream32 = (const uint32_t *) aligned_addr;
 
+	// Calculate the bit offset in that word
+	int bit_offset = ((byte_addr - aligned_addr) << 3) | (start_bit & 7);
+
+	uint64_t r = 0;
 	while (bit_count > 0)	// AAAaaaBB BbbbCCCc logic
 	{
-		bits_to_read = MINN(8-start_bit, bit_count);			// how many bits to read in this byte
-		actual_start_bit = 8-start_bit - bits_to_read;
-		mask = (((1<<bits_to_read)-1) << actual_start_bit);
-		b = (stream[start_byte] & mask) >> actual_start_bit;
-		r |= b << b_sh;
+		int bits_left_in_word = 32 - bit_offset;
+		int bits_to_read = bit_count < bits_left_in_word ? bit_count : bits_left_in_word;
 
-		b_sh = MAXN(0, b_sh-8);
-		bit_count -= bits_to_read;				// decrement count of bits left to write
+		// Load 32-bit word
+		uint32_t word = *stream32;
 
-		start_bit = 0;
-		start_byte++;
+		// Byte-swap
+		const int little_endian = 1;
+		if (*(const char *) &little_endian)
+			word = ((word >> 24) & 0xFF) | ((word >> 8) & 0xFF00) | ((word << 8) & 0xFF0000) | ((word << 24) & 0xFF000000);
+
+		// Extract the bits and add them
+		uint32_t extracted_bits = (word >> (32 - bit_offset - bits_to_read)) & ((1 << bits_to_read) - 1);
+		r = (r << bits_to_read) | extracted_bits;
+
+		// Prepare for the next word
+		bit_count -= bits_to_read;
+		bit_offset = 0;
+		stream32++;
 	}
 
 	return r;
 }
 
-uint64_t get_bits_in_stream_inc(uint8_t *stream, size_t *start_bit, int bit_count)
+uint64_t get_bits_in_stream_inc(const uint8_t *stream, size_t *start_bit, int bit_count)
 {
 	uint64_t r = get_bits_in_stream(stream, *start_bit, bit_count);
 	*start_bit += bit_count;
