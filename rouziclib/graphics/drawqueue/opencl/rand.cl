@@ -10,6 +10,9 @@ uint rand_xsm32(uint x)
 
 float rand01_to_gaussian_approx(float r)	// max error of the resulting Gaussian distribution: 9.8e-3
 {
-	r = (r - 0.5f) * 1.9999999f;	// r = ]-0.99999994 , 0.99999994[
-	return copysign(0.88622693f * native_sqrt(- native_log(1.f - r*r)), r);		// gives a e^-x^2 distribution, [-3.54 , 3.54]
+	// r is transformed from [0 , 1] to [-0.99999994 , 0.99999994]
+	r = (r - 0.5f) * 1.9999999f;
+
+	// This gives a roughly e^-x^2 distribution, [-3.54 , 3.54]
+	return copysign(0.88622693f * native_sqrt(- native_log(1.f - r*r)), r);
 }
