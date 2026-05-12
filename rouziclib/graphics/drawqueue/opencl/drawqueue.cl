@@ -73,6 +73,8 @@ float4 draw_queue(global float *df, global int *poslist, global int *entrylist, 
 			break;	case DQT_COL_MATRIX:		pv = colour_matrix(&df[qi+1], pv);
 			break;	case DQT_CLIP:			pv = min(pv, df[qi+1]);
 			break;	case DQT_CLAMP:			pv = clamp(pv, 0.f, 1.f);
+			//break;	case DQT_GAMMA_BANDAID:		pv = (float4)(slrgb(powr(pv.xyz, (float3)(df[qi+1]))), pv.w);
+			break;	case DQT_GAMMA_BANDAID:		pv = (float4)(slrgb(powr(pv.xyz, (float3) df[qi+1])), pv.w);
 			break;	case DQT_CIRCLE_FULL:		pv = draw_circle_full_add(&df[qi+1], pv, pf);
 			break;	case DQT_CIRCLE_BLACK:		pv = draw_black_circle(&df[qi+1], pv, pf);
 			break;	case DQT_CIRCLE_HOLLOW:		pv = draw_circle_hollow_add(&df[qi+1], pv, pf);

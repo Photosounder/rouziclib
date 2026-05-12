@@ -11,3 +11,4 @@ extern void draw_colour_matrix(double *matrix);
 #define draw_gain_parabolic(v)		draw_effect_arg_double(DQT_GAIN_PARAB, v)
 #define draw_luma_compression(v)	draw_effect_arg_double(DQT_LUMA_COMPRESS, v)
 #define draw_clip(v)			draw_effect_arg_double(DQT_CLIP, v)
+#define draw_gamma_bandaid(v)		draw_effect_arg_double(DQT_GAMMA_BANDAID, v)
