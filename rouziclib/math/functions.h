@@ -1,6 +1,7 @@
 extern int32_t fphypot(int32_t x, int32_t y);
 extern double sq(double x);
 extern float sqf(float x);
+extern double cube(double x);
 extern double cos_tr(double x);
 extern double sin_tr(double x);
 extern double gaussian(double x);

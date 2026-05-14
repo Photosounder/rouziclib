@@ -110,6 +110,48 @@ double knobf_tan(double v, double min, double max, double *arg, const int mode)
 		return knobf_linear(atan(v*scale), atan(min*scale), atan(max*scale), NULL, mode);
 }
 
+double cubic_ramp_inverse(double x, double c3, double c1, double c0)
+{
+	// Inverse of f(x) = c3 x^3 + c1 x + c0 when c1 and c3 are positive
+	double q = (x - c0) / (2. * c3);
+	double s = sqrt(sq(q) + cube(c1) / cube(3. * c3));
+	return cbrt(q + s) + cbrt(q - s);
+}
+
+double knobf_cubiclog(double v, double min, double max, double *arg, const int mode)
+{
+	double x_off = arg[0];
+	double c1 = arg[1];
+	double c3 = arg[2];
+
+	if (handle_knobf_edge_cases(knobf_cubiclog, &v, min, max, mode))
+		return v;
+
+	// Calculate value at origin to remove it
+	double xm = 0. - x_off;
+	double y_off = exp2((c3*xm*xm + c1) * xm);
+
+	// Calculate height at the end to normalise it
+	xm = 1. - x_off;
+	double y_max = exp2((c3*xm*xm + c1) * xm) - y_off;
+
+	if (mode==0)
+	{
+		// Calculate value and normalise it to [min , max]
+		xm = v - x_off;
+		double y = exp2((c3*xm*xm + c1) * xm) - y_off;
+		y = y * (max-min) / y_max + min;
+		return rangelimit(y, min, max);
+	}
+	else
+	{
+		double x = (v-min) * y_max/(max-min);
+		x = log2(x + y_off);
+		x = cubic_ramp_inverse(x, c3, c1, 0.) + x_off;
+		return rangelimit(x, 0., 1.);
+	}
+}
+
 const char *knob_func_name[] =
 {
 	"linear",
@@ -118,6 +160,7 @@ const char *knob_func_name[] =
 	"dboff",
 	"logoff",
 	"tan",
+	"cubiclog",
 };
 
 const knob_func_t knob_func_array[] =
@@ -128,6 +171,7 @@ const knob_func_t knob_func_array[] =
 	knobf_dboff,
 	knobf_logoff,
 	knobf_tan,
+	knobf_cubiclog,
 };
 
 const int knob_func_count = sizeof(knob_func_name)/sizeof(*knob_func_name);

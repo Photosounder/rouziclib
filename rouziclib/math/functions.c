@@ -13,6 +13,11 @@ float sqf(float x)
 	return x*x;
 }
 
+double cube(double x)
+{
+	return x*x*x;
+}
+
 #ifndef MINQND_LIBC_H
 double cos_tr(double x)
 {
