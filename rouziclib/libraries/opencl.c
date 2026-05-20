@@ -147,7 +147,11 @@ char *cl_get_device_string(clctx_t *c, cl_device_info param_name)
 
 #ifdef RL_OPENCL_GL
 #ifdef __APPLE__
+#define CGLContextObj void *
 extern CGLContextObj CGLGetCurrentContext(void);
+#define CGLShareGroupObj void *
+extern CGLShareGroupObj CGLGetShareGroup(CGLContextObj ctx);
+#define CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE 0x10000000
 #endif
 #endif
 

@@ -33,6 +33,7 @@ clew:
 	https://github.com/martijnberger/clew/blob/master/include/clew.h
 	https://github.com/martijnberger/clew/blob/master/src/clew.c
 	Sep 12, 2016
+	Add #define CL_DEPRECATED(__start__, __end__)
 
 stb_image:
 	https://github.com/nothings/stb/blob/master/stb_image.h

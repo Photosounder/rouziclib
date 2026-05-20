@@ -1,6 +1,8 @@
 #ifndef CLEW_HPP_INCLUDED
 #define CLEW_HPP_INCLUDED
 
+#define CL_DEPRECATED(__start__, __end__)
+
 //////////////////////////////////////////////////////////////////////////
 //  Copyright (c) 2009-2011 Organic Vectory B.V., KindDragon
 //  Written by George van Venrooij

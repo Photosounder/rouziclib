@@ -30,8 +30,8 @@
 	#endif
 
 	#ifdef __APPLE__
-		#include <OpenCL/cl_gl.h>
-		#include <OpenCL/cl_gl_ext.h>
+        //#include <OpenCL/cl_gl.h>
+		//#include <OpenCL/cl_gl_ext.h>
 	#endif
 #endif
 
