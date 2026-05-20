@@ -229,6 +229,32 @@ void fprint_localtime_now(FILE *stream)
 	fprintf_rl(stream, "%s", sprint_localtime_now(str));
 }
 
+char *sprint_size(char *string, size_t size)
+{
+	if (size < 9000) sprintf(string, "%zu bytes", size);
+
+	else if (size < (size_t)   90<<10) sprintf(string, "%.2f kB", size / 1024.);
+	else if (size < (size_t)  900<<10) sprintf(string, "%.1f kB", size / 1024.);
+	else if (size < (size_t) 9000<<10) sprintf(string, "%.0f kB", size / 1024.);
+
+	else if (size < (size_t)   90<<20) sprintf(string, "%.2f MB", size / sq(1024.));
+	else if (size < (size_t)  900<<20) sprintf(string, "%.1f MB", size / sq(1024.));
+	else if (size < (size_t) 9000<<20) sprintf(string, "%.0f MB", size / sq(1024.));
+
+	else if (size < (size_t)   90<<30) sprintf(string, "%.2f GB", size / cube(1024.));
+	else if (size < (size_t)  900<<30) sprintf(string, "%.1f GB", size / cube(1024.));
+	else if (size < (size_t) 9000<<30) sprintf(string, "%.0f GB", size / cube(1024.));
+
+	else if (size < (size_t)   90<<40) sprintf(string, "%.2f TB", size / sq(sq(1024.)));
+	else if (size < (size_t)  900<<40) sprintf(string, "%.1f TB", size / sq(sq(1024.)));
+	else if (size < (size_t) 9000<<40) sprintf(string, "%.0f TB", size / sq(sq(1024.)));
+
+	else if (size == SIZE_MAX) sprintf(string, "-1");
+	else sprintf(string, "%.4g B", (double) size);
+
+	return string;
+}
+
 char *sprint_duration(char *string, double sec)
 {
 	if (sec < 60.)

@@ -17,6 +17,7 @@ extern char *sprint_compile_date_fullarg(char *string, const char *location, con
 extern void fprint_indent(FILE *file, char *indent, int ind_lvl, char *string);
 extern char *sprint_localtime_now(char *string);
 extern void fprint_localtime_now(FILE *stream);
+extern char *sprint_size(char *string, size_t size);
 extern char *sprint_duration(char *string, double sec);
 extern char *sprint_timestamp(char *string, double t, int prec);
 extern char *sprint_timestamp_short(char *string, double t, int prec);
