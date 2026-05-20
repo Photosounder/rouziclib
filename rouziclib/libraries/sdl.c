@@ -164,7 +164,8 @@ recti_t sdl_screen_max_window_rect()
 
 xyi_t sdl_screen_max_window_size()
 {
-	return get_recti_dim(sdl_screen_max_window_rect());
+	return get_recti_dim(sdl_get_display_rect(0));
+	//return get_recti_dim(sdl_screen_max_window_rect());
 }
 
 recti_t sdl_get_window_border(SDL_Window *window)
@@ -547,7 +548,7 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 	// Set max dimension used for allocation
 	fb->maxdim = sdl_screen_max_window_size();
 	if (fb->use_drawq == 1)
-		fb->maxdim = add_xyi(fb->maxdim, set_xyi(32));	// pad the dimensions for OpenCL due to work size rounding up
+		fb->maxdim = and_xyi(add_xyi(fb->maxdim, set_xyi(31)), 0xFFFFFFE0);	// pad the dimensions for OpenCL due to work size rounding up
 
 	// Check that the requested mode can work
 	if (fb->use_drawq==1)
@@ -623,6 +624,8 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	fb->r.dim = xyi(fb->w, fb->h);
 
+	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
+
 	#ifdef __EMSCRIPTEN__
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#screen");
 	#endif
@@ -669,7 +672,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	// Set max dimension used for allocation
 	fb->maxdim = sdl_screen_max_window_size();
 	if (fb->use_drawq == 1)
-		fb->maxdim = add_xyi(fb->maxdim, set_xyi(32));	// pad the dimensions for OpenCL due to work size rounding up
+		fb->maxdim = and_xyi(add_xyi(fb->maxdim, set_xyi(31)), 0xFFFFFFE0);	// pad the dimensions for OpenCL due to work size rounding up
 
 	// FIXME SDL_WINDOW_MAXIMIZED flag should probably be dealt with because it doesn't work well with the maxdim initialisation
 
@@ -780,6 +783,8 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	fb->r.dim = xyi(fb->w, fb->h);
+
+	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
 
 #if RL_SDL == 3
 	SDL_StartTextInput(fb->window);
