@@ -386,6 +386,20 @@ int strcmp_len2(const char *str1, const char *str2)
 	return strncmp(str1, str2, strlen(str2));
 }
 
+int check_for_pattern_at_end_of_string(const char *string, const char *pattern)
+{
+	if (string == NULL || pattern == NULL)
+		return 0;
+
+	size_t string_len = strlen(string);
+	size_t pattern_len = strlen(pattern);
+
+	if (pattern_len > string_len)
+		return 0;
+
+	return strcmp(&string[string_len - pattern_len], pattern) == 0;
+}
+
 const char *find_pattern_in_string(const char *str, const char *pat)	// looks for matches from the end
 {
 	int i, ip, str_len, pat_len, match;
