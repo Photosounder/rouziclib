@@ -64,11 +64,13 @@ buffer_t fileball_make_uncompressed(char **paths, int path_count, const int dept
 	return sout;
 }
 
-void fileball_make_uncompressed_file(char *out_path, char **paths, int path_count, const int depth)
+size_t fileball_make_uncompressed_file(char *out_path, char **paths, int path_count, const int depth)
 {
 	buffer_t sout = fileball_make_uncompressed(paths, path_count, depth);
 	save_raw_file(out_path, "wb", sout.buf, sout.len);
 	free(sout.buf);
+
+	return sout.len;
 }
 
 buffer_t fileball_make_z(char **paths, int path_count, const int depth)
@@ -82,7 +84,7 @@ buffer_t fileball_make_z(char **paths, int path_count, const int depth)
 	return bz;
 }
 
-void fileball_make_z_file(char *out_path, char **paths, int path_count, const int depth)
+size_t fileball_make_z_file(char *out_path, char **paths, int path_count, const int depth)
 {
 	buffer_t sout;
 
@@ -90,9 +92,11 @@ void fileball_make_z_file(char *out_path, char **paths, int path_count, const in
 
 	save_raw_file(out_path, "wb", sout.buf, sout.len);
 	free(sout.buf);
+
+	return sout.len;
 }
 
-void fileball_make_header_file(char *out_path, char **paths, int path_count, const int depth)
+size_t fileball_make_header_file(char *out_path, char **paths, int path_count, const int depth)
 {
 	int i;
 	buffer_t sz;
@@ -103,7 +107,7 @@ void fileball_make_header_file(char *out_path, char **paths, int path_count, con
 	create_dirs_for_file(out_path);
 	fout = fopen_utf8(out_path, "wb");
 	if (fout==NULL)
-		return ;
+		return 0;
 
 	fprintf(fout, "\"");
 
@@ -118,6 +122,8 @@ void fileball_make_header_file(char *out_path, char **paths, int path_count, con
 	free(sz.buf);
 	fprintf(fout, "\";");
 	fclose (fout);
+
+	return sz.len;
 }
 
 void fileball_extract_mem_to_path(buffer_t *ball, const char *extract_path)
