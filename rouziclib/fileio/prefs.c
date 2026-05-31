@@ -163,7 +163,7 @@ int pref_find_loc(pref_file_t *pf, const char *loc)
 // v = pref_get_double(&pref_def, "Audio output:Sample rate", 44100, "Hz");
 // Audio output
 // 	Sample rate: 44100 Hz
-double pref_handle_double(pref_file_t *pf, char *loc, double value, const char *suffix, int mode_set)
+double pref_handle_double(pref_file_t *pf, const char *loc, double value, const char *suffix, int mode_set)
 {
 	int i, line_pos, depth;
 	char key[64], *new_line;
@@ -202,17 +202,17 @@ double pref_handle_double(pref_file_t *pf, char *loc, double value, const char *
 	return read_value;
 }
 
-double pref_get_double(pref_file_t *pf, char *loc, double def_value, const char *suffix)
+double pref_get_double(pref_file_t *pf, const char *loc, double def_value, const char *suffix)
 {
 	return pref_handle_double(pf, loc, def_value, suffix, 0);
 }
 
-void pref_set_double(pref_file_t *pf, char *loc, double new_value, const char *suffix)
+void pref_set_double(pref_file_t *pf, const char *loc, double new_value, const char *suffix)
 {
 	pref_handle_double(pf, loc, new_value, suffix, 1);
 }
 
-const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, const char *string, int mode_set)
+const char *pref_handle_string(pref_file_t *pf, const char *loc, const char *string_prefix, const char *string, int mode_set)
 {
 	int i, n=0, line_pos, depth;
 	char key[64], *new_line;
@@ -260,17 +260,17 @@ const char *pref_handle_string(pref_file_t *pf, char *loc, char *string_prefix, 
 	return read_string;		// pointer to the written string in the updated line
 }
 
-const char *pref_get_string(pref_file_t *pf, char *loc, const char *def_string)
+const char *pref_get_string(pref_file_t *pf, const char *loc, const char *def_string)
 {
 	return pref_handle_string(pf, loc, ": ", def_string, 0);
 }
 
-void pref_set_string(pref_file_t *pf, char *loc, const char *new_string)
+void pref_set_string(pref_file_t *pf, const char *loc, const char *new_string)
 {
 	pref_handle_string(pf, loc, ": ", new_string, 1);
 }
 
-int pref_get_onoff(pref_file_t *pf, char *loc, int def_state)
+int pref_get_onoff(pref_file_t *pf, const char *loc, int def_state)
 {
 	const char *p;
 
@@ -284,12 +284,12 @@ int pref_get_onoff(pref_file_t *pf, char *loc, int def_state)
 	return -1;
 }
 
-void pref_set_onoff(pref_file_t *pf, char *loc, int new_state)
+void pref_set_onoff(pref_file_t *pf, const char *loc, int new_state)
 {
 	pref_handle_string(pf, loc, ": ", new_state ? "on" : "off", 1);
 }
 
-xy_t pref_handle_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double v2, char *suffix, int mode_set)
+xy_t pref_handle_2val(pref_file_t *pf, const char *loc, double v1, const char *v_delim, double v2, const char *suffix, int mode_set)
 {
 	char *string;
 	const char *p;
@@ -319,12 +319,12 @@ xy_t pref_handle_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, doub
 	return v;
 }
 
-xy_t pref_get_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double v2, char *suffix)
+xy_t pref_get_2val(pref_file_t *pf, const char *loc, double v1, const char *v_delim, double v2, const char *suffix)
 {
 	return pref_handle_2val(pf, loc, v1, v_delim, v2, suffix, 0);
 }
 
-void pref_set_2val(pref_file_t *pf, char *loc, double v1, char *v_delim, double v2, char *suffix)
+void pref_set_2val(pref_file_t *pf, const char *loc, double v1, const char *v_delim, double v2, const char *suffix)
 {
 	pref_handle_2val(pf, loc, v1, v_delim, v2, suffix, 1);
 }
