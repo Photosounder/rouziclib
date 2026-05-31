@@ -50,15 +50,6 @@ size_t alloc_enough_mutex2(void **buffer, size_t needed_count, size_t alloc_coun
 }
 #endif
 
-void free_null(void **ptr)
-{
-	if (ptr)
-	{
-		free(*ptr);
-		*ptr = NULL;
-	}
-}
-
 void **calloc_2d(const size_t ptr_count, const size_t size_buffers, const size_t size_elem)
 {
 	size_t i;
@@ -171,15 +162,6 @@ void free_2d(void **ptr, const size_t count)
 		free(ptr[i]);
 
 	free((void *) ptr);
-}
-
-void free_null_2d(void ***ptr, const size_t count)
-{
-	if (ptr)
-	{
-		free_2d(*ptr, count);
-		*ptr = NULL;
-	}
 }
 
 void *copy_alloc(void *b0, size_t size)		// makes an allocated copy of a buffer
