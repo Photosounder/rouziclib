@@ -141,7 +141,9 @@ void *get_raster_buffer(raster_t *r)
 
 	ptr = get_raster_buffer_ptr(r);
 
-	return *ptr;
+	if (ptr)
+		return *ptr;
+	return NULL;
 }
 
 int get_raster_mode(raster_t r)
