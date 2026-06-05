@@ -381,12 +381,13 @@ void audio_player_thread_exit(audio_player_data_t *data)
 
 void audio_player_main(audio_player_data_t *data, char *path, double ts_req, double speed, double volume)
 {
-	int start_thread=1, stop_thread=1, jump=0;
+	int start_thread=1, stop_thread=1, same_path=0, jump=0;
 
 	// Close the old stream and open the new one
 	if (path && data->path)
 	if (strcmp(path, data->path)==0)
 	{
+		same_path = 1;
 		start_thread = 0;
 		stop_thread = 0;
 	}
@@ -403,6 +404,10 @@ void audio_player_main(audio_player_data_t *data, char *path, double ts_req, dou
 		data->stream = calloc(1, sizeof(ffstream_t));
 	}
 
+	// Restart expired stream
+	if (same_path && data->thread_on==0)
+		start_thread = 1;
+
 	if (stop_thread)
 	{
 		data->thread_on = 0;
@@ -413,14 +418,26 @@ void audio_player_main(audio_player_data_t *data, char *path, double ts_req, dou
 
 	if (start_thread)
 	{
-		// Initialise new data
-		data->path = make_string_copy(path);
-		data->duration = ff_get_audio_duration(NULL, data->path);
-		data->ts_req = 0.;
+		// Finish stopped thread
+		rl_thread_join_and_null(&data->thread_handle);
+
+		// Initialise new path
+		if (same_path==0)
+		{
+			data->path = make_string_copy(path);
+			data->duration = ff_get_audio_duration(NULL, data->path);
+		}
+
+		// Initialise playback state
+		audio_player_clear_frames_no_lock(data);
+		data->ts_req = rangelimit(ts_req - audio_player_seek_preroll(), 0., data->duration);
+		data->speed = speed;
+		data->volume = volume;
 		data->ifr = -1;
 		data->is = -1;
 		data->thread_on = 1;
-		rl_thread_create(&data->thread_handle, audio_player_load_thread, data);
+		if (rl_thread_create(&data->thread_handle, audio_player_load_thread, data)==0)
+			data->thread_on = 0;
 	}
 
 	// Update values
