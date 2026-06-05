@@ -19,6 +19,10 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 
+#ifndef AV_PIX_FMT_FLAG_XYZ
+#define AV_PIX_FMT_FLAG_XYZ          (1 << 10)
+#endif
+
 typedef struct
 {
 	int64_t pkt_pos, pts;

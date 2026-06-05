@@ -576,7 +576,157 @@ static void ff_yuv_coeffs_for_colorspace(const enum AVColorSpace colorspace, dou
 	}
 }
 
-static frgb_t ff_yuv_to_frgb_sample(double y, double u, double v, const double kr, const double kb, const double kg, const double chroma_mul)
+static int ff_color_transfer_is_unknown(const enum AVColorTransferCharacteristic transfer)
+{
+	switch (transfer)
+	{
+		case AVCOL_TRC_RESERVED0:
+		case AVCOL_TRC_UNSPECIFIED:
+		case AVCOL_TRC_RESERVED:
+		case AVCOL_TRC_NB:
+			return 1;
+
+		default:
+			return 0;
+	}
+}
+
+static enum AVColorTransferCharacteristic ff_frame_color_transfer(ffstream_t *s)
+{
+	enum AVColorTransferCharacteristic transfer = s->frame->color_trc;
+
+	if (ff_color_transfer_is_unknown(transfer) && s->codec_ctx)
+		transfer = s->codec_ctx->color_trc;
+	if (ff_color_transfer_is_unknown(transfer) && s->fmt_ctx && s->stream_id >= 0 && s->fmt_ctx->streams[s->stream_id])
+		transfer = s->fmt_ctx->streams[s->stream_id]->codecpar->color_trc;
+	if (ff_color_transfer_is_unknown(transfer))
+		transfer = AVCOL_TRC_BT709;
+
+	return transfer;
+}
+
+static double ff_transfer_bt709_to_linear(double v)
+{
+	if (v < 0.081)
+		return v / 4.5;
+
+	return fastpow((v + 0.099) / 1.099, 1. / 0.45);
+}
+
+static double ff_transfer_smpte240m_to_linear(double v)
+{
+	if (v < 0.091286)
+		return v / 4.;
+
+	return fastpow((v + 0.1115) / 1.1115, 1. / 0.45);
+}
+
+static double ff_transfer_pq_to_linear(double v)
+{
+	const double m1 = 2610. / 16384.;
+	const double m2 = 2523. / 32.;
+	const double c1 = 3424. / 4096.;
+	const double c2 = 2413. / 128.;
+	const double c3 = 2392. / 128.;
+	double n, d;
+
+	if (v <= 0.)
+		return 0.;
+	if (v >= 1.)
+		return 1.;
+
+	n = fastpow(v, 1. / m2);
+	d = MAXN(n - c1, 0.) / (c2 - c3*n);
+
+	return fastpow(d, 1. / m1);
+}
+
+static double ff_transfer_hlg_to_linear(double v)
+{
+	const double a = 0.17883277;
+	const double b = 0.28466892;
+	const double c = 0.55991073;
+
+	if (v <= 0.)
+		return 0.;
+	if (v >= 1.)
+		return 1.;
+	if (v <= 0.5)
+		return (v*v) / 3.;
+
+	return (exp((v - c) / a) + b) / 12.;
+}
+
+static double ff_transfer_log_to_linear(double v)
+{
+	if (v <= 0.)
+		return 0.;
+
+	return fastpow(10., 2. * (v - 1.));
+}
+
+static double ff_transfer_log_sqrt_to_linear(double v)
+{
+	if (v <= 0.)
+		return 0.;
+
+	return fastpow(10., 2.5 * (v - 1.));
+}
+
+static double ff_transfer_to_linear(double v, const enum AVColorTransferCharacteristic transfer)
+{
+	v *= 1. / 255.;
+
+	switch (transfer)
+	{
+		case AVCOL_TRC_LINEAR:
+			return v;
+
+		case AVCOL_TRC_IEC61966_2_1:
+			return slrgb(v);
+
+		case AVCOL_TRC_GAMMA22:
+			if (v < 0.)
+				return -fastpow(-v, 2.2);
+			return fastpow(v, 2.2);
+
+		case AVCOL_TRC_GAMMA28:
+			if (v < 0.)
+				return -fastpow(-v, 2.8);
+			return fastpow(v, 2.8);
+
+		case AVCOL_TRC_SMPTE240M:
+			return ff_transfer_smpte240m_to_linear(v);
+
+		case AVCOL_TRC_LOG:
+			return ff_transfer_log_to_linear(v);
+
+		case AVCOL_TRC_LOG_SQRT:
+			return ff_transfer_log_sqrt_to_linear(v);
+
+		case AVCOL_TRC_SMPTE2084:
+			return ff_transfer_pq_to_linear(v);
+
+		case AVCOL_TRC_SMPTE428:
+			if (v < 0.)
+				return -fastpow(-v, 2.6);
+			return fastpow(v, 2.6);
+
+		case AVCOL_TRC_ARIB_STD_B67:
+			return ff_transfer_hlg_to_linear(v);
+
+		case AVCOL_TRC_BT709:
+		case AVCOL_TRC_SMPTE170M:
+		case AVCOL_TRC_BT2020_10:
+		case AVCOL_TRC_BT2020_12:
+		case AVCOL_TRC_IEC61966_2_4:
+		case AVCOL_TRC_BT1361_ECG:
+		default:
+			return ff_transfer_bt709_to_linear(v);
+	}
+}
+
+static frgb_t ff_yuv_to_frgb_sample(double y, double u, double v, const double kr, const double kb, const double kg, const double chroma_mul, const enum AVColorTransferCharacteristic transfer)
 {
 	frgb_t pv;
 	double r, g, b;
@@ -588,9 +738,9 @@ static frgb_t ff_yuv_to_frgb_sample(double y, double u, double v, const double k
 	g = y - (2. * kb * (1. - kb) / kg) * u - (2. * kr * (1. - kr) / kg) * v;
 	b = y + 2. * (1. - kb) * u;
 
-	pv.r = s8lrgb(r);
-	pv.g = s8lrgb(g);
-	pv.b = s8lrgb(b);
+	pv.r = ff_transfer_to_linear(r, transfer);
+	pv.g = ff_transfer_to_linear(g, transfer);
+	pv.b = ff_transfer_to_linear(b, transfer);
 	pv.a = 1.;
 
 	return pv;
@@ -640,6 +790,7 @@ raster_t ff_frame_to_buffer(ffstream_t *s)
 raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 {
 	int bpc, bit_depth, pix_fmt, full_range, big_endian, is_gray, cw_shift, ch_shift;
+	enum AVColorTransferCharacteristic transfer;
 	raster_t im={0};
 	xyi_t ip, dim;
 	double y, u, v, kr, kb, kg, chroma_mul, sample_mul, y_mul, y_add;
@@ -677,6 +828,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 
 	full_range = s->frame->color_range == AVCOL_RANGE_JPEG || ff_pix_fmt_is_yuvj(pix_fmt);
 	big_endian = (desc->flags & AV_PIX_FMT_FLAG_BE) != 0;
+	transfer = ff_frame_color_transfer(s);
 	if (bit_depth <= 8)
 		sample_mul = 1.;
 	else if (full_range)
@@ -708,7 +860,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 
 					out_i = row_out + ip.x;
 					y = ff_frame_sample(data_y, linesize_y, ip.x, ip.y, bpc, big_endian) * y_mul + y_add;
-					pv.r = s8lrgb(y);
+					pv.r = ff_transfer_to_linear(y, transfer);
 					pv.g = pv.r;
 					pv.b = pv.r;
 					pv.a = 1.;
@@ -727,7 +879,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 
 					out_i = row_out + ip.x;
 					y = ff_frame_sample(data_y, linesize_y, ip.x, ip.y, bpc, big_endian) * y_mul + y_add;
-					pv.r = s8lrgb(y);
+					pv.r = ff_transfer_to_linear(y, transfer);
 					pv.g = pv.r;
 					pv.b = pv.r;
 					pv.a = 1.;
@@ -762,7 +914,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 					u = ff_frame_sample(data_u, linesize_u, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
 					v = ff_frame_sample(data_v, linesize_v, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
 
-					im.f[out_i] = ff_yuv_to_frgb_sample(y, u, v, kr, kb, kg, chroma_mul);
+					im.f[out_i] = ff_yuv_to_frgb_sample(y, u, v, kr, kb, kg, chroma_mul, transfer);
 				}
 			}
 		}
@@ -780,7 +932,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 					u = ff_frame_sample(data_u, linesize_u, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
 					v = ff_frame_sample(data_v, linesize_v, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
 
-					im.sq[out_i] = frgb_to_sqrgb(ff_yuv_to_frgb_sample(y, u, v, kr, kb, kg, chroma_mul));
+					im.sq[out_i] = frgb_to_sqrgb(ff_yuv_to_frgb_sample(y, u, v, kr, kb, kg, chroma_mul, transfer));
 				}
 			}
 		}
