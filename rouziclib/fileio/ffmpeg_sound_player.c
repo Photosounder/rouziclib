@@ -1,5 +1,11 @@
 #ifdef RL_FFMPEG
 
+// Define mix modes
+#define AUDIO_PLAYER_MIX_SILENT		0
+#define AUDIO_PLAYER_MIX_MONO		1
+#define AUDIO_PLAYER_MIX_STEREO		2
+#define AUDIO_PLAYER_MIX_DOWNMIX	3
+
 static void audio_player_clear_frames_no_lock(audio_player_data_t *data)
 {
 	int i;
@@ -53,21 +59,161 @@ static int audio_player_find_frame_no_lock(audio_player_data_t *data, double t, 
 	return -1;
 }
 
-static float audio_player_frame_channel_sample(audframe_t *frame, int is, int channel)
+static int audio_player_layout_channel_index(const AVChannelLayout *layout, int channels, enum AVChannel channel)
 {
-	// Read mono sample
-	if (frame->channels <= 1)
-		return frame->buffer[is];
+	int index;
+	AVChannelLayout default_layout={0};
 
-	// Read selected channel
-	channel = MINN(channel, frame->channels-1);
-	return frame->buffer[is*frame->channels + channel];
+	// Search stream layout
+	if (layout && layout->nb_channels > 0)
+	{
+		index = av_channel_layout_index_from_channel(layout, channel);
+		if (layout->order != AV_CHANNEL_ORDER_UNSPEC)
+			return index >= 0 ? index : -1;
+	}
+
+	// Search default layout
+	if (channels > 0)
+	{
+		av_channel_layout_default(&default_layout, channels);
+		index = av_channel_layout_index_from_channel(&default_layout, channel);
+		av_channel_layout_uninit(&default_layout);
+		if (index >= 0)
+			return index;
+	}
+
+	return -1;
+}
+
+static void audio_player_set_channel_map(audframe_t *frame, AVFrame *avframe)
+{
+	int channels = frame->channels;
+
+	// Clear channel map
+	frame->mix_mode = AUDIO_PLAYER_MIX_SILENT;
+	frame->mix_l = frame->mix_r = -1;
+	frame->ch_fl = frame->ch_fr = frame->ch_fc = frame->ch_lfe = -1;
+	frame->ch_bl = frame->ch_br = frame->ch_bc = frame->ch_sl = frame->ch_sr = -1;
+	frame->ch_stl = frame->ch_str = -1;
+
+	// Map named channels
+	frame->ch_fl = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_FRONT_LEFT);
+	frame->ch_fr = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_FRONT_RIGHT);
+	frame->ch_fc = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_FRONT_CENTER);
+	frame->ch_lfe = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_LOW_FREQUENCY);
+	frame->ch_bl = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_BACK_LEFT);
+	frame->ch_br = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_BACK_RIGHT);
+	frame->ch_bc = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_BACK_CENTER);
+	frame->ch_sl = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_SIDE_LEFT);
+	frame->ch_sr = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_SIDE_RIGHT);
+	frame->ch_stl = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_STEREO_LEFT);
+	frame->ch_str = audio_player_layout_channel_index(&avframe->ch_layout, channels, AV_CHAN_STEREO_RIGHT);
+
+	// Fallback to stream order
+	if (channels == 1 && frame->ch_fc < 0)
+		frame->ch_fc = 0;
+	if (channels >= 2)
+	{
+		if (frame->ch_fl < 0)
+			frame->ch_fl = 0;
+		if (frame->ch_fr < 0)
+			frame->ch_fr = 1;
+	}
+
+	// Select mono mix
+	if (channels == 1)
+	{
+		frame->mix_mode = AUDIO_PLAYER_MIX_MONO;
+		frame->mix_l = frame->ch_fc;
+		frame->mix_r = frame->ch_fc;
+		return ;
+	}
+
+	// Select stereo mix
+	if (frame->ch_stl >= 0 && frame->ch_str >= 0)
+	{
+		frame->mix_mode = AUDIO_PLAYER_MIX_STEREO;
+		frame->mix_l = frame->ch_stl;
+		frame->mix_r = frame->ch_str;
+		return ;
+	}
+
+	// Select ordered stereo mix
+	if (channels == 2)
+	{
+		frame->mix_mode = AUDIO_PLAYER_MIX_STEREO;
+		frame->mix_l = frame->ch_fl;
+		frame->mix_r = frame->ch_fr;
+		return ;
+	}
+
+	// Select surround downmix
+	if (channels > 2)
+	{
+		frame->mix_mode = AUDIO_PLAYER_MIX_DOWNMIX;
+		frame->mix_l = frame->ch_fl >= 0 ? frame->ch_fl : 0;
+		frame->mix_r = frame->ch_fr >= 0 ? frame->ch_fr : MINN(1, channels-1);
+	}
+}
+
+static int audio_player_add_downmix_channel(audframe_t *frame, int is, int channel, double left_weight, double right_weight, double *left, double *right, double *left_weight_sum, double *right_weight_sum)
+{
+	float sample;
+
+	// Add mapped channel
+	if (channel < 0 || channel >= frame->channels)
+		return 0;
+
+	sample = frame->buffer[is*frame->channels + channel];
+	*left += (double) sample * left_weight;
+	*right += (double) sample * right_weight;
+	*left_weight_sum += left_weight;
+	*right_weight_sum += right_weight;
+
+	return 1;
+}
+
+static void audio_player_downmix_frame_sample(audframe_t *frame, int is, float *left, float *right)
+{
+	int mixed=0;
+	double l=0., r=0., left_weight_sum=0., right_weight_sum=0.;
+	const double surround_gain = M_SQRT1_2;
+	const double center_gain = M_SQRT1_2;
+	const double back_center_gain = 0.5;
+
+	// Downmix surround channels
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_fl, 1., 0., &l, &r, &left_weight_sum, &right_weight_sum);
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_fr, 0., 1., &l, &r, &left_weight_sum, &right_weight_sum);
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_fc, center_gain, center_gain, &l, &r, &left_weight_sum, &right_weight_sum);
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_bl, surround_gain, 0., &l, &r, &left_weight_sum, &right_weight_sum);
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_br, 0., surround_gain, &l, &r, &left_weight_sum, &right_weight_sum);
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_sl, surround_gain, 0., &l, &r, &left_weight_sum, &right_weight_sum);
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_sr, 0., surround_gain, &l, &r, &left_weight_sum, &right_weight_sum);
+	mixed |= audio_player_add_downmix_channel(frame, is, frame->ch_bc, back_center_gain, back_center_gain, &l, &r, &left_weight_sum, &right_weight_sum);
+
+	// Fallback to first channels
+	if (mixed==0)
+	{
+		*left = frame->buffer[is*frame->channels + frame->mix_l];
+		*right = frame->buffer[is*frame->channels + frame->mix_r];
+		return ;
+	}
+
+	// Normalise downmix
+	if (left_weight_sum > 1.)
+		l /= left_weight_sum;
+	if (right_weight_sum > 1.)
+		r /= right_weight_sum;
+
+	*left = l;
+	*right = r;
 }
 
 static void audio_player_read_frame_sample(audframe_t *frame, double sample_pos, float *left, float *right)
 {
-	int is0, is1;
+	int is0, is1, base0, base1;
 	double frac;
+	float left0, right0, left1, right1;
 
 	// Select interpolation samples
 	is0 = (int) floor(sample_pos);
@@ -81,8 +227,34 @@ static void audio_player_read_frame_sample(audframe_t *frame, double sample_pos,
 	}
 
 	// Interpolate source sample
-	*left = mix(audio_player_frame_channel_sample(frame, is0, 0), audio_player_frame_channel_sample(frame, is1, 0), frac);
-	*right = mix(audio_player_frame_channel_sample(frame, is0, 1), audio_player_frame_channel_sample(frame, is1, 1), frac);
+	base0 = is0 * frame->channels;
+	base1 = is1 * frame->channels;
+	switch (frame->mix_mode)
+	{
+		case AUDIO_PLAYER_MIX_MONO:
+			left0 = right0 = frame->buffer[base0 + frame->mix_l];
+			left1 = right1 = frame->buffer[base1 + frame->mix_l];
+			break ;
+
+		case AUDIO_PLAYER_MIX_STEREO:
+			left0 = frame->buffer[base0 + frame->mix_l];
+			right0 = frame->buffer[base0 + frame->mix_r];
+			left1 = frame->buffer[base1 + frame->mix_l];
+			right1 = frame->buffer[base1 + frame->mix_r];
+			break ;
+
+		case AUDIO_PLAYER_MIX_DOWNMIX:
+			audio_player_downmix_frame_sample(frame, is0, &left0, &right0);
+			audio_player_downmix_frame_sample(frame, is1, &left1, &right1);
+			break ;
+
+		default:
+			left0 = right0 = left1 = right1 = 0.f;
+			break ;
+	}
+
+	*left = mix(left0, left1, frac);
+	*right = mix(right0, right1, frac);
 }
 
 static double audio_player_seek_preroll()
@@ -179,6 +351,7 @@ loop_start:
 			data->frame[ip].sample_count = sample_count;
 			data->frame[ip].channels = data->stream->frame->ch_layout.nb_channels;
 			data->frame[ip].samplerate = data->stream->codec_ctx->sample_rate;
+			audio_player_set_channel_map(&data->frame[ip], data->stream->frame);
 			alloc_enough_and_copy(&data->frame[ip].buffer, buf, data->frame[ip].len = ret, &data->frame[ip].as, sizeof(float), 1.);
 			data->frame[ip].info = info;
 

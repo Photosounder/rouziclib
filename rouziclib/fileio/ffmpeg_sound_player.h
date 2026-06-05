@@ -7,6 +7,8 @@ typedef struct
 	int len, as;
 	ffframe_info_t info;
 	int channels, sample_count;
+	int8_t mix_mode, mix_l, mix_r;
+	int ch_fl, ch_fr, ch_fc, ch_lfe, ch_bl, ch_br, ch_bc, ch_sl, ch_sr, ch_stl, ch_str;
 	double samplerate;
 } audframe_t;
 
