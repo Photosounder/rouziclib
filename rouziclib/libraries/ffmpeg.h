@@ -17,6 +17,7 @@
 #include <libavutil/avutil.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
 
 typedef struct
 {
@@ -32,7 +33,7 @@ typedef struct
 	const AVCodec *codec;
 	AVFrame *frame;
 	AVPacket *packet;
-	int stream_id, thread_count;
+	int stream_id, thread_count, packet_pending;
 
 	ffframe_info_t *frame_info;
 	int frame_count, frame_as;

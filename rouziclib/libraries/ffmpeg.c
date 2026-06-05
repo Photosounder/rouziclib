@@ -1,6 +1,6 @@
 #ifdef RL_FFMPEG
 
-static char *const ffmpeg_get_error_text(const int error)
+static char *ffmpeg_get_error_text(const int error)
 {
 	static char error_buffer[255];
 	av_strerror(error, error_buffer, sizeof(error_buffer));
@@ -19,42 +19,83 @@ int ffmpeg_retval(const int ret)
 
 int ff_init_stream(ffstream_t *s, const int stream_type)	// returns 1 on success
 {
-	int i, ret;
+	int ret;
 
 	// Find stream
 	s->stream_id = av_find_best_stream(s->fmt_ctx, stream_type, -1, -1, NULL, 0);
 
-	if (s->stream_id == -1)
+	if (s->stream_id < 0)
+	{
+		ffmpeg_retval(s->stream_id);
+		s->stream_id = -1;
 		return 0;
+	}
 
 	// Load codec
 	s->codec = avcodec_find_decoder(s->fmt_ctx->streams[s->stream_id]->codecpar->codec_id);
+	if (s->codec==NULL)
+	{
+		fprintf_rl(stderr, "Couldn't find FFmpeg decoder for stream %d\n", s->stream_id);
+		s->stream_id = -1;
+		return 0;
+	}
+
 	s->codec_ctx = avcodec_alloc_context3(s->codec);
+	if (s->codec_ctx==NULL)
+	{
+		fprintf_rl(stderr, "avcodec_alloc_context3() failed in ff_init_stream()\n");
+		s->stream_id = -1;
+		return 0;
+	}
+
 	s->codec_ctx->thread_count = s->thread_count;
 	s->codec_ctx->thread_type = FF_THREAD_FRAME;
 
 	ret = avcodec_parameters_to_context(s->codec_ctx, s->fmt_ctx->streams[s->stream_id]->codecpar);
 	ffmpeg_retval(ret);
 	if (ret < 0)
+	{
+		avcodec_close(s->codec_ctx);
+		s->stream_id = -1;
 		return 0;
+	}
 
 	ret = avcodec_open2(s->codec_ctx, s->codec, NULL);
 	ffmpeg_retval(ret);
 	if (ret < 0)
+	{
+		avcodec_close(s->codec_ctx);
+		s->stream_id = -1;
 		return 0;
+	}
 
 	// Frame
 	s->frame = av_frame_alloc();
+	if (s->frame==NULL)
+	{
+		fprintf_rl(stderr, "av_frame_alloc() failed in ff_init_stream()\n");
+		avcodec_close(s->codec_ctx);
+		s->stream_id = -1;
+		return 0;
+	}
 
 	// Packet allocation
 	s->packet = av_packet_alloc();
+	if (s->packet==NULL)
+	{
+		fprintf_rl(stderr, "av_packet_alloc() failed in ff_init_stream()\n");
+		av_frame_free(&s->frame);
+		avcodec_close(s->codec_ctx);
+		s->stream_id = -1;
+		return 0;
+	}
 
 	return 1;
 }
 
 ffstream_t ff_load_stream_init(char const *path, const int stream_type, const int thread_count)
 {
-	int i, ret;
+	int ret;
 	ffstream_t s={0};
 
 	s.stream_id = -1;
@@ -64,7 +105,7 @@ ffstream_t ff_load_stream_init(char const *path, const int stream_type, const in
 		return s;
 
 	// Open file
-	if (ret = avformat_open_input(&s.fmt_ctx, path, NULL, NULL))
+	if ((ret = avformat_open_input(&s.fmt_ctx, path, NULL, NULL)))
 	{
 		ffmpeg_retval(ret);
 		fprintf_rl(stderr, "Couldn't avformat_open_input() file '%s'\n", path);
@@ -73,17 +114,26 @@ ffstream_t ff_load_stream_init(char const *path, const int stream_type, const in
 
 	ret = avformat_find_stream_info(s.fmt_ctx, NULL);
 	ffmpeg_retval(ret);
+	if (ret < 0)
+	{
+		avformat_close_input(&s.fmt_ctx);
+		return s;
+	}
 
 	// Init
-	ff_init_stream(&s, stream_type);
+	if (ff_init_stream(&s, stream_type)==0)
+		ffstream_close_free(&s);
 
 	return s;
 }
 
-static int ff_receive_stream_frame(ffstream_t *s)
+static int ff_receive_stream_frame_ret(ffstream_t *s, int *retp)
 {
 	// Return decoded output data (in frame) from a decoder
 	int ret = avcodec_receive_frame(s->codec_ctx, s->frame);
+	if (retp)
+		*retp = ret;
+
 	if (ret >= 0)
 		return 1;
 
@@ -91,6 +141,23 @@ static int ff_receive_stream_frame(ffstream_t *s)
 		ffmpeg_retval(ret);
 
 	return 0;
+}
+
+static int ff_receive_stream_frame(ffstream_t *s)
+{
+	return ff_receive_stream_frame_ret(s, NULL);
+}
+
+static void ff_flush_stream_decoder(ffstream_t *s)
+{
+	if (s->packet_pending)
+	{
+		av_packet_unref(s->packet);
+		s->packet_pending = 0;
+	}
+
+	if (s->codec_ctx)
+		avcodec_flush_buffers(s->codec_ctx);
 }
 
 static int ff_frame_key_frame(AVFrame *frame)
@@ -111,6 +178,18 @@ static int64_t ff_frame_pkt_pos(ffstream_t *s)
 #endif
 }
 
+static int64_t ff_frame_timestamp(AVFrame *frame)
+{
+	if (frame->best_effort_timestamp != AV_NOPTS_VALUE)
+		return frame->best_effort_timestamp;
+	if (frame->pts != AV_NOPTS_VALUE)
+		return frame->pts;
+	if (frame->pkt_dts != AV_NOPTS_VALUE)
+		return frame->pkt_dts;
+
+	return AV_NOPTS_VALUE;
+}
+
 static int64_t ff_frame_duration(AVFrame *frame)
 {
 #if LIBAVUTIL_VERSION_MAJOR >= 60
@@ -120,21 +199,101 @@ static int64_t ff_frame_duration(AVFrame *frame)
 #endif
 }
 
+static int64_t ff_frame_duration_ts(ffstream_t *s, AVFrame *frame)
+{
+	int64_t duration = ff_frame_duration(frame);
+	AVStream *st;
+	AVRational frame_rate;
+	double tb;
+
+	if (duration > 0)
+		return duration;
+
+	st = s->fmt_ctx->streams[s->stream_id];
+	tb = av_q2d(st->time_base);
+	if (tb <= 0.)
+		return 0;
+
+	if (s->codec_ctx->codec_type == AVMEDIA_TYPE_AUDIO && frame->nb_samples > 0 && s->codec_ctx->sample_rate > 0)
+		return (int64_t) nearbyint(((double) frame->nb_samples / (double) s->codec_ctx->sample_rate) / tb);
+
+	if (s->codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO)
+	{
+		frame_rate = av_guess_frame_rate(s->fmt_ctx, st, frame);
+		if (frame_rate.num > 0 && frame_rate.den > 0)
+			return (int64_t) nearbyint(((double) frame_rate.den / (double) frame_rate.num) / tb);
+	}
+
+	return 0;
+}
+
+static int ff_frame_pix_fmt(ffstream_t *s)
+{
+	if (s->frame && s->frame->format != AV_PIX_FMT_NONE)
+		return s->frame->format;
+
+	return s->codec_ctx->pix_fmt;
+}
+
+static xyi_t ff_frame_dim(ffstream_t *s)
+{
+	if (s->frame && s->frame->width > 0 && s->frame->height > 0)
+		return xyi(s->frame->width, s->frame->height);
+
+	return xyi(s->codec_ctx->width, s->codec_ctx->height);
+}
+
 int ff_load_stream_packet(ffstream_t *s)
 {
-	int ret;
+	int ret, recv_ret;
 
 	// Return already decoded frames before feeding more packets. Otherwise codecs
 	// with delayed output can reject the next packet with EAGAIN and the packet is lost.
-	ret = avcodec_receive_frame(s->codec_ctx, s->frame);
-	if (ret >= 0)
+	if (ff_receive_stream_frame_ret(s, &recv_ret))
 		return 1;
-	if (ret == AVERROR_EOF)
-		return 0;
-	if (ret != AVERROR(EAGAIN))
+	if (recv_ret == AVERROR_EOF)
 	{
-		ffmpeg_retval(ret);
+		if (s->packet_pending)
+		{
+			av_packet_unref(s->packet);
+			s->packet_pending = 0;
+		}
 		return 0;
+	}
+	if (recv_ret != AVERROR(EAGAIN))
+	{
+		return 0;
+	}
+
+	while (s->packet_pending)
+	{
+		ret = avcodec_send_packet(s->codec_ctx, s->packet);
+		if (ret == AVERROR(EAGAIN))
+		{
+			if (ff_receive_stream_frame_ret(s, &recv_ret))
+				return 1;
+			if (recv_ret == AVERROR_EOF)
+			{
+				av_packet_unref(s->packet);
+				s->packet_pending = 0;
+			}
+
+			return 0;
+		}
+
+		av_packet_unref(s->packet);
+		s->packet_pending = 0;
+
+		if (ret == AVERROR_EOF)
+			return 0;
+		if (ret < 0)
+		{
+			ffmpeg_retval(ret);
+			return 0;
+		}
+
+		if (ff_receive_stream_frame(s))
+			return 1;
 	}
 
 	while ((ret = av_read_frame(s->fmt_ctx, s->packet)) >= 0)	// get the next frame from the file
@@ -142,11 +301,29 @@ int ff_load_stream_packet(ffstream_t *s)
 		if (s->packet->stream_index == s->stream_id)		// check that it's the right stream
 		{
 			s->byte_pos = s->packet->pos;
+			s->packet_pending = 1;
+
 			ret = avcodec_send_packet(s->codec_ctx, s->packet);	// supply raw packet data as input to a decoder
-			av_packet_unref(s->packet);
+			if (ret != AVERROR(EAGAIN))
+			{
+				av_packet_unref(s->packet);
+				s->packet_pending = 0;
+			}
 
 			if (ret == AVERROR_EOF)
 				return 0;
+			if (ret == AVERROR(EAGAIN))
+			{
+				if (ff_receive_stream_frame_ret(s, &recv_ret))
+					return 1;
+				if (recv_ret == AVERROR_EOF)
+				{
+					av_packet_unref(s->packet);
+					s->packet_pending = 0;
+				}
+
+				return 0;
+			}
 			if (ret < 0)
 			{
 				ffmpeg_retval(ret);
@@ -173,6 +350,9 @@ int ff_load_stream_packet(ffstream_t *s)
 
 void ffstream_close_free(ffstream_t *s)
 {
+	if (s==NULL)
+		return ;
+
 	free_null(&s->frame_info);
 	av_frame_free(&s->frame);
 	av_packet_free(&s->packet);
@@ -186,20 +366,30 @@ double ff_get_timestamp(ffstream_t *s, int64_t timestamp)
 	AVRational time_base = s->fmt_ctx->streams[s->stream_id]->time_base;
 	int64_t start_time = s->fmt_ctx->streams[s->stream_id]->start_time;
 
-	return (timestamp - 0*start_time) * av_q2d(time_base);
+	if (timestamp == AV_NOPTS_VALUE)
+		return NAN;
+	if (start_time != AV_NOPTS_VALUE)
+		timestamp -= start_time;
+
+	return (double) timestamp * av_q2d(time_base);
 }
 
 double ff_get_frame_timestamp(ffstream_t *s)
 {
-	return ff_get_timestamp(s, s->frame->best_effort_timestamp);
+	return ff_get_timestamp(s, ff_frame_timestamp(s->frame));
 }
 
 int64_t ff_make_timestamp(ffstream_t *s, double t)
 {
 	AVRational time_base = s->fmt_ctx->streams[s->stream_id]->time_base;
 	int64_t start_time = s->fmt_ctx->streams[s->stream_id]->start_time;
+	int64_t timestamp;
 
-	return nearbyint(t / av_q2d(time_base) + 0*start_time);
+	timestamp = (int64_t) nearbyint(t / av_q2d(time_base));
+	if (start_time != AV_NOPTS_VALUE)
+		timestamp += start_time;
+
+	return timestamp;
 }
 
 /*raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
@@ -248,41 +438,22 @@ get_time_diff(&td);
 
 int ff_pix_fmt_byte_count(int pix_fmt)
 {
-	if (	(pix_fmt >= AV_PIX_FMT_YUV420P9BE  && pix_fmt <= AV_PIX_FMT_YUV422P9LE ) ||
-		(pix_fmt >= AV_PIX_FMT_YUV420P16LE && pix_fmt <= AV_PIX_FMT_YUV444P16BE) ||
-	  	(pix_fmt >= AV_PIX_FMT_YUV420P12BE && pix_fmt <= AV_PIX_FMT_YUV444P14LE) )
-		return 2;
+	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pix_fmt);
+
+	if (desc && desc->nb_components > 0)
+		return (desc->comp[0].depth + 7) >> 3;
 
 	return 1;
 }
 
 int ff_pix_fmt_bit_depth(int pix_fmt)
 {
-	switch (pix_fmt)
-	{
-		case AV_PIX_FMT_YUV420P9LE:
-		case AV_PIX_FMT_YUV420P9BE:
-			return 9;
+	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pix_fmt);
 
-		case AV_PIX_FMT_YUV420P10LE:
-		case AV_PIX_FMT_YUV420P10BE:
-			return 10;
+	if (desc && desc->nb_components > 0)
+		return desc->comp[0].depth;
 
-		case AV_PIX_FMT_YUV420P12LE:
-		case AV_PIX_FMT_YUV420P12BE:
-			return 12;
-
-		case AV_PIX_FMT_YUV420P14LE:
-		case AV_PIX_FMT_YUV420P14BE:
-			return 14;
-
-		case AV_PIX_FMT_YUV420P16LE:
-		case AV_PIX_FMT_YUV420P16BE:
-			return 16;
-
-		default:
-			return 8;
-	}
+	return 8;
 }
 
 int ff_pix_fmt_to_buf_fmt(int pix_fmt)
@@ -325,140 +496,350 @@ int ff_buf_fmt_to_pix_fmt(int buf_fmt)
 	return -1;
 }
 
+static int ff_pix_fmt_is_planar_yuv(int pix_fmt)
+{
+	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pix_fmt);
+
+	if (desc==NULL)
+		return 0;
+	if ((desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_HWACCEL | AV_PIX_FMT_FLAG_BAYER | AV_PIX_FMT_FLAG_FLOAT | AV_PIX_FMT_FLAG_XYZ)) != 0)
+		return 0;
+	if ((desc->flags & AV_PIX_FMT_FLAG_PLANAR)==0)
+		return 0;
+	if (desc->nb_components < 3)
+		return 0;
+	if (desc->comp[0].plane != 0 || desc->comp[1].plane != 1 || desc->comp[2].plane != 2)
+		return 0;
+
+	return 1;
+}
+
+static int ff_pix_fmt_is_gray(int pix_fmt)
+{
+	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pix_fmt);
+
+	if (desc==NULL)
+		return 0;
+	if ((desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_HWACCEL | AV_PIX_FMT_FLAG_BAYER | AV_PIX_FMT_FLAG_FLOAT | AV_PIX_FMT_FLAG_XYZ)) != 0)
+		return 0;
+
+	return desc->nb_components == 1;
+}
+
+static int ff_pix_fmt_is_yuvj(int pix_fmt)
+{
+	switch (pix_fmt)
+	{
+		case AV_PIX_FMT_YUVJ420P:
+		case AV_PIX_FMT_YUVJ422P:
+		case AV_PIX_FMT_YUVJ444P:
+		case AV_PIX_FMT_YUVJ440P:
+		case AV_PIX_FMT_YUVJ411P:
+			return 1;
+	}
+
+	return 0;
+}
+
+static double ff_frame_sample(const uint8_t *data, const int linesize, const int x, const int y, const int bpc, const int big_endian)
+{
+	const uint8_t *p = &data[y*linesize + x*bpc];
+
+	if (bpc <= 1)
+		return p[0];
+	if (bpc == 2)
+		return big_endian ? ((uint16_t) p[0] << 8) | p[1] : ((uint16_t) p[1] << 8) | p[0];
+
+	return 0.;
+}
+
+static void ff_yuv_coeffs_for_colorspace(const enum AVColorSpace colorspace, double *kr, double *kb)
+{
+	*kr = 0.299;
+	*kb = 0.114;
+
+	switch (colorspace)
+	{
+		case AVCOL_SPC_BT709:
+			*kr = 0.2126;
+			*kb = 0.0722;
+			break;
+
+		case AVCOL_SPC_BT2020_NCL:
+		case AVCOL_SPC_BT2020_CL:
+			*kr = 0.2627;
+			*kb = 0.0593;
+			break;
+
+		default:
+			break;
+	}
+}
+
+static frgb_t ff_yuv_to_frgb_sample(double y, double u, double v, const double kr, const double kb, const double kg, const double chroma_mul)
+{
+	frgb_t pv;
+	double r, g, b;
+
+	u = (u - 128.) * chroma_mul;
+	v = (v - 128.) * chroma_mul;
+
+	r = y + 2. * (1. - kr) * v;
+	g = y - (2. * kb * (1. - kb) / kg) * u - (2. * kr * (1. - kr) / kg) * v;
+	b = y + 2. * (1. - kb) * u;
+
+	pv.r = s8lrgb(r);
+	pv.g = s8lrgb(g);
+	pv.b = s8lrgb(b);
+	pv.a = 1.;
+
+	return pv;
+}
+
 raster_t ff_frame_to_buffer(ffstream_t *s)
 {
-	int i, ip, bpc = 1;
+	int ret, pix_fmt, buf_size;
 	raster_t im={0};
-	uint8_t *plane[3];
 
-	bpc = ff_pix_fmt_byte_count(s->codec_ctx->pix_fmt);
-	im.buf_fmt = ff_pix_fmt_to_buf_fmt(s->codec_ctx->pix_fmt);
+	pix_fmt = ff_frame_pix_fmt(s);
+	im.buf_fmt = ff_pix_fmt_to_buf_fmt(pix_fmt);
+	if (im.buf_fmt == -1)
+	{
+		fprintf_rl(stderr, "Unsupported FFmpeg pixel format %d for ff_frame_to_buffer()\n", pix_fmt);
+		return im;
+	}
 
-	im.dim = xyi(s->codec_ctx->width, s->codec_ctx->height);
-	im.buf_size = av_image_get_buffer_size(s->codec_ctx->pix_fmt, s->codec_ctx->width, s->codec_ctx->height, 1);
+	im.dim = ff_frame_dim(s);
+	buf_size = av_image_get_buffer_size(pix_fmt, im.dim.x, im.dim.y, 1);
+	if (buf_size < 0)
+	{
+		ffmpeg_retval(buf_size);
+		return im;
+	}
+
+	im.buf_size = buf_size;
 	im.buf = malloc(im.buf_size);
 	if (im.buf==NULL)
 	{
 		fprintf_rl(stderr, "malloc(%zu) failed in ff_frame_to_buffer()\n", im.buf_size);
 		return im;
 	}
-	plane[0] = im.buf;
-	plane[1] = &plane[0][bpc * mul_x_by_y_xyi(im.dim)];
-	plane[2] = &plane[1][bpc * mul_x_by_y_xyi(im.dim)/4];
 
-	ip = 0;
-	for (i=0; i < im.dim.y; i++)
-		memcpy(&plane[ip][i*im.dim.x * bpc], &s->frame->data[ip][i*s->frame->linesize[ip]], bpc * im.dim.x);
-
-	for (ip=1; ip < 3; ip++)
-		for (i=0; i < im.dim.y>>1; i++)
-			memcpy(&plane[ip][i*(im.dim.x>>1) * bpc], &s->frame->data[ip][i*s->frame->linesize[ip]], bpc * im.dim.x>>1);
+	ret = av_image_copy_to_buffer(im.buf, buf_size, (const uint8_t * const *) s->frame->data, s->frame->linesize, pix_fmt, im.dim.x, im.dim.y, 1);
+	if (ret < 0)
+	{
+		ffmpeg_retval(ret);
+		free_null(&im.buf);
+		im.buf_size = 0;
+		im.buf_fmt = 0;
+	}
 
 	return im;
 }
 
 raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 {
-	int bpc, bit_depth, lsy, lsuv;
+	int bpc, bit_depth, pix_fmt, full_range, big_endian, is_gray, cw_shift, ch_shift;
 	raster_t im={0};
-	xyi_t ip, iph;
-	xyz_t yuv, depth_mul;
-	uint8_t **d8=NULL;
-	uint16_t **d16=NULL;
+	xyi_t ip, dim;
+	double y, u, v, kr, kb, kg, chroma_mul, sample_mul, y_mul, y_add;
+	const AVPixFmtDescriptor *desc;
+	const uint8_t *data_y, *data_u, *data_v;
+	int linesize_y, linesize_u, linesize_v, row_out, out_i, chroma_x, chroma_y;
 
-	im = make_raster(NULL, xyi(s->codec_ctx->width, s->codec_ctx->height), XYI0, mode);
+	if (mode != IMAGE_USE_FRGB && mode != IMAGE_USE_SQRGB)
+		return im;
+
+	pix_fmt = ff_frame_pix_fmt(s);
+	desc = av_pix_fmt_desc_get(pix_fmt);
+	if (desc==NULL)
+		return im;
+	is_gray = ff_pix_fmt_is_gray(pix_fmt);
+	if (ff_pix_fmt_is_planar_yuv(pix_fmt)==0 && is_gray==0)
+	{
+		fprintf_rl(stderr, "Unsupported FFmpeg pixel format %d for ff_frame_to_raster()\n", pix_fmt);
+		return im;
+	}
 
 	// Prepare parameters and pointers
-	bpc = ff_pix_fmt_byte_count(s->codec_ctx->pix_fmt);
-	bit_depth = ff_pix_fmt_bit_depth(s->codec_ctx->pix_fmt);
-	lsy = s->frame->linesize[0] / bpc;
-	lsuv = s->frame->linesize[1] / bpc;
-
-	if (bpc==1)
+	bpc = ff_pix_fmt_byte_count(pix_fmt);
+	bit_depth = ff_pix_fmt_bit_depth(pix_fmt);
+	if (bpc < 1 || bpc > 2 || bit_depth < 1 || bit_depth > 16)
 	{
-		d8 = s->frame->data;
+		fprintf_rl(stderr, "Unsupported FFmpeg pixel format depth %d for ff_frame_to_raster()\n", bit_depth);
+		return im;
+	}
 
+	dim = ff_frame_dim(s);
+	im = make_raster(NULL, dim, XYI0, mode);
+	if ((mode == IMAGE_USE_FRGB && im.f==NULL) || (mode == IMAGE_USE_SQRGB && im.sq==NULL))
+		return im;
+
+	full_range = s->frame->color_range == AVCOL_RANGE_JPEG || ff_pix_fmt_is_yuvj(pix_fmt);
+	big_endian = (desc->flags & AV_PIX_FMT_FLAG_BE) != 0;
+	if (bit_depth <= 8)
+		sample_mul = 1.;
+	else if (full_range)
+		sample_mul = 255. / (double) ((1 << bit_depth) - 1);
+	else
+		sample_mul = 1. / (double) (1 << (bit_depth-8));
+
+	y_mul = sample_mul;
+	y_add = 0.;
+	if (full_range==0)
+	{
+		y_mul *= 255. / 219.;
+		y_add = -16. * 255. / 219.;
+	}
+
+	data_y = s->frame->data[0];
+	linesize_y = s->frame->linesize[0];
+
+	if (is_gray)
+	{
 		if (mode == IMAGE_USE_FRGB)
+		{
 			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+			{
+				row_out = ip.y * im.dim.x;
 				for (ip.x=0; ip.x < im.dim.x; ip.x++)
 				{
-					iph = rshift_xyi(ip, 1);
-					yuv = xyz(d8[0][ip.y*lsy + ip.x], d8[1][iph.y*lsuv + iph.x], d8[2][iph.y*lsuv + iph.x]);
-					im.f[ip.y*im.dim.x + ip.x] = yuv_to_frgb(yuv);
+					frgb_t pv;
+
+					out_i = row_out + ip.x;
+					y = ff_frame_sample(data_y, linesize_y, ip.x, ip.y, bpc, big_endian) * y_mul + y_add;
+					pv.r = s8lrgb(y);
+					pv.g = pv.r;
+					pv.b = pv.r;
+					pv.a = 1.;
+					im.f[out_i] = pv;
 				}
-		else if (mode == IMAGE_USE_SQRGB)
+			}
+		}
+		else
+		{
 			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+			{
+				row_out = ip.y * im.dim.x;
 				for (ip.x=0; ip.x < im.dim.x; ip.x++)
 				{
-					iph = rshift_xyi(ip, 1);
-					yuv = xyz(d8[0][ip.y*lsy + ip.x], d8[1][iph.y*lsuv + iph.x], d8[2][iph.y*lsuv + iph.x]);
-					im.sq[ip.y*im.dim.x + ip.x] = frgb_to_sqrgb(yuv_to_frgb(yuv));
+					frgb_t pv;
+
+					out_i = row_out + ip.x;
+					y = ff_frame_sample(data_y, linesize_y, ip.x, ip.y, bpc, big_endian) * y_mul + y_add;
+					pv.r = s8lrgb(y);
+					pv.g = pv.r;
+					pv.b = pv.r;
+					pv.a = 1.;
+					im.sq[out_i] = frgb_to_sqrgb(pv);
 				}
+			}
+		}
 	}
 	else
 	{
-		d16 = (uint16_t **) s->frame->data;
-		depth_mul = set_xyz(1. / (double) (1 << bit_depth-8));
+		data_u = s->frame->data[1];
+		data_v = s->frame->data[2];
+		linesize_u = s->frame->linesize[1];
+		linesize_v = s->frame->linesize[2];
+		cw_shift = desc->log2_chroma_w;
+		ch_shift = desc->log2_chroma_h;
+		chroma_mul = full_range ? 1. : 255. / 224.;
+		ff_yuv_coeffs_for_colorspace(s->frame->colorspace, &kr, &kb);
+		kg = 1. - kr - kb;
 
 		if (mode == IMAGE_USE_FRGB)
+		{
 			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+			{
+				row_out = ip.y * im.dim.x;
+				chroma_y = ip.y >> ch_shift;
 				for (ip.x=0; ip.x < im.dim.x; ip.x++)
 				{
-					iph = rshift_xyi(ip, 1);
-					yuv = xyz(d16[0][ip.y*lsy + ip.x], d16[1][iph.y*lsuv + iph.x], d16[2][iph.y*lsuv + iph.x]);
-					im.f[ip.y*im.dim.x + ip.x] = yuv_to_frgb(mul_xyz(yuv, depth_mul));
+					out_i = row_out + ip.x;
+					chroma_x = ip.x >> cw_shift;
+					y = ff_frame_sample(data_y, linesize_y, ip.x, ip.y, bpc, big_endian) * y_mul + y_add;
+					u = ff_frame_sample(data_u, linesize_u, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
+					v = ff_frame_sample(data_v, linesize_v, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
+
+					im.f[out_i] = ff_yuv_to_frgb_sample(y, u, v, kr, kb, kg, chroma_mul);
 				}
-		else if (mode == IMAGE_USE_SQRGB)
+			}
+		}
+		else
+		{
 			for (ip.y=0; ip.y < im.dim.y; ip.y++)
+			{
+				row_out = ip.y * im.dim.x;
+				chroma_y = ip.y >> ch_shift;
 				for (ip.x=0; ip.x < im.dim.x; ip.x++)
 				{
-					iph = rshift_xyi(ip, 1);
-					yuv = xyz(d16[0][ip.y*lsy + ip.x], d16[1][iph.y*lsuv + iph.x], d16[2][iph.y*lsuv + iph.x]);
-					im.sq[ip.y*im.dim.x + ip.x] = frgb_to_sqrgb(yuv_to_frgb(mul_xyz(yuv, depth_mul)));
+					out_i = row_out + ip.x;
+					chroma_x = ip.x >> cw_shift;
+					y = ff_frame_sample(data_y, linesize_y, ip.x, ip.y, bpc, big_endian) * y_mul + y_add;
+					u = ff_frame_sample(data_u, linesize_u, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
+					v = ff_frame_sample(data_v, linesize_v, chroma_x, chroma_y, bpc, big_endian) * sample_mul;
+
+					im.sq[out_i] = frgb_to_sqrgb(ff_yuv_to_frgb_sample(y, u, v, kr, kb, kg, chroma_mul));
 				}
+			}
+		}
 	}
 
 	return im;
 }
 
-void ff_seek_timestamp(ffstream_t *s, double ts, int64_t pts, int flush)
+static int ff_seek_timestamp_flags(ffstream_t *s, double ts, int64_t pts, int flags, int flush)
 {
 	int ret;
 
 	if (isnan(ts)==0)
 		pts = ff_make_timestamp(s, ts);
 
-	ret = av_seek_frame(s->fmt_ctx, s->stream_id, pts, AVSEEK_FLAG_ANY);
+	ret = av_seek_frame(s->fmt_ctx, s->stream_id, pts, flags);
 	ffmpeg_retval(ret);
 
-	if (flush && s->codec_ctx)
-		avcodec_flush_buffers(s->codec_ctx);
+	if (ret >= 0 && flush)
+		ff_flush_stream_decoder(s);
+
+	return ret >= 0;
+}
+
+void ff_seek_timestamp(ffstream_t *s, double ts, int64_t pts, int flush)
+{
+	ff_seek_timestamp_flags(s, ts, pts, AVSEEK_FLAG_BACKWARD, flush);
 }
 
 void ff_seek_byte(ffstream_t *s, int64_t pos, int flush)
 {
-	int ret;
+	int64_t ret;
 
 	//seek_frame_byte(s->fmt_ctx, s->stream_id, pos, 0);
 
 	//ret = av_seek_frame(s->fmt_ctx, s->stream_id, pos, AVSEEK_FLAG_BYTE);
 	ret = avio_seek(s->fmt_ctx->pb, pos, SEEK_SET);
-	//ffmpeg_retval(ret);
+	if (ret < 0)
+		ffmpeg_retval((int) ret);
 
-	if (flush)
+	if (ret >= 0 && flush)
 	{
+		if (s->packet_pending)
+		{
+			av_packet_unref(s->packet);
+			s->packet_pending = 0;
+		}
 		avio_flush(s->fmt_ctx->pb);
 		avformat_flush(s->fmt_ctx);
-		if (s->codec_ctx)
-			avcodec_flush_buffers(s->codec_ctx);
+		ff_flush_stream_decoder(s);
 	}
 }
 
 int ff_find_table_frame_id(ffstream_t *s, double t, const int keyframe)
 {
-	int i, ret, frame_id;
+	int i, frame_id, seek_id;
+	double target_ts;
 
-	if (s->frame_info==NULL)
+	if (s->frame_info==NULL || s->frame_count <= 0)
 		return -1;
 
 	// check if t isn't after the expected end
@@ -477,10 +858,29 @@ int ff_find_table_frame_id(ffstream_t *s, double t, const int keyframe)
 
 	if (frame_id > -1)
 	{
-		ff_seek_timestamp(s, NAN, s->frame_info[frame_id].pts, keyframe);
+		seek_id = frame_id;
+		if (keyframe==0)
+			for (i=frame_id; i >= 0; i--)
+				if (s->frame_info[i].key_frame)
+				{
+					seek_id = i;
+					break ;
+				}
+
+		if (ff_seek_timestamp_flags(s, NAN, s->frame_info[seek_id].pts, AVSEEK_FLAG_BACKWARD, 1)==0)
+			return -1;
 		//ff_seek_byte(s, s->frame_info[frame_id].pkt_pos, keyframe);
 
-		ff_load_stream_packet(s);		// get the sought frame
+		if (ff_load_stream_packet(s)==0)		// get the sought frame
+			return -1;
+
+		if (keyframe==0)
+		{
+			target_ts = s->frame_info[frame_id].ts;
+			while (ff_get_frame_timestamp(s) < target_ts)
+				if (ff_load_stream_packet(s)==0)
+					return -1;
+		}
 
 		if (s->frame_info[frame_id].ts != ff_get_frame_timestamp(s))
 			fprintf_rl(stdout, "\tSought PTS %.3f s - Found PTS %.3f sec\n", s->frame_info[frame_id].ts, ff_get_frame_timestamp(s));
@@ -491,28 +891,17 @@ int ff_find_table_frame_id(ffstream_t *s, double t, const int keyframe)
 
 int ff_decode_frame_from_table(ffstream_t *s, double t)
 {
-	int frame_id;
+	if (s->frame_info==NULL)
+		return 0;
 
-	if (s->frame_info)
-		if ((frame_id = ff_find_table_frame_id(s, t, 1)) > -1)
-		{
-			if (s->frame_info[frame_id].ts == t)
-				return 1;
-
-			if (ff_find_table_frame_id(s, t, 0) > -1)
-				return 1;
-		}
-
-	return 0;
+	return ff_find_table_frame_id(s, t, 0) > -1;
 }
 
 int ff_find_keyframe_for_time(ffstream_t *s, const double t)
 {
-	int i, ret;
 	AVFrame *f;
-	int64_t timestamp, timestamp_o=-1;
+	int64_t frame_ts, timestamp, timestamp_o=-1;
 	double seek_offset=0.;
-	int frame_id;
 
 	if (s->frame_info)
 		if (ff_find_table_frame_id(s, t, 1) > -1)
@@ -521,7 +910,8 @@ int ff_find_keyframe_for_time(ffstream_t *s, const double t)
 	if (t < 2.)
 	{
 		//ff_seek_byte(s, 0, 1);
-		ff_seek_timestamp(s, 0., 0, 1);
+		if (ff_seek_timestamp_flags(s, 0., 0, AVSEEK_FLAG_BACKWARD, 1)==0)
+			return 0;
 
 		if (ff_load_stream_packet(s))		// get the sought frame
 			return 1;
@@ -534,15 +924,14 @@ seek_start:
 	timestamp = ff_make_timestamp(s, t+seek_offset);	// FIXME timestamp can't be before the start
 	if (timestamp_o==-1)
 		timestamp_o = timestamp;
-	ret = av_seek_frame(s->fmt_ctx, s->stream_id, timestamp, AVSEEK_FLAG_BACKWARD);
-	ffmpeg_retval(ret);
-	if (s->codec_ctx)
-		avcodec_flush_buffers(s->codec_ctx);
+	if (ff_seek_timestamp_flags(s, NAN, timestamp, AVSEEK_FLAG_BACKWARD, 1)==0)
+		return 0;
 
 	if (ff_load_stream_packet(s))		// get the sought frame
 	{
 		f = s->frame;
-		if (f->best_effort_timestamp > timestamp_o)
+		frame_ts = ff_frame_timestamp(f);
+		if (frame_ts != AV_NOPTS_VALUE && frame_ts > timestamp_o)
 		{
 			seek_offset -= 1.;	// seek one second further back
 			if (t+seek_offset <= -2.)
@@ -563,13 +952,16 @@ seek_start:
 int ff_find_frame_at_time(ffstream_t *s, const double t)	// finds and decode properly the right frame at a given time (can sometimes be one frame late)
 {
 	AVFrame *f;
+	int64_t frame_ts, duration;
 
 	if (ff_find_keyframe_for_time(s, t))		// find the preceding keyframe
 	{
 		do
 		{
 			f = s->frame;
-			if (ff_get_timestamp(s, f->best_effort_timestamp + ff_frame_duration(f)) > t)	// if the next frame would be after t
+			frame_ts = ff_frame_timestamp(f);
+			duration = ff_frame_duration_ts(s, f);
+			if (frame_ts != AV_NOPTS_VALUE && duration > 0 && ff_get_timestamp(s, frame_ts + duration) > t)	// if the next frame would be after t
 				return 1;								// caveat: frame duration can fail to accurately predict the next timestamp
 		}
 		while (ff_load_stream_packet(s));
@@ -581,31 +973,33 @@ int ff_find_frame_at_time(ffstream_t *s, const double t)	// finds and decode pro
 ffframe_info_t ff_make_frame_info(ffstream_t *s)
 {
 	ffframe_info_t fi={0};
+	int64_t duration;
 
 	if (s->frame==NULL)
 		return fi;
 
 	fi.key_frame = ff_frame_key_frame(s->frame);
 	fi.pkt_pos = ff_frame_pkt_pos(s);
-	fi.pts = s->frame->pkt_dts;
-	if (s->frame->pkt_dts == 0x8000000000000000)
-		fi.pts = s->frame->pts;
+	fi.pts = ff_frame_timestamp(s->frame);
 	fi.ts = ff_get_timestamp(s, fi.pts);
-	fi.ts_end = ff_get_timestamp(s, fi.pts + ff_frame_duration(s->frame));
+	duration = ff_frame_duration_ts(s, s->frame);
+	if (fi.pts != AV_NOPTS_VALUE && duration > 0)
+		fi.ts_end = ff_get_timestamp(s, fi.pts + duration);
+	else
+		fi.ts_end = fi.ts;
 
 	return fi;
 }
 
 double ff_get_stream_duration(ffstream_t *s, const char *path, int stream_type)
 {
-	int i, ret;
-	uint32_t td=0;
 	double duration;
+	AVStream *st;
 
 	if (s==NULL)		// allows finding the duration even if s is NULL
 	{
 		ffstream_t stream={0};
-		duration = ff_get_video_duration(&stream, path);
+		duration = ff_get_stream_duration(&stream, path, stream_type);
 		ffstream_close_free(&stream);
 		return duration;
 	}
@@ -616,6 +1010,10 @@ double ff_get_stream_duration(ffstream_t *s, const char *path, int stream_type)
 		if (s->stream_id == -1)
 			return NAN;
 	}
+
+	st = s->fmt_ctx->streams[s->stream_id];
+	if (st->duration != AV_NOPTS_VALUE)
+		return (double) st->duration * av_q2d(st->time_base);
 
 	if (s->fmt_ctx->duration == AV_NOPTS_VALUE)
 		return NAN;
@@ -635,7 +1033,7 @@ double ff_get_audio_duration(ffstream_t *s, const char *path)
 
 raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mode, const double t, const int raster_mode)
 {
-	int i, ret=0;
+	int ret=0;
 	raster_t im={0};
 
 	// Init
@@ -667,10 +1065,12 @@ raster_t ff_load_video_raster(ffstream_t *s, const char *path, const int seek_mo
 
 	// Convert frame data
 	if (ret)
+	{
 		if (raster_mode & IMAGE_USE_BUF)
 			im = ff_frame_to_buffer(s);
 		else
 			im = ff_frame_to_raster(s, raster_mode);
+	}
 
 	return im;
 }
@@ -690,7 +1090,7 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 			return -1;
 
 		AVDictionaryEntry *t = NULL;
-		while (t = av_dict_get(s->fmt_ctx->metadata, "", t, AV_DICT_IGNORE_SUFFIX))
+		while ((t = av_dict_get(s->fmt_ctx->metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
 			fprintf_rl(stdout, "%s: %s\n", t->key, t->value);
 	}
 
@@ -713,77 +1113,92 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 	if (ret)
 	{
 		int channels = s->frame->ch_layout.nb_channels;
+		uint8_t **data = s->frame->extended_data ? s->frame->extended_data : s->frame->data;
+		size_t frame_sample_count;
 
-		// Enlarge the output buffer
-		buf_size = *buf_pos + s->frame->nb_samples * channels;
+		if (channels <= 0 || s->frame->nb_samples <= 0)
+			return 0;
+
+		frame_sample_count = (size_t) s->frame->nb_samples * (size_t) channels;
+		buf_size = *buf_pos + frame_sample_count;
 		alloc_enough(bufp, buf_size, buf_as, sizeof(float), 1.5);
 
 		// Convert/copy samples
 		switch (s->codec_ctx->sample_fmt)
 		{
 			case AV_SAMPLE_FMT_U8:
-				for (i=0; i < s->frame->nb_samples * channels; i++)
-					(*bufp)[*buf_pos + i] = ((int) ((uint8_t *)s->frame->data[0])[i] - 128) * 1.f/128.f;
+				for (size_t is=0; is < frame_sample_count; is++)
+					(*bufp)[*buf_pos + is] = ((int) data[0][is] - 128) * 1.f/128.f;
 				break;
 
 			case AV_SAMPLE_FMT_U8P:
 				for (i=0; i < s->frame->nb_samples; i++)
 					for (ic=0; ic < channels; ic++)
-						(*bufp)[*buf_pos + i*channels + ic] = ((int) ((uint8_t *)s->frame->data[ic])[i] - 128) * 1.f/128.f;
+						(*bufp)[*buf_pos + i*channels + ic] = ((int) data[ic][i] - 128) * 1.f/128.f;
 				break;
 
 			case AV_SAMPLE_FMT_S16:
-				for (i=0; i < s->frame->nb_samples * channels; i++)
-					(*bufp)[*buf_pos + i] = ((int16_t *)s->frame->data[0])[i] * 1.f/32768.f;
+				for (size_t is=0; is < frame_sample_count; is++)
+					(*bufp)[*buf_pos + is] = ((int16_t *)data[0])[is] * 1.f/32768.f;
 				break;
 
 			case AV_SAMPLE_FMT_S16P:
 				for (i=0; i < s->frame->nb_samples; i++)
 					for (ic=0; ic < channels; ic++)
-						(*bufp)[*buf_pos + i*channels + ic] = ((int16_t *)s->frame->data[ic])[i] * 1.f/32768.f;
+						(*bufp)[*buf_pos + i*channels + ic] = ((int16_t *)data[ic])[i] * 1.f/32768.f;
 				break;
 
 			case AV_SAMPLE_FMT_S32:
-				for (i=0; i < s->frame->nb_samples * channels; i++)
-					(*bufp)[*buf_pos + i] = ((int32_t *)s->frame->data[0])[i] * 1.f/2147483648.f;
+				for (size_t is=0; is < frame_sample_count; is++)
+					(*bufp)[*buf_pos + is] = ((int32_t *)data[0])[is] * 1.f/2147483648.f;
 				break;
 
 			case AV_SAMPLE_FMT_S32P:
 				for (i=0; i < s->frame->nb_samples; i++)
 					for (ic=0; ic < channels; ic++)
-						(*bufp)[*buf_pos + i*channels + ic] = ((int32_t *)s->frame->data[ic])[i] * 1.f/2147483648.f;
+						(*bufp)[*buf_pos + i*channels + ic] = ((int32_t *)data[ic])[i] * 1.f/2147483648.f;
+				break;
+
+			case AV_SAMPLE_FMT_S64:
+				for (size_t is=0; is < frame_sample_count; is++)
+					(*bufp)[*buf_pos + is] = ((int64_t *)data[0])[is] * (1. / 9223372036854775808.);
+				break;
+
+			case AV_SAMPLE_FMT_S64P:
+				for (i=0; i < s->frame->nb_samples; i++)
+					for (ic=0; ic < channels; ic++)
+						(*bufp)[*buf_pos + i*channels + ic] = ((int64_t *)data[ic])[i] * (1. / 9223372036854775808.);
 				break;
 
 			case AV_SAMPLE_FMT_FLT:
-				memcpy(&(*bufp)[*buf_pos], s->frame->data[0], s->frame->nb_samples * channels * sizeof(float));
+				memcpy(&(*bufp)[*buf_pos], data[0], frame_sample_count * sizeof(float));
 				break;
 
 			case AV_SAMPLE_FMT_FLTP:
 				for (i=0; i < s->frame->nb_samples; i++)
 					for (ic=0; ic < channels; ic++)
-						(*bufp)[*buf_pos + i*channels + ic] = ((float *)s->frame->data[ic])[i];
+						(*bufp)[*buf_pos + i*channels + ic] = ((float *)data[ic])[i];
 				break;
 
 			case AV_SAMPLE_FMT_DBL:
-				for (i=0; i < s->frame->nb_samples * channels; i++)
-					(*bufp)[*buf_pos + i] = ((double *)s->frame->data[0])[i];
+				for (size_t is=0; is < frame_sample_count; is++)
+					(*bufp)[*buf_pos + is] = ((double *)data[0])[is];
 				break;
 
 			case AV_SAMPLE_FMT_DBLP:
 				for (i=0; i < s->frame->nb_samples; i++)
 					for (ic=0; ic < channels; ic++)
-						(*bufp)[*buf_pos + i*channels + ic] = ((double *)s->frame->data[ic])[i];
+						(*bufp)[*buf_pos + i*channels + ic] = ((double *)data[ic])[i];
 				break;
 
 			case AV_SAMPLE_FMT_NONE:
-			case AV_SAMPLE_FMT_S64:
-			case AV_SAMPLE_FMT_S64P:
 			case AV_SAMPLE_FMT_NB:
-				break;
+				fprintf_rl(stderr, "Unsupported FFmpeg sample format %d in ff_load_audio_fl32()\n", s->codec_ctx->sample_fmt);
+				return -1;
 		}
 
 		*buf_pos = buf_size;
-		return s->frame->nb_samples * channels;
+		return frame_sample_count > INT_MAX ? INT_MAX : (int) frame_sample_count;
 	}
 
 	return -1;
@@ -791,10 +1206,14 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 
 float *ff_load_audio_fl32_full(const char *path, size_t *sample_count, int *channels, int *samplerate)
 {
-	int ret=0;
+	int ret=0, got_info=0;
 	ffstream_t s={0};
 	float *buf=NULL;
 	size_t buf_as=0, buf_pos=0;
+
+	*sample_count = 0;
+	*channels = 0;
+	*samplerate = 0;
 
 	while (ret > -1)
 	{
@@ -804,10 +1223,12 @@ float *ff_load_audio_fl32_full(const char *path, size_t *sample_count, int *chan
 		{
 			*channels = s.frame->ch_layout.nb_channels;
 			*samplerate = s.codec_ctx->sample_rate;
+			got_info = *channels > 0;
 		}
 	}
 
-	*sample_count = buf_pos / *channels;
+	if (got_info)
+		*sample_count = buf_pos / *channels;
 
 	ffstream_close_free(&s);
 
