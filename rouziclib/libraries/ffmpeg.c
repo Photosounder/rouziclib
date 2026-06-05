@@ -80,49 +80,95 @@ ffstream_t ff_load_stream_init(char const *path, const int stream_type, const in
 	return s;
 }
 
+static int ff_receive_stream_frame(ffstream_t *s)
+{
+	// Return decoded output data (in frame) from a decoder
+	int ret = avcodec_receive_frame(s->codec_ctx, s->frame);
+	if (ret >= 0)
+		return 1;
+
+	if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF)
+		ffmpeg_retval(ret);
+
+	return 0;
+}
+
+static int ff_frame_key_frame(AVFrame *frame)
+{
+#ifdef AV_FRAME_FLAG_KEY
+	return (frame->flags & AV_FRAME_FLAG_KEY) != 0;
+#else
+	return frame->key_frame;
+#endif
+}
+
+static int64_t ff_frame_pkt_pos(ffstream_t *s)
+{
+#if LIBAVUTIL_VERSION_MAJOR >= 60
+	return s->byte_pos;
+#else
+	return s->frame->pkt_pos;
+#endif
+}
+
+static int64_t ff_frame_duration(AVFrame *frame)
+{
+#if LIBAVUTIL_VERSION_MAJOR >= 60
+	return frame->duration;
+#else
+	return frame->pkt_duration;
+#endif
+}
+
 int ff_load_stream_packet(ffstream_t *s)
 {
-	int i, ret, result=0;
+	int ret;
 
-	while (av_read_frame(s->fmt_ctx, s->packet)==0)				// get the next frame from the file
+	// Return already decoded frames before feeding more packets. Otherwise codecs
+	// with delayed output can reject the next packet with EAGAIN and the packet is lost.
+	ret = avcodec_receive_frame(s->codec_ctx, s->frame);
+	if (ret >= 0)
+		return 1;
+	if (ret == AVERROR_EOF)
+		return 0;
+	if (ret != AVERROR(EAGAIN))
 	{
-		if (s->packet->stream_index == s->stream_id)			// check that it's the right stream
+		ffmpeg_retval(ret);
+		return 0;
+	}
+
+	while ((ret = av_read_frame(s->fmt_ctx, s->packet)) >= 0)	// get the next frame from the file
+	{
+		if (s->packet->stream_index == s->stream_id)		// check that it's the right stream
 		{
 			s->byte_pos = s->packet->pos;
 			ret = avcodec_send_packet(s->codec_ctx, s->packet);	// supply raw packet data as input to a decoder
-			if (ret != AVERROR_EOF)
-				ffmpeg_retval(ret);
+			av_packet_unref(s->packet);
 
-			ret = avcodec_receive_frame(s->codec_ctx, s->frame);	// return decoded output data (in frame) from a decoder
-			if (ret != AVERROR_EOF)
+			if (ret == AVERROR_EOF)
+				return 0;
+			if (ret < 0)
+			{
 				ffmpeg_retval(ret);
+				continue;
+			}
 
-			if (ret >= 0)
-				result = 1;
+			if (ff_receive_stream_frame(s))
+				return 1;
 		}
-
-		av_packet_unref(s->packet);
-
-		if (result)
-			break;
+		else
+			av_packet_unref(s->packet);
 	}
+
+	if (ret != AVERROR_EOF)
+		ffmpeg_retval(ret);
 
 	// Flush the decoder
-	if (result==0)
-	{
-		ret = avcodec_send_packet(s->codec_ctx, NULL);
-		if (ret != AVERROR_EOF)
-			ffmpeg_retval(ret);
+	ret = avcodec_send_packet(s->codec_ctx, NULL);
+	if (ret != AVERROR_EOF && ret < 0)
+		ffmpeg_retval(ret);
 
-		ret = avcodec_receive_frame(s->codec_ctx, s->frame);
-		if (ret != AVERROR_EOF)
-			ffmpeg_retval(ret);
-
-		if (ret >= 0)
-			result = 1;
-	}
-
-	return result;
+	return ff_receive_stream_frame(s);
 }
 
 void ffstream_close_free(ffstream_t *s)
@@ -448,7 +494,7 @@ int ff_decode_frame_from_table(ffstream_t *s, double t)
 	int frame_id;
 
 	if (s->frame_info)
-		if (frame_id = ff_find_table_frame_id(s, t, 1) > -1)
+		if ((frame_id = ff_find_table_frame_id(s, t, 1)) > -1)
 		{
 			if (s->frame_info[frame_id].ts == t)
 				return 1;
@@ -469,8 +515,8 @@ int ff_find_keyframe_for_time(ffstream_t *s, const double t)
 	int frame_id;
 
 	if (s->frame_info)
-		if (ret = ff_find_table_frame_id(s, t, 1) > -1)
-			return ret;
+		if (ff_find_table_frame_id(s, t, 1) > -1)
+			return 1;
 
 	if (t < 2.)
 	{
@@ -523,8 +569,8 @@ int ff_find_frame_at_time(ffstream_t *s, const double t)	// finds and decode pro
 		do
 		{
 			f = s->frame;
-			if (ff_get_timestamp(s, f->best_effort_timestamp + f->pkt_duration) > t)	// if the next frame would be after t
-				return 1;								// caveat: pkt_duration can fail to accurately predict the next timestamp
+			if (ff_get_timestamp(s, f->best_effort_timestamp + ff_frame_duration(f)) > t)	// if the next frame would be after t
+				return 1;								// caveat: frame duration can fail to accurately predict the next timestamp
 		}
 		while (ff_load_stream_packet(s));
 	}
@@ -539,13 +585,13 @@ ffframe_info_t ff_make_frame_info(ffstream_t *s)
 	if (s->frame==NULL)
 		return fi;
 
-	fi.key_frame = s->frame->key_frame;
-	fi.pkt_pos = s->frame->pkt_pos;
+	fi.key_frame = ff_frame_key_frame(s->frame);
+	fi.pkt_pos = ff_frame_pkt_pos(s);
 	fi.pts = s->frame->pkt_dts;
 	if (s->frame->pkt_dts == 0x8000000000000000)
 		fi.pts = s->frame->pts;
 	fi.ts = ff_get_timestamp(s, fi.pts);
-	fi.ts_end = ff_get_timestamp(s, fi.pts + s->frame->pkt_duration);
+	fi.ts_end = ff_get_timestamp(s, fi.pts + ff_frame_duration(s->frame));
 
 	return fi;
 }
