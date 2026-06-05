@@ -500,6 +500,7 @@ static int ff_pix_fmt_is_planar_yuv(int pix_fmt)
 {
 	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pix_fmt);
 
+	// Check component layout
 	if (desc==NULL)
 		return 0;
 	if ((desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_HWACCEL | AV_PIX_FMT_FLAG_BAYER | AV_PIX_FMT_FLAG_FLOAT | AV_PIX_FMT_FLAG_XYZ)) != 0)
@@ -518,6 +519,7 @@ static int ff_pix_fmt_is_gray(int pix_fmt)
 {
 	const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pix_fmt);
 
+	// Check component layout
 	if (desc==NULL)
 		return 0;
 	if ((desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_HWACCEL | AV_PIX_FMT_FLAG_BAYER | AV_PIX_FMT_FLAG_FLOAT | AV_PIX_FMT_FLAG_XYZ)) != 0)
@@ -528,6 +530,7 @@ static int ff_pix_fmt_is_gray(int pix_fmt)
 
 static int ff_pix_fmt_is_yuvj(int pix_fmt)
 {
+	// Check deprecated full range formats
 	switch (pix_fmt)
 	{
 		case AV_PIX_FMT_YUVJ420P:
@@ -545,6 +548,7 @@ static double ff_frame_sample(const uint8_t *data, const int linesize, const int
 {
 	const uint8_t *p = &data[y*linesize + x*bpc];
 
+	// Read sample bytes
 	if (bpc <= 1)
 		return p[0];
 	if (bpc == 2)
@@ -555,9 +559,11 @@ static double ff_frame_sample(const uint8_t *data, const int linesize, const int
 
 static void ff_yuv_coeffs_for_colorspace(const enum AVColorSpace colorspace, double *kr, double *kb)
 {
+	// Set BT.601 defaults
 	*kr = 0.299;
 	*kb = 0.114;
 
+	// Select colour matrix
 	switch (colorspace)
 	{
 		case AVCOL_SPC_BT709:
@@ -578,6 +584,7 @@ static void ff_yuv_coeffs_for_colorspace(const enum AVColorSpace colorspace, dou
 
 static int ff_color_transfer_is_unknown(const enum AVColorTransferCharacteristic transfer)
 {
+	// Check unknown transfer values
 	switch (transfer)
 	{
 		case AVCOL_TRC_RESERVED0:
@@ -595,10 +602,15 @@ static enum AVColorTransferCharacteristic ff_frame_color_transfer(ffstream_t *s)
 {
 	enum AVColorTransferCharacteristic transfer = s->frame->color_trc;
 
+	// Use codec metadata
 	if (ff_color_transfer_is_unknown(transfer) && s->codec_ctx)
 		transfer = s->codec_ctx->color_trc;
+
+	// Use stream metadata
 	if (ff_color_transfer_is_unknown(transfer) && s->fmt_ctx && s->stream_id >= 0 && s->fmt_ctx->streams[s->stream_id])
 		transfer = s->fmt_ctx->streams[s->stream_id]->codecpar->color_trc;
+
+	// Default to video transfer
 	if (ff_color_transfer_is_unknown(transfer))
 		transfer = AVCOL_TRC_BT709;
 
@@ -607,6 +619,7 @@ static enum AVColorTransferCharacteristic ff_frame_color_transfer(ffstream_t *s)
 
 static double ff_transfer_bt709_to_linear(double v)
 {
+	// Apply BT.709 EOTF
 	if (v < 0.081)
 		return v / 4.5;
 
@@ -615,6 +628,7 @@ static double ff_transfer_bt709_to_linear(double v)
 
 static double ff_transfer_smpte240m_to_linear(double v)
 {
+	// Apply SMPTE 240M EOTF
 	if (v < 0.091286)
 		return v / 4.;
 
@@ -623,6 +637,7 @@ static double ff_transfer_smpte240m_to_linear(double v)
 
 static double ff_transfer_pq_to_linear(double v)
 {
+	// Set PQ constants
 	const double m1 = 2610. / 16384.;
 	const double m2 = 2523. / 32.;
 	const double c1 = 3424. / 4096.;
@@ -630,11 +645,13 @@ static double ff_transfer_pq_to_linear(double v)
 	const double c3 = 2392. / 128.;
 	double n, d;
 
+	// Clamp endpoints
 	if (v <= 0.)
 		return 0.;
 	if (v >= 1.)
 		return 1.;
 
+	// Apply PQ EOTF
 	n = fastpow(v, 1. / m2);
 	d = MAXN(n - c1, 0.) / (c2 - c3*n);
 
@@ -643,10 +660,12 @@ static double ff_transfer_pq_to_linear(double v)
 
 static double ff_transfer_hlg_to_linear(double v)
 {
+	// Set HLG constants
 	const double a = 0.17883277;
 	const double b = 0.28466892;
 	const double c = 0.55991073;
 
+	// Apply HLG EOTF
 	if (v <= 0.)
 		return 0.;
 	if (v >= 1.)
@@ -659,6 +678,7 @@ static double ff_transfer_hlg_to_linear(double v)
 
 static double ff_transfer_log_to_linear(double v)
 {
+	// Apply log EOTF
 	if (v <= 0.)
 		return 0.;
 
@@ -667,6 +687,7 @@ static double ff_transfer_log_to_linear(double v)
 
 static double ff_transfer_log_sqrt_to_linear(double v)
 {
+	// Apply log sqrt EOTF
 	if (v <= 0.)
 		return 0.;
 
@@ -675,8 +696,10 @@ static double ff_transfer_log_sqrt_to_linear(double v)
 
 static double ff_transfer_to_linear(double v, const enum AVColorTransferCharacteristic transfer)
 {
+	// Normalise code value
 	v *= 1. / 255.;
 
+	// Select transfer curve
 	switch (transfer)
 	{
 		case AVCOL_TRC_LINEAR:
@@ -731,13 +754,16 @@ static frgb_t ff_yuv_to_frgb_sample(double y, double u, double v, const double k
 	frgb_t pv;
 	double r, g, b;
 
+	// Centre chroma samples
 	u = (u - 128.) * chroma_mul;
 	v = (v - 128.) * chroma_mul;
 
+	// Apply YUV matrix
 	r = y + 2. * (1. - kr) * v;
 	g = y - (2. * kb * (1. - kb) / kg) * u - (2. * kr * (1. - kr) / kg) * v;
 	b = y + 2. * (1. - kb) * u;
 
+	// Linearise RGB
 	pv.r = ff_transfer_to_linear(r, transfer);
 	pv.g = ff_transfer_to_linear(g, transfer);
 	pv.b = ff_transfer_to_linear(b, transfer);
@@ -801,6 +827,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 	if (mode != IMAGE_USE_FRGB && mode != IMAGE_USE_SQRGB)
 		return im;
 
+	// Read pixel format
 	pix_fmt = ff_frame_pix_fmt(s);
 	desc = av_pix_fmt_desc_get(pix_fmt);
 	if (desc==NULL)
@@ -826,9 +853,12 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 	if ((mode == IMAGE_USE_FRGB && im.f==NULL) || (mode == IMAGE_USE_SQRGB && im.sq==NULL))
 		return im;
 
+	// Read frame metadata
 	full_range = s->frame->color_range == AVCOL_RANGE_JPEG || ff_pix_fmt_is_yuvj(pix_fmt);
 	big_endian = (desc->flags & AV_PIX_FMT_FLAG_BE) != 0;
 	transfer = ff_frame_color_transfer(s);
+
+	// Scale raw samples
 	if (bit_depth <= 8)
 		sample_mul = 1.;
 	else if (full_range)
@@ -838,6 +868,8 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 
 	y_mul = sample_mul;
 	y_add = 0.;
+
+	// Scale limited luma
 	if (full_range==0)
 	{
 		y_mul *= 255. / 219.;
@@ -847,6 +879,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 	data_y = s->frame->data[0];
 	linesize_y = s->frame->linesize[0];
 
+	// Convert grayscale pixels
 	if (is_gray)
 	{
 		if (mode == IMAGE_USE_FRGB)
@@ -890,6 +923,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 	}
 	else
 	{
+		// Prepare chroma planes
 		data_u = s->frame->data[1];
 		data_v = s->frame->data[2];
 		linesize_u = s->frame->linesize[1];
@@ -900,6 +934,7 @@ raster_t ff_frame_to_raster(ffstream_t *s, const int mode)
 		ff_yuv_coeffs_for_colorspace(s->frame->colorspace, &kr, &kb);
 		kg = 1. - kr - kb;
 
+		// Convert YUV pixels
 		if (mode == IMAGE_USE_FRGB)
 		{
 			for (ip.y=0; ip.y < im.dim.y; ip.y++)
