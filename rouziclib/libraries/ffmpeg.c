@@ -1157,6 +1157,64 @@ int ff_find_frame_at_time(ffstream_t *s, const double t)	// finds and decode pro
 	return 0;
 }
 
+static int ff_frame_time_bounds(ffstream_t *s, AVFrame *frame, double *ts, double *ts_end)
+{
+	int64_t frame_ts, duration;
+
+	// Read frame timestamp
+	frame_ts = ff_frame_timestamp(frame);
+	if (frame_ts == AV_NOPTS_VALUE)
+		return 0;
+
+	*ts = ff_get_timestamp(s, frame_ts);
+	if (isfinite(*ts)==0)
+		return 0;
+
+	// Read frame end timestamp
+	duration = ff_frame_duration_ts(s, frame);
+	if (duration > 0)
+		*ts_end = ff_get_timestamp(s, frame_ts + duration);
+	else
+		*ts_end = *ts;
+
+	if (*ts_end <= *ts && frame->nb_samples > 0 && s->codec_ctx->sample_rate > 0)
+		*ts_end = *ts + (double) frame->nb_samples / (double) s->codec_ctx->sample_rate;
+
+	return 1;
+}
+
+static int ff_find_audio_frame_at_time(ffstream_t *s, const double t)
+{
+	int attempt, decoded;
+	double seek_t, backoff=0.05, frame_ts, frame_ts_end;
+
+	// Seek directly to audio packets
+	for (attempt=0; attempt < 4; attempt++)
+	{
+		seek_t = MAXN(0., t - (attempt ? backoff : 0.));
+		if (ff_seek_timestamp_flags(s, seek_t, 0, AVSEEK_FLAG_BACKWARD | AVSEEK_FLAG_ANY, 1)==0)
+			return 0;
+
+		// Decode until the target frame
+		for (decoded=0; decoded < 256; decoded++)
+		{
+			if (ff_load_stream_packet(s)==0)
+				return 0;
+			if (ff_frame_time_bounds(s, s->frame, &frame_ts, &frame_ts_end)==0)
+				return 1;
+
+			if (frame_ts <= t && frame_ts_end > t)
+				return 1;
+			if (frame_ts > t)
+				break;
+		}
+
+		backoff *= 4.;
+	}
+
+	return 0;
+}
+
 ffframe_info_t ff_make_frame_info(ffstream_t *s)
 {
 	ffframe_info_t fi={0};
@@ -1292,7 +1350,7 @@ int ff_load_audio_fl32(ffstream_t *s, const char *path, const int seek_mode, con
 			break;
 
 		case 1:		// frame at time
-			ret = ff_find_frame_at_time(s, t);
+			ret = ff_find_audio_frame_at_time(s, t);
 			break;
 	}
 

@@ -1,9 +1,103 @@
 #ifdef RL_FFMPEG
 
+static void audio_player_clear_frames_no_lock(audio_player_data_t *data)
+{
+	int i;
+
+	// Clear decoded frames
+	if (data->frame==NULL)
+		return ;
+
+	for (i=0; i < data->frame_as; i++)
+	{
+		free(data->frame[i].buffer);
+		memset(&data->frame[i], 0, sizeof(audframe_t));
+	}
+
+	data->ifr = -1;
+	data->is = -1;
+}
+
+static int audio_player_frame_sample_pos(audframe_t *frame, double t, double *sample_posp)
+{
+	double sample_pos;
+
+	// Check frame validity
+	if (frame==NULL || frame->used==0 || frame->buffer==NULL || frame->samplerate <= 0. || frame->sample_count <= 0 || frame->channels <= 0)
+		return 0;
+
+	// Calculate sample position
+	sample_pos = (t - frame->info.ts) * frame->samplerate;
+	if (sample_pos < -1e-6 || sample_pos >= (double) frame->sample_count - 1e-6)
+		return 0;
+
+	*sample_posp = rangelimit(sample_pos, 0., (double) frame->sample_count - 1.);
+
+	return 1;
+}
+
+static int audio_player_find_frame_no_lock(audio_player_data_t *data, double t, double *sample_posp)
+{
+	int ifr;
+
+	// Try current frame
+	if (data->ifr >= 0 && data->ifr < data->frame_as)
+		if (audio_player_frame_sample_pos(&data->frame[data->ifr], t, sample_posp))
+			return data->ifr;
+
+	// Search buffered frames
+	for (ifr=0; ifr < data->frame_as; ifr++)
+		if (audio_player_frame_sample_pos(&data->frame[ifr], t, sample_posp))
+			return ifr;
+
+	return -1;
+}
+
+static float audio_player_frame_channel_sample(audframe_t *frame, int is, int channel)
+{
+	// Read mono sample
+	if (frame->channels <= 1)
+		return frame->buffer[is];
+
+	// Read selected channel
+	channel = MINN(channel, frame->channels-1);
+	return frame->buffer[is*frame->channels + channel];
+}
+
+static void audio_player_read_frame_sample(audframe_t *frame, double sample_pos, float *left, float *right)
+{
+	int is0, is1;
+	double frac;
+
+	// Select interpolation samples
+	is0 = (int) floor(sample_pos);
+	is1 = is0 + 1;
+	frac = sample_pos - (double) is0;
+
+	if (is1 >= frame->sample_count)
+	{
+		is1 = is0;
+		frac = 0.;
+	}
+
+	// Interpolate source sample
+	*left = mix(audio_player_frame_channel_sample(frame, is0, 0), audio_player_frame_channel_sample(frame, is1, 0), frac);
+	*right = mix(audio_player_frame_channel_sample(frame, is0, 1), audio_player_frame_channel_sample(frame, is1, 1), frac);
+}
+
+static double audio_player_seek_preroll()
+{
+	double preroll;
+
+	// Calculate buffering margin
+	preroll = audiosys.sec_per_buf * 2. + 0.05;
+	return rangelimit(preroll, 0.05, 0.25);
+}
+
 int audio_player_load_thread(audio_player_data_t *data)
 {
-	int i, ip=-1, must_seek=0, ip0=-1, ip1;
-	double ts_req=0., ts0=NAN, ts0_end=0., ts1=NAN;
+	int ip=-1, must_seek=0, ip0=-1, ip1=-1, prev_ip;
+	double ts_req=0., ts0=NAN, ts0_end=0., ts1=NAN, speed=1.;
 	ffframe_info_t info;
 	int ret=0, sample_count;
 	float *buf=NULL;
@@ -14,8 +108,12 @@ int audio_player_load_thread(audio_player_data_t *data)
 loop_start:
 		rl_mutex_lock(&data->mutex);
 
-		// if we're jumping back or forward
-		if (data->speed < 0. || data->ts_req < ts_req || (data->ts_req - ts1 > 60. && isnan(ts1)==0))
+		// Read playback state
+		speed = data->speed;
+		ts_req = data->ts_req;
+
+		// Seek on discontinuities
+		if (speed < 0. || ts_req < ts0 || (ts_req > ts1 && isnan(ts1)==0) || (ts_req > 0. && isnan(ts1)))
 		{
 			ip = -1;
 			ts0 = NAN;
@@ -24,9 +122,8 @@ loop_start:
 			must_seek = 1;
 			ip0 = -1;
 			ip1 = -1;
+			audio_player_clear_frames_no_lock(data);
 		}
-
-		ts_req = data->ts_req;
 
 		rl_mutex_unlock(&data->mutex);
 
@@ -37,7 +134,10 @@ loop_start:
 			goto loop_start;
 		}
 
-		if (llabs(double_diff_ulp(data->speed, 1.)) < 100)
+		ret = 0;
+		sample_count = 0;
+
+		if (llabs(double_diff_ulp(speed, 1.)) < 100)
 		{
 			// Load the frame, either by seeking or sequentially
 			buf_pos = 0;
@@ -55,6 +155,7 @@ loop_start:
 			rl_mutex_lock(&data->mutex);
 
 			// Add the frame to the tables
+			prev_ip = ip1;
 			ip = circ_index(ip + 1, data->frame_as);
 
 			// if new frame replaces old frame[ip0]
@@ -81,8 +182,8 @@ loop_start:
 			alloc_enough_and_copy(&data->frame[ip].buffer, buf, data->frame[ip].len = ret, &data->frame[ip].as, sizeof(float), 1.);
 			data->frame[ip].info = info;
 
-			if (must_seek==0)
-				data->frame[ip].info.ts = data->frame[circ_index(ip - 1, data->frame_as)].info.ts_end;
+			if (must_seek==0 && prev_ip > -1)
+				data->frame[ip].info.ts = data->frame[prev_ip].info.ts_end;
 			data->frame[ip].info.ts_end = data->frame[ip].info.ts + (double) sample_count / data->frame[ip].samplerate;
 
 			rl_mutex_unlock(&data->mutex);
@@ -98,15 +199,9 @@ loop_start:
 
 void audio_player_thread_exit(audio_player_data_t *data)
 {
-	int i;
-
 	rl_mutex_lock(&data->mutex);
 
-	for (i=0; i < data->frame_as; i++)
-	{
-		free(data->frame[i].buffer);
-		memset(&data->frame[i], 0, sizeof(audframe_t));
-	}
+	audio_player_clear_frames_no_lock(data);
 
 	rl_mutex_unlock(&data->mutex);
 }
@@ -166,24 +261,30 @@ void audio_player_main(audio_player_data_t *data, char *path, double ts_req, dou
 
 	// Set the time offset
 	if (jump || start_thread)
+	{
 		data->ts_cb = ts_req;
-		//data->time_offset = get_time_hr() - ts_req;
+		data->ifr = -1;
+		data->is = -1;
+	}
+	//data->time_offset = get_time_hr() - ts_req;
 
-	data->ts_req = rangelimit(ts_req - 1., 0., data->duration);
+	data->ts_req = rangelimit(ts_req - audio_player_seek_preroll(), 0., data->duration);
 	data->speed = speed;
 	data->volume = volume;
 
 	rl_mutex_unlock(&data->mutex);
 
 	// Register the callback
-	int audio_bus_index = audiosys_bus_register(audio_player_callback, data, 0, 0.);
+	if (data->thread_on)
+		audiosys_bus_register(audio_player_callback, data, 0, 0.);
 }
 
 void audio_player_callback(float *stream, audiosys_t *sys, int bus_index, audio_player_data_t *data)
 {
 	int i, ifr;
-	double t, ibl, vol_t;
-int debug=1;
+	float left, right;
+	double t, ibl, vol_t, sample_pos;
+	int debug=1;
 
 	// Deinit
 	if (stream==NULL)
@@ -216,57 +317,38 @@ int debug=1;
 	// Go through each sample
 	for (t=data->ts_cb, i=0; i < sys->buffer_len; i++, t+=sys->sec_per_sample)
 	{
-		// Search for frame when no frame is selected
-		if (data->ifr = -1)
-		{
-			// Search for frame that contains the requested timestamp
-			for (ifr=0; ifr < data->frame_as; ifr++)
-				if (t >= data->frame[ifr].info.ts && t < data->frame[ifr].info.ts_end)
-				{
-					data->ifr = ifr;
-					data->is = (t - data->frame[ifr].info.ts) * data->frame[ifr].samplerate;
-					if (data->is > data->frame[ifr].sample_count-1)
-						data->ifr = -1;
-					else
-						break;
-				}
-		}
+		// Find source sample
+		data->ifr = audio_player_find_frame_no_lock(data, t, &sample_pos);
+		data->is = data->ifr==-1 ? -1 : (int) floor(sample_pos + 1e-6);
 
 		// Interpolate volume
 		vol_t = mix(data->vol0, data->vol1, (double) i * ibl);
 		//if (data->vol0 != data->vol1 && ((i & 0xFF) == 0 || i == sys->buffer_len -1)) fprintf_rl(stdout, "mix(%.6f , %.6f, %.6f) = %.6f (%4d/%4d)\n", data->vol0, data->vol1, (double) i * ibl, vol_t, i, sys->buffer_len);
 
-		// Copy samples from frame
+		// Copy interpolated sample
 		if (data->ifr != -1)
 		{
-			if (data->frame[data->ifr].channels==1)
-			{
-				stream[i*2  ] += data->frame[data->ifr].buffer[data->is] * vol_t;
-				stream[i*2+1] += data->frame[data->ifr].buffer[data->is] * vol_t;
-			}
-			else
-			{
-				stream[i*2  ] += data->frame[data->ifr].buffer[data->is*data->frame[data->ifr].channels] * vol_t;
-				stream[i*2+1] += data->frame[data->ifr].buffer[data->is*data->frame[data->ifr].channels + 1] * vol_t;
-			}
+			audio_player_read_frame_sample(&data->frame[data->ifr], sample_pos, &left, &right);
+			stream[i*2  ] += left * vol_t;
+			stream[i*2+1] += right * vol_t;
 		}
-else if (debug)
-{
-	debug = 0;
-	double min_ts=1e9, max_ts=-1.;
-	for (ifr=0; ifr < data->frame_as; ifr++)
-	{
-		min_ts = MINN(min_ts, data->frame[ifr].info.ts);
-		max_ts = MAXN(max_ts, data->frame[ifr].info.ts_end);
-	}
-	fprintf_rl(stdout, "No sample for ts %.4f (ts available: %.4f to %.4f\n", t, min_ts, max_ts);
-}
-
-		// Iterate to next sample
-		data->is++;
-		if (data->is == data->frame[data->ifr].sample_count)
+		else if (debug)
 		{
-			data->ifr = -1;
+			double min_ts=1e9, max_ts=-1.;
+			int used_count=0;
+
+			debug = 0;
+			for (ifr=0; ifr < data->frame_as; ifr++)
+			{
+				if (data->frame[ifr].used==0)
+					continue;
+
+				used_count++;
+				min_ts = MINN(min_ts, data->frame[ifr].info.ts);
+				max_ts = MAXN(max_ts, data->frame[ifr].info.ts_end);
+			}
+			if (used_count > 0)
+				fprintf_rl(stdout, "No sample for ts %.4f (ts available: %.4f to %.4f)\n", t, min_ts, max_ts);
 		}
 	}
 	data->ts_cb += sys->sec_per_buf;
