@@ -193,21 +193,19 @@ void fileball_extract_z_file_to_path(const char *in_path, const char *extract_pa
 
 #endif	// WAHE_MODULE
 
-fileball_t fileball_extract_z_mem_to_struct(buffer_t *zball)
+fileball_t fileball_extract_mem_to_struct(buffer_t *ball)
 {
-	buffer_t ball={0};
 	fileball_t s={0};
 	size_t s_as = 0;
 
-	gz_decompress(zball->buf, zball->len, &ball.buf, &ball.len);	// decompress zball into ball
-	s.original_array = ball.buf;
+	s.original_array = ball->buf;
 
 	int n=0;
 	char *p, *pend;
 	double version=0.;
 
-	p = ball.buf;
-	pend = &ball.buf[ball.len];
+	p = ball->buf;
+	pend = &ball->buf[ball->len];
 
 	sscanf(p, "fileball %lg%n", &version, &n);
 	p = &p[n];
@@ -240,6 +238,16 @@ fileball_t fileball_extract_z_mem_to_struct(buffer_t *zball)
 		s.file[s.file_count-1].data = p;
 		p = &p[s.file[s.file_count-1].len];
 	}
+
+	return s;
+}
+
+fileball_t fileball_extract_z_mem_to_struct(buffer_t *zball)
+{
+	buffer_t ball={0};
+
+	gz_decompress(zball->buf, zball->len, &ball.buf, &ball.len);	// decompress zball into ball
+	fileball_t s = fileball_extract_mem_to_struct(&ball);
 
 	return s;
 }

@@ -12,6 +12,7 @@ extern size_t fileball_make_header_file(char *out_path, char **paths, int path_c
 extern void fileball_extract_mem_to_path(buffer_t *ball, const char *extract_path);
 extern void fileball_extract_z_mem_to_path(buffer_t *zball, const char *extract_path);
 extern void fileball_extract_z_file_to_path(const char *in_path, const char *extract_path);
+extern fileball_t fileball_extract_mem_to_struct(buffer_t *ball);
 extern fileball_t fileball_extract_z_mem_to_struct(buffer_t *zball);
 extern fileball_subfile_t *fileball_find_subfile(fileball_t *s, const char *name);
 extern void free_fileball_struct(fileball_t *s);
