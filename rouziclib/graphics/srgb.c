@@ -74,6 +74,52 @@ lut_t get_lut_slrgb()
 	return slrgb_l;
 }
 
+lut_t get_lut_lg22()
+{
+	int32_t i;
+	static int init=1;
+	static lut_t lg22rgb_l;
+
+	if (init)
+	{
+		init = 0;
+
+		lg22rgb_l.lut_size = 65536;
+
+		lg22rgb_l.lutint = calloc (lg22rgb_l.lut_size, sizeof(int32_t));
+
+		for (i=0; i<lg22rgb_l.lut_size; i++)
+			lg22rgb_l.lutint[i] = MINN(1., pow((double) i / ONEF, 1./2.2)) * 8160. + 0.5;	// 8160 = 255 * 32 (8.5 fixed point format)
+	}
+
+	return lg22rgb_l;
+}
+
+lut_t get_lut_g22lrgb()
+{
+	int32_t i;
+	static int init=1;
+	static lut_t g22lrgb_l;
+
+	if (init)
+	{
+		init = 0;
+
+		g22lrgb_l.lut_size = 256;
+
+		g22lrgb_l.lutint = calloc (g22lrgb_l.lut_size, sizeof(int32_t));
+		g22lrgb_l.flut = calloc (g22lrgb_l.lut_size, sizeof(float));
+
+		for (i=0; i<g22lrgb_l.lut_size; i++)
+		{
+			g22lrgb_l.flut[i] = pow(((double) i / 255.), 2.2);
+			g22lrgb_l.lutint[i] = g22lrgb_l.flut[i] * ONEF + 0.5;
+		}
+	}
+
+	return g22lrgb_l;
+}
+
 lut_t get_lut_s16lrgb()
 {
 	int32_t i;
@@ -169,21 +215,19 @@ lut_t dither_lut_init()
 	return dither_l;
 }
 
-void convert_lrgb_to_srgb(int mode)
+void convert_lrgb_framebuffer(int mode, int32_t *lut)
 {
 	size_t i, pixc = fb->w*fb->h;
-	static int init=1;
+	static int8_t init=1;
 	int id, stop, dither, dith_on;
 	lrgb_t p;
 	srgb_t ps;
-	static lut_t lsrgb_l, dither_l;
+	static lut_t dither_l;
 	const int32_t black_threshold = (1. / (255.*12.92)) * ONEF + 0.5;	// 10 for LBD==15
 
 	if (init)
 	{
 		init = 0;
-
-		lsrgb_l = get_lut_lsrgb();
 		dither_l = dither_lut_init();
 	}
 
@@ -212,9 +256,9 @@ void convert_lrgb_to_srgb(int mode)
 			dither = dither_l.lutint[id] * dith_on;
 
 			// Convert to UQ8.5 sRGB, add dither, turn into 8-bit value
-			ps.b = sat8_u(lsrgb_l.lutint[p.r] + dither >> 5);	// UQ8.5 + UQ2.5 >> 5 = 8.0-bit sRGB
-			ps.g = sat8_u(lsrgb_l.lutint[p.g] + dither >> 5);
-			ps.r = sat8_u(lsrgb_l.lutint[p.b] + dither >> 5);
+			ps.b = sat8_u(lut[p.r] + dither >> 5);	// UQ8.5 + UQ2.5 >> 5 = 8.0-bit sRGB
+			ps.g = sat8_u(lut[p.g] + dither >> 5);
+			ps.r = sat8_u(lut[p.b] + dither >> 5);
 			fb->r.srgb[i] = ps;
 
 			// Iterate dither table index
@@ -234,13 +278,41 @@ void convert_lrgb_to_srgb(int mode)
 		{
 			p = fb->r.l[i];
 
-			ps.b = lsrgb_l.lutint[p.r] >> 5;
-			ps.g = lsrgb_l.lutint[p.g] >> 5;
-			ps.r = lsrgb_l.lutint[p.b] >> 5;
+			ps.b = lut[p.r] >> 5;
+			ps.g = lut[p.g] >> 5;
+			ps.r = lut[p.b] >> 5;
 			//fb->r.srgb[i] = srgb_change_order_pixel(ps, ORDER_BGRA);
 			fb->r.srgb[i] = ps;
 		}
 	}
+}
+
+void convert_lrgb_to_srgb(int mode)
+{
+	static int8_t init=1;
+	static lut_t lsrgb_l;
+
+	if (init)
+	{
+		init = 0;
+		lsrgb_l = get_lut_lsrgb();
+	}
+
+	convert_lrgb_framebuffer(mode, lsrgb_l.lutint);
+}
+
+void convert_lrgb_to_g22(int mode)
+{
+	static int8_t init=1;
+	static lut_t lsrgb_l;
+
+	if (init)
+	{
+		init = 0;
+		lsrgb_l = get_lut_lg22();
+	}
+
+	convert_lrgb_framebuffer(mode, lsrgb_l.lutint);
 }
 
 void convert_frgb_to_srgb(int mode)

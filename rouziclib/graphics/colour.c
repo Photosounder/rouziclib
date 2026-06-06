@@ -44,27 +44,85 @@ srgb_t make_colour_srgb_s(int r, int g, int b, int a)
 lrgb_t make_colour_srgb_l(int r, int g, int b, int a)
 {
 	lrgb_t c;
-	static int init=1;
-	static lut_t slrgb_l;
+	static int8_t init=1;
+	static lut_t t;
 
 	if (init)
 	{
 		init = 0;
 
-		slrgb_l = get_lut_slrgb();
+		t = get_lut_slrgb();
 	}
 
-	c.r = slrgb_l.lutint[r];
-	c.g = slrgb_l.lutint[g];
-	c.b = slrgb_l.lutint[b];
-	c.a = slrgb_l.lutint[a];
+	c.r = t.lutint[r];
+	c.g = t.lutint[g];
+	c.b = t.lutint[b];
+	c.a = t.lutint[a];
 
 	return c;
 }
 
 frgb_t make_colour_srgb_f(int r, int g, int b, int a)
 {
-	return lrgb_to_frgb(make_colour_srgb_l(r, g, b, a));
+	frgb_t c;
+	static int8_t init=1;
+	static lut_t t;
+
+	if (init)
+	{
+		init = 0;
+
+		t = get_lut_slrgb();
+	}
+
+	c.r = t.flut[r];
+	c.g = t.flut[g];
+	c.b = t.flut[b];
+	c.a = t.flut[a];
+
+	return c;
+}
+
+lrgb_t make_colour_g22rgb_l(int r, int g, int b, int a)
+{
+	lrgb_t c;
+	static int8_t init=1;
+	static lut_t t;
+
+	if (init)
+	{
+		init = 0;
+
+		t = get_lut_g22lrgb();
+	}
+
+	c.r = t.lutint[r];
+	c.g = t.lutint[g];
+	c.b = t.lutint[b];
+	c.a = t.lutint[a];
+
+	return c;
+}
+
+frgb_t make_colour_g22rgb_f(int r, int g, int b, int a)
+{
+	frgb_t c;
+	static int8_t init=1;
+	static lut_t t;
+
+	if (init)
+	{
+		init = 0;
+
+		t = get_lut_g22lrgb();
+	}
+
+	c.r = t.flut[r];
+	c.g = t.flut[g];
+	c.b = t.flut[b];
+	c.a = t.flut[a];
+
+	return c;
 }
 
 srgb_t make_colour_f_srgb(float r, float g, float b, float a)

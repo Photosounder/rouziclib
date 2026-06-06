@@ -16,6 +16,7 @@ enum
 	#define col_to_frgb(x)		(x)
 	#define col_to_lrgb(x)		frgb_to_lrgb(x)
 	#define make_colour_srgb	make_colour_srgb_f
+	#define make_colour_g22rgb	make_colour_g22rgb_f
 	#define make_grey		make_grey_f
 	#define make_colour_hsl		make_colour_hsl_f
 	#define	make_colour_hsl_cw	make_colour_hsl_cw_f
@@ -34,6 +35,7 @@ enum
 	#define col_to_frgb(x)		lrgb_to_frgb(x)
 	#define col_to_lrgb(x)		(x)
 	#define make_colour_srgb	make_colour_srgb_l
+	#define make_colour_g22rgb	make_colour_g22rgb_l
 	#define make_grey		make_grey_l
 	#define make_colour_hsl		make_colour_hsl_l
 	#define	make_colour_hsl_cw	make_colour_hsl_cw_l
@@ -50,6 +52,8 @@ extern frgb_t make_colour_frgb(const double r, const double g, const double b, c
 extern srgb_t make_colour_srgb_s(int r, int g, int b, int a);
 extern lrgb_t make_colour_srgb_l(int r, int g, int b, int a);
 extern frgb_t make_colour_srgb_f(int r, int g, int b, int a);
+extern lrgb_t make_colour_g22rgb_l(int r, int g, int b, int a);
+extern frgb_t make_colour_g22rgb_f(int r, int g, int b, int a);
 extern srgb_t make_colour_f_srgb(float r, float g, float b, float a);
 extern lrgb_t make_grey_l(double v);
 extern frgb_t make_grey_f(double v);
