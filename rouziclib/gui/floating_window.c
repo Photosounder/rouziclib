@@ -30,6 +30,7 @@ void flwindow_init_pinned(flwindow_t *w)
 void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_area, gui_layout_t *layout, const int id)
 {
 	int ret, close_on=0;
+	int pinned_layout_changed=0;
 	layout_elem_t *cur_elem=NULL;
 	rect_t area, area_os, bar_area, bar_area_os, corner_area_os, title_area, diag_area, close_area, close_x_area, pin_area;
 	ctrl_button_state_t close_butt_state={0};
@@ -48,7 +49,10 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	//**** Background, title bar and resizing logic ****
 
 	if (w->pinned && w->pinned_sm !=0.)
+	{
+		// Use the pinned screen-space transform as the layout's starting point.
 		pinned_os_to_world_os(w->pinned_offset, w->pinned_sm, &layout->offset, &layout->sm);
+	}
 
 	area = gui_layout_elem_comp_area(layout, id);							// full window area
 	bar_area = get_subdiv_area(area, xy(1., w->bar_height / get_rect_dim(area).y), xy(0.5, 1.));	// title bar area
@@ -62,29 +66,46 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	ctrl_drag_set_dim(&w->bar_drag, get_rect_dim(bar_area_os));
 	ctrl_draggable(&w->bar_drag);
 	layout->offset = add_xy(layout->offset, w->bar_drag.offset);
+	if (w->pinned && is0_xy(w->bar_drag.offset)==0)
+	{
+		// Remember that dragging changed the pinned placement.
+		pinned_layout_changed = 1;
+	}
 	if (w->bar_drag.down && parent_area && diag_on)			// detach the title bar is being dragged
 		*diag_on = 1;
 
 	// Prevent the bar from being out of the screen when pinned
 	if (w->pinned)
 	{
+		// Fit the title bar scale before clamping its position so the final control boxes are stable.
 		bar_area_os = offset_scale_rect(bar_area, layout->offset, layout->sm);
-		rect_t bao_moved = bar_area_os;
+		double bao_scaling = min_of_xy(div_xy(get_rect_dim(zc.corners), get_rect_dim(bar_area_os)));
+		if (bao_scaling < 1.)
+		{
+			layout->sm *= bao_scaling;
+			pinned_layout_changed = 1;
+			bar_area_os = offset_scale_rect(bar_area, layout->offset, layout->sm);
+		}
 
+		// Keep the title bar large enough to remain clickable.
+		bao_scaling = 12. / (get_rect_dim(bar_area_os).y * zc.scrscale*fb->pixel_scale);
+		if (bao_scaling > 1.)
+		{
+			layout->sm *= bao_scaling;
+			pinned_layout_changed = 1;
+			bar_area_os = offset_scale_rect(bar_area, layout->offset, layout->sm);
+		}
+
+		// Keep the final title bar within the screen after scale adjustments.
+		rect_t bao_moved = bar_area_os;
 		if (keep_box_inside_area(&bao_moved, zc.corners))
 		{
 			xy_t offset = sub_xy(get_rect_centre(bao_moved), get_rect_centre(bar_area_os));
 			layout->offset = add_xy(layout->offset, offset);
+			pinned_layout_changed = 1;
 		}
 
-		// Adjust the scaling too if the bar is larger than the screen
-		double bao_scaling = min_of_xy(div_xy(get_rect_dim(zc.corners), get_rect_dim(bao_moved)));
-		layout->sm *= MINN(1., bao_scaling);
-
-		// Adjust scaling if the bar is smaller than 12 px
-		bao_scaling = 12. / (get_rect_dim(bao_moved).y * zc.scrscale*fb->pixel_scale);
-		layout->sm *= MAXN(1., bao_scaling);
-
+		// Mark constrained child windows as detached.
 		if (parent_area && diag_on)
 			*diag_on = 1;		// this means the dialog is detached
 	}
@@ -115,6 +136,11 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 			area_os = make_rect_off( rect_p01(area_os), new_dim, xy(0., 1.) );
 			//area_os = fit_rect_in_area(get_rect_dim(area), area_os, xy(0., 1.));
 			layout->offset = fit_into_area(area_os, area, 0., &layout->sm);
+			if (w->pinned)
+			{
+				// Remember that resizing changed the pinned placement.
+				pinned_layout_changed = 1;
+			}
 
 			// Detach if detachable
 			if (parent_area && diag_on)
@@ -176,7 +202,11 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 	// Pin control
 	if (w->hide_pin==0)
 	{
-		world_os_to_pinned_os(layout->offset, layout->sm, &w->pinned_offset, &w->pinned_sm);
+		if (w->pinned==0 || pinned_layout_changed)
+		{
+			// Store a new pinned transform only when the layout changed it.
+			world_os_to_pinned_os(layout->offset, layout->sm, &w->pinned_offset, &w->pinned_sm);
+		}
 
 		if (ctrl_checkbox_pin(&w->pinned, pin_area, w->title_col).doubleclick)
 		{
