@@ -48,6 +48,10 @@ void draw_dialog_window_fromlayout(flwindow_t *w, int *diag_on, rect_t *parent_a
 
 	//**** Background, title bar and resizing logic ****
 
+	// Capture the initial layout transform so an already-pinned window is pinned from its first frame.
+	if (w->pinned && w->pinned_sm == 0.)
+		world_os_to_pinned_os(layout->offset, layout->sm, &w->pinned_offset, &w->pinned_sm);
+
 	if (w->pinned && w->pinned_sm !=0.)
 	{
 		// Use the pinned screen-space transform as the layout's starting point.
