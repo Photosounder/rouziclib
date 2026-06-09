@@ -387,7 +387,7 @@ void drawq_compile_lists()		// makes entry_list and sector_pos
 
 	end_i = fb->sector_list[DQ_END];
 	main_i = 1;						// the first entry in the main queue starts at that position
-	for (i=DQ_END_HEADER_SL; i <= end_i; i++)		// go through each entry
+	for (i=DQ_END_HEADER_SL; i < end_i; i++)		// go through each entry
 	{
 		end_j = fb->sector_list[i];
 		for (j=1; j <= end_j; j++)			// go through each sector for this entry
