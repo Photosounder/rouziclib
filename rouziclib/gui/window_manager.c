@@ -46,7 +46,7 @@ void window_run(window_manager_entry_t *w)
 	// Update the flags
 	w->already_ran = 1;
 	if (w->wind_on)
-		if (*w->wind_on==2 && w->newly_registered)
+		if (*w->wind_on==2)
 			*w->wind_on = 1;
 
 	// Run all undetached children
