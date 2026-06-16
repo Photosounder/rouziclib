@@ -277,6 +277,23 @@ float *load_tiff_pix_data_fl32(void *im_data, tiff_info_t info, int out_chan)
 					image_float_channel_conversion(in_pixel, info.chan, &im[i*out_chan], out_chan);
 				}
 
+		// 16-bit signed int
+		if (info.bpc == 16 && info.sample_format == 2)
+			if (info.be)
+				for (i = 0; i < count; i++)
+				{
+					for (ic = 0; ic < info.chan; ic++)
+						in_pixel[ic] = (float) (int16_t) read_BE16(&((uint16_t*)im_data)[i * info.chan + ic], NULL) * (1.f / 32768.f);
+					image_float_channel_conversion(in_pixel, info.chan, &im[i * out_chan], out_chan);
+				}
+			else
+				for (i = 0; i < count; i++)
+				{
+					for (ic = 0; ic < info.chan; ic++)
+						in_pixel[ic] = (float) ((int16_t*)im_data)[i * info.chan + ic] * (1.f/32768.f);
+					image_float_channel_conversion(in_pixel, info.chan, &im[i * out_chan], out_chan);
+				}
+
 		// 32-bit float
 		if (info.bpc==32 && info.sample_format==3)
 			if (info.be)
