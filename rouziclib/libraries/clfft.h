@@ -1,14 +1,13 @@
 #ifdef RL_OPENCL
 #ifdef RL_CLFFT
 
-#ifdef PRAGMA_COMMENT
-#pragma comment (lib, "delayimp.lib")	// for delay-loading of the DLL
-#pragma comment (lib, "clfft.lib")
+#ifndef CLFFT_STATIC
+#define CLFFT_STATIC
 #endif
-
-#define __inline static
-#include <clFFT.h>
-#undef __inline
+#ifndef CLFFT_OPENCL_HEADER
+#define CLFFT_OPENCL_HEADER "orig/clew.h"
+#endif
+#include "clFFT-amalgamated.h"
 
 typedef struct
 {
@@ -17,7 +16,7 @@ typedef struct
 	cl_mem gpu_buf, tmp_buf;
 } clfft_plan_t;
 
-extern void print_clfft_version();
+extern void print_clfft_version(void);
 extern void clfft_setup(const int new_state);
 extern void clfft_create_tmpbuf(clctx_t *clctx, clfftPlanHandle planid, cl_mem *tmp_buf);
 extern void clfft_make_plan_1d(clctx_t *clctx, clfftPlanHandle *planid, int fft_size, int prec, int layout_in, int layout_out, int location, cl_mem *tmp_buf);
