@@ -300,11 +300,13 @@ Defaults:
   inputs: ${DEFAULT_INPUTS.join(", ")}
   output: ${DEFAULT_OUTPUT}
 
-The generated tree follows direct calls, function-like macro expansions, bare
-in-scope function references, and referenced function-pointer tables between
-functions defined in the input files. Calls through opaque function-pointer
-variables are omitted when the target cannot be inferred. Quoted local includes
-are followed recursively by default. Glob patterns support *, ?, and **.`);
+The generated tree follows direct and inferred dependencies between functions
+defined in the input files. Function-like macros that expand to in-scope
+function calls are followed for root/callee purposes. Bare in-scope function
+references and parsed top-level function-pointer tables are followed as
+indirect edges. Calls through opaque function-pointer variables are omitted
+when the target cannot be inferred. Quoted local includes are followed
+recursively by default. Glob patterns support *, ?, and **.`);
 }
 
 function readSource(filePath) {
@@ -945,11 +947,11 @@ function renderTree(inputFiles, graph) {
 	for (const fileName of inputFiles)
 		lines.push(`  - ${fileName}`);
 	lines.push("");
-	lines.push("Scope: direct and indirect dependencies between functions defined in the generated-source scope above.");
+	lines.push("Scope: direct and inferred dependencies between functions defined in the generated-source scope above.");
 	lines.push("Function-like macros that expand to in-scope function calls are followed for root/callee purposes.");
-	lines.push("Bare in-scope function references and referenced function-pointer tables are followed as indirect edges.");
+	lines.push("Bare in-scope function references and parsed top-level function-pointer tables are followed as indirect edges.");
 	lines.push("Calls through opaque function-pointer variables are still omitted when the target cannot be inferred.");
-	lines.push("Roots are functions with no incoming in-scope call edge. Repeated nodes are not expanded again.");
+	lines.push("Roots are functions with no incoming in-scope dependency edge. Repeated nodes are not expanded again.");
 	lines.push("");
 	lines.push(`Function definitions parsed: ${defs.length}`);
 	lines.push(`Logical functions: ${groups.size}`);
