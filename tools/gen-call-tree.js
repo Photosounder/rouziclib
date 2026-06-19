@@ -293,17 +293,18 @@ function expandIncludedFiles(inputFiles) {
 function printHelp() {
 	// Print the supported invocation forms.
 	console.log(`Usage:
-  node tools/generate-call-tree.js [source.c ...] [--out output.txt] [--no-includes]
-  node tools/generate-call-tree.js "*.c" --out call-tree.txt
+  node tools/gen-call-tree.js [source.c ...] [--out output.txt] [--no-includes]
+  node tools/gen-call-tree.js "*.c" --out call-tree.txt
 
 Defaults:
   inputs: ${DEFAULT_INPUTS.join(", ")}
   output: ${DEFAULT_OUTPUT}
 
-The generated tree follows direct calls between functions defined in the input
-files. External calls, OpenCL calls, macro-only calls, and function-pointer calls
-are omitted. Quoted local includes are followed recursively by default. Glob
-patterns support *, ?, and **.`);
+The generated tree follows direct calls, function-like macro expansions, bare
+in-scope function references, and referenced function-pointer tables between
+functions defined in the input files. Calls through opaque function-pointer
+variables are omitted when the target cannot be inferred. Quoted local includes
+are followed recursively by default. Glob patterns support *, ?, and **.`);
 }
 
 function readSource(filePath) {
@@ -510,6 +511,7 @@ function findFunctions(fileName, source, aliasesByLine) {
 		const prefixStart = Math.max(0, nameIndex - 300);
 		const prefix = clean.slice(prefixStart, nameIndex);
 		const lastTerminator = Math.max(prefix.lastIndexOf(";"), prefix.lastIndexOf("}"), prefix.lastIndexOf("{"), prefix.lastIndexOf("#"));
+		const definitionStart = prefixStart + lastTerminator + 1;
 		const signaturePrefix = prefix.slice(lastTerminator + 1).trim();
 		if (!signaturePrefix || signaturePrefix.includes("=") || /\btypedef\b/.test(signaturePrefix))
 			continue;
@@ -523,6 +525,8 @@ function findFunctions(fileName, source, aliasesByLine) {
 			name,
 			tokenName,
 			line,
+			start: definitionStart,
+			end: closeIndex + 1,
 			body: clean.slice(braceIndex + 1, closeIndex),
 			bodyStart: braceIndex + 1,
 			lineStarts
@@ -536,6 +540,16 @@ function findFunctions(fileName, source, aliasesByLine) {
 function previousNonSpace(text, index) {
 	// Find the previous non-whitespace character before a token.
 	for (let i = index - 1; i >= 0; --i) {
+		if (!/\s/.test(text[i]))
+			return text[i];
+	}
+
+	return "";
+}
+
+function nextNonSpace(text, index) {
+	// Find the next non-whitespace character after a token.
+	for (let i = index; i < text.length; ++i) {
 		if (!/\s/.test(text[i]))
 			return text[i];
 	}
@@ -565,6 +579,106 @@ function rawCallTokens(text) {
 	return calls;
 }
 
+function rawIdentifierTokens(text) {
+	// Find ordinary identifier references, including non-call function pointers.
+	const identifiers = [];
+	const identifierPattern = /\b([A-Za-z_][A-Za-z0-9_]*)\b/g;
+	let match;
+
+	// Filter out control words and member-access spellings.
+	while ((match = identifierPattern.exec(text))) {
+		const name = match[1];
+		if (CONTROL_WORDS.has(name))
+			continue;
+
+		const previous = previousNonSpace(text, match.index);
+		if (previous === "." || previous === ">" || previous === "#")
+			continue;
+
+		identifiers.push({
+			name,
+			index: match.index,
+			isCall: nextNonSpace(text, match.index + name.length) === "("
+		});
+	}
+
+	return identifiers;
+}
+
+function collectFunctionPointerTables(fileName, source, definitions, internalNames, aliasesByLine) {
+	// Collect top-level initializer tables that store in-scope function names.
+	const clean = stripCommentsAndLiterals(source);
+	const lineStarts = makeLineStarts(clean);
+	const tables = [];
+	const ranges = definitions
+		.filter(def => def.fileName === fileName)
+		.map(def => ({ start: def.start, end: def.end }))
+		.sort((a, b) => a.start - b.start);
+
+	let rangeIndex = 0;
+	let statementStart = 0;
+	let braceDepth = 0;
+
+	// Scan only top-level statements, skipping function bodies entirely.
+	for (let i = 0; i < clean.length; ++i) {
+		if (rangeIndex < ranges.length && i === ranges[rangeIndex].start) {
+			i = ranges[rangeIndex].end - 1;
+			statementStart = ranges[rangeIndex].end;
+			braceDepth = 0;
+			++rangeIndex;
+			continue;
+		}
+
+		const c = clean[i];
+		if (c === "{") {
+			++braceDepth;
+			continue;
+		}
+		if (c === "}") {
+			braceDepth = Math.max(0, braceDepth - 1);
+			continue;
+		}
+		if (c !== ";" || braceDepth !== 0)
+			continue;
+
+		// Treat brace initializers with internal function names as pointer tables.
+		const statement = clean.slice(statementStart, i + 1);
+		statementStart = i + 1;
+		const equalsIndex = statement.indexOf("=");
+		if (equalsIndex < 0 || !statement.includes("{"))
+			continue;
+
+		const beforeEquals = statement.slice(0, equalsIndex);
+		const nameMatch = beforeEquals.match(/\b([A-Za-z_][A-Za-z0-9_]*)\s*(?:\[[^\]]*\])?\s*$/);
+		if (!nameMatch)
+			continue;
+
+		const refs = new Set();
+		const initializer = statement.slice(equalsIndex + 1);
+		const initializerStart = statementStart - statement.length + equalsIndex + 1;
+		for (const identifier of rawIdentifierTokens(initializer)) {
+			const line = lineAt(lineStarts, initializerStart + identifier.index);
+			const aliasMap = aliasesByLine[line] || new Map();
+			const mapped = aliasMap.get(identifier.name) || identifier.name;
+			if (internalNames.has(mapped))
+				refs.add(mapped);
+		}
+
+		if (refs.size) {
+			const name = nameMatch[1];
+			const nameIndex = statementStart - statement.length + beforeEquals.lastIndexOf(name);
+			tables.push({
+				fileName,
+				name,
+				line: lineAt(lineStarts, nameIndex),
+				refs
+			});
+		}
+	}
+
+	return tables;
+}
+
 function firstDefinitionLine(groups, name) {
 	// Return the earliest definition line for sorting.
 	return groups.get(name).defs.reduce((min, def) => Math.min(min, def.line), Infinity);
@@ -588,6 +702,11 @@ function labelFor(groups, name) {
 		return `${name} [${locationOf(group.defs[0])}]`;
 
 	return `${name} [${group.defs.length} defs: ${group.defs.map(locationOf).join("; ")}]`;
+}
+
+function tableLabel(table) {
+	// Render a function-pointer table location.
+	return `${table.name} [${table.fileName}:${table.line}]`;
 }
 
 function buildGraph(inputFiles) {
@@ -614,11 +733,48 @@ function buildGraph(inputFiles) {
 	const groups = new Map();
 	for (const def of defs) {
 		if (!groups.has(def.name))
-			groups.set(def.name, { name: def.name, defs: [], calls: new Set(), macroCalls: new Set() });
+			groups.set(def.name, {
+				name: def.name,
+				defs: [],
+				calls: new Set(),
+				directCalls: new Set(),
+				macroCalls: new Set(),
+				referenceCalls: new Set(),
+				tableCalls: new Map()
+			});
 		groups.get(def.name).defs.push(def);
 	}
 
 	const internalNames = new Set(groups.keys());
+	const functionPointerTables = [];
+	for (const [fileName, source] of sourceByFile)
+		functionPointerTables.push(...collectFunctionPointerTables(fileName, source, defs, internalNames, aliasesByFile.get(fileName)));
+
+	const functionPointerTablesByName = new Map();
+	for (const table of functionPointerTables) {
+		if (!functionPointerTablesByName.has(table.name))
+			functionPointerTablesByName.set(table.name, []);
+		functionPointerTablesByName.get(table.name).push(table);
+	}
+
+	function addCall(group, callee, kind, tableName) {
+		// Record one dependency edge in the union set and its specific edge kind.
+		if (!internalNames.has(callee))
+			return;
+
+		group.calls.add(callee);
+		if (kind === "direct")
+			group.directCalls.add(callee);
+		else if (kind === "macro")
+			group.macroCalls.add(callee);
+		else if (kind === "reference")
+			group.referenceCalls.add(callee);
+		else if (kind === "table") {
+			if (!group.tableCalls.has(callee))
+				group.tableCalls.set(callee, new Set());
+			group.tableCalls.get(callee).add(tableName);
+		}
+	}
 
 	function resolveMacroCalls(name, aliasMap, seen = new Set()) {
 		// Resolve simple macro calls recursively into in-scope function calls.
@@ -651,13 +807,12 @@ function buildGraph(inputFiles) {
 				const aliasMap = aliasesByLine[line] || new Map();
 				const mapped = aliasMap.get(call.name) || call.name;
 				if (internalNames.has(mapped)) {
-					group.calls.add(mapped);
+					addCall(group, mapped, "direct");
 					continue;
 				}
 				if (functionMacros.has(mapped) || functionMacros.has(call.name)) {
-					group.macroCalls.add(mapped);
 					for (const dep of resolveMacroCalls(mapped, aliasMap))
-						group.calls.add(dep);
+						addCall(group, dep, "macro");
 				}
 			}
 		}
@@ -673,7 +828,34 @@ function buildGraph(inputFiles) {
 				const aliasMap = aliasesByLine[line] || new Map();
 				const mapped = aliasMap.get(call.name) || call.name;
 				if (mapped === group.name)
-					group.calls.add(mapped);
+					addCall(group, mapped, "direct");
+			}
+		}
+	}
+
+	// Collect non-call function references and referenced function pointer tables.
+	for (const group of groups.values()) {
+		for (const def of group.defs) {
+			const aliasesByLine = aliasesByFile.get(def.fileName);
+			for (const identifier of rawIdentifierTokens(def.body)) {
+				const line = lineAt(def.lineStarts, def.bodyStart + identifier.index);
+				const aliasMap = aliasesByLine[line] || new Map();
+				const mapped = aliasMap.get(identifier.name) || identifier.name;
+
+				// Treat a bare in-scope function name as an indirect function reference.
+				if (!identifier.isCall && mapped !== group.name && internalNames.has(mapped))
+					addCall(group, mapped, "reference");
+
+				// Treat references to function-pointer tables as edges to their stored functions.
+				const tables = functionPointerTablesByName.get(mapped);
+				if (tables) {
+					for (const table of tables) {
+						for (const callee of table.refs) {
+							if (callee !== group.name)
+								addCall(group, callee, "table", table.name);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -687,14 +869,53 @@ function buildGraph(inputFiles) {
 		}
 	}
 
-	return { defs, groups, incoming, internalNames };
+	return { defs, groups, incoming, internalNames, functionPointerTables };
 }
 
 function renderTree(inputFiles, graph) {
 	// Prepare stable source-order sorting for the tree.
-	const { defs, groups, incoming, internalNames } = graph;
+	const { defs, groups, incoming, internalNames, functionPointerTables } = graph;
 	const fileOrder = new Map(inputFiles.map((fileName, index) => [fileName, index]));
 	const duplicateGroups = [...groups.values()].filter(group => group.defs.length > 1).map(group => group.name).sort();
+
+	function formatNameSet(names) {
+		// Sort and render a set of in-scope function names.
+		const sorted = [...names].sort(byLocation);
+		return sorted.length ? sorted.join(", ") : "(none)";
+	}
+
+	function formatTableEdges(group) {
+		// Invert table-call edges so each table lists the functions it contributes.
+		const byTable = new Map();
+		for (const [callee, tableNames] of group.tableCalls) {
+			for (const tableName of tableNames) {
+				if (!byTable.has(tableName))
+					byTable.set(tableName, new Set());
+				byTable.get(tableName).add(callee);
+			}
+		}
+
+		return [...byTable.entries()]
+			.sort((a, b) => a[0].localeCompare(b[0]))
+			.map(([tableName, callees]) => `${tableName}: ${formatNameSet(callees)}`);
+	}
+
+	function edgeNote(parentName, childName) {
+		// Annotate tree edges that are not ordinary direct calls.
+		const parent = groups.get(parentName);
+		if (!parent || parent.directCalls.has(childName))
+			return "";
+
+		const notes = [];
+		if (parent.macroCalls.has(childName))
+			notes.push("macro");
+		if (parent.referenceCalls.has(childName))
+			notes.push("ref");
+		if (parent.tableCalls.has(childName))
+			notes.push(`table: ${[...parent.tableCalls.get(childName)].sort().join(", ")}`);
+
+		return notes.length ? ` [${notes.join("; ")}]` : "";
+	}
 
 	// Sort functions by source file order and earliest line.
 	function byLocation(a, b) {
@@ -712,6 +933,9 @@ function renderTree(inputFiles, graph) {
 	for (const group of groups.values())
 		group.callList = [...group.calls].sort(byLocation);
 	const roots = [...internalNames].filter(name => incoming.get(name).size === 0).sort(byLocation);
+	const macroEdgeCount = [...groups.values()].reduce((sum, group) => sum + group.macroCalls.size, 0);
+	const referenceEdgeCount = [...groups.values()].reduce((sum, group) => sum + group.referenceCalls.size, 0);
+	const tableEdgeCount = [...groups.values()].reduce((sum, group) => sum + group.tableCalls.size, 0);
 
 	// Start the report with scope and parser metadata.
 	const lines = [];
@@ -721,14 +945,19 @@ function renderTree(inputFiles, graph) {
 	for (const fileName of inputFiles)
 		lines.push(`  - ${fileName}`);
 	lines.push("");
-	lines.push("Scope: direct calls between functions defined in the generated-source scope above.");
+	lines.push("Scope: direct and indirect dependencies between functions defined in the generated-source scope above.");
 	lines.push("Function-like macros that expand to in-scope function calls are followed for root/callee purposes.");
-	lines.push("External library calls, OpenCL calls, macro-only calls, and calls through function pointers are omitted.");
+	lines.push("Bare in-scope function references and referenced function-pointer tables are followed as indirect edges.");
+	lines.push("Calls through opaque function-pointer variables are still omitted when the target cannot be inferred.");
 	lines.push("Roots are functions with no incoming in-scope call edge. Repeated nodes are not expanded again.");
 	lines.push("");
 	lines.push(`Function definitions parsed: ${defs.length}`);
 	lines.push(`Logical functions: ${groups.size}`);
 	lines.push(`Root functions: ${roots.length}`);
+	lines.push(`Function pointer tables parsed: ${functionPointerTables.length}`);
+	lines.push(`Indirect reference edges: ${referenceEdgeCount}`);
+	lines.push(`Function pointer table edges: ${tableEdgeCount}`);
+	lines.push(`Macro-expanded edges: ${macroEdgeCount}`);
 	lines.push(`Duplicate-name groups: ${duplicateGroups.length ? duplicateGroups.join(", ") : "none"}`);
 	lines.push("");
 	lines.push("Call Tree");
@@ -736,12 +965,13 @@ function renderTree(inputFiles, graph) {
 
 	const expanded = new Set();
 
-	function emit(name, prefix, isLast, stack, depth) {
+	function emit(name, prefix, isLast, stack, depth, parentName) {
 		// Render one function and recursively render unexpanded children.
 		const connector = depth === 0 ? "" : (isLast ? "`-- " : "|-- ");
 		const cycle = stack.includes(name);
 		const repeated = expanded.has(name) && !cycle;
-		lines.push(`${prefix}${connector}${labelFor(groups, name)}${cycle ? " [cycle]" : repeated ? " [already expanded]" : ""}`);
+		const note = parentName ? edgeNote(parentName, name) : "";
+		lines.push(`${prefix}${connector}${labelFor(groups, name)}${note}${cycle ? " [cycle]" : repeated ? " [already expanded]" : ""}`);
 		if (cycle || repeated)
 			return;
 
@@ -749,14 +979,14 @@ function renderTree(inputFiles, graph) {
 		const childPrefix = depth === 0 ? "" : prefix + (isLast ? "    " : "|   ");
 		const children = groups.get(name).callList;
 		for (let i = 0; i < children.length; ++i)
-			emit(children[i], childPrefix, i === children.length - 1, [...stack, name], depth + 1);
+			emit(children[i], childPrefix, i === children.length - 1, [...stack, name], depth + 1, name);
 	}
 
 	// Emit each root as a separate top-level tree.
 	for (let i = 0; i < roots.length; ++i) {
 		if (i)
 			lines.push("");
-		emit(roots[i], "", true, [], 0);
+		emit(roots[i], "", true, [], 0, null);
 	}
 
 	// Emit any unreachable cycles or non-root islands after the root forest.
@@ -766,16 +996,63 @@ function renderTree(inputFiles, graph) {
 		lines.push("Unexpanded Cyclic Or Non-root Functions");
 		lines.push("======================================");
 		for (const name of notReached)
-			emit(name, "", true, [], 0);
+			emit(name, "", true, [], 0, null);
 	}
 
-	// Emit a flat index that is easier to grep than the visual tree.
+	// Emit a flat union index that is easier to grep than the visual tree.
+	lines.push("");
+	lines.push("All Internal Dependencies");
+	lines.push("=========================");
+	for (const name of [...internalNames].sort(byLocation)) {
+		const callees = groups.get(name).callList;
+		lines.push(`${labelFor(groups, name)} -> ${callees.length ? callees.join(", ") : "(none)"}`);
+	}
+
+	// Emit the direct-call-only index for callers that need the old view.
 	lines.push("");
 	lines.push("Direct Internal Callees");
 	lines.push("=======================");
 	for (const name of [...internalNames].sort(byLocation)) {
-		const callees = groups.get(name).callList;
-		lines.push(`${labelFor(groups, name)} -> ${callees.length ? callees.join(", ") : "(none)"}`);
+		const group = groups.get(name);
+		lines.push(`${labelFor(groups, name)} -> ${formatNameSet(group.directCalls)}`);
+	}
+
+	// Emit indirect edge details so non-call dependencies can be audited.
+	lines.push("");
+	lines.push("Indirect Internal Dependencies");
+	lines.push("==============================");
+	let indirectLineCount = 0;
+	for (const name of [...internalNames].sort(byLocation)) {
+		const group = groups.get(name);
+		const parts = [];
+		if (group.macroCalls.size)
+			parts.push(`macro: ${formatNameSet(group.macroCalls)}`);
+		if (group.referenceCalls.size)
+			parts.push(`refs: ${formatNameSet(group.referenceCalls)}`);
+		for (const tablePart of formatTableEdges(group))
+			parts.push(`table ${tablePart}`);
+		if (parts.length) {
+			lines.push(`${labelFor(groups, name)} -> ${parts.join("; ")}`);
+			++indirectLineCount;
+		}
+	}
+	if (!indirectLineCount)
+		lines.push("(none)");
+
+	// Emit the function-pointer tables that contributed table edges.
+	lines.push("");
+	lines.push("Function Pointer Tables");
+	lines.push("=======================");
+	if (functionPointerTables.length) {
+		const tables = functionPointerTables.slice().sort((a, b) => {
+			const orderA = fileOrder.has(a.fileName) ? fileOrder.get(a.fileName) : 99;
+			const orderB = fileOrder.has(b.fileName) ? fileOrder.get(b.fileName) : 99;
+			return orderA - orderB || a.line - b.line || a.name.localeCompare(b.name);
+		});
+		for (const table of tables)
+			lines.push(`${tableLabel(table)} -> ${formatNameSet(table.refs)}`);
+	} else {
+		lines.push("(none)");
 	}
 
 	return lines.join("\n") + "\n";
