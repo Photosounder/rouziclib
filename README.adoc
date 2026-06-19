@@ -603,6 +603,9 @@ Aborted attempt to port my OpenCL system to Vulkan. Vulkan is rather complicated
 ** link:rouziclib/libraries/clfft.c[clfft.c] / link:rouziclib/libraries/clfft.h[clfft.h] +
 Code for dealing with https://github.com/clMathLibraries/clFFT[clFFT].
 
+** link:rouziclib/libraries/clFFT-amalgamated.c[clFFT-amalgamated.c] / link:rouziclib/libraries/clFFT-amalgamated.h[clFFT-amalgamated.h] +
+Amalgamation and conversion from C++ to C of clFFT.
+
 ** link:rouziclib/libraries/ffmpeg.c[ffmpeg.c] / link:rouziclib/libraries/ffmpeg.h[ffmpeg.h] +
 FFMPEG-based decoding.
 
