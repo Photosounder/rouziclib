@@ -1,8 +1,5 @@
 #ifdef RL_MINIAUDIO
 
-#define MA_NO_DECODING
-#define MA_NO_ENCODING
-#define MA_NO_GENERATION
 #define MA_ENABLE_ONLY_SPECIFIC_BACKENDS
 #define MA_ENABLE_WASAPI
 #include "orig/miniaudio.h"
