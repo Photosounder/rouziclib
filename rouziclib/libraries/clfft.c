@@ -8,69 +8,7 @@
 #ifndef CLFFT_OPENCL_HEADER
 #define CLFFT_OPENCL_HEADER "orig/clew.h"
 #endif
-#define buffer_t clfft_amalgamated_buffer_t
-#define buffer_stream_t clfft_amalgamated_buffer_stream_t
-#define tstring clfft_amalgamated_tstring
-#define bufreserve clfft_amalgamated_bufreserve
-#define bufappend clfft_amalgamated_bufappend
-#define bufappendn clfft_amalgamated_bufappendn
-#define bufinit clfft_amalgamated_bufinit
-#define buffree clfft_amalgamated_buffree
-#define buffer_empty clfft_amalgamated_buffer_empty
-#define buffer_from_span clfft_amalgamated_buffer_from_span
-#define buffer_from_cstr clfft_amalgamated_buffer_from_cstr
-#define buffer_copy clfft_amalgamated_buffer_copy
-#define bufcstr clfft_amalgamated_bufcstr
-#define buffindc clfft_amalgamated_buffindc
-#define bufclear clfft_amalgamated_bufclear
-#define bufcmp clfft_amalgamated_bufcmp
-#define bufprintf clfft_amalgamated_bufprintf
-#define bufcatbuf clfft_amalgamated_bufcatbuf
-#define bufcatcstr clfft_amalgamated_bufcatcstr
-#define bufcatchar clfft_amalgamated_bufcatchar
-#define bufsetbuf clfft_amalgamated_bufsetbuf
-#define bufsetcstr clfft_amalgamated_bufsetcstr
-#define bufset_linear_reg clfft_amalgamated_bufset_linear_reg
-#define bufstream_init clfft_amalgamated_bufstream_init
-#define bufstream_cat_cstr clfft_amalgamated_bufstream_cat_cstr
-#define bufstream_cat_char clfft_amalgamated_bufstream_cat_char
-#define bufstream_cat_size clfft_amalgamated_bufstream_cat_size
-#define bufstream_cat_double clfft_amalgamated_bufstream_cat_double
-#define bufstream_endline clfft_amalgamated_bufstream_endline
-#define bufstream_scientific clfft_amalgamated_bufstream_scientific
 #include "clFFT-amalgamated.c"
-#undef bufstream_scientific
-#undef bufstream_endline
-#undef bufstream_cat_double
-#undef bufstream_cat_size
-#undef bufstream_cat_char
-#undef bufstream_cat_cstr
-#undef bufstream_init
-#undef bufset_linear_reg
-#undef bufsetcstr
-#undef bufsetbuf
-#undef bufcatchar
-#undef bufcatcstr
-#undef bufcatbuf
-#undef bufprintf
-#undef bufcmp
-#undef bufclear
-#undef buffindc
-#undef bufcstr
-#undef buffer_copy
-#undef buffer_from_cstr
-#undef buffer_from_span
-#undef buffer_empty
-#undef buffree
-#undef bufinit
-#undef bufappendn
-#undef bufappend
-#undef bufreserve
-#undef tstring
-#undef buffer_stream_t
-#undef buffer_t
-#undef BUFFER_NPOS
-#undef BUFCAT_BUFFER_VALUE
 #undef array_init
 #undef array_size
 #undef array_clear

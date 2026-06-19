@@ -20,220 +20,6 @@
  * limitations under the License.
  * ************************************************************************/
 
-#ifndef CLFFT_AMALGAMATED_BUFFER_T
-  #define CLFFT_AMALGAMATED_BUFFER_T
-  #define BUFFER_NPOS ((size_t) -1)
-
-typedef struct buffer_t buffer_t;
-static inline void bufreserve(buffer_t *s, size_t req);
-static inline void bufappend(buffer_t *s, const char *src);
-static inline void bufappendn(buffer_t *s, const char *src, size_t len);
-
-struct buffer_t
-{
-	char *buf;
-	size_t len;
-	size_t as;
-};
-
-static inline void bufinit(buffer_t *s)
-{
-	// Initialize an owning buffer explicitly instead of relying on constructor
-	// syntax.
-	if (!s)
-		return;
-	s->buf = NULL;
-	s->len = 0;
-	s->as = 0;
-}
-
-static inline void buffree(buffer_t *s)
-{
-	// Release an owning buffer explicitly and leave it empty for safe reuse.
-	if (!s)
-		return;
-	free(s->buf);
-	s->buf = NULL;
-	s->len = 0;
-	s->as = 0;
-}
-
-static inline buffer_t buffer_empty(void)
-{
-	// Return an explicitly initialized empty owning buffer.
-	buffer_t out;
-	bufinit(&out);
-	return out;
-}
-
-static inline buffer_t buffer_from_span(const char *src, size_t len)
-{
-	// Build an owning buffer from a counted byte span.
-	buffer_t out;
-	bufinit(&out);
-	bufappendn(&out, src, len);
-	return out;
-}
-
-static inline buffer_t buffer_from_cstr(const char *src)
-{
-	// Build an owning buffer from a NUL-terminated string.
-	return buffer_from_span(src, src ? strlen(src) : 0);
-}
-
-static inline buffer_t buffer_copy(const buffer_t *src)
-{
-	// Build an owning buffer from another buffer's current contents.
-	return buffer_from_span(src ? src->buf : NULL, src ? src->len : 0);
-}
-
-static inline const char *bufcstr(const buffer_t *s)
-{
-	// Return the buffer text or an empty string for NULL storage.
-	return (s && s->buf) ? s->buf : "";
-}
-
-static inline size_t buffindc(const buffer_t *s, const char *needle, size_t pos)
-{
-	// Search for a C-string needle inside a buffer.
-	if (!s || !needle || pos > s->len)
-		return BUFFER_NPOS;
-	const char *base = s->buf ? s->buf : "";
-	const char *found = strstr(base + pos, needle);
-	return found ? (size_t) (found - base) : BUFFER_NPOS;
-}
-
-static inline void bufreserve(buffer_t *s, size_t req)
-{
-	// Grow the buffer allocation while preserving existing contents.
-	if (!s || req <= s->as)
-		return;
-	size_t new_as = s->as ? s->as : 32;
-	while (new_as < req)
-		new_as += new_as >> 1;
-	char *new_buf = (char *) realloc(s->buf, new_as);
-	if (!new_buf)
-		abort();
-	s->buf = new_buf;
-	s->as = new_as;
-	if (s->len == 0)
-		s->buf[0] = '\0';
-}
-
-static inline void bufappendn(buffer_t *s, const char *src, size_t len)
-{
-	// Append a counted byte span and keep the buffer NUL terminated.
-	if (!s || !src || len == 0)
-		return;
-	bufreserve(s, s->len + len + 1);
-	memcpy(s->buf + s->len, src, len);
-	s->len += len;
-	s->buf[s->len] = '\0';
-}
-
-static inline void bufappend(buffer_t *s, const char *src)
-{
-	// Append a C string when one is provided.
-	if (src)
-		bufappendn(s, src, strlen(src));
-}
-
-static inline void bufclear(buffer_t *s)
-{
-	// Clear the buffer contents while keeping allocated storage.
-	if (s)
-	{
-		s->len = 0;
-		if (s->buf && s->as > 0)
-			s->buf[0] = '\0';
-	}
-}
-
-static inline int bufcmp(const buffer_t *a, const buffer_t *b)
-{
-	// Compare buffer contents as null-terminated strings.
-	const char *ac = (a && a->buf) ? a->buf : "";
-	const char *bc = (b && b->buf) ? b->buf : "";
-	return strcmp(ac, bc);
-}
-
-static inline void bufprintf(buffer_t *s, const char *fmt, ...)
-{
-	if (!s || !fmt)
-		return;
-	va_list args;
-	va_start(args, fmt);
-	va_list copy;
-	va_copy(copy, args);
-	int added = vsnprintf(NULL, 0, fmt, copy);
-	va_end(copy);
-	if (added > 0)
-	{
-		bufreserve(s, s->len + (size_t) added + 1);
-		vsnprintf(s->buf + s->len, s->as - s->len, fmt, args);
-		s->len += (size_t) added;
-	}
-	va_end(args);
-}
-
-static inline void bufcatbuf(buffer_t *dst, const buffer_t *src)
-{
-	// Append another buffer's contents to the destination buffer.
-	if (dst && src)
-		bufappendn(dst, src->buf, src->len);
-}
-
-static inline void bufcatcstr(buffer_t *dst, const char *src)
-{
-	// Append a NUL-terminated string to the destination buffer.
-	if (dst)
-		bufappend(dst, src);
-}
-
-static inline void bufcatchar(buffer_t *dst, char src)
-{
-	// Append one byte to the destination buffer.
-	if (dst)
-		bufappendn(dst, &src, 1);
-}
-
-  #define BUFCAT_BUFFER_VALUE(dst_, expr_) \
-		do \
-		{ \
-			buffer_t bufcat_tmp_ = (expr_); \
-			bufcatbuf((dst_), &bufcat_tmp_); \
-			buffree(&bufcat_tmp_); \
-		} while (0)
-
-static inline void bufsetbuf(buffer_t *dst, const buffer_t *src)
-{
-	// Copy a buffer into another buffer after clearing the destination.
-	if (dst && src)
-	{
-		bufclear(dst);
-		bufappendn(dst, src->buf, src->len);
-	}
-}
-
-static inline void bufsetcstr(buffer_t *dst, const char *src)
-{
-	// Copy a NUL-terminated string into the destination buffer.
-	if (dst)
-	{
-		bufclear(dst);
-		bufappend(dst, src);
-	}
-}
-
-static inline void bufset_linear_reg(buffer_t *dst, bool linearRegs, const buffer_t *regBaseCount)
-{
-	// Select the appropriate register prefix representation.
-	if (linearRegs)
-		bufsetcstr(dst, "(*R");
-	else
-		bufsetbuf(dst, regBaseCount);
-}
-
 typedef struct array_size_t
 {
 	size_t *buf;
@@ -523,49 +309,6 @@ typedef struct buffer_stream_t
 	int precision_value;
 	bool scientific_mode;
 } buffer_stream_t;
-
-static inline void bufstream_init(buffer_stream_t *s)
-{
-	// Reset stream formatting state for a freshly declared stream.
-	if (!s)
-		return;
-	bufinit(&s->text);
-	s->precision_value = 6;
-	s->scientific_mode = false;
-}
-
-static inline void bufstream_cat_cstr(buffer_stream_t *s, const char *v)
-{
-	if (s)
-		bufcatcstr(&s->text, v);
-}
-static inline void bufstream_cat_char(buffer_stream_t *s, char v)
-{
-	if (s)
-		bufcatchar(&s->text, v);
-}
-static inline void bufstream_cat_size(buffer_stream_t *s, size_t v)
-{
-	if (s)
-		bufprintf(&s->text, "%zu", v);
-}
-static inline void bufstream_cat_double(buffer_stream_t *s, double v)
-{
-	if (s)
-		bufprintf(&s->text, s->scientific_mode ? "%.*e" : "%.*f", s->precision_value, v);
-}
-static inline void bufstream_endline(buffer_stream_t *s)
-{
-	if (s)
-		bufcatchar(&s->text, '\n');
-}
-static inline void bufstream_scientific(buffer_stream_t *s)
-{
-	if (s)
-		s->scientific_mode = true;
-}
-
-#endif
 
 /* Begin inlined header: src\include\unicode.compatibility.h */
 
@@ -1696,9 +1439,9 @@ static inline void FFTRepoValueFree(fftRepoValue *value)
 	// cleared.
 	if (!value)
 		return;
-	buffree(&value->ProgramString);
-	buffree(&value->EntryPoint_fwd);
-	buffree(&value->EntryPoint_back);
+	free_buf(&value->ProgramString);
+	free_buf(&value->EntryPoint_fwd);
+	free_buf(&value->EntryPoint_back);
 }
 
 /* End inlined header: src\library\repo.h */
@@ -1987,14 +1730,14 @@ static inline buffer_t ClPragma(Precision pr)
 {
 	switch (pr)
 	{
-		case P_SINGLE: return buffer_from_cstr("");
+		case P_SINGLE: return buf_string_copy("");
 		case P_DOUBLE:
-			return buffer_from_cstr("\n#ifdef cl_khr_fp64\n"
+			return buf_string_copy("\n#ifdef cl_khr_fp64\n"
 						"#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n"
 						"#else\n"
 						"#pragma OPENCL EXTENSION cl_amd_fp64 : enable\n"
 						"#endif\n\n");
-		default: assert(false); return buffer_from_cstr("");
+		default: assert(false); return buf_string_copy("");
 	}
 }
 
@@ -2003,8 +1746,8 @@ static inline buffer_t SztToStr(size_t i)
 {
 	buffer_stream_t ss;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&ss);
-	bufstream_cat_size(&ss, i);
+	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
+	bufprintf(&(&ss)->text, "%zu", i);
 	return ss.text;
 }
 
@@ -2012,10 +1755,10 @@ static inline buffer_t FloatToStr(double f)
 {
 	buffer_stream_t ss;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&ss);
+	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
 	ss.precision_value = 16;
-	bufstream_scientific(&ss);
-	bufstream_cat_double(&ss, f);
+	(&ss)->scientific_mode = true;
+	bufprintf(&(&ss)->text, (&ss)->scientific_mode ? "%.*e" : "%.*f", (&ss)->precision_value, f);
 	return ss.text;
 }
 
@@ -2053,28 +1796,28 @@ static inline stringpair ComplexMul(const char *type, const char *a, const char 
 {
 	stringpair result;
 	// Initialize the pair buffers before appending generated expression text.
-	bufinit(&result.first);
-	bufinit(&result.second);
-	bufsetcstr(&result.first, "(");
-	bufcatcstr(&result.first, type);
-	bufcatcstr(&result.first, ") ((");
-	bufcatcstr(&result.first, a);
-	bufcatcstr(&result.first, ".x * ");
-	bufcatcstr(&result.first, b);
-	bufcatcstr(&result.first, (forward ? ".x - " : ".x + "));
-	bufcatcstr(&result.first, a);
-	bufcatcstr(&result.first, ".y * ");
-	bufcatcstr(&result.first, b);
-	bufcatcstr(&result.first, ".y),");
-	bufsetcstr(&result.second, "(");
-	bufcatcstr(&result.second, a);
-	bufcatcstr(&result.second, ".y * ");
-	bufcatcstr(&result.second, b);
-	bufcatcstr(&result.second, (forward ? ".x + " : ".x - "));
-	bufcatcstr(&result.second, a);
-	bufcatcstr(&result.second, ".x * ");
-	bufcatcstr(&result.second, b);
-	bufcatcstr(&result.second, ".y))");
+	memset(&result.first, 0, sizeof(*(&result.first)));
+	memset(&result.second, 0, sizeof(*(&result.second)));
+	(clear_buf(&result.first), bufprintf(&result.first, "%s", ("(") ? ("(") : ""));
+	bufprintf(&result.first, "%s", (type) ? (type) : "");
+	bufprintf(&result.first, "%s", (") ((") ? (") ((") : "");
+	bufprintf(&result.first, "%s", (a) ? (a) : "");
+	bufprintf(&result.first, "%s", (".x * ") ? (".x * ") : "");
+	bufprintf(&result.first, "%s", (b) ? (b) : "");
+	bufprintf(&result.first, "%s", ((forward ? ".x - " : ".x + ")) ? ((forward ? ".x - " : ".x + ")) : "");
+	bufprintf(&result.first, "%s", (a) ? (a) : "");
+	bufprintf(&result.first, "%s", (".y * ") ? (".y * ") : "");
+	bufprintf(&result.first, "%s", (b) ? (b) : "");
+	bufprintf(&result.first, "%s", (".y),") ? (".y),") : "");
+	(clear_buf(&result.second), bufprintf(&result.second, "%s", ("(") ? ("(") : ""));
+	bufprintf(&result.second, "%s", (a) ? (a) : "");
+	bufprintf(&result.second, "%s", (".y * ") ? (".y * ") : "");
+	bufprintf(&result.second, "%s", (b) ? (b) : "");
+	bufprintf(&result.second, "%s", ((forward ? ".x + " : ".x - ")) ? ((forward ? ".x + " : ".x - ")) : "");
+	bufprintf(&result.second, "%s", (a) ? (a) : "");
+	bufprintf(&result.second, "%s", (".x * ") ? (".x * ") : "");
+	bufprintf(&result.second, "%s", (b) ? (b) : "");
+	bufprintf(&result.second, "%s", (".y))") ? (".y))") : "");
 	return result;
 }
 
@@ -2086,33 +1829,33 @@ static inline buffer_t RegBaseType(Precision pr, size_t count)
 		case P_SINGLE:
 			switch (count)
 			{
-				case 1: return buffer_from_cstr("float");
-				case 2: return buffer_from_cstr("float2");
-				case 4: return buffer_from_cstr("float4");
-				default: assert(false); return buffer_from_cstr("");
+				case 1: return buf_string_copy("float");
+				case 2: return buf_string_copy("float2");
+				case 4: return buf_string_copy("float4");
+				default: assert(false); return buf_string_copy("");
 			}
 			break;
 		case P_DOUBLE:
 			switch (count)
 			{
-				case 1: return buffer_from_cstr("double");
-				case 2: return buffer_from_cstr("double2");
-				case 4: return buffer_from_cstr("double4");
-				default: assert(false); return buffer_from_cstr("");
+				case 1: return buf_string_copy("double");
+				case 2: return buf_string_copy("double2");
+				case 4: return buf_string_copy("double4");
+				default: assert(false); return buf_string_copy("");
 			}
 			break;
-		default: assert(false); return buffer_from_cstr("");
+		default: assert(false); return buf_string_copy("");
 	}
 }
 
 static inline buffer_t FloatSuffix(Precision pr)
 {
 	// Suffix for constants
-	buffer_t sfx = buffer_empty();
+	buffer_t sfx = (buffer_t){0};
 	switch (pr)
 	{
-		case P_SINGLE: bufsetcstr(&sfx, "f"); break;
-		case P_DOUBLE: bufsetcstr(&sfx, ""); break;
+		case P_SINGLE: (clear_buf(&sfx), bufprintf(&sfx, "%s", ("f") ? ("f") : "")); break;
+		case P_DOUBLE: (clear_buf(&sfx), bufprintf(&sfx, "%s", ("") ? ("") : "")); break;
 		default: assert(false);
 	}
 
@@ -2121,43 +1864,43 @@ static inline buffer_t FloatSuffix(Precision pr)
 
 static inline buffer_t ButterflyName(size_t radix, size_t count, bool fwd)
 {
-	buffer_t str = buffer_empty();
+	buffer_t str = (buffer_t){0};
 	if (fwd)
-		bufcatcstr(&str, "Fwd");
+		bufprintf(&str, "%s", ("Fwd") ? ("Fwd") : "");
 	else
-		bufcatcstr(&str, "Inv");
-	bufcatcstr(&str, "Rad");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(radix));
-	bufcatcstr(&str, "B");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(count));
+		bufprintf(&str, "%s", ("Inv") ? ("Inv") : "");
+	bufprintf(&str, "%s", ("Rad") ? ("Rad") : "");
+	bufprintf(&str, "%zu", radix);
+	bufprintf(&str, "%s", ("B") ? ("B") : "");
+	bufprintf(&str, "%zu", count);
 	return str;
 }
 
 static inline buffer_t PassName(size_t pos, bool fwd)
 {
-	buffer_t str = buffer_empty();
+	buffer_t str = (buffer_t){0};
 	if (fwd)
-		bufcatcstr(&str, "Fwd");
+		bufprintf(&str, "%s", ("Fwd") ? ("Fwd") : "");
 	else
-		bufcatcstr(&str, "Inv");
-	bufcatcstr(&str, "Pass");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(pos));
+		bufprintf(&str, "%s", ("Inv") ? ("Inv") : "");
+	bufprintf(&str, "%s", ("Pass") ? ("Pass") : "");
+	bufprintf(&str, "%zu", pos);
 	return str;
 }
 
 static inline buffer_t TwTableName(void)
 {
-	return buffer_from_cstr("twiddles");
+	return buf_string_copy("twiddles");
 }
 
 static inline buffer_t TwTableLargeName(void)
 {
-	return buffer_from_cstr("twiddle_dee");
+	return buf_string_copy("twiddle_dee");
 }
 
 static inline buffer_t TwTableLargeFunc(void)
 {
-	return buffer_from_cstr("TW3step");
+	return buf_string_copy("TW3step");
 }
 
 // Twiddle factors table for large N
@@ -2207,47 +1950,47 @@ static void TwiddleTableLargeGenerateTwiddleTable(TwiddleTableLarge *table, Prec
 	// Stringize the table
 	buffer_stream_t ss;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&ss);
+	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
 	ss.precision_value = 34;
-	bufstream_scientific(&ss);
+	(&ss)->scientific_mode = true;
 	nt = 0;
 
-	bufprintf(&ss.text, "\n __constant %s %s[%llu][%llu] = {\n", bufcstr(&regBase2), bufcstr(&twTableName), (unsigned long long) (table->Y), (unsigned long long) (table->X));
+	bufprintf(&ss.text, "\n __constant %s %s[%llu][%llu] = {\n", ((regBase2).buf ? (const char *) (regBase2).buf : ""), ((twTableName).buf ? (const char *) (twTableName).buf : ""), (unsigned long long) (table->Y), (unsigned long long) (table->X));
 	for (size_t iY = 0; iY < table->Y; ++iY)
 	{
-		bufstream_cat_cstr(&ss, "{ ");
+		bufprintf(&(&ss)->text, "%s", ("{ ") ? ("{ ") : "");
 		for (size_t iX = 0; iX < table->X; ++iX)
 		{
 			// Preserve the original stream sequencing for the twiddle index.
 			const size_t twiddleIndex = nt++;
-			bufprintf(&ss.text, "(%s)(%.*e%s, %.*e%s),\n", bufcstr(&regBase2), ss.precision_value, table->wc[twiddleIndex], bufcstr(&sfx), ss.precision_value,
-				table->ws[twiddleIndex], bufcstr(&sfx));
+			bufprintf(&ss.text, "(%s)(%.*e%s, %.*e%s),\n", ((regBase2).buf ? (const char *) (regBase2).buf : ""), ss.precision_value, table->wc[twiddleIndex], ((sfx).buf ? (const char *) (sfx).buf : ""), ss.precision_value,
+				table->ws[twiddleIndex], ((sfx).buf ? (const char *) (sfx).buf : ""));
 		}
-		bufstream_cat_cstr(&ss, " },\n");
+		bufprintf(&(&ss)->text, "%s", (" },\n") ? (" },\n") : "");
 	}
-	bufstream_cat_cstr(&ss, "};\n\n");
+	bufprintf(&(&ss)->text, "%s", ("};\n\n") ? ("};\n\n") : "");
 
 	// Twiddle calc function
-	bufprintf(&ss.text, "__attribute__((always_inline)) %s\n%s(size_t u)\n{\n", bufcstr(&regBase2), bufcstr(&twTableFunc));
-	bufprintf(&ss.text, "\tsize_t j = u & %llu;\n\t%s result = %s[0][j];\n", (unsigned long long) ((unsigned) (table->X - 1)), bufcstr(&regBase2), bufcstr(&twTableName));
+	bufprintf(&ss.text, "__attribute__((always_inline)) %s\n%s(size_t u)\n{\n", ((regBase2).buf ? (const char *) (regBase2).buf : ""), ((twTableFunc).buf ? (const char *) (twTableFunc).buf : ""));
+	bufprintf(&ss.text, "\tsize_t j = u & %llu;\n\t%s result = %s[0][j];\n", (unsigned long long) ((unsigned) (table->X - 1)), ((regBase2).buf ? (const char *) (regBase2).buf : ""), ((twTableName).buf ? (const char *) (twTableName).buf : ""));
 
 	for (size_t iY = 1; iY < table->Y; ++iY)
 	{
-		buffer_t phasor = buffer_copy(&twTableName);
-		bufcatcstr(&phasor, "[");
-		BUFCAT_BUFFER_VALUE(&phasor, SztToStr(iY));
-		bufcatcstr(&phasor, "][j]");
+		buffer_t phasor = buf_copy_part(twTableName, 0, (twTableName).len);
+		bufprintf(&phasor, "%s", ("[") ? ("[") : "");
+		bufprintf(&phasor, "%zu", iY);
+		bufprintf(&phasor, "%s", ("][j]") ? ("][j]") : "");
 
-		stringpair product = ComplexMul(bufcstr(&regBase2), "result", bufcstr(&phasor), true);
+		stringpair product = ComplexMul(((regBase2).buf ? (const char *) (regBase2).buf : ""), "result", ((phasor).buf ? (const char *) (phasor).buf : ""), true);
 
 		bufprintf(&ss.text, "\tu >>= %llu;\n\tj = u & %llu;\n\tresult = %s\n\t\t%s;\n", (unsigned long long) ((unsigned) (CLFFT_ARBITRARY_TWIDDLE_DEE)),
-			(unsigned long long) ((unsigned) (table->X - 1)), bufcstr(&product.first), bufcstr(&product.second));
+			(unsigned long long) ((unsigned) (table->X - 1)), ((product.first).buf ? (const char *) (product.first).buf : ""), ((product.second).buf ? (const char *) (product.second).buf : ""));
 	}
-	bufstream_cat_cstr(&ss,
-		"\t"
-		"return result;\n}\n\n");
+	bufprintf(&(&ss)->text, "%s", ("\t"
+		"return result;\n}\n\n") ? ("\t"
+		"return result;\n}\n\n") : "");
 
-	bufcatbuf(twStr, &ss.text);
+	bufwrite(twStr, (ss.text).buf, (ss.text).len);
 }
 
 static inline void TwiddleTableLargeInit(TwiddleTableLarge *table, size_t length)
@@ -2294,47 +2037,47 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 	buffer_t regType = butterfly->cReg ? RegBaseType(butterfly->pr, 2) : RegBaseType(butterfly->pr, butterfly->count);
 
 	// Function attribute
-	bufcatcstr(bflyStr, "__attribute__((always_inline)) void \n");
+	bufprintf(bflyStr, "%s", ("__attribute__((always_inline)) void \n") ? ("__attribute__((always_inline)) void \n") : "");
 
 	// Function name
-	BUFCAT_BUFFER_VALUE(bflyStr, ButterflyName(butterfly->radix, butterfly->count, butterfly->fwd));
+	bufprintf(bflyStr, "%sRad%zuB%zu", (butterfly->fwd) ? "Fwd" : "Inv", butterfly->radix, butterfly->count);
 
 	// Function Arguments
-	bufcatcstr(bflyStr, "(");
+	bufprintf(bflyStr, "%s", ("(") ? ("(") : "");
 	for (size_t i = 0;; i++)
 	{
 		if (butterfly->cReg)
 		{
-			bufcatbuf(bflyStr, &regType);
-			bufcatcstr(bflyStr, " *R");
+			bufwrite(bflyStr, (regType).buf, (regType).len);
+			bufprintf(bflyStr, "%s", (" *R") ? (" *R") : "");
 			if (butterfly->radix & (butterfly->radix - 1))
-				BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
+				bufprintf(bflyStr, "%zu", i);
 			else
-				BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(ButterflyBitReverse(i, butterfly->radix)));
+				bufprintf(bflyStr, "%zu", ButterflyBitReverse(i, butterfly->radix));
 		}
 		else
 		{
-			bufcatbuf(bflyStr, &regType);
-			bufcatcstr(bflyStr, " *R");
-			BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-			bufcatcstr(bflyStr, ", "); // real arguments
-			bufcatbuf(bflyStr, &regType);
-			bufcatcstr(bflyStr, " *I");
-			BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i)); // imaginary arguments
+			bufwrite(bflyStr, (regType).buf, (regType).len);
+			bufprintf(bflyStr, "%s", (" *R") ? (" *R") : "");
+			bufprintf(bflyStr, "%zu", i);
+			bufprintf(bflyStr, "%s", (", ") ? (", ") : ""); // real arguments
+			bufwrite(bflyStr, (regType).buf, (regType).len);
+			bufprintf(bflyStr, "%s", (" *I") ? (" *I") : "");
+			bufprintf(bflyStr, "%zu", i); // imaginary arguments
 		}
 
 		if (i == butterfly->radix - 1)
 		{
-			bufcatcstr(bflyStr, ")");
+			bufprintf(bflyStr, "%s", (")") ? (")") : "");
 			break;
 		}
 		else
 		{
-			bufcatcstr(bflyStr, ", ");
+			bufprintf(bflyStr, "%s", (", ") ? (", ") : "");
 		}
 	}
 
-	bufcatcstr(bflyStr, "\n{\n\n");
+	bufprintf(bflyStr, "%s", ("\n{\n\n") ? ("\n{\n\n") : "");
 
 	// Temporary variables
 	// Allocate temporary variables if we are not using complex registers
@@ -2344,41 +2087,40 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 	{
 		if ((butterfly->radix & (butterfly->radix - 1)) || (!butterfly->cReg))
 		{
-			bufcatcstr(bflyStr, "\t");
+			bufprintf(bflyStr, "%s", ("\t") ? ("\t") : "");
 			if (butterfly->cReg)
-				BUFCAT_BUFFER_VALUE(bflyStr, RegBaseType(butterfly->pr, 1));
+				bufprintf(bflyStr, "%s", (((butterfly->pr) == P_SINGLE) ? (((1) == 1) ? "float" : (((1) == 2) ? "float2" : (((1) == 4) ? "float4" : ""))) : (((butterfly->pr) == P_DOUBLE) ? (((1) == 1) ? "double" : (((1) == 2) ? "double2" : (((1) == 4) ? "double4" : ""))) : "")));
 			else
-				bufcatbuf(bflyStr, &regType);
+				bufwrite(bflyStr, (regType).buf, (regType).len);
 
 			for (size_t i = 0;; i++)
 			{
-				bufcatcstr(bflyStr, " TR");
-				BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-				bufcatcstr(bflyStr, ","); // real arguments
-				bufcatcstr(bflyStr, " TI");
-				BUFCAT_BUFFER_VALUE(bflyStr,
-					SztToStr(i)); // imaginary arguments
+				bufprintf(bflyStr, "%s", (" TR") ? (" TR") : "");
+				bufprintf(bflyStr, "%zu", i);
+				bufprintf(bflyStr, "%s", (",") ? (",") : ""); // real arguments
+				bufprintf(bflyStr, "%s", (" TI") ? (" TI") : "");
+				bufprintf(bflyStr, "%zu", i); // imaginary arguments
 
 				if (i == butterfly->radix - 1)
 				{
-					bufcatcstr(bflyStr, ";");
+					bufprintf(bflyStr, "%s", (";") ? (";") : "");
 					break;
 				}
 				else
 				{
-					bufcatcstr(bflyStr, ",");
+					bufprintf(bflyStr, "%s", (",") ? (",") : "");
 				}
 			}
 		}
 		else
 		{
-			bufcatcstr(bflyStr, "\t");
-			BUFCAT_BUFFER_VALUE(bflyStr, RegBaseType(butterfly->pr, 2));
-			bufcatcstr(bflyStr, " T;");
+			bufprintf(bflyStr, "%s", ("\t") ? ("\t") : "");
+			bufprintf(bflyStr, "%s", (((butterfly->pr) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((butterfly->pr) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+			bufprintf(bflyStr, "%s", (" T;") ? (" T;") : "");
 		}
 	}
 
-	bufcatcstr(bflyStr, "\n\n\t");
+	bufprintf(bflyStr, "%s", ("\n\n\t") ? ("\n\n\t") : "");
 
 	// Butterfly for different radices
 	switch (butterfly->radix)
@@ -2387,17 +2129,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 		{
 			if (butterfly->cReg)
 			{
-				bufcatcstr(bflyStr,
-					"(*R1) = (*R0) - (*R1);\n\t"
-					"(*R0) = 2.0f * (*R0) - (*R1);\n\t");
+				bufprintf(bflyStr, "%s", ("(*R1) = (*R0) - (*R1);\n\t"
+					"(*R0) = 2.0f * (*R0) - (*R1);\n\t") ? ("(*R1) = (*R0) - (*R1);\n\t"
+					"(*R0) = 2.0f * (*R0) - (*R1);\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = (*R0) + (*R1);\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = (*R0) + (*R1);\n\t"
 					"TI0 = (*I0) + (*I1);\n\t"
 					"TR1 = (*R0) - (*R1);\n\t"
-					"TI1 = (*I0) - (*I1);\n\t");
+					"TI1 = (*I0) - (*I1);\n\t") ? ("TR0 = (*R0) + (*R1);\n\t"
+					"TI0 = (*I0) + (*I1);\n\t"
+					"TR1 = (*R0) - (*R1);\n\t"
+					"TI1 = (*I0) - (*I1);\n\t") : "");
 			}
 		}
 		break;
@@ -2407,68 +2151,84 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 			{
 				if (butterfly->cReg)
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = (*R0).x + (*R1).x + (*R2).x;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R1).x + (*R2).x;\n\t"
 						"TR1 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) + "
 						"C3QB*((*R1).y - (*R2).y);\n\t"
 						"TR2 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) - "
-						"C3QB*((*R1).y - (*R2).y);\n\t");
+						"C3QB*((*R1).y - (*R2).y);\n\t") ? ("TR0 = (*R0).x + (*R1).x + (*R2).x;\n\t"
+						"TR1 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) + "
+						"C3QB*((*R1).y - (*R2).y);\n\t"
+						"TR2 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) - "
+						"C3QB*((*R1).y - (*R2).y);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = (*R0).y + (*R1).y + (*R2).y;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R1).y + (*R2).y;\n\t"
 						"TI1 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) - "
 						"C3QB*((*R1).x - (*R2).x);\n\t"
 						"TI2 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) + "
-						"C3QB*((*R1).x - (*R2).x);\n\t");
+						"C3QB*((*R1).x - (*R2).x);\n\t") ? ("TI0 = (*R0).y + (*R1).y + (*R2).y;\n\t"
+						"TI1 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) - "
+						"C3QB*((*R1).x - (*R2).x);\n\t"
+						"TI2 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) + "
+						"C3QB*((*R1).x - (*R2).x);\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = *R0 + *R1 + *R2;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R1 + *R2;\n\t"
 						"TR1 = (*R0 - C3QA*(*R1 + *R2)) + C3QB*(*I1 - *I2);\n\t"
-						"TR2 = (*R0 - C3QA*(*R1 + *R2)) - C3QB*(*I1 - *I2);\n\t");
+						"TR2 = (*R0 - C3QA*(*R1 + *R2)) - C3QB*(*I1 - *I2);\n\t") ? ("TR0 = *R0 + *R1 + *R2;\n\t"
+						"TR1 = (*R0 - C3QA*(*R1 + *R2)) + C3QB*(*I1 - *I2);\n\t"
+						"TR2 = (*R0 - C3QA*(*R1 + *R2)) - C3QB*(*I1 - *I2);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = *I0 + *I1 + *I2;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I1 + *I2;\n\t"
 						"TI1 = (*I0 - C3QA*(*I1 + *I2)) - C3QB*(*R1 - *R2);\n\t"
-						"TI2 = (*I0 - C3QA*(*I1 + *I2)) + C3QB*(*R1 - *R2);\n\t");
+						"TI2 = (*I0 - C3QA*(*I1 + *I2)) + C3QB*(*R1 - *R2);\n\t") ? ("TI0 = *I0 + *I1 + *I2;\n\t"
+						"TI1 = (*I0 - C3QA*(*I1 + *I2)) - C3QB*(*R1 - *R2);\n\t"
+						"TI2 = (*I0 - C3QA*(*I1 + *I2)) + C3QB*(*R1 - *R2);\n\t") : "");
 				}
 			}
 			else if (butterfly->cReg)
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = (*R0).x + (*R1).x + (*R2).x;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R1).x + (*R2).x;\n\t"
 					"TR1 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) - "
 					"C3QB*((*R1).y - (*R2).y);\n\t"
 					"TR2 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) + "
-					"C3QB*((*R1).y - (*R2).y);\n\t");
+					"C3QB*((*R1).y - (*R2).y);\n\t") ? ("TR0 = (*R0).x + (*R1).x + (*R2).x;\n\t"
+					"TR1 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) - "
+					"C3QB*((*R1).y - (*R2).y);\n\t"
+					"TR2 = ((*R0).x - C3QA*((*R1).x + (*R2).x)) + "
+					"C3QB*((*R1).y - (*R2).y);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = (*R0).y + (*R1).y + (*R2).y;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R1).y + (*R2).y;\n\t"
 					"TI1 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) + "
 					"C3QB*((*R1).x - (*R2).x);\n\t"
 					"TI2 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) - "
-					"C3QB*((*R1).x - (*R2).x);\n\t");
+					"C3QB*((*R1).x - (*R2).x);\n\t") ? ("TI0 = (*R0).y + (*R1).y + (*R2).y;\n\t"
+					"TI1 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) + "
+					"C3QB*((*R1).x - (*R2).x);\n\t"
+					"TI2 = ((*R0).y - C3QA*((*R1).y + (*R2).y)) - "
+					"C3QB*((*R1).x - (*R2).x);\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = *R0 + *R1 + *R2;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R1 + *R2;\n\t"
 					"TR1 = (*R0 - C3QA*(*R1 + *R2)) - C3QB*(*I1 - *I2);\n\t"
-					"TR2 = (*R0 - C3QA*(*R1 + *R2)) + C3QB*(*I1 - *I2);\n\t");
+					"TR2 = (*R0 - C3QA*(*R1 + *R2)) + C3QB*(*I1 - *I2);\n\t") ? ("TR0 = *R0 + *R1 + *R2;\n\t"
+					"TR1 = (*R0 - C3QA*(*R1 + *R2)) - C3QB*(*I1 - *I2);\n\t"
+					"TR2 = (*R0 - C3QA*(*R1 + *R2)) + C3QB*(*I1 - *I2);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = *I0 + *I1 + *I2;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I1 + *I2;\n\t"
 					"TI1 = (*I0 - C3QA*(*I1 + *I2)) + C3QB*(*R1 - *R2);\n\t"
-					"TI2 = (*I0 - C3QA*(*I1 + *I2)) - C3QB*(*R1 - *R2);\n\t");
+					"TI2 = (*I0 - C3QA*(*I1 + *I2)) - C3QB*(*R1 - *R2);\n\t") ? ("TI0 = *I0 + *I1 + *I2;\n\t"
+					"TI1 = (*I0 - C3QA*(*I1 + *I2)) + C3QB*(*R1 - *R2);\n\t"
+					"TI2 = (*I0 - C3QA*(*I1 + *I2)) - C3QB*(*R1 - *R2);\n\t") : "");
 			}
 		}
 		break;
@@ -2478,8 +2238,7 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 			{
 				if (butterfly->cReg)
 				{
-					bufcatcstr(bflyStr,
-						"(*R1) = (*R0) - (*R1);\n\t"
+					bufprintf(bflyStr, "%s", ("(*R1) = (*R0) - (*R1);\n\t"
 						"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
 						"(*R3) = (*R2) - (*R3);\n\t"
 						"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
@@ -2487,29 +2246,40 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"(*R2) = (*R0) - (*R2);\n\t"
 						"(*R0) = 2.0f * (*R0) - (*R2);\n\t"
 						"(*R3) = (*R1) + (fvect2)(-(*R3).y, (*R3).x);\n\t"
-						"(*R1) = 2.0f * (*R1) - (*R3);\n\t");
+						"(*R1) = 2.0f * (*R1) - (*R3);\n\t") ? ("(*R1) = (*R0) - (*R1);\n\t"
+						"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
+						"(*R3) = (*R2) - (*R3);\n\t"
+						"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
+						"\n\t"
+						"(*R2) = (*R0) - (*R2);\n\t"
+						"(*R0) = 2.0f * (*R0) - (*R2);\n\t"
+						"(*R3) = (*R1) + (fvect2)(-(*R3).y, (*R3).x);\n\t"
+						"(*R1) = 2.0f * (*R1) - (*R3);\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = (*R0) + (*R2) + (*R1) + (*R3);\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = (*R0) + (*R2) + (*R1) + (*R3);\n\t"
 						"TR1 = (*R0) - (*R2) + (*I1) - (*I3);\n\t"
 						"TR2 = (*R0) + (*R2) - (*R1) - (*R3);\n\t"
-						"TR3 = (*R0) - (*R2) - (*I1) + (*I3);\n\t");
+						"TR3 = (*R0) - (*R2) - (*I1) + (*I3);\n\t") ? ("TR0 = (*R0) + (*R2) + (*R1) + (*R3);\n\t"
+						"TR1 = (*R0) - (*R2) + (*I1) - (*I3);\n\t"
+						"TR2 = (*R0) + (*R2) - (*R1) - (*R3);\n\t"
+						"TR3 = (*R0) - (*R2) - (*I1) + (*I3);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = (*I0) + (*I2) + (*I1) + (*I3);\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = (*I0) + (*I2) + (*I1) + (*I3);\n\t"
 						"TI1 = (*I0) - (*I2) - (*R1) + (*R3);\n\t"
 						"TI2 = (*I0) + (*I2) - (*I1) - (*I3);\n\t"
-						"TI3 = (*I0) - (*I2) + (*R1) - (*R3);\n\t");
+						"TI3 = (*I0) - (*I2) + (*R1) - (*R3);\n\t") ? ("TI0 = (*I0) + (*I2) + (*I1) + (*I3);\n\t"
+						"TI1 = (*I0) - (*I2) - (*R1) + (*R3);\n\t"
+						"TI2 = (*I0) + (*I2) - (*I1) - (*I3);\n\t"
+						"TI3 = (*I0) - (*I2) + (*R1) - (*R3);\n\t") : "");
 				}
 			}
 			else if (butterfly->cReg)
 			{
-				bufcatcstr(bflyStr,
-					"(*R1) = (*R0) - (*R1);\n\t"
+				bufprintf(bflyStr, "%s", ("(*R1) = (*R0) - (*R1);\n\t"
 					"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
 					"(*R3) = (*R2) - (*R3);\n\t"
 					"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
@@ -2517,23 +2287,35 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R2) = (*R0) - (*R2);\n\t"
 					"(*R0) = 2.0f * (*R0) - (*R2);\n\t"
 					"(*R3) = (*R1) + (fvect2)((*R3).y, -(*R3).x);\n\t"
-					"(*R1) = 2.0f * (*R1) - (*R3);\n\t");
+					"(*R1) = 2.0f * (*R1) - (*R3);\n\t") ? ("(*R1) = (*R0) - (*R1);\n\t"
+					"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
+					"(*R3) = (*R2) - (*R3);\n\t"
+					"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
+					"\n\t"
+					"(*R2) = (*R0) - (*R2);\n\t"
+					"(*R0) = 2.0f * (*R0) - (*R2);\n\t"
+					"(*R3) = (*R1) + (fvect2)((*R3).y, -(*R3).x);\n\t"
+					"(*R1) = 2.0f * (*R1) - (*R3);\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = (*R0) + (*R2) + (*R1) + (*R3);\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = (*R0) + (*R2) + (*R1) + (*R3);\n\t"
 					"TR1 = (*R0) - (*R2) - (*I1) + (*I3);\n\t"
 					"TR2 = (*R0) + (*R2) - (*R1) - (*R3);\n\t"
-					"TR3 = (*R0) - (*R2) + (*I1) - (*I3);\n\t");
+					"TR3 = (*R0) - (*R2) + (*I1) - (*I3);\n\t") ? ("TR0 = (*R0) + (*R2) + (*R1) + (*R3);\n\t"
+					"TR1 = (*R0) - (*R2) - (*I1) + (*I3);\n\t"
+					"TR2 = (*R0) + (*R2) - (*R1) - (*R3);\n\t"
+					"TR3 = (*R0) - (*R2) + (*I1) - (*I3);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = (*I0) + (*I2) + (*I1) + (*I3);\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = (*I0) + (*I2) + (*I1) + (*I3);\n\t"
 					"TI1 = (*I0) - (*I2) + (*R1) - (*R3);\n\t"
 					"TI2 = (*I0) + (*I2) - (*I1) - (*I3);\n\t"
-					"TI3 = (*I0) - (*I2) - (*R1) + (*R3);\n\t");
+					"TI3 = (*I0) - (*I2) - (*R1) + (*R3);\n\t") ? ("TI0 = (*I0) + (*I2) + (*I1) + (*I3);\n\t"
+					"TI1 = (*I0) - (*I2) + (*R1) - (*R3);\n\t"
+					"TI2 = (*I0) + (*I2) - (*I1) - (*I3);\n\t"
+					"TI3 = (*I0) - (*I2) - (*R1) + (*R3);\n\t") : "");
 			}
 		}
 		break;
@@ -2543,8 +2325,7 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 			{
 				if (butterfly->cReg)
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = (*R0).x + (*R1).x + (*R2).x + (*R3).x + (*R4).x;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R1).x + (*R2).x + (*R3).x + (*R4).x;\n\t"
 						"TR1 = ((*R0).x - C5QC*((*R2).x + (*R3).x)) + "
 						"C5QB*((*R1).y - (*R4).y) + C5QD*((*R2).y - (*R3).y) + "
 						"C5QA*(((*R1).x - (*R2).x) + ((*R4).x - (*R3).x));\n\t"
@@ -2556,12 +2337,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"C5QA*(((*R2).x - (*R1).x) + ((*R3).x - (*R4).x));\n\t"
 						"TR3 = ((*R0).x - C5QC*((*R1).x + (*R4).x)) + "
 						"C5QB*((*R2).y - (*R3).y) - C5QD*((*R1).y - (*R4).y) + "
-						"C5QA*(((*R2).x - (*R1).x) + ((*R3).x - (*R4).x));\n\t");
+						"C5QA*(((*R2).x - (*R1).x) + ((*R3).x - (*R4).x));\n\t") ? ("TR0 = (*R0).x + (*R1).x + (*R2).x + (*R3).x + (*R4).x;\n\t"
+						"TR1 = ((*R0).x - C5QC*((*R2).x + (*R3).x)) + "
+						"C5QB*((*R1).y - (*R4).y) + C5QD*((*R2).y - (*R3).y) + "
+						"C5QA*(((*R1).x - (*R2).x) + ((*R4).x - (*R3).x));\n\t"
+						"TR4 = ((*R0).x - C5QC*((*R2).x + (*R3).x)) - "
+						"C5QB*((*R1).y - (*R4).y) - C5QD*((*R2).y - (*R3).y) + "
+						"C5QA*(((*R1).x - (*R2).x) + ((*R4).x - (*R3).x));\n\t"
+						"TR2 = ((*R0).x - C5QC*((*R1).x + (*R4).x)) - "
+						"C5QB*((*R2).y - (*R3).y) + C5QD*((*R1).y - (*R4).y) + "
+						"C5QA*(((*R2).x - (*R1).x) + ((*R3).x - (*R4).x));\n\t"
+						"TR3 = ((*R0).x - C5QC*((*R1).x + (*R4).x)) + "
+						"C5QB*((*R2).y - (*R3).y) - C5QD*((*R1).y - (*R4).y) + "
+						"C5QA*(((*R2).x - (*R1).x) + ((*R3).x - (*R4).x));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = (*R0).y + (*R1).y + (*R2).y + (*R3).y + (*R4).y;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R1).y + (*R2).y + (*R3).y + (*R4).y;\n\t"
 						"TI1 = ((*R0).y - C5QC*((*R2).y + (*R3).y)) - "
 						"C5QB*((*R1).x - (*R4).x) - C5QD*((*R2).x - (*R3).x) + "
 						"C5QA*(((*R1).y - (*R2).y) + ((*R4).y - (*R3).y));\n\t"
@@ -2573,12 +2365,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"C5QA*(((*R2).y - (*R1).y) + ((*R3).y - (*R4).y));\n\t"
 						"TI3 = ((*R0).y - C5QC*((*R1).y + (*R4).y)) - "
 						"C5QB*((*R2).x - (*R3).x) + C5QD*((*R1).x - (*R4).x) + "
-						"C5QA*(((*R2).y - (*R1).y) + ((*R3).y - (*R4).y));\n\t");
+						"C5QA*(((*R2).y - (*R1).y) + ((*R3).y - (*R4).y));\n\t") ? ("TI0 = (*R0).y + (*R1).y + (*R2).y + (*R3).y + (*R4).y;\n\t"
+						"TI1 = ((*R0).y - C5QC*((*R2).y + (*R3).y)) - "
+						"C5QB*((*R1).x - (*R4).x) - C5QD*((*R2).x - (*R3).x) + "
+						"C5QA*(((*R1).y - (*R2).y) + ((*R4).y - (*R3).y));\n\t"
+						"TI4 = ((*R0).y - C5QC*((*R2).y + (*R3).y)) + "
+						"C5QB*((*R1).x - (*R4).x) + C5QD*((*R2).x - (*R3).x) + "
+						"C5QA*(((*R1).y - (*R2).y) + ((*R4).y - (*R3).y));\n\t"
+						"TI2 = ((*R0).y - C5QC*((*R1).y + (*R4).y)) + "
+						"C5QB*((*R2).x - (*R3).x) - C5QD*((*R1).x - (*R4).x) + "
+						"C5QA*(((*R2).y - (*R1).y) + ((*R3).y - (*R4).y));\n\t"
+						"TI3 = ((*R0).y - C5QC*((*R1).y + (*R4).y)) - "
+						"C5QB*((*R2).x - (*R3).x) + C5QD*((*R1).x - (*R4).x) + "
+						"C5QA*(((*R2).y - (*R1).y) + ((*R3).y - (*R4).y));\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = *R0 + *R1 + *R2 + *R3 + *R4;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R1 + *R2 + *R3 + *R4;\n\t"
 						"TR1 = (*R0 - C5QC*(*R2 + *R3)) + C5QB*(*I1 - *I4) + "
 						"C5QD*(*I2 - *I3) + C5QA*((*R1 - *R2) + (*R4 - *R3));\n\t"
 						"TR4 = (*R0 - C5QC*(*R2 + *R3)) - C5QB*(*I1 - *I4) - "
@@ -2586,12 +2389,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"TR2 = (*R0 - C5QC*(*R1 + *R4)) - C5QB*(*I2 - *I3) + "
 						"C5QD*(*I1 - *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t"
 						"TR3 = (*R0 - C5QC*(*R1 + *R4)) + C5QB*(*I2 - *I3) - "
-						"C5QD*(*I1 - *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t");
+						"C5QD*(*I1 - *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t") ? ("TR0 = *R0 + *R1 + *R2 + *R3 + *R4;\n\t"
+						"TR1 = (*R0 - C5QC*(*R2 + *R3)) + C5QB*(*I1 - *I4) + "
+						"C5QD*(*I2 - *I3) + C5QA*((*R1 - *R2) + (*R4 - *R3));\n\t"
+						"TR4 = (*R0 - C5QC*(*R2 + *R3)) - C5QB*(*I1 - *I4) - "
+						"C5QD*(*I2 - *I3) + C5QA*((*R1 - *R2) + (*R4 - *R3));\n\t"
+						"TR2 = (*R0 - C5QC*(*R1 + *R4)) - C5QB*(*I2 - *I3) + "
+						"C5QD*(*I1 - *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t"
+						"TR3 = (*R0 - C5QC*(*R1 + *R4)) + C5QB*(*I2 - *I3) - "
+						"C5QD*(*I1 - *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = *I0 + *I1 + *I2 + *I3 + *I4;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I1 + *I2 + *I3 + *I4;\n\t"
 						"TI1 = (*I0 - C5QC*(*I2 + *I3)) - C5QB*(*R1 - *R4) - "
 						"C5QD*(*R2 - *R3) + C5QA*((*I1 - *I2) + (*I4 - *I3));\n\t"
 						"TI4 = (*I0 - C5QC*(*I2 + *I3)) + C5QB*(*R1 - *R4) + "
@@ -2599,13 +2409,20 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"TI2 = (*I0 - C5QC*(*I1 + *I4)) + C5QB*(*R2 - *R3) - "
 						"C5QD*(*R1 - *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t"
 						"TI3 = (*I0 - C5QC*(*I1 + *I4)) - C5QB*(*R2 - *R3) + "
-						"C5QD*(*R1 - *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t");
+						"C5QD*(*R1 - *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t") ? ("TI0 = *I0 + *I1 + *I2 + *I3 + *I4;\n\t"
+						"TI1 = (*I0 - C5QC*(*I2 + *I3)) - C5QB*(*R1 - *R4) - "
+						"C5QD*(*R2 - *R3) + C5QA*((*I1 - *I2) + (*I4 - *I3));\n\t"
+						"TI4 = (*I0 - C5QC*(*I2 + *I3)) + C5QB*(*R1 - *R4) + "
+						"C5QD*(*R2 - *R3) + C5QA*((*I1 - *I2) + (*I4 - *I3));\n\t"
+						"TI2 = (*I0 - C5QC*(*I1 + *I4)) + C5QB*(*R2 - *R3) - "
+						"C5QD*(*R1 - *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t"
+						"TI3 = (*I0 - C5QC*(*I1 + *I4)) - C5QB*(*R2 - *R3) + "
+						"C5QD*(*R1 - *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t") : "");
 				}
 			}
 			else if (butterfly->cReg)
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = (*R0).x + (*R1).x + (*R2).x + (*R3).x + (*R4).x;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R1).x + (*R2).x + (*R3).x + (*R4).x;\n\t"
 					"TR1 = ((*R0).x - C5QC*((*R2).x + (*R3).x)) - C5QB*((*R1).y - "
 					"(*R4).y) - C5QD*((*R2).y - (*R3).y) + C5QA*(((*R1).x - "
 					"(*R2).x) + ((*R4).x - (*R3).x));\n\t"
@@ -2617,12 +2434,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R1).x) + ((*R3).x - (*R4).x));\n\t"
 					"TR3 = ((*R0).x - C5QC*((*R1).x + (*R4).x)) - C5QB*((*R2).y - "
 					"(*R3).y) + C5QD*((*R1).y - (*R4).y) + C5QA*(((*R2).x - "
-					"(*R1).x) + ((*R3).x - (*R4).x));\n\t");
+					"(*R1).x) + ((*R3).x - (*R4).x));\n\t") ? ("TR0 = (*R0).x + (*R1).x + (*R2).x + (*R3).x + (*R4).x;\n\t"
+					"TR1 = ((*R0).x - C5QC*((*R2).x + (*R3).x)) - C5QB*((*R1).y - "
+					"(*R4).y) - C5QD*((*R2).y - (*R3).y) + C5QA*(((*R1).x - "
+					"(*R2).x) + ((*R4).x - (*R3).x));\n\t"
+					"TR4 = ((*R0).x - C5QC*((*R2).x + (*R3).x)) + C5QB*((*R1).y - "
+					"(*R4).y) + C5QD*((*R2).y - (*R3).y) + C5QA*(((*R1).x - "
+					"(*R2).x) + ((*R4).x - (*R3).x));\n\t"
+					"TR2 = ((*R0).x - C5QC*((*R1).x + (*R4).x)) + C5QB*((*R2).y - "
+					"(*R3).y) - C5QD*((*R1).y - (*R4).y) + C5QA*(((*R2).x - "
+					"(*R1).x) + ((*R3).x - (*R4).x));\n\t"
+					"TR3 = ((*R0).x - C5QC*((*R1).x + (*R4).x)) - C5QB*((*R2).y - "
+					"(*R3).y) + C5QD*((*R1).y - (*R4).y) + C5QA*(((*R2).x - "
+					"(*R1).x) + ((*R3).x - (*R4).x));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = (*R0).y + (*R1).y + (*R2).y + (*R3).y + (*R4).y;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R1).y + (*R2).y + (*R3).y + (*R4).y;\n\t"
 					"TI1 = ((*R0).y - C5QC*((*R2).y + (*R3).y)) + C5QB*((*R1).x - "
 					"(*R4).x) + C5QD*((*R2).x - (*R3).x) + C5QA*(((*R1).y - "
 					"(*R2).y) + ((*R4).y - (*R3).y));\n\t"
@@ -2634,12 +2462,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R1).y) + ((*R3).y - (*R4).y));\n\t"
 					"TI3 = ((*R0).y - C5QC*((*R1).y + (*R4).y)) + C5QB*((*R2).x - "
 					"(*R3).x) - C5QD*((*R1).x - (*R4).x) + C5QA*(((*R2).y - "
-					"(*R1).y) + ((*R3).y - (*R4).y));\n\t");
+					"(*R1).y) + ((*R3).y - (*R4).y));\n\t") ? ("TI0 = (*R0).y + (*R1).y + (*R2).y + (*R3).y + (*R4).y;\n\t"
+					"TI1 = ((*R0).y - C5QC*((*R2).y + (*R3).y)) + C5QB*((*R1).x - "
+					"(*R4).x) + C5QD*((*R2).x - (*R3).x) + C5QA*(((*R1).y - "
+					"(*R2).y) + ((*R4).y - (*R3).y));\n\t"
+					"TI4 = ((*R0).y - C5QC*((*R2).y + (*R3).y)) - C5QB*((*R1).x - "
+					"(*R4).x) - C5QD*((*R2).x - (*R3).x) + C5QA*(((*R1).y - "
+					"(*R2).y) + ((*R4).y - (*R3).y));\n\t"
+					"TI2 = ((*R0).y - C5QC*((*R1).y + (*R4).y)) - C5QB*((*R2).x - "
+					"(*R3).x) + C5QD*((*R1).x - (*R4).x) + C5QA*(((*R2).y - "
+					"(*R1).y) + ((*R3).y - (*R4).y));\n\t"
+					"TI3 = ((*R0).y - C5QC*((*R1).y + (*R4).y)) + C5QB*((*R2).x - "
+					"(*R3).x) - C5QD*((*R1).x - (*R4).x) + C5QA*(((*R2).y - "
+					"(*R1).y) + ((*R3).y - (*R4).y));\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = *R0 + *R1 + *R2 + *R3 + *R4;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R1 + *R2 + *R3 + *R4;\n\t"
 					"TR1 = (*R0 - C5QC*(*R2 + *R3)) - C5QB*(*I1 - *I4) - C5QD*(*I2 "
 					"- *I3) + C5QA*((*R1 - *R2) + (*R4 - *R3));\n\t"
 					"TR4 = (*R0 - C5QC*(*R2 + *R3)) + C5QB*(*I1 - *I4) + C5QD*(*I2 "
@@ -2647,12 +2486,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"TR2 = (*R0 - C5QC*(*R1 + *R4)) + C5QB*(*I2 - *I3) - C5QD*(*I1 "
 					"- *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t"
 					"TR3 = (*R0 - C5QC*(*R1 + *R4)) - C5QB*(*I2 - *I3) + C5QD*(*I1 "
-					"- *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t");
+					"- *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t") ? ("TR0 = *R0 + *R1 + *R2 + *R3 + *R4;\n\t"
+					"TR1 = (*R0 - C5QC*(*R2 + *R3)) - C5QB*(*I1 - *I4) - C5QD*(*I2 "
+					"- *I3) + C5QA*((*R1 - *R2) + (*R4 - *R3));\n\t"
+					"TR4 = (*R0 - C5QC*(*R2 + *R3)) + C5QB*(*I1 - *I4) + C5QD*(*I2 "
+					"- *I3) + C5QA*((*R1 - *R2) + (*R4 - *R3));\n\t"
+					"TR2 = (*R0 - C5QC*(*R1 + *R4)) + C5QB*(*I2 - *I3) - C5QD*(*I1 "
+					"- *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t"
+					"TR3 = (*R0 - C5QC*(*R1 + *R4)) - C5QB*(*I2 - *I3) + C5QD*(*I1 "
+					"- *I4) + C5QA*((*R2 - *R1) + (*R3 - *R4));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = *I0 + *I1 + *I2 + *I3 + *I4;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I1 + *I2 + *I3 + *I4;\n\t"
 					"TI1 = (*I0 - C5QC*(*I2 + *I3)) + C5QB*(*R1 - *R4) + C5QD*(*R2 "
 					"- *R3) + C5QA*((*I1 - *I2) + (*I4 - *I3));\n\t"
 					"TI4 = (*I0 - C5QC*(*I2 + *I3)) - C5QB*(*R1 - *R4) - C5QD*(*R2 "
@@ -2660,7 +2506,15 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"TI2 = (*I0 - C5QC*(*I1 + *I4)) - C5QB*(*R2 - *R3) + C5QD*(*R1 "
 					"- *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t"
 					"TI3 = (*I0 - C5QC*(*I1 + *I4)) + C5QB*(*R2 - *R3) - C5QD*(*R1 "
-					"- *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t");
+					"- *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t") ? ("TI0 = *I0 + *I1 + *I2 + *I3 + *I4;\n\t"
+					"TI1 = (*I0 - C5QC*(*I2 + *I3)) + C5QB*(*R1 - *R4) + C5QD*(*R2 "
+					"- *R3) + C5QA*((*I1 - *I2) + (*I4 - *I3));\n\t"
+					"TI4 = (*I0 - C5QC*(*I2 + *I3)) - C5QB*(*R1 - *R4) - C5QD*(*R2 "
+					"- *R3) + C5QA*((*I1 - *I2) + (*I4 - *I3));\n\t"
+					"TI2 = (*I0 - C5QC*(*I1 + *I4)) - C5QB*(*R2 - *R3) + C5QD*(*R1 "
+					"- *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t"
+					"TI3 = (*I0 - C5QC*(*I1 + *I4)) + C5QB*(*R2 - *R3) - C5QD*(*R1 "
+					"- *R4) + C5QA*((*I2 - *I1) + (*I3 - *I4));\n\t") : "");
 			}
 		}
 		break;
@@ -2670,244 +2524,292 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 			{
 				if (butterfly->cReg)
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = (*R0).x + (*R2).x + (*R4).x;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R2).x + (*R4).x;\n\t"
 						"TR2 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) + "
 						"C3QB*((*R2).y - (*R4).y);\n\t"
 						"TR4 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) - "
-						"C3QB*((*R2).y - (*R4).y);\n\t");
+						"C3QB*((*R2).y - (*R4).y);\n\t") ? ("TR0 = (*R0).x + (*R2).x + (*R4).x;\n\t"
+						"TR2 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) + "
+						"C3QB*((*R2).y - (*R4).y);\n\t"
+						"TR4 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) - "
+						"C3QB*((*R2).y - (*R4).y);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = (*R0).y + (*R2).y + (*R4).y;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R2).y + (*R4).y;\n\t"
 						"TI2 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) - "
 						"C3QB*((*R2).x - (*R4).x);\n\t"
 						"TI4 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) + "
-						"C3QB*((*R2).x - (*R4).x);\n\t");
+						"C3QB*((*R2).x - (*R4).x);\n\t") ? ("TI0 = (*R0).y + (*R2).y + (*R4).y;\n\t"
+						"TI2 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) - "
+						"C3QB*((*R2).x - (*R4).x);\n\t"
+						"TI4 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) + "
+						"C3QB*((*R2).x - (*R4).x);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TR1 = (*R1).x + (*R3).x + (*R5).x;\n\t"
+					bufprintf(bflyStr, "%s", ("TR1 = (*R1).x + (*R3).x + (*R5).x;\n\t"
 						"TR3 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) + "
 						"C3QB*((*R3).y - (*R5).y);\n\t"
 						"TR5 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) - "
-						"C3QB*((*R3).y - (*R5).y);\n\t");
+						"C3QB*((*R3).y - (*R5).y);\n\t") ? ("TR1 = (*R1).x + (*R3).x + (*R5).x;\n\t"
+						"TR3 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) + "
+						"C3QB*((*R3).y - (*R5).y);\n\t"
+						"TR5 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) - "
+						"C3QB*((*R3).y - (*R5).y);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI1 = (*R1).y + (*R3).y + (*R5).y;\n\t"
+					bufprintf(bflyStr, "%s", ("TI1 = (*R1).y + (*R3).y + (*R5).y;\n\t"
 						"TI3 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) - "
 						"C3QB*((*R3).x - (*R5).x);\n\t"
 						"TI5 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) + "
-						"C3QB*((*R3).x - (*R5).x);\n\t");
+						"C3QB*((*R3).x - (*R5).x);\n\t") ? ("TI1 = (*R1).y + (*R3).y + (*R5).y;\n\t"
+						"TI3 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) - "
+						"C3QB*((*R3).x - (*R5).x);\n\t"
+						"TI5 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) + "
+						"C3QB*((*R3).x - (*R5).x);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R0).x = TR0 + TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R0).x = TR0 + TR1;\n\t"
 						"(*R1).x = TR2 + ( C3QA*TR3 + C3QB*TI3);\n\t"
-						"(*R2).x = TR4 + (-C3QA*TR5 + C3QB*TI5);\n\t");
+						"(*R2).x = TR4 + (-C3QA*TR5 + C3QB*TI5);\n\t") ? ("(*R0).x = TR0 + TR1;\n\t"
+						"(*R1).x = TR2 + ( C3QA*TR3 + C3QB*TI3);\n\t"
+						"(*R2).x = TR4 + (-C3QA*TR5 + C3QB*TI5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R0).y = TI0 + TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R0).y = TI0 + TI1;\n\t"
 						"(*R1).y = TI2 + (-C3QB*TR3 + C3QA*TI3);\n\t"
-						"(*R2).y = TI4 + (-C3QB*TR5 - C3QA*TI5);\n\t");
+						"(*R2).y = TI4 + (-C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*R0).y = TI0 + TI1;\n\t"
+						"(*R1).y = TI2 + (-C3QB*TR3 + C3QA*TI3);\n\t"
+						"(*R2).y = TI4 + (-C3QB*TR5 - C3QA*TI5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R3).x = TR0 - TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R3).x = TR0 - TR1;\n\t"
 						"(*R4).x = TR2 - ( C3QA*TR3 + C3QB*TI3);\n\t"
-						"(*R5).x = TR4 - (-C3QA*TR5 + C3QB*TI5);\n\t");
+						"(*R5).x = TR4 - (-C3QA*TR5 + C3QB*TI5);\n\t") ? ("(*R3).x = TR0 - TR1;\n\t"
+						"(*R4).x = TR2 - ( C3QA*TR3 + C3QB*TI3);\n\t"
+						"(*R5).x = TR4 - (-C3QA*TR5 + C3QB*TI5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R3).y = TI0 - TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R3).y = TI0 - TI1;\n\t"
 						"(*R4).y = TI2 - (-C3QB*TR3 + C3QA*TI3);\n\t"
-						"(*R5).y = TI4 - (-C3QB*TR5 - C3QA*TI5);\n\t");
+						"(*R5).y = TI4 - (-C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*R3).y = TI0 - TI1;\n\t"
+						"(*R4).y = TI2 - (-C3QB*TR3 + C3QA*TI3);\n\t"
+						"(*R5).y = TI4 - (-C3QB*TR5 - C3QA*TI5);\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = *R0 + *R2 + *R4;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R2 + *R4;\n\t"
 						"TR2 = (*R0 - C3QA*(*R2 + *R4)) + C3QB*(*I2 - *I4);\n\t"
-						"TR4 = (*R0 - C3QA*(*R2 + *R4)) - C3QB*(*I2 - *I4);\n\t");
+						"TR4 = (*R0 - C3QA*(*R2 + *R4)) - C3QB*(*I2 - *I4);\n\t") ? ("TR0 = *R0 + *R2 + *R4;\n\t"
+						"TR2 = (*R0 - C3QA*(*R2 + *R4)) + C3QB*(*I2 - *I4);\n\t"
+						"TR4 = (*R0 - C3QA*(*R2 + *R4)) - C3QB*(*I2 - *I4);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = *I0 + *I2 + *I4;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I2 + *I4;\n\t"
 						"TI2 = (*I0 - C3QA*(*I2 + *I4)) - C3QB*(*R2 - *R4);\n\t"
-						"TI4 = (*I0 - C3QA*(*I2 + *I4)) + C3QB*(*R2 - *R4);\n\t");
+						"TI4 = (*I0 - C3QA*(*I2 + *I4)) + C3QB*(*R2 - *R4);\n\t") ? ("TI0 = *I0 + *I2 + *I4;\n\t"
+						"TI2 = (*I0 - C3QA*(*I2 + *I4)) - C3QB*(*R2 - *R4);\n\t"
+						"TI4 = (*I0 - C3QA*(*I2 + *I4)) + C3QB*(*R2 - *R4);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TR1 = *R1 + *R3 + *R5;\n\t"
+					bufprintf(bflyStr, "%s", ("TR1 = *R1 + *R3 + *R5;\n\t"
 						"TR3 = (*R1 - C3QA*(*R3 + *R5)) + C3QB*(*I3 - *I5);\n\t"
-						"TR5 = (*R1 - C3QA*(*R3 + *R5)) - C3QB*(*I3 - *I5);\n\t");
+						"TR5 = (*R1 - C3QA*(*R3 + *R5)) - C3QB*(*I3 - *I5);\n\t") ? ("TR1 = *R1 + *R3 + *R5;\n\t"
+						"TR3 = (*R1 - C3QA*(*R3 + *R5)) + C3QB*(*I3 - *I5);\n\t"
+						"TR5 = (*R1 - C3QA*(*R3 + *R5)) - C3QB*(*I3 - *I5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI1 = *I1 + *I3 + *I5;\n\t"
+					bufprintf(bflyStr, "%s", ("TI1 = *I1 + *I3 + *I5;\n\t"
 						"TI3 = (*I1 - C3QA*(*I3 + *I5)) - C3QB*(*R3 - *R5);\n\t"
-						"TI5 = (*I1 - C3QA*(*I3 + *I5)) + C3QB*(*R3 - *R5);\n\t");
+						"TI5 = (*I1 - C3QA*(*I3 + *I5)) + C3QB*(*R3 - *R5);\n\t") ? ("TI1 = *I1 + *I3 + *I5;\n\t"
+						"TI3 = (*I1 - C3QA*(*I3 + *I5)) - C3QB*(*R3 - *R5);\n\t"
+						"TI5 = (*I1 - C3QA*(*I3 + *I5)) + C3QB*(*R3 - *R5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R0) = TR0 + TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R0) = TR0 + TR1;\n\t"
 						"(*R1) = TR2 + ( C3QA*TR3 + C3QB*TI3);\n\t"
-						"(*R2) = TR4 + (-C3QA*TR5 + C3QB*TI5);\n\t");
+						"(*R2) = TR4 + (-C3QA*TR5 + C3QB*TI5);\n\t") ? ("(*R0) = TR0 + TR1;\n\t"
+						"(*R1) = TR2 + ( C3QA*TR3 + C3QB*TI3);\n\t"
+						"(*R2) = TR4 + (-C3QA*TR5 + C3QB*TI5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*I0) = TI0 + TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*I0) = TI0 + TI1;\n\t"
 						"(*I1) = TI2 + (-C3QB*TR3 + C3QA*TI3);\n\t"
-						"(*I2) = TI4 + (-C3QB*TR5 - C3QA*TI5);\n\t");
+						"(*I2) = TI4 + (-C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*I0) = TI0 + TI1;\n\t"
+						"(*I1) = TI2 + (-C3QB*TR3 + C3QA*TI3);\n\t"
+						"(*I2) = TI4 + (-C3QB*TR5 - C3QA*TI5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R3) = TR0 - TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R3) = TR0 - TR1;\n\t"
 						"(*R4) = TR2 - ( C3QA*TR3 + C3QB*TI3);\n\t"
-						"(*R5) = TR4 - (-C3QA*TR5 + C3QB*TI5);\n\t");
+						"(*R5) = TR4 - (-C3QA*TR5 + C3QB*TI5);\n\t") ? ("(*R3) = TR0 - TR1;\n\t"
+						"(*R4) = TR2 - ( C3QA*TR3 + C3QB*TI3);\n\t"
+						"(*R5) = TR4 - (-C3QA*TR5 + C3QB*TI5);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*I3) = TI0 - TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*I3) = TI0 - TI1;\n\t"
 						"(*I4) = TI2 - (-C3QB*TR3 + C3QA*TI3);\n\t"
-						"(*I5) = TI4 - (-C3QB*TR5 - C3QA*TI5);\n\t");
+						"(*I5) = TI4 - (-C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*I3) = TI0 - TI1;\n\t"
+						"(*I4) = TI2 - (-C3QB*TR3 + C3QA*TI3);\n\t"
+						"(*I5) = TI4 - (-C3QB*TR5 - C3QA*TI5);\n\t") : "");
 				}
 			}
 			else if (butterfly->cReg)
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = (*R0).x + (*R2).x + (*R4).x;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R2).x + (*R4).x;\n\t"
 					"TR2 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) - "
 					"C3QB*((*R2).y - (*R4).y);\n\t"
 					"TR4 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) + "
-					"C3QB*((*R2).y - (*R4).y);\n\t");
+					"C3QB*((*R2).y - (*R4).y);\n\t") ? ("TR0 = (*R0).x + (*R2).x + (*R4).x;\n\t"
+					"TR2 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) - "
+					"C3QB*((*R2).y - (*R4).y);\n\t"
+					"TR4 = ((*R0).x - C3QA*((*R2).x + (*R4).x)) + "
+					"C3QB*((*R2).y - (*R4).y);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = (*R0).y + (*R2).y + (*R4).y;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R2).y + (*R4).y;\n\t"
 					"TI2 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) + "
 					"C3QB*((*R2).x - (*R4).x);\n\t"
 					"TI4 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) - "
-					"C3QB*((*R2).x - (*R4).x);\n\t");
+					"C3QB*((*R2).x - (*R4).x);\n\t") ? ("TI0 = (*R0).y + (*R2).y + (*R4).y;\n\t"
+					"TI2 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) + "
+					"C3QB*((*R2).x - (*R4).x);\n\t"
+					"TI4 = ((*R0).y - C3QA*((*R2).y + (*R4).y)) - "
+					"C3QB*((*R2).x - (*R4).x);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TR1 = (*R1).x + (*R3).x + (*R5).x;\n\t"
+				bufprintf(bflyStr, "%s", ("TR1 = (*R1).x + (*R3).x + (*R5).x;\n\t"
 					"TR3 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) - "
 					"C3QB*((*R3).y - (*R5).y);\n\t"
 					"TR5 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) + "
-					"C3QB*((*R3).y - (*R5).y);\n\t");
+					"C3QB*((*R3).y - (*R5).y);\n\t") ? ("TR1 = (*R1).x + (*R3).x + (*R5).x;\n\t"
+					"TR3 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) - "
+					"C3QB*((*R3).y - (*R5).y);\n\t"
+					"TR5 = ((*R1).x - C3QA*((*R3).x + (*R5).x)) + "
+					"C3QB*((*R3).y - (*R5).y);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI1 = (*R1).y + (*R3).y + (*R5).y;\n\t"
+				bufprintf(bflyStr, "%s", ("TI1 = (*R1).y + (*R3).y + (*R5).y;\n\t"
 					"TI3 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) + "
 					"C3QB*((*R3).x - (*R5).x);\n\t"
 					"TI5 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) - "
-					"C3QB*((*R3).x - (*R5).x);\n\t");
+					"C3QB*((*R3).x - (*R5).x);\n\t") ? ("TI1 = (*R1).y + (*R3).y + (*R5).y;\n\t"
+					"TI3 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) + "
+					"C3QB*((*R3).x - (*R5).x);\n\t"
+					"TI5 = ((*R1).y - C3QA*((*R3).y + (*R5).y)) - "
+					"C3QB*((*R3).x - (*R5).x);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R0).x = TR0 + TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R0).x = TR0 + TR1;\n\t"
 					"(*R1).x = TR2 + ( C3QA*TR3 - C3QB*TI3);\n\t"
-					"(*R2).x = TR4 + (-C3QA*TR5 - C3QB*TI5);\n\t");
+					"(*R2).x = TR4 + (-C3QA*TR5 - C3QB*TI5);\n\t") ? ("(*R0).x = TR0 + TR1;\n\t"
+					"(*R1).x = TR2 + ( C3QA*TR3 - C3QB*TI3);\n\t"
+					"(*R2).x = TR4 + (-C3QA*TR5 - C3QB*TI5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R0).y = TI0 + TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R0).y = TI0 + TI1;\n\t"
 					"(*R1).y = TI2 + ( C3QB*TR3 + C3QA*TI3);\n\t"
-					"(*R2).y = TI4 + ( C3QB*TR5 - C3QA*TI5);\n\t");
+					"(*R2).y = TI4 + ( C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*R0).y = TI0 + TI1;\n\t"
+					"(*R1).y = TI2 + ( C3QB*TR3 + C3QA*TI3);\n\t"
+					"(*R2).y = TI4 + ( C3QB*TR5 - C3QA*TI5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R3).x = TR0 - TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R3).x = TR0 - TR1;\n\t"
 					"(*R4).x = TR2 - ( C3QA*TR3 - C3QB*TI3);\n\t"
-					"(*R5).x = TR4 - (-C3QA*TR5 - C3QB*TI5);\n\t");
+					"(*R5).x = TR4 - (-C3QA*TR5 - C3QB*TI5);\n\t") ? ("(*R3).x = TR0 - TR1;\n\t"
+					"(*R4).x = TR2 - ( C3QA*TR3 - C3QB*TI3);\n\t"
+					"(*R5).x = TR4 - (-C3QA*TR5 - C3QB*TI5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R3).y = TI0 - TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R3).y = TI0 - TI1;\n\t"
 					"(*R4).y = TI2 - ( C3QB*TR3 + C3QA*TI3);\n\t"
-					"(*R5).y = TI4 - ( C3QB*TR5 - C3QA*TI5);\n\t");
+					"(*R5).y = TI4 - ( C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*R3).y = TI0 - TI1;\n\t"
+					"(*R4).y = TI2 - ( C3QB*TR3 + C3QA*TI3);\n\t"
+					"(*R5).y = TI4 - ( C3QB*TR5 - C3QA*TI5);\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = *R0 + *R2 + *R4;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R2 + *R4;\n\t"
 					"TR2 = (*R0 - C3QA*(*R2 + *R4)) - C3QB*(*I2 - *I4);\n\t"
-					"TR4 = (*R0 - C3QA*(*R2 + *R4)) + C3QB*(*I2 - *I4);\n\t");
+					"TR4 = (*R0 - C3QA*(*R2 + *R4)) + C3QB*(*I2 - *I4);\n\t") ? ("TR0 = *R0 + *R2 + *R4;\n\t"
+					"TR2 = (*R0 - C3QA*(*R2 + *R4)) - C3QB*(*I2 - *I4);\n\t"
+					"TR4 = (*R0 - C3QA*(*R2 + *R4)) + C3QB*(*I2 - *I4);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = *I0 + *I2 + *I4;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I2 + *I4;\n\t"
 					"TI2 = (*I0 - C3QA*(*I2 + *I4)) + C3QB*(*R2 - *R4);\n\t"
-					"TI4 = (*I0 - C3QA*(*I2 + *I4)) - C3QB*(*R2 - *R4);\n\t");
+					"TI4 = (*I0 - C3QA*(*I2 + *I4)) - C3QB*(*R2 - *R4);\n\t") ? ("TI0 = *I0 + *I2 + *I4;\n\t"
+					"TI2 = (*I0 - C3QA*(*I2 + *I4)) + C3QB*(*R2 - *R4);\n\t"
+					"TI4 = (*I0 - C3QA*(*I2 + *I4)) - C3QB*(*R2 - *R4);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TR1 = *R1 + *R3 + *R5;\n\t"
+				bufprintf(bflyStr, "%s", ("TR1 = *R1 + *R3 + *R5;\n\t"
 					"TR3 = (*R1 - C3QA*(*R3 + *R5)) - C3QB*(*I3 - *I5);\n\t"
-					"TR5 = (*R1 - C3QA*(*R3 + *R5)) + C3QB*(*I3 - *I5);\n\t");
+					"TR5 = (*R1 - C3QA*(*R3 + *R5)) + C3QB*(*I3 - *I5);\n\t") ? ("TR1 = *R1 + *R3 + *R5;\n\t"
+					"TR3 = (*R1 - C3QA*(*R3 + *R5)) - C3QB*(*I3 - *I5);\n\t"
+					"TR5 = (*R1 - C3QA*(*R3 + *R5)) + C3QB*(*I3 - *I5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI1 = *I1 + *I3 + *I5;\n\t"
+				bufprintf(bflyStr, "%s", ("TI1 = *I1 + *I3 + *I5;\n\t"
 					"TI3 = (*I1 - C3QA*(*I3 + *I5)) + C3QB*(*R3 - *R5);\n\t"
-					"TI5 = (*I1 - C3QA*(*I3 + *I5)) - C3QB*(*R3 - *R5);\n\t");
+					"TI5 = (*I1 - C3QA*(*I3 + *I5)) - C3QB*(*R3 - *R5);\n\t") ? ("TI1 = *I1 + *I3 + *I5;\n\t"
+					"TI3 = (*I1 - C3QA*(*I3 + *I5)) + C3QB*(*R3 - *R5);\n\t"
+					"TI5 = (*I1 - C3QA*(*I3 + *I5)) - C3QB*(*R3 - *R5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R0) = TR0 + TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R0) = TR0 + TR1;\n\t"
 					"(*R1) = TR2 + ( C3QA*TR3 - C3QB*TI3);\n\t"
-					"(*R2) = TR4 + (-C3QA*TR5 - C3QB*TI5);\n\t");
+					"(*R2) = TR4 + (-C3QA*TR5 - C3QB*TI5);\n\t") ? ("(*R0) = TR0 + TR1;\n\t"
+					"(*R1) = TR2 + ( C3QA*TR3 - C3QB*TI3);\n\t"
+					"(*R2) = TR4 + (-C3QA*TR5 - C3QB*TI5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*I0) = TI0 + TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*I0) = TI0 + TI1;\n\t"
 					"(*I1) = TI2 + ( C3QB*TR3 + C3QA*TI3);\n\t"
-					"(*I2) = TI4 + ( C3QB*TR5 - C3QA*TI5);\n\t");
+					"(*I2) = TI4 + ( C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*I0) = TI0 + TI1;\n\t"
+					"(*I1) = TI2 + ( C3QB*TR3 + C3QA*TI3);\n\t"
+					"(*I2) = TI4 + ( C3QB*TR5 - C3QA*TI5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R3) = TR0 - TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R3) = TR0 - TR1;\n\t"
 					"(*R4) = TR2 - ( C3QA*TR3 - C3QB*TI3);\n\t"
-					"(*R5) = TR4 - (-C3QA*TR5 - C3QB*TI5);\n\t");
+					"(*R5) = TR4 - (-C3QA*TR5 - C3QB*TI5);\n\t") ? ("(*R3) = TR0 - TR1;\n\t"
+					"(*R4) = TR2 - ( C3QA*TR3 - C3QB*TI3);\n\t"
+					"(*R5) = TR4 - (-C3QA*TR5 - C3QB*TI5);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*I3) = TI0 - TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*I3) = TI0 - TI1;\n\t"
 					"(*I4) = TI2 - ( C3QB*TR3 + C3QA*TI3);\n\t"
-					"(*I5) = TI4 - ( C3QB*TR5 - C3QA*TI5);\n\t");
+					"(*I5) = TI4 - ( C3QB*TR5 - C3QA*TI5);\n\t") ? ("(*I3) = TI0 - TI1;\n\t"
+					"(*I4) = TI2 - ( C3QB*TR3 + C3QA*TI3);\n\t"
+					"(*I5) = TI4 - ( C3QB*TR5 - C3QA*TI5);\n\t") : "");
 			}
 		}
 		break;
@@ -3240,34 +3142,34 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					// Build the pr/pi register declaration without temporary merge
 					// helpers.
 					buffer_t index = SztToStr(i);
-					buffer_t decl = buffer_empty();
-					bufsetbuf(&decl, &regType);
-					bufcatcstr(&decl, " pr");
-					bufcatbuf(&decl, &index);
-					bufcatcstr(&decl, ", pi");
-					bufcatbuf(&decl, &index);
-					bufcatcstr(&decl, ";\n\t");
-					bufcatbuf(bflyStr, &decl);
+					buffer_t decl = (buffer_t){0};
+					(clear_buf(&decl), bufwrite(&decl, (regType).buf, (regType).len));
+					bufprintf(&decl, "%s", (" pr") ? (" pr") : "");
+					bufwrite(&decl, (index).buf, (index).len);
+					bufprintf(&decl, "%s", (", pi") ? (", pi") : "");
+					bufwrite(&decl, (index).buf, (index).len);
+					bufprintf(&decl, "%s", (";\n\t") ? (";\n\t") : "");
+					bufwrite(bflyStr, (decl).buf, (decl).len);
 				}
 				for (size_t i = 0; i < 9; i++)
 				{
 					// Build the qr/qi register declaration without temporary merge
 					// helpers.
 					buffer_t index = SztToStr(i);
-					buffer_t decl = buffer_empty();
-					bufsetbuf(&decl, &regType);
-					bufcatcstr(&decl, " qr");
-					bufcatbuf(&decl, &index);
-					bufcatcstr(&decl, ", qi");
-					bufcatbuf(&decl, &index);
-					bufcatcstr(&decl, ";\n\t");
-					bufcatbuf(bflyStr, &decl);
+					buffer_t decl = (buffer_t){0};
+					(clear_buf(&decl), bufwrite(&decl, (regType).buf, (regType).len));
+					bufprintf(&decl, "%s", (" qr") ? (" qr") : "");
+					bufwrite(&decl, (index).buf, (index).len);
+					bufprintf(&decl, "%s", (", qi") ? (", qi") : "");
+					bufwrite(&decl, (index).buf, (index).len);
+					bufprintf(&decl, "%s", (";\n\t") ? (";\n\t") : "");
+					bufwrite(bflyStr, (decl).buf, (decl).len);
 				}
 
 				if (butterfly->fwd)
-					bufcatcstr(bflyStr, C7SFR);
+					bufprintf(bflyStr, "%s", (C7SFR) ? (C7SFR) : "");
 				else
-					bufcatcstr(bflyStr, C7SBR);
+					bufprintf(bflyStr, "%s", (C7SBR) ? (C7SBR) : "");
 			}
 			else
 			{
@@ -3276,29 +3178,29 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					// Build the p register declaration without temporary merge
 					// helpers.
 					buffer_t index = SztToStr(i);
-					buffer_t decl = buffer_empty();
-					bufsetbuf(&decl, &regType);
-					bufcatcstr(&decl, " p");
-					bufcatbuf(&decl, &index);
-					bufcatcstr(&decl, ";\n\t");
-					bufcatbuf(bflyStr, &decl);
+					buffer_t decl = (buffer_t){0};
+					(clear_buf(&decl), bufwrite(&decl, (regType).buf, (regType).len));
+					bufprintf(&decl, "%s", (" p") ? (" p") : "");
+					bufwrite(&decl, (index).buf, (index).len);
+					bufprintf(&decl, "%s", (";\n\t") ? (";\n\t") : "");
+					bufwrite(bflyStr, (decl).buf, (decl).len);
 				}
 				for (size_t i = 0; i < 9; i++)
 				{
 					// Build the q register declaration without temporary merge
 					// helpers.
 					buffer_t index = SztToStr(i);
-					buffer_t decl = buffer_empty();
-					bufsetbuf(&decl, &regType);
-					bufcatcstr(&decl, " q");
-					bufcatbuf(&decl, &index);
-					bufcatcstr(&decl, ";\n\t");
-					bufcatbuf(bflyStr, &decl);
+					buffer_t decl = (buffer_t){0};
+					(clear_buf(&decl), bufwrite(&decl, (regType).buf, (regType).len));
+					bufprintf(&decl, "%s", (" q") ? (" q") : "");
+					bufwrite(&decl, (index).buf, (index).len);
+					bufprintf(&decl, "%s", (";\n\t") ? (";\n\t") : "");
+					bufwrite(bflyStr, (decl).buf, (decl).len);
 				}
 				if (butterfly->fwd)
-					bufcatcstr(bflyStr, C7SFC);
+					bufprintf(bflyStr, "%s", (C7SFC) ? (C7SFC) : "");
 				else
-					bufcatcstr(bflyStr, C7SBC);
+					bufprintf(bflyStr, "%s", (C7SBC) ? (C7SBC) : "");
 			}
 		}
 		break;
@@ -3309,8 +3211,7 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 			{
 				if (butterfly->cReg)
 				{
-					bufcatcstr(bflyStr,
-						"(*R1) = (*R0) - (*R1);\n\t"
+					bufprintf(bflyStr, "%s", ("(*R1) = (*R0) - (*R1);\n\t"
 						"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
 						"(*R3) = (*R2) - (*R3);\n\t"
 						"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
@@ -3337,12 +3238,38 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"(*R2) = 2.0f * (*R2) - (*R6);\n\t"
 						"(*R7) = ((*R3) + C8Q * (*R7)) - C8Q * "
 						"(fvect2)((*R7).y, -(*R7).x);\n\t"
-						"(*R3) = 2.0f * (*R3) - (*R7);\n\t");
+						"(*R3) = 2.0f * (*R3) - (*R7);\n\t") ? ("(*R1) = (*R0) - (*R1);\n\t"
+						"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
+						"(*R3) = (*R2) - (*R3);\n\t"
+						"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
+						"(*R5) = (*R4) - (*R5);\n\t"
+						"(*R4) = 2.0f * (*R4) - (*R5);\n\t"
+						"(*R7) = (*R6) - (*R7);\n\t"
+						"(*R6) = 2.0f * (*R6) - (*R7);\n\t"
+						"\n\t"
+						"(*R2) = (*R0) - (*R2);\n\t"
+						"(*R0) = 2.0f * (*R0) - (*R2);\n\t"
+						"(*R3) = (*R1) + (fvect2)(-(*R3).y, (*R3).x);\n\t"
+						"(*R1) = 2.0f * (*R1) - (*R3);\n\t"
+						"(*R6) = (*R4) - (*R6);\n\t"
+						"(*R4) = 2.0f * (*R4) - (*R6);\n\t"
+						"(*R7) = (*R5) + (fvect2)(-(*R7).y, (*R7).x);\n\t"
+						"(*R5) = 2.0f * (*R5) - (*R7);\n\t"
+						"\n\t"
+						"(*R4) = (*R0) - (*R4);\n\t"
+						"(*R0) = 2.0f * (*R0) - (*R4);\n\t"
+						"(*R5) = ((*R1) - C8Q * (*R5)) - C8Q * "
+						"(fvect2)((*R5).y, -(*R5).x);\n\t"
+						"(*R1) = 2.0f * (*R1) - (*R5);\n\t"
+						"(*R6) = (*R2) + (fvect2)(-(*R6).y, (*R6).x);\n\t"
+						"(*R2) = 2.0f * (*R2) - (*R6);\n\t"
+						"(*R7) = ((*R3) + C8Q * (*R7)) - C8Q * "
+						"(fvect2)((*R7).y, -(*R7).x);\n\t"
+						"(*R3) = 2.0f * (*R3) - (*R7);\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = (*R0) + (*R4) + (*R2) + (*R6) +     (*R1)    "
+					bufprintf(bflyStr, "%s", ("TR0 = (*R0) + (*R4) + (*R2) + (*R6) +     (*R1)    "
 						"         +     (*R3)             +     (*R5)       "
 						"      +     (*R7)            ;\n\t"
 						"TR1 = (*R0) - (*R4) + (*I2) - (*I6) + C8Q*(*R1) + "
@@ -3365,12 +3292,34 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"(*I5)             +     (*I7);\n\t"
 						"TR7 = (*R0) - (*R4) - (*I2) + (*I6) + C8Q*(*R1) - "
 						"C8Q*(*I1) - C8Q*(*R3) - C8Q*(*I3) - C8Q*(*R5) + "
-						"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t");
+						"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t") ? ("TR0 = (*R0) + (*R4) + (*R2) + (*R6) +     (*R1)    "
+						"         +     (*R3)             +     (*R5)       "
+						"      +     (*R7)            ;\n\t"
+						"TR1 = (*R0) - (*R4) + (*I2) - (*I6) + C8Q*(*R1) + "
+						"C8Q*(*I1) - C8Q*(*R3) + C8Q*(*I3) - C8Q*(*R5) - "
+						"C8Q*(*I5) + C8Q*(*R7) - C8Q*(*I7);\n\t"
+						"TR2 = (*R0) + (*R4) - (*R2) - (*R6)             +  "
+						"   (*I1)             -     (*I3)             +     "
+						"(*I5)             -     (*I7);\n\t"
+						"TR3 = (*R0) - (*R4) - (*I2) + (*I6) - C8Q*(*R1) + "
+						"C8Q*(*I1) + C8Q*(*R3) + C8Q*(*I3) + C8Q*(*R5) - "
+						"C8Q*(*I5) - C8Q*(*R7) - C8Q*(*I7);\n\t"
+						"TR4 = (*R0) + (*R4) + (*R2) + (*R6) -     (*R1)    "
+						"         -     (*R3)             -     (*R5)       "
+						"      -     (*R7)            ;\n\t"
+						"TR5 = (*R0) - (*R4) + (*I2) - (*I6) - C8Q*(*R1) - "
+						"C8Q*(*I1) + C8Q*(*R3) - C8Q*(*I3) + C8Q*(*R5) + "
+						"C8Q*(*I5) - C8Q*(*R7) + C8Q*(*I7);\n\t"
+						"TR6 = (*R0) + (*R4) - (*R2) - (*R6)             -  "
+						"  (*I1)              +     (*I3)             -     "
+						"(*I5)             +     (*I7);\n\t"
+						"TR7 = (*R0) - (*R4) - (*I2) + (*I6) + C8Q*(*R1) - "
+						"C8Q*(*I1) - C8Q*(*R3) - C8Q*(*I3) - C8Q*(*R5) + "
+						"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = (*I0) + (*I4) + (*I2) + (*I6)             +  "
+					bufprintf(bflyStr, "%s", ("TI0 = (*I0) + (*I4) + (*I2) + (*I6)             +  "
 						"   (*I1)             +     (*I3)             +     "
 						"(*I5)             +     (*I7);\n\t"
 						"TI1 = (*I0) - (*I4) - (*R2) + (*R6) - C8Q*(*R1) + "
@@ -3393,13 +3342,35 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"      -     (*R7)            ;\n\t"
 						"TI7 = (*I0) - (*I4) + (*R2) - (*R6) + C8Q*(*R1) + "
 						"C8Q*(*I1) + C8Q*(*R3) - C8Q*(*I3) - C8Q*(*R5) - "
-						"C8Q*(*I5) - C8Q*(*R7) + C8Q*(*I7);\n\t");
+						"C8Q*(*I5) - C8Q*(*R7) + C8Q*(*I7);\n\t") ? ("TI0 = (*I0) + (*I4) + (*I2) + (*I6)             +  "
+						"   (*I1)             +     (*I3)             +     "
+						"(*I5)             +     (*I7);\n\t"
+						"TI1 = (*I0) - (*I4) - (*R2) + (*R6) - C8Q*(*R1) + "
+						"C8Q*(*I1) - C8Q*(*R3) - C8Q*(*I3) + C8Q*(*R5) - "
+						"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t"
+						"TI2 = (*I0) + (*I4) - (*I2) - (*I6) -     (*R1)    "
+						"         +     (*R3)             -     (*R5)       "
+						"      +     (*R7)            ;\n\t"
+						"TI3 = (*I0) - (*I4) + (*R2) - (*R6) - C8Q*(*R1) - "
+						"C8Q*(*I1) - C8Q*(*R3) + C8Q*(*I3) + C8Q*(*R5) + "
+						"C8Q*(*I5) + C8Q*(*R7) - C8Q*(*I7);\n\t"
+						"TI4 = (*I0) + (*I4) + (*I2) + (*I6)             -  "
+						"  (*I1)              -     (*I3)             -     "
+						"(*I5)             -     (*I7);\n\t"
+						"TI5 = (*I0) - (*I4) - (*R2) + (*R6) + C8Q*(*R1) - "
+						"C8Q*(*I1) + C8Q*(*R3) + C8Q*(*I3) - C8Q*(*R5) + "
+						"C8Q*(*I5) - C8Q*(*R7) - C8Q*(*I7);\n\t"
+						"TI6 = (*I0) + (*I4) - (*I2) - (*I6) +     (*R1)    "
+						"         -     (*R3)             +     (*R5)       "
+						"      -     (*R7)            ;\n\t"
+						"TI7 = (*I0) - (*I4) + (*R2) - (*R6) + C8Q*(*R1) + "
+						"C8Q*(*I1) + C8Q*(*R3) - C8Q*(*I3) - C8Q*(*R5) - "
+						"C8Q*(*I5) - C8Q*(*R7) + C8Q*(*I7);\n\t") : "");
 				}
 			}
 			else if (butterfly->cReg)
 			{
-				bufcatcstr(bflyStr,
-					"(*R1) = (*R0) - (*R1);\n\t"
+				bufprintf(bflyStr, "%s", ("(*R1) = (*R0) - (*R1);\n\t"
 					"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
 					"(*R3) = (*R2) - (*R3);\n\t"
 					"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
@@ -3426,12 +3397,38 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R2) = 2.0f * (*R2) - (*R6);\n\t"
 					"(*R7) = ((*R3) + C8Q * (*R7)) + C8Q * "
 					"(fvect2)((*R7).y, -(*R7).x);\n\t"
-					"(*R3) = 2.0f * (*R3) - (*R7);\n\t");
+					"(*R3) = 2.0f * (*R3) - (*R7);\n\t") ? ("(*R1) = (*R0) - (*R1);\n\t"
+					"(*R0) = 2.0f * (*R0) - (*R1);\n\t"
+					"(*R3) = (*R2) - (*R3);\n\t"
+					"(*R2) = 2.0f * (*R2) - (*R3);\n\t"
+					"(*R5) = (*R4) - (*R5);\n\t"
+					"(*R4) = 2.0f * (*R4) - (*R5);\n\t"
+					"(*R7) = (*R6) - (*R7);\n\t"
+					"(*R6) = 2.0f * (*R6) - (*R7);\n\t"
+					"\n\t"
+					"(*R2) = (*R0) - (*R2);\n\t"
+					"(*R0) = 2.0f * (*R0) - (*R2);\n\t"
+					"(*R3) = (*R1) + (fvect2)((*R3).y, -(*R3).x);\n\t"
+					"(*R1) = 2.0f * (*R1) - (*R3);\n\t"
+					"(*R6) = (*R4) - (*R6);\n\t"
+					"(*R4) = 2.0f * (*R4) - (*R6);\n\t"
+					"(*R7) = (*R5) + (fvect2)((*R7).y, -(*R7).x);\n\t"
+					"(*R5) = 2.0f * (*R5) - (*R7);\n\t"
+					"\n\t"
+					"(*R4) = (*R0) - (*R4);\n\t"
+					"(*R0) = 2.0f * (*R0) - (*R4);\n\t"
+					"(*R5) = ((*R1) - C8Q * (*R5)) + C8Q * "
+					"(fvect2)((*R5).y, -(*R5).x);\n\t"
+					"(*R1) = 2.0f * (*R1) - (*R5);\n\t"
+					"(*R6) = (*R2) + (fvect2)((*R6).y, -(*R6).x);\n\t"
+					"(*R2) = 2.0f * (*R2) - (*R6);\n\t"
+					"(*R7) = ((*R3) + C8Q * (*R7)) + C8Q * "
+					"(fvect2)((*R7).y, -(*R7).x);\n\t"
+					"(*R3) = 2.0f * (*R3) - (*R7);\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = (*R0) + (*R4) + (*R2) + (*R6) +     (*R1)        "
+				bufprintf(bflyStr, "%s", ("TR0 = (*R0) + (*R4) + (*R2) + (*R6) +     (*R1)        "
 					"     +     (*R3)             +     (*R5)             + "
 					"    (*R7)            ;\n\t"
 					"TR1 = (*R0) - (*R4) - (*I2) + (*I6) + C8Q*(*R1) - "
@@ -3454,12 +3451,34 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"           -     (*I7);\n\t"
 					"TR7 = (*R0) - (*R4) + (*I2) - (*I6) + C8Q*(*R1) + "
 					"C8Q*(*I1) - C8Q*(*R3) + C8Q*(*I3) - C8Q*(*R5) - "
-					"C8Q*(*I5) + C8Q*(*R7) - C8Q*(*I7);\n\t");
+					"C8Q*(*I5) + C8Q*(*R7) - C8Q*(*I7);\n\t") ? ("TR0 = (*R0) + (*R4) + (*R2) + (*R6) +     (*R1)        "
+					"     +     (*R3)             +     (*R5)             + "
+					"    (*R7)            ;\n\t"
+					"TR1 = (*R0) - (*R4) - (*I2) + (*I6) + C8Q*(*R1) - "
+					"C8Q*(*I1) - C8Q*(*R3) - C8Q*(*I3) - C8Q*(*R5) + "
+					"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t"
+					"TR2 = (*R0) + (*R4) - (*R2) - (*R6)             -     "
+					"(*I1)             +     (*I3)             -     (*I5)  "
+					"           +     (*I7);\n\t"
+					"TR3 = (*R0) - (*R4) + (*I2) - (*I6) - C8Q*(*R1) - "
+					"C8Q*(*I1) + C8Q*(*R3) - C8Q*(*I3) + C8Q*(*R5) + "
+					"C8Q*(*I5) - C8Q*(*R7) + C8Q*(*I7);\n\t"
+					"TR4 = (*R0) + (*R4) + (*R2) + (*R6) -     (*R1)        "
+					"     -    (*R3)              -     (*R5)             - "
+					"    (*R7)            ;\n\t"
+					"TR5 = (*R0) - (*R4) - (*I2) + (*I6) - C8Q*(*R1) + "
+					"C8Q*(*I1) + C8Q*(*R3) + C8Q*(*I3) + C8Q*(*R5) - "
+					"C8Q*(*I5) - C8Q*(*R7) - C8Q*(*I7);\n\t"
+					"TR6 = (*R0) + (*R4) - (*R2) - (*R6)             +     "
+					"(*I1)             -     (*I3)             +     (*I5)  "
+					"           -     (*I7);\n\t"
+					"TR7 = (*R0) - (*R4) + (*I2) - (*I6) + C8Q*(*R1) + "
+					"C8Q*(*I1) - C8Q*(*R3) + C8Q*(*I3) - C8Q*(*R5) - "
+					"C8Q*(*I5) + C8Q*(*R7) - C8Q*(*I7);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = (*I0) + (*I4) + (*I2) + (*I6)             +     "
+				bufprintf(bflyStr, "%s", ("TI0 = (*I0) + (*I4) + (*I2) + (*I6)             +     "
 					"(*I1)             +    (*I3)              +     (*I5)  "
 					"           +     (*I7);\n\t"
 					"TI1 = (*I0) - (*I4) + (*R2) - (*R6) + C8Q*(*R1) + "
@@ -3482,7 +3501,30 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"    (*R7)            ;\n\t"
 					"TI7 = (*I0) - (*I4) - (*R2) + (*R6) - C8Q*(*R1) + "
 					"C8Q*(*I1) - C8Q*(*R3) - C8Q*(*I3) + C8Q*(*R5) - "
-					"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t");
+					"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t") ? ("TI0 = (*I0) + (*I4) + (*I2) + (*I6)             +     "
+					"(*I1)             +    (*I3)              +     (*I5)  "
+					"           +     (*I7);\n\t"
+					"TI1 = (*I0) - (*I4) + (*R2) - (*R6) + C8Q*(*R1) + "
+					"C8Q*(*I1) + C8Q*(*R3) - C8Q*(*I3) - C8Q*(*R5) - "
+					"C8Q*(*I5) - C8Q*(*R7) + C8Q*(*I7);\n\t"
+					"TI2 = (*I0) + (*I4) - (*I2) - (*I6) +     (*R1)        "
+					"     -     (*R3)             +     (*R5)             - "
+					"    (*R7)            ;\n\t"
+					"TI3 = (*I0) - (*I4) - (*R2) + (*R6) + C8Q*(*R1) - "
+					"C8Q*(*I1) + C8Q*(*R3) + C8Q*(*I3) - C8Q*(*R5) + "
+					"C8Q*(*I5) - C8Q*(*R7) - C8Q*(*I7);\n\t"
+					"TI4 = (*I0) + (*I4) + (*I2) + (*I6)             -     "
+					"(*I1)             -     (*I3)             -     (*I5)  "
+					"           -     (*I7);\n\t"
+					"TI5 = (*I0) - (*I4) + (*R2) - (*R6) - C8Q*(*R1) - "
+					"C8Q*(*I1) - C8Q*(*R3) + C8Q*(*I3) + C8Q*(*R5) + "
+					"C8Q*(*I5) + C8Q*(*R7) - C8Q*(*I7);\n\t"
+					"TI6 = (*I0) + (*I4) - (*I2) - (*I6) -     (*R1)        "
+					"     +     (*R3)             -     (*R5)             + "
+					"    (*R7)            ;\n\t"
+					"TI7 = (*I0) - (*I4) - (*R2) + (*R6) - C8Q*(*R1) + "
+					"C8Q*(*I1) - C8Q*(*R3) - C8Q*(*I3) + C8Q*(*R5) - "
+					"C8Q*(*I5) + C8Q*(*R7) + C8Q*(*I7);\n\t") : "");
 			}
 		}
 		break;
@@ -3492,8 +3534,7 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 			{
 				if (butterfly->cReg)
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = (*R0).x + (*R2).x + (*R4).x + (*R6).x + (*R8).x;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R2).x + (*R4).x + (*R6).x + (*R8).x;\n\t"
 						"TR2 = ((*R0).x - C5QC*((*R4).x + (*R6).x)) + "
 						"C5QB*((*R2).y - (*R8).y) + C5QD*((*R4).y - (*R6).y) + "
 						"C5QA*(((*R2).x - (*R4).x) + ((*R8).x - (*R6).x));\n\t"
@@ -3505,12 +3546,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"C5QA*(((*R4).x - (*R2).x) + ((*R6).x - (*R8).x));\n\t"
 						"TR6 = ((*R0).x - C5QC*((*R2).x + (*R8).x)) + "
 						"C5QB*((*R4).y - (*R6).y) - C5QD*((*R2).y - (*R8).y) + "
-						"C5QA*(((*R4).x - (*R2).x) + ((*R6).x - (*R8).x));\n\t");
+						"C5QA*(((*R4).x - (*R2).x) + ((*R6).x - (*R8).x));\n\t") ? ("TR0 = (*R0).x + (*R2).x + (*R4).x + (*R6).x + (*R8).x;\n\t"
+						"TR2 = ((*R0).x - C5QC*((*R4).x + (*R6).x)) + "
+						"C5QB*((*R2).y - (*R8).y) + C5QD*((*R4).y - (*R6).y) + "
+						"C5QA*(((*R2).x - (*R4).x) + ((*R8).x - (*R6).x));\n\t"
+						"TR8 = ((*R0).x - C5QC*((*R4).x + (*R6).x)) - "
+						"C5QB*((*R2).y - (*R8).y) - C5QD*((*R4).y - (*R6).y) + "
+						"C5QA*(((*R2).x - (*R4).x) + ((*R8).x - (*R6).x));\n\t"
+						"TR4 = ((*R0).x - C5QC*((*R2).x + (*R8).x)) - "
+						"C5QB*((*R4).y - (*R6).y) + C5QD*((*R2).y - (*R8).y) + "
+						"C5QA*(((*R4).x - (*R2).x) + ((*R6).x - (*R8).x));\n\t"
+						"TR6 = ((*R0).x - C5QC*((*R2).x + (*R8).x)) + "
+						"C5QB*((*R4).y - (*R6).y) - C5QD*((*R2).y - (*R8).y) + "
+						"C5QA*(((*R4).x - (*R2).x) + ((*R6).x - (*R8).x));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = (*R0).y + (*R2).y + (*R4).y + (*R6).y + (*R8).y;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R2).y + (*R4).y + (*R6).y + (*R8).y;\n\t"
 						"TI2 = ((*R0).y - C5QC*((*R4).y + (*R6).y)) - "
 						"C5QB*((*R2).x - (*R8).x) - C5QD*((*R4).x - (*R6).x) + "
 						"C5QA*(((*R2).y - (*R4).y) + ((*R8).y - (*R6).y));\n\t"
@@ -3522,12 +3574,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"C5QA*(((*R4).y - (*R2).y) + ((*R6).y - (*R8).y));\n\t"
 						"TI6 = ((*R0).y - C5QC*((*R2).y + (*R8).y)) - "
 						"C5QB*((*R4).x - (*R6).x) + C5QD*((*R2).x - (*R8).x) + "
-						"C5QA*(((*R4).y - (*R2).y) + ((*R6).y - (*R8).y));\n\t");
+						"C5QA*(((*R4).y - (*R2).y) + ((*R6).y - (*R8).y));\n\t") ? ("TI0 = (*R0).y + (*R2).y + (*R4).y + (*R6).y + (*R8).y;\n\t"
+						"TI2 = ((*R0).y - C5QC*((*R4).y + (*R6).y)) - "
+						"C5QB*((*R2).x - (*R8).x) - C5QD*((*R4).x - (*R6).x) + "
+						"C5QA*(((*R2).y - (*R4).y) + ((*R8).y - (*R6).y));\n\t"
+						"TI8 = ((*R0).y - C5QC*((*R4).y + (*R6).y)) + "
+						"C5QB*((*R2).x - (*R8).x) + C5QD*((*R4).x - (*R6).x) + "
+						"C5QA*(((*R2).y - (*R4).y) + ((*R8).y - (*R6).y));\n\t"
+						"TI4 = ((*R0).y - C5QC*((*R2).y + (*R8).y)) + "
+						"C5QB*((*R4).x - (*R6).x) - C5QD*((*R2).x - (*R8).x) + "
+						"C5QA*(((*R4).y - (*R2).y) + ((*R6).y - (*R8).y));\n\t"
+						"TI6 = ((*R0).y - C5QC*((*R2).y + (*R8).y)) - "
+						"C5QB*((*R4).x - (*R6).x) + C5QD*((*R2).x - (*R8).x) + "
+						"C5QA*(((*R4).y - (*R2).y) + ((*R6).y - (*R8).y));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TR1 = (*R1).x + (*R3).x + (*R5).x + (*R7).x + (*R9).x;\n\t"
+					bufprintf(bflyStr, "%s", ("TR1 = (*R1).x + (*R3).x + (*R5).x + (*R7).x + (*R9).x;\n\t"
 						"TR3 = ((*R1).x - C5QC*((*R5).x + (*R7).x)) + "
 						"C5QB*((*R3).y - (*R9).y) + C5QD*((*R5).y - (*R7).y) + "
 						"C5QA*(((*R3).x - (*R5).x) + ((*R9).x - (*R7).x));\n\t"
@@ -3539,12 +3602,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"C5QA*(((*R5).x - (*R3).x) + ((*R7).x - (*R9).x));\n\t"
 						"TR7 = ((*R1).x - C5QC*((*R3).x + (*R9).x)) + "
 						"C5QB*((*R5).y - (*R7).y) - C5QD*((*R3).y - (*R9).y) + "
-						"C5QA*(((*R5).x - (*R3).x) + ((*R7).x - (*R9).x));\n\t");
+						"C5QA*(((*R5).x - (*R3).x) + ((*R7).x - (*R9).x));\n\t") ? ("TR1 = (*R1).x + (*R3).x + (*R5).x + (*R7).x + (*R9).x;\n\t"
+						"TR3 = ((*R1).x - C5QC*((*R5).x + (*R7).x)) + "
+						"C5QB*((*R3).y - (*R9).y) + C5QD*((*R5).y - (*R7).y) + "
+						"C5QA*(((*R3).x - (*R5).x) + ((*R9).x - (*R7).x));\n\t"
+						"TR9 = ((*R1).x - C5QC*((*R5).x + (*R7).x)) - "
+						"C5QB*((*R3).y - (*R9).y) - C5QD*((*R5).y - (*R7).y) + "
+						"C5QA*(((*R3).x - (*R5).x) + ((*R9).x - (*R7).x));\n\t"
+						"TR5 = ((*R1).x - C5QC*((*R3).x + (*R9).x)) - "
+						"C5QB*((*R5).y - (*R7).y) + C5QD*((*R3).y - (*R9).y) + "
+						"C5QA*(((*R5).x - (*R3).x) + ((*R7).x - (*R9).x));\n\t"
+						"TR7 = ((*R1).x - C5QC*((*R3).x + (*R9).x)) + "
+						"C5QB*((*R5).y - (*R7).y) - C5QD*((*R3).y - (*R9).y) + "
+						"C5QA*(((*R5).x - (*R3).x) + ((*R7).x - (*R9).x));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI1 = (*R1).y + (*R3).y + (*R5).y + (*R7).y + (*R9).y;\n\t"
+					bufprintf(bflyStr, "%s", ("TI1 = (*R1).y + (*R3).y + (*R5).y + (*R7).y + (*R9).y;\n\t"
 						"TI3 = ((*R1).y - C5QC*((*R5).y + (*R7).y)) - "
 						"C5QB*((*R3).x - (*R9).x) - C5QD*((*R5).x - (*R7).x) + "
 						"C5QA*(((*R3).y - (*R5).y) + ((*R9).y - (*R7).y));\n\t"
@@ -3556,48 +3630,71 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"C5QA*(((*R5).y - (*R3).y) + ((*R7).y - (*R9).y));\n\t"
 						"TI7 = ((*R1).y - C5QC*((*R3).y + (*R9).y)) - "
 						"C5QB*((*R5).x - (*R7).x) + C5QD*((*R3).x - (*R9).x) + "
-						"C5QA*(((*R5).y - (*R3).y) + ((*R7).y - (*R9).y));\n\t");
+						"C5QA*(((*R5).y - (*R3).y) + ((*R7).y - (*R9).y));\n\t") ? ("TI1 = (*R1).y + (*R3).y + (*R5).y + (*R7).y + (*R9).y;\n\t"
+						"TI3 = ((*R1).y - C5QC*((*R5).y + (*R7).y)) - "
+						"C5QB*((*R3).x - (*R9).x) - C5QD*((*R5).x - (*R7).x) + "
+						"C5QA*(((*R3).y - (*R5).y) + ((*R9).y - (*R7).y));\n\t"
+						"TI9 = ((*R1).y - C5QC*((*R5).y + (*R7).y)) + "
+						"C5QB*((*R3).x - (*R9).x) + C5QD*((*R5).x - (*R7).x) + "
+						"C5QA*(((*R3).y - (*R5).y) + ((*R9).y - (*R7).y));\n\t"
+						"TI5 = ((*R1).y - C5QC*((*R3).y + (*R9).y)) + "
+						"C5QB*((*R5).x - (*R7).x) - C5QD*((*R3).x - (*R9).x) + "
+						"C5QA*(((*R5).y - (*R3).y) + ((*R7).y - (*R9).y));\n\t"
+						"TI7 = ((*R1).y - C5QC*((*R3).y + (*R9).y)) - "
+						"C5QB*((*R5).x - (*R7).x) + C5QD*((*R3).x - (*R9).x) + "
+						"C5QA*(((*R5).y - (*R3).y) + ((*R7).y - (*R9).y));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R0).x = TR0 + TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R0).x = TR0 + TR1;\n\t"
 						"(*R1).x = TR2 + ( C5QE*TR3 + C5QD*TI3);\n\t"
 						"(*R2).x = TR4 + ( C5QA*TR5 + C5QB*TI5);\n\t"
 						"(*R3).x = TR6 + (-C5QA*TR7 + C5QB*TI7);\n\t"
-						"(*R4).x = TR8 + (-C5QE*TR9 + C5QD*TI9);\n\t");
+						"(*R4).x = TR8 + (-C5QE*TR9 + C5QD*TI9);\n\t") ? ("(*R0).x = TR0 + TR1;\n\t"
+						"(*R1).x = TR2 + ( C5QE*TR3 + C5QD*TI3);\n\t"
+						"(*R2).x = TR4 + ( C5QA*TR5 + C5QB*TI5);\n\t"
+						"(*R3).x = TR6 + (-C5QA*TR7 + C5QB*TI7);\n\t"
+						"(*R4).x = TR8 + (-C5QE*TR9 + C5QD*TI9);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R0).y = TI0 + TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R0).y = TI0 + TI1;\n\t"
 						"(*R1).y = TI2 + (-C5QD*TR3 + C5QE*TI3);\n\t"
 						"(*R2).y = TI4 + (-C5QB*TR5 + C5QA*TI5);\n\t"
 						"(*R3).y = TI6 + (-C5QB*TR7 - C5QA*TI7);\n\t"
-						"(*R4).y = TI8 + (-C5QD*TR9 - C5QE*TI9);\n\t");
+						"(*R4).y = TI8 + (-C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*R0).y = TI0 + TI1;\n\t"
+						"(*R1).y = TI2 + (-C5QD*TR3 + C5QE*TI3);\n\t"
+						"(*R2).y = TI4 + (-C5QB*TR5 + C5QA*TI5);\n\t"
+						"(*R3).y = TI6 + (-C5QB*TR7 - C5QA*TI7);\n\t"
+						"(*R4).y = TI8 + (-C5QD*TR9 - C5QE*TI9);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R5).x = TR0 - TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R5).x = TR0 - TR1;\n\t"
 						"(*R6).x = TR2 - ( C5QE*TR3 + C5QD*TI3);\n\t"
 						"(*R7).x = TR4 - ( C5QA*TR5 + C5QB*TI5);\n\t"
 						"(*R8).x = TR6 - (-C5QA*TR7 + C5QB*TI7);\n\t"
-						"(*R9).x = TR8 - (-C5QE*TR9 + C5QD*TI9);\n\t");
+						"(*R9).x = TR8 - (-C5QE*TR9 + C5QD*TI9);\n\t") ? ("(*R5).x = TR0 - TR1;\n\t"
+						"(*R6).x = TR2 - ( C5QE*TR3 + C5QD*TI3);\n\t"
+						"(*R7).x = TR4 - ( C5QA*TR5 + C5QB*TI5);\n\t"
+						"(*R8).x = TR6 - (-C5QA*TR7 + C5QB*TI7);\n\t"
+						"(*R9).x = TR8 - (-C5QE*TR9 + C5QD*TI9);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R5).y = TI0 - TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R5).y = TI0 - TI1;\n\t"
 						"(*R6).y = TI2 - (-C5QD*TR3 + C5QE*TI3);\n\t"
 						"(*R7).y = TI4 - (-C5QB*TR5 + C5QA*TI5);\n\t"
 						"(*R8).y = TI6 - (-C5QB*TR7 - C5QA*TI7);\n\t"
-						"(*R9).y = TI8 - (-C5QD*TR9 - C5QE*TI9);\n\t");
+						"(*R9).y = TI8 - (-C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*R5).y = TI0 - TI1;\n\t"
+						"(*R6).y = TI2 - (-C5QD*TR3 + C5QE*TI3);\n\t"
+						"(*R7).y = TI4 - (-C5QB*TR5 + C5QA*TI5);\n\t"
+						"(*R8).y = TI6 - (-C5QB*TR7 - C5QA*TI7);\n\t"
+						"(*R9).y = TI8 - (-C5QD*TR9 - C5QE*TI9);\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(bflyStr,
-						"TR0 = *R0 + *R2 + *R4 + *R6 + *R8;\n\t"
+					bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R2 + *R4 + *R6 + *R8;\n\t"
 						"TR2 = (*R0 - C5QC*(*R4 + *R6)) + C5QB*(*I2 - *I8) + "
 						"C5QD*(*I4 - *I6) + C5QA*((*R2 - *R4) + (*R8 - *R6));\n\t"
 						"TR8 = (*R0 - C5QC*(*R4 + *R6)) - C5QB*(*I2 - *I8) - "
@@ -3605,12 +3702,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"TR4 = (*R0 - C5QC*(*R2 + *R8)) - C5QB*(*I4 - *I6) + "
 						"C5QD*(*I2 - *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t"
 						"TR6 = (*R0 - C5QC*(*R2 + *R8)) + C5QB*(*I4 - *I6) - "
-						"C5QD*(*I2 - *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t");
+						"C5QD*(*I2 - *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t") ? ("TR0 = *R0 + *R2 + *R4 + *R6 + *R8;\n\t"
+						"TR2 = (*R0 - C5QC*(*R4 + *R6)) + C5QB*(*I2 - *I8) + "
+						"C5QD*(*I4 - *I6) + C5QA*((*R2 - *R4) + (*R8 - *R6));\n\t"
+						"TR8 = (*R0 - C5QC*(*R4 + *R6)) - C5QB*(*I2 - *I8) - "
+						"C5QD*(*I4 - *I6) + C5QA*((*R2 - *R4) + (*R8 - *R6));\n\t"
+						"TR4 = (*R0 - C5QC*(*R2 + *R8)) - C5QB*(*I4 - *I6) + "
+						"C5QD*(*I2 - *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t"
+						"TR6 = (*R0 - C5QC*(*R2 + *R8)) + C5QB*(*I4 - *I6) - "
+						"C5QD*(*I2 - *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI0 = *I0 + *I2 + *I4 + *I6 + *I8;\n\t"
+					bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I2 + *I4 + *I6 + *I8;\n\t"
 						"TI2 = (*I0 - C5QC*(*I4 + *I6)) - C5QB*(*R2 - *R8) - "
 						"C5QD*(*R4 - *R6) + C5QA*((*I2 - *I4) + (*I8 - *I6));\n\t"
 						"TI8 = (*I0 - C5QC*(*I4 + *I6)) + C5QB*(*R2 - *R8) + "
@@ -3618,12 +3722,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"TI4 = (*I0 - C5QC*(*I2 + *I8)) + C5QB*(*R4 - *R6) - "
 						"C5QD*(*R2 - *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t"
 						"TI6 = (*I0 - C5QC*(*I2 + *I8)) - C5QB*(*R4 - *R6) + "
-						"C5QD*(*R2 - *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t");
+						"C5QD*(*R2 - *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t") ? ("TI0 = *I0 + *I2 + *I4 + *I6 + *I8;\n\t"
+						"TI2 = (*I0 - C5QC*(*I4 + *I6)) - C5QB*(*R2 - *R8) - "
+						"C5QD*(*R4 - *R6) + C5QA*((*I2 - *I4) + (*I8 - *I6));\n\t"
+						"TI8 = (*I0 - C5QC*(*I4 + *I6)) + C5QB*(*R2 - *R8) + "
+						"C5QD*(*R4 - *R6) + C5QA*((*I2 - *I4) + (*I8 - *I6));\n\t"
+						"TI4 = (*I0 - C5QC*(*I2 + *I8)) + C5QB*(*R4 - *R6) - "
+						"C5QD*(*R2 - *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t"
+						"TI6 = (*I0 - C5QC*(*I2 + *I8)) - C5QB*(*R4 - *R6) + "
+						"C5QD*(*R2 - *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TR1 = *R1 + *R3 + *R5 + *R7 + *R9;\n\t"
+					bufprintf(bflyStr, "%s", ("TR1 = *R1 + *R3 + *R5 + *R7 + *R9;\n\t"
 						"TR3 = (*R1 - C5QC*(*R5 + *R7)) + C5QB*(*I3 - *I9) + "
 						"C5QD*(*I5 - *I7) + C5QA*((*R3 - *R5) + (*R9 - *R7));\n\t"
 						"TR9 = (*R1 - C5QC*(*R5 + *R7)) - C5QB*(*I3 - *I9) - "
@@ -3631,12 +3742,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"TR5 = (*R1 - C5QC*(*R3 + *R9)) - C5QB*(*I5 - *I7) + "
 						"C5QD*(*I3 - *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t"
 						"TR7 = (*R1 - C5QC*(*R3 + *R9)) + C5QB*(*I5 - *I7) - "
-						"C5QD*(*I3 - *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t");
+						"C5QD*(*I3 - *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t") ? ("TR1 = *R1 + *R3 + *R5 + *R7 + *R9;\n\t"
+						"TR3 = (*R1 - C5QC*(*R5 + *R7)) + C5QB*(*I3 - *I9) + "
+						"C5QD*(*I5 - *I7) + C5QA*((*R3 - *R5) + (*R9 - *R7));\n\t"
+						"TR9 = (*R1 - C5QC*(*R5 + *R7)) - C5QB*(*I3 - *I9) - "
+						"C5QD*(*I5 - *I7) + C5QA*((*R3 - *R5) + (*R9 - *R7));\n\t"
+						"TR5 = (*R1 - C5QC*(*R3 + *R9)) - C5QB*(*I5 - *I7) + "
+						"C5QD*(*I3 - *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t"
+						"TR7 = (*R1 - C5QC*(*R3 + *R9)) + C5QB*(*I5 - *I7) - "
+						"C5QD*(*I3 - *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"TI1 = *I1 + *I3 + *I5 + *I7 + *I9;\n\t"
+					bufprintf(bflyStr, "%s", ("TI1 = *I1 + *I3 + *I5 + *I7 + *I9;\n\t"
 						"TI3 = (*I1 - C5QC*(*I5 + *I7)) - C5QB*(*R3 - *R9) - "
 						"C5QD*(*R5 - *R7) + C5QA*((*I3 - *I5) + (*I9 - *I7));\n\t"
 						"TI9 = (*I1 - C5QC*(*I5 + *I7)) + C5QB*(*R3 - *R9) + "
@@ -3644,49 +3762,68 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 						"TI5 = (*I1 - C5QC*(*I3 + *I9)) + C5QB*(*R5 - *R7) - "
 						"C5QD*(*R3 - *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t"
 						"TI7 = (*I1 - C5QC*(*I3 + *I9)) - C5QB*(*R5 - *R7) + "
-						"C5QD*(*R3 - *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t");
+						"C5QD*(*R3 - *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t") ? ("TI1 = *I1 + *I3 + *I5 + *I7 + *I9;\n\t"
+						"TI3 = (*I1 - C5QC*(*I5 + *I7)) - C5QB*(*R3 - *R9) - "
+						"C5QD*(*R5 - *R7) + C5QA*((*I3 - *I5) + (*I9 - *I7));\n\t"
+						"TI9 = (*I1 - C5QC*(*I5 + *I7)) + C5QB*(*R3 - *R9) + "
+						"C5QD*(*R5 - *R7) + C5QA*((*I3 - *I5) + (*I9 - *I7));\n\t"
+						"TI5 = (*I1 - C5QC*(*I3 + *I9)) + C5QB*(*R5 - *R7) - "
+						"C5QD*(*R3 - *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t"
+						"TI7 = (*I1 - C5QC*(*I3 + *I9)) - C5QB*(*R5 - *R7) + "
+						"C5QD*(*R3 - *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R0) = TR0 + TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R0) = TR0 + TR1;\n\t"
 						"(*R1) = TR2 + ( C5QE*TR3 + C5QD*TI3);\n\t"
 						"(*R2) = TR4 + ( C5QA*TR5 + C5QB*TI5);\n\t"
 						"(*R3) = TR6 + (-C5QA*TR7 + C5QB*TI7);\n\t"
-						"(*R4) = TR8 + (-C5QE*TR9 + C5QD*TI9);\n\t");
+						"(*R4) = TR8 + (-C5QE*TR9 + C5QD*TI9);\n\t") ? ("(*R0) = TR0 + TR1;\n\t"
+						"(*R1) = TR2 + ( C5QE*TR3 + C5QD*TI3);\n\t"
+						"(*R2) = TR4 + ( C5QA*TR5 + C5QB*TI5);\n\t"
+						"(*R3) = TR6 + (-C5QA*TR7 + C5QB*TI7);\n\t"
+						"(*R4) = TR8 + (-C5QE*TR9 + C5QD*TI9);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*I0) = TI0 + TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*I0) = TI0 + TI1;\n\t"
 						"(*I1) = TI2 + (-C5QD*TR3 + C5QE*TI3);\n\t"
 						"(*I2) = TI4 + (-C5QB*TR5 + C5QA*TI5);\n\t"
 						"(*I3) = TI6 + (-C5QB*TR7 - C5QA*TI7);\n\t"
-						"(*I4) = TI8 + (-C5QD*TR9 - C5QE*TI9);\n\t");
+						"(*I4) = TI8 + (-C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*I0) = TI0 + TI1;\n\t"
+						"(*I1) = TI2 + (-C5QD*TR3 + C5QE*TI3);\n\t"
+						"(*I2) = TI4 + (-C5QB*TR5 + C5QA*TI5);\n\t"
+						"(*I3) = TI6 + (-C5QB*TR7 - C5QA*TI7);\n\t"
+						"(*I4) = TI8 + (-C5QD*TR9 - C5QE*TI9);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*R5) = TR0 - TR1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*R5) = TR0 - TR1;\n\t"
 						"(*R6) = TR2 - ( C5QE*TR3 + C5QD*TI3);\n\t"
 						"(*R7) = TR4 - ( C5QA*TR5 + C5QB*TI5);\n\t"
 						"(*R8) = TR6 - (-C5QA*TR7 + C5QB*TI7);\n\t"
-						"(*R9) = TR8 - (-C5QE*TR9 + C5QD*TI9);\n\t");
+						"(*R9) = TR8 - (-C5QE*TR9 + C5QD*TI9);\n\t") ? ("(*R5) = TR0 - TR1;\n\t"
+						"(*R6) = TR2 - ( C5QE*TR3 + C5QD*TI3);\n\t"
+						"(*R7) = TR4 - ( C5QA*TR5 + C5QB*TI5);\n\t"
+						"(*R8) = TR6 - (-C5QA*TR7 + C5QB*TI7);\n\t"
+						"(*R9) = TR8 - (-C5QE*TR9 + C5QD*TI9);\n\t") : "");
 
-					bufcatcstr(bflyStr, "\n\t");
+					bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-					bufcatcstr(bflyStr,
-						"(*I5) = TI0 - TI1;\n\t"
+					bufprintf(bflyStr, "%s", ("(*I5) = TI0 - TI1;\n\t"
 						"(*I6) = TI2 - (-C5QD*TR3 + C5QE*TI3);\n\t"
 						"(*I7) = TI4 - (-C5QB*TR5 + C5QA*TI5);\n\t"
 						"(*I8) = TI6 - (-C5QB*TR7 - C5QA*TI7);\n\t"
-						"(*I9) = TI8 - (-C5QD*TR9 - C5QE*TI9);\n\t");
+						"(*I9) = TI8 - (-C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*I5) = TI0 - TI1;\n\t"
+						"(*I6) = TI2 - (-C5QD*TR3 + C5QE*TI3);\n\t"
+						"(*I7) = TI4 - (-C5QB*TR5 + C5QA*TI5);\n\t"
+						"(*I8) = TI6 - (-C5QB*TR7 - C5QA*TI7);\n\t"
+						"(*I9) = TI8 - (-C5QD*TR9 - C5QE*TI9);\n\t") : "");
 				}
 			}
 			else if (butterfly->cReg)
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = (*R0).x + (*R2).x + (*R4).x + (*R6).x + (*R8).x;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = (*R0).x + (*R2).x + (*R4).x + (*R6).x + (*R8).x;\n\t"
 					"TR2 = ((*R0).x - C5QC*((*R4).x + (*R6).x)) - C5QB*((*R2).y - "
 					"(*R8).y) - C5QD*((*R4).y - (*R6).y) + C5QA*(((*R2).x - "
 					"(*R4).x) + ((*R8).x - (*R6).x));\n\t"
@@ -3698,12 +3835,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R2).x) + ((*R6).x - (*R8).x));\n\t"
 					"TR6 = ((*R0).x - C5QC*((*R2).x + (*R8).x)) - C5QB*((*R4).y - "
 					"(*R6).y) + C5QD*((*R2).y - (*R8).y) + C5QA*(((*R4).x - "
-					"(*R2).x) + ((*R6).x - (*R8).x));\n\t");
+					"(*R2).x) + ((*R6).x - (*R8).x));\n\t") ? ("TR0 = (*R0).x + (*R2).x + (*R4).x + (*R6).x + (*R8).x;\n\t"
+					"TR2 = ((*R0).x - C5QC*((*R4).x + (*R6).x)) - C5QB*((*R2).y - "
+					"(*R8).y) - C5QD*((*R4).y - (*R6).y) + C5QA*(((*R2).x - "
+					"(*R4).x) + ((*R8).x - (*R6).x));\n\t"
+					"TR8 = ((*R0).x - C5QC*((*R4).x + (*R6).x)) + C5QB*((*R2).y - "
+					"(*R8).y) + C5QD*((*R4).y - (*R6).y) + C5QA*(((*R2).x - "
+					"(*R4).x) + ((*R8).x - (*R6).x));\n\t"
+					"TR4 = ((*R0).x - C5QC*((*R2).x + (*R8).x)) + C5QB*((*R4).y - "
+					"(*R6).y) - C5QD*((*R2).y - (*R8).y) + C5QA*(((*R4).x - "
+					"(*R2).x) + ((*R6).x - (*R8).x));\n\t"
+					"TR6 = ((*R0).x - C5QC*((*R2).x + (*R8).x)) - C5QB*((*R4).y - "
+					"(*R6).y) + C5QD*((*R2).y - (*R8).y) + C5QA*(((*R4).x - "
+					"(*R2).x) + ((*R6).x - (*R8).x));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = (*R0).y + (*R2).y + (*R4).y + (*R6).y + (*R8).y;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = (*R0).y + (*R2).y + (*R4).y + (*R6).y + (*R8).y;\n\t"
 					"TI2 = ((*R0).y - C5QC*((*R4).y + (*R6).y)) + C5QB*((*R2).x - "
 					"(*R8).x) + C5QD*((*R4).x - (*R6).x) + C5QA*(((*R2).y - "
 					"(*R4).y) + ((*R8).y - (*R6).y));\n\t"
@@ -3715,12 +3863,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R2).y) + ((*R6).y - (*R8).y));\n\t"
 					"TI6 = ((*R0).y - C5QC*((*R2).y + (*R8).y)) + C5QB*((*R4).x - "
 					"(*R6).x) - C5QD*((*R2).x - (*R8).x) + C5QA*(((*R4).y - "
-					"(*R2).y) + ((*R6).y - (*R8).y));\n\t");
+					"(*R2).y) + ((*R6).y - (*R8).y));\n\t") ? ("TI0 = (*R0).y + (*R2).y + (*R4).y + (*R6).y + (*R8).y;\n\t"
+					"TI2 = ((*R0).y - C5QC*((*R4).y + (*R6).y)) + C5QB*((*R2).x - "
+					"(*R8).x) + C5QD*((*R4).x - (*R6).x) + C5QA*(((*R2).y - "
+					"(*R4).y) + ((*R8).y - (*R6).y));\n\t"
+					"TI8 = ((*R0).y - C5QC*((*R4).y + (*R6).y)) - C5QB*((*R2).x - "
+					"(*R8).x) - C5QD*((*R4).x - (*R6).x) + C5QA*(((*R2).y - "
+					"(*R4).y) + ((*R8).y - (*R6).y));\n\t"
+					"TI4 = ((*R0).y - C5QC*((*R2).y + (*R8).y)) - C5QB*((*R4).x - "
+					"(*R6).x) + C5QD*((*R2).x - (*R8).x) + C5QA*(((*R4).y - "
+					"(*R2).y) + ((*R6).y - (*R8).y));\n\t"
+					"TI6 = ((*R0).y - C5QC*((*R2).y + (*R8).y)) + C5QB*((*R4).x - "
+					"(*R6).x) - C5QD*((*R2).x - (*R8).x) + C5QA*(((*R4).y - "
+					"(*R2).y) + ((*R6).y - (*R8).y));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TR1 = (*R1).x + (*R3).x + (*R5).x + (*R7).x + (*R9).x;\n\t"
+				bufprintf(bflyStr, "%s", ("TR1 = (*R1).x + (*R3).x + (*R5).x + (*R7).x + (*R9).x;\n\t"
 					"TR3 = ((*R1).x - C5QC*((*R5).x + (*R7).x)) - C5QB*((*R3).y - "
 					"(*R9).y) - C5QD*((*R5).y - (*R7).y) + C5QA*(((*R3).x - "
 					"(*R5).x) + ((*R9).x - (*R7).x));\n\t"
@@ -3732,12 +3891,23 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R3).x) + ((*R7).x - (*R9).x));\n\t"
 					"TR7 = ((*R1).x - C5QC*((*R3).x + (*R9).x)) - C5QB*((*R5).y - "
 					"(*R7).y) + C5QD*((*R3).y - (*R9).y) + C5QA*(((*R5).x - "
-					"(*R3).x) + ((*R7).x - (*R9).x));\n\t");
+					"(*R3).x) + ((*R7).x - (*R9).x));\n\t") ? ("TR1 = (*R1).x + (*R3).x + (*R5).x + (*R7).x + (*R9).x;\n\t"
+					"TR3 = ((*R1).x - C5QC*((*R5).x + (*R7).x)) - C5QB*((*R3).y - "
+					"(*R9).y) - C5QD*((*R5).y - (*R7).y) + C5QA*(((*R3).x - "
+					"(*R5).x) + ((*R9).x - (*R7).x));\n\t"
+					"TR9 = ((*R1).x - C5QC*((*R5).x + (*R7).x)) + C5QB*((*R3).y - "
+					"(*R9).y) + C5QD*((*R5).y - (*R7).y) + C5QA*(((*R3).x - "
+					"(*R5).x) + ((*R9).x - (*R7).x));\n\t"
+					"TR5 = ((*R1).x - C5QC*((*R3).x + (*R9).x)) + C5QB*((*R5).y - "
+					"(*R7).y) - C5QD*((*R3).y - (*R9).y) + C5QA*(((*R5).x - "
+					"(*R3).x) + ((*R7).x - (*R9).x));\n\t"
+					"TR7 = ((*R1).x - C5QC*((*R3).x + (*R9).x)) - C5QB*((*R5).y - "
+					"(*R7).y) + C5QD*((*R3).y - (*R9).y) + C5QA*(((*R5).x - "
+					"(*R3).x) + ((*R7).x - (*R9).x));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI1 = (*R1).y + (*R3).y + (*R5).y + (*R7).y + (*R9).y;\n\t"
+				bufprintf(bflyStr, "%s", ("TI1 = (*R1).y + (*R3).y + (*R5).y + (*R7).y + (*R9).y;\n\t"
 					"TI3 = ((*R1).y - C5QC*((*R5).y + (*R7).y)) + C5QB*((*R3).x - "
 					"(*R9).x) + C5QD*((*R5).x - (*R7).x) + C5QA*(((*R3).y - "
 					"(*R5).y) + ((*R9).y - (*R7).y));\n\t"
@@ -3749,48 +3919,71 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"(*R3).y) + ((*R7).y - (*R9).y));\n\t"
 					"TI7 = ((*R1).y - C5QC*((*R3).y + (*R9).y)) + C5QB*((*R5).x - "
 					"(*R7).x) - C5QD*((*R3).x - (*R9).x) + C5QA*(((*R5).y - "
-					"(*R3).y) + ((*R7).y - (*R9).y));\n\t");
+					"(*R3).y) + ((*R7).y - (*R9).y));\n\t") ? ("TI1 = (*R1).y + (*R3).y + (*R5).y + (*R7).y + (*R9).y;\n\t"
+					"TI3 = ((*R1).y - C5QC*((*R5).y + (*R7).y)) + C5QB*((*R3).x - "
+					"(*R9).x) + C5QD*((*R5).x - (*R7).x) + C5QA*(((*R3).y - "
+					"(*R5).y) + ((*R9).y - (*R7).y));\n\t"
+					"TI9 = ((*R1).y - C5QC*((*R5).y + (*R7).y)) - C5QB*((*R3).x - "
+					"(*R9).x) - C5QD*((*R5).x - (*R7).x) + C5QA*(((*R3).y - "
+					"(*R5).y) + ((*R9).y - (*R7).y));\n\t"
+					"TI5 = ((*R1).y - C5QC*((*R3).y + (*R9).y)) - C5QB*((*R5).x - "
+					"(*R7).x) + C5QD*((*R3).x - (*R9).x) + C5QA*(((*R5).y - "
+					"(*R3).y) + ((*R7).y - (*R9).y));\n\t"
+					"TI7 = ((*R1).y - C5QC*((*R3).y + (*R9).y)) + C5QB*((*R5).x - "
+					"(*R7).x) - C5QD*((*R3).x - (*R9).x) + C5QA*(((*R5).y - "
+					"(*R3).y) + ((*R7).y - (*R9).y));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R0).x = TR0 + TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R0).x = TR0 + TR1;\n\t"
 					"(*R1).x = TR2 + ( C5QE*TR3 - C5QD*TI3);\n\t"
 					"(*R2).x = TR4 + ( C5QA*TR5 - C5QB*TI5);\n\t"
 					"(*R3).x = TR6 + (-C5QA*TR7 - C5QB*TI7);\n\t"
-					"(*R4).x = TR8 + (-C5QE*TR9 - C5QD*TI9);\n\t");
+					"(*R4).x = TR8 + (-C5QE*TR9 - C5QD*TI9);\n\t") ? ("(*R0).x = TR0 + TR1;\n\t"
+					"(*R1).x = TR2 + ( C5QE*TR3 - C5QD*TI3);\n\t"
+					"(*R2).x = TR4 + ( C5QA*TR5 - C5QB*TI5);\n\t"
+					"(*R3).x = TR6 + (-C5QA*TR7 - C5QB*TI7);\n\t"
+					"(*R4).x = TR8 + (-C5QE*TR9 - C5QD*TI9);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R0).y = TI0 + TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R0).y = TI0 + TI1;\n\t"
 					"(*R1).y = TI2 + ( C5QD*TR3 + C5QE*TI3);\n\t"
 					"(*R2).y = TI4 + ( C5QB*TR5 + C5QA*TI5);\n\t"
 					"(*R3).y = TI6 + ( C5QB*TR7 - C5QA*TI7);\n\t"
-					"(*R4).y = TI8 + ( C5QD*TR9 - C5QE*TI9);\n\t");
+					"(*R4).y = TI8 + ( C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*R0).y = TI0 + TI1;\n\t"
+					"(*R1).y = TI2 + ( C5QD*TR3 + C5QE*TI3);\n\t"
+					"(*R2).y = TI4 + ( C5QB*TR5 + C5QA*TI5);\n\t"
+					"(*R3).y = TI6 + ( C5QB*TR7 - C5QA*TI7);\n\t"
+					"(*R4).y = TI8 + ( C5QD*TR9 - C5QE*TI9);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R5).x = TR0 - TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R5).x = TR0 - TR1;\n\t"
 					"(*R6).x = TR2 - ( C5QE*TR3 - C5QD*TI3);\n\t"
 					"(*R7).x = TR4 - ( C5QA*TR5 - C5QB*TI5);\n\t"
 					"(*R8).x = TR6 - (-C5QA*TR7 - C5QB*TI7);\n\t"
-					"(*R9).x = TR8 - (-C5QE*TR9 - C5QD*TI9);\n\t");
+					"(*R9).x = TR8 - (-C5QE*TR9 - C5QD*TI9);\n\t") ? ("(*R5).x = TR0 - TR1;\n\t"
+					"(*R6).x = TR2 - ( C5QE*TR3 - C5QD*TI3);\n\t"
+					"(*R7).x = TR4 - ( C5QA*TR5 - C5QB*TI5);\n\t"
+					"(*R8).x = TR6 - (-C5QA*TR7 - C5QB*TI7);\n\t"
+					"(*R9).x = TR8 - (-C5QE*TR9 - C5QD*TI9);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R5).y = TI0 - TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R5).y = TI0 - TI1;\n\t"
 					"(*R6).y = TI2 - ( C5QD*TR3 + C5QE*TI3);\n\t"
 					"(*R7).y = TI4 - ( C5QB*TR5 + C5QA*TI5);\n\t"
 					"(*R8).y = TI6 - ( C5QB*TR7 - C5QA*TI7);\n\t"
-					"(*R9).y = TI8 - ( C5QD*TR9 - C5QE*TI9);\n\t");
+					"(*R9).y = TI8 - ( C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*R5).y = TI0 - TI1;\n\t"
+					"(*R6).y = TI2 - ( C5QD*TR3 + C5QE*TI3);\n\t"
+					"(*R7).y = TI4 - ( C5QB*TR5 + C5QA*TI5);\n\t"
+					"(*R8).y = TI6 - ( C5QB*TR7 - C5QA*TI7);\n\t"
+					"(*R9).y = TI8 - ( C5QD*TR9 - C5QE*TI9);\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(bflyStr,
-					"TR0 = *R0 + *R2 + *R4 + *R6 + *R8;\n\t"
+				bufprintf(bflyStr, "%s", ("TR0 = *R0 + *R2 + *R4 + *R6 + *R8;\n\t"
 					"TR2 = (*R0 - C5QC*(*R4 + *R6)) - C5QB*(*I2 - *I8) - C5QD*(*I4 "
 					"- *I6) + C5QA*((*R2 - *R4) + (*R8 - *R6));\n\t"
 					"TR8 = (*R0 - C5QC*(*R4 + *R6)) + C5QB*(*I2 - *I8) + C5QD*(*I4 "
@@ -3798,12 +3991,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"TR4 = (*R0 - C5QC*(*R2 + *R8)) + C5QB*(*I4 - *I6) - C5QD*(*I2 "
 					"- *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t"
 					"TR6 = (*R0 - C5QC*(*R2 + *R8)) - C5QB*(*I4 - *I6) + C5QD*(*I2 "
-					"- *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t");
+					"- *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t") ? ("TR0 = *R0 + *R2 + *R4 + *R6 + *R8;\n\t"
+					"TR2 = (*R0 - C5QC*(*R4 + *R6)) - C5QB*(*I2 - *I8) - C5QD*(*I4 "
+					"- *I6) + C5QA*((*R2 - *R4) + (*R8 - *R6));\n\t"
+					"TR8 = (*R0 - C5QC*(*R4 + *R6)) + C5QB*(*I2 - *I8) + C5QD*(*I4 "
+					"- *I6) + C5QA*((*R2 - *R4) + (*R8 - *R6));\n\t"
+					"TR4 = (*R0 - C5QC*(*R2 + *R8)) + C5QB*(*I4 - *I6) - C5QD*(*I2 "
+					"- *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t"
+					"TR6 = (*R0 - C5QC*(*R2 + *R8)) - C5QB*(*I4 - *I6) + C5QD*(*I2 "
+					"- *I8) + C5QA*((*R4 - *R2) + (*R6 - *R8));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI0 = *I0 + *I2 + *I4 + *I6 + *I8;\n\t"
+				bufprintf(bflyStr, "%s", ("TI0 = *I0 + *I2 + *I4 + *I6 + *I8;\n\t"
 					"TI2 = (*I0 - C5QC*(*I4 + *I6)) + C5QB*(*R2 - *R8) + C5QD*(*R4 "
 					"- *R6) + C5QA*((*I2 - *I4) + (*I8 - *I6));\n\t"
 					"TI8 = (*I0 - C5QC*(*I4 + *I6)) - C5QB*(*R2 - *R8) - C5QD*(*R4 "
@@ -3811,12 +4011,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"TI4 = (*I0 - C5QC*(*I2 + *I8)) - C5QB*(*R4 - *R6) + C5QD*(*R2 "
 					"- *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t"
 					"TI6 = (*I0 - C5QC*(*I2 + *I8)) + C5QB*(*R4 - *R6) - C5QD*(*R2 "
-					"- *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t");
+					"- *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t") ? ("TI0 = *I0 + *I2 + *I4 + *I6 + *I8;\n\t"
+					"TI2 = (*I0 - C5QC*(*I4 + *I6)) + C5QB*(*R2 - *R8) + C5QD*(*R4 "
+					"- *R6) + C5QA*((*I2 - *I4) + (*I8 - *I6));\n\t"
+					"TI8 = (*I0 - C5QC*(*I4 + *I6)) - C5QB*(*R2 - *R8) - C5QD*(*R4 "
+					"- *R6) + C5QA*((*I2 - *I4) + (*I8 - *I6));\n\t"
+					"TI4 = (*I0 - C5QC*(*I2 + *I8)) - C5QB*(*R4 - *R6) + C5QD*(*R2 "
+					"- *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t"
+					"TI6 = (*I0 - C5QC*(*I2 + *I8)) + C5QB*(*R4 - *R6) - C5QD*(*R2 "
+					"- *R8) + C5QA*((*I4 - *I2) + (*I6 - *I8));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TR1 = *R1 + *R3 + *R5 + *R7 + *R9;\n\t"
+				bufprintf(bflyStr, "%s", ("TR1 = *R1 + *R3 + *R5 + *R7 + *R9;\n\t"
 					"TR3 = (*R1 - C5QC*(*R5 + *R7)) - C5QB*(*I3 - *I9) - C5QD*(*I5 "
 					"- *I7) + C5QA*((*R3 - *R5) + (*R9 - *R7));\n\t"
 					"TR9 = (*R1 - C5QC*(*R5 + *R7)) + C5QB*(*I3 - *I9) + C5QD*(*I5 "
@@ -3824,12 +4031,19 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"TR5 = (*R1 - C5QC*(*R3 + *R9)) + C5QB*(*I5 - *I7) - C5QD*(*I3 "
 					"- *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t"
 					"TR7 = (*R1 - C5QC*(*R3 + *R9)) - C5QB*(*I5 - *I7) + C5QD*(*I3 "
-					"- *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t");
+					"- *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t") ? ("TR1 = *R1 + *R3 + *R5 + *R7 + *R9;\n\t"
+					"TR3 = (*R1 - C5QC*(*R5 + *R7)) - C5QB*(*I3 - *I9) - C5QD*(*I5 "
+					"- *I7) + C5QA*((*R3 - *R5) + (*R9 - *R7));\n\t"
+					"TR9 = (*R1 - C5QC*(*R5 + *R7)) + C5QB*(*I3 - *I9) + C5QD*(*I5 "
+					"- *I7) + C5QA*((*R3 - *R5) + (*R9 - *R7));\n\t"
+					"TR5 = (*R1 - C5QC*(*R3 + *R9)) + C5QB*(*I5 - *I7) - C5QD*(*I3 "
+					"- *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t"
+					"TR7 = (*R1 - C5QC*(*R3 + *R9)) - C5QB*(*I5 - *I7) + C5QD*(*I3 "
+					"- *I9) + C5QA*((*R5 - *R3) + (*R7 - *R9));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"TI1 = *I1 + *I3 + *I5 + *I7 + *I9;\n\t"
+				bufprintf(bflyStr, "%s", ("TI1 = *I1 + *I3 + *I5 + *I7 + *I9;\n\t"
 					"TI3 = (*I1 - C5QC*(*I5 + *I7)) + C5QB*(*R3 - *R9) + C5QD*(*R5 "
 					"- *R7) + C5QA*((*I3 - *I5) + (*I9 - *I7));\n\t"
 					"TI9 = (*I1 - C5QC*(*I5 + *I7)) - C5QB*(*R3 - *R9) - C5QD*(*R5 "
@@ -3837,43 +4051,63 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 					"TI5 = (*I1 - C5QC*(*I3 + *I9)) - C5QB*(*R5 - *R7) + C5QD*(*R3 "
 					"- *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t"
 					"TI7 = (*I1 - C5QC*(*I3 + *I9)) + C5QB*(*R5 - *R7) - C5QD*(*R3 "
-					"- *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t");
+					"- *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t") ? ("TI1 = *I1 + *I3 + *I5 + *I7 + *I9;\n\t"
+					"TI3 = (*I1 - C5QC*(*I5 + *I7)) + C5QB*(*R3 - *R9) + C5QD*(*R5 "
+					"- *R7) + C5QA*((*I3 - *I5) + (*I9 - *I7));\n\t"
+					"TI9 = (*I1 - C5QC*(*I5 + *I7)) - C5QB*(*R3 - *R9) - C5QD*(*R5 "
+					"- *R7) + C5QA*((*I3 - *I5) + (*I9 - *I7));\n\t"
+					"TI5 = (*I1 - C5QC*(*I3 + *I9)) - C5QB*(*R5 - *R7) + C5QD*(*R3 "
+					"- *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t"
+					"TI7 = (*I1 - C5QC*(*I3 + *I9)) + C5QB*(*R5 - *R7) - C5QD*(*R3 "
+					"- *R9) + C5QA*((*I5 - *I3) + (*I7 - *I9));\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R0) = TR0 + TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R0) = TR0 + TR1;\n\t"
 					"(*R1) = TR2 + ( C5QE*TR3 - C5QD*TI3);\n\t"
 					"(*R2) = TR4 + ( C5QA*TR5 - C5QB*TI5);\n\t"
 					"(*R3) = TR6 + (-C5QA*TR7 - C5QB*TI7);\n\t"
-					"(*R4) = TR8 + (-C5QE*TR9 - C5QD*TI9);\n\t");
+					"(*R4) = TR8 + (-C5QE*TR9 - C5QD*TI9);\n\t") ? ("(*R0) = TR0 + TR1;\n\t"
+					"(*R1) = TR2 + ( C5QE*TR3 - C5QD*TI3);\n\t"
+					"(*R2) = TR4 + ( C5QA*TR5 - C5QB*TI5);\n\t"
+					"(*R3) = TR6 + (-C5QA*TR7 - C5QB*TI7);\n\t"
+					"(*R4) = TR8 + (-C5QE*TR9 - C5QD*TI9);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*I0) = TI0 + TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*I0) = TI0 + TI1;\n\t"
 					"(*I1) = TI2 + ( C5QD*TR3 + C5QE*TI3);\n\t"
 					"(*I2) = TI4 + ( C5QB*TR5 + C5QA*TI5);\n\t"
 					"(*I3) = TI6 + ( C5QB*TR7 - C5QA*TI7);\n\t"
-					"(*I4) = TI8 + ( C5QD*TR9 - C5QE*TI9);\n\t");
+					"(*I4) = TI8 + ( C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*I0) = TI0 + TI1;\n\t"
+					"(*I1) = TI2 + ( C5QD*TR3 + C5QE*TI3);\n\t"
+					"(*I2) = TI4 + ( C5QB*TR5 + C5QA*TI5);\n\t"
+					"(*I3) = TI6 + ( C5QB*TR7 - C5QA*TI7);\n\t"
+					"(*I4) = TI8 + ( C5QD*TR9 - C5QE*TI9);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*R5) = TR0 - TR1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*R5) = TR0 - TR1;\n\t"
 					"(*R6) = TR2 - ( C5QE*TR3 - C5QD*TI3);\n\t"
 					"(*R7) = TR4 - ( C5QA*TR5 - C5QB*TI5);\n\t"
 					"(*R8) = TR6 - (-C5QA*TR7 - C5QB*TI7);\n\t"
-					"(*R9) = TR8 - (-C5QE*TR9 - C5QD*TI9);\n\t");
+					"(*R9) = TR8 - (-C5QE*TR9 - C5QD*TI9);\n\t") ? ("(*R5) = TR0 - TR1;\n\t"
+					"(*R6) = TR2 - ( C5QE*TR3 - C5QD*TI3);\n\t"
+					"(*R7) = TR4 - ( C5QA*TR5 - C5QB*TI5);\n\t"
+					"(*R8) = TR6 - (-C5QA*TR7 - C5QB*TI7);\n\t"
+					"(*R9) = TR8 - (-C5QE*TR9 - C5QD*TI9);\n\t") : "");
 
-				bufcatcstr(bflyStr, "\n\t");
+				bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
-				bufcatcstr(bflyStr,
-					"(*I5) = TI0 - TI1;\n\t"
+				bufprintf(bflyStr, "%s", ("(*I5) = TI0 - TI1;\n\t"
 					"(*I6) = TI2 - ( C5QD*TR3 + C5QE*TI3);\n\t"
 					"(*I7) = TI4 - ( C5QB*TR5 + C5QA*TI5);\n\t"
 					"(*I8) = TI6 - ( C5QB*TR7 - C5QA*TI7);\n\t"
-					"(*I9) = TI8 - ( C5QD*TR9 - C5QE*TI9);\n\t");
+					"(*I9) = TI8 - ( C5QD*TR9 - C5QE*TI9);\n\t") ? ("(*I5) = TI0 - TI1;\n\t"
+					"(*I6) = TI2 - ( C5QD*TR3 + C5QE*TI3);\n\t"
+					"(*I7) = TI4 - ( C5QB*TR5 + C5QA*TI5);\n\t"
+					"(*I8) = TI6 - ( C5QB*TR7 - C5QA*TI7);\n\t"
+					"(*I9) = TI8 - ( C5QD*TR9 - C5QE*TI9);\n\t") : "");
 			}
 		}
 		break;
@@ -3942,14 +4176,14 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 				"\t\t\t\t\t\t(*R10).x = z1 - w14* b11_0; \n", "\t\t\t\t\t\t(*R10).y = z7 - w1* b11_0; \n", NULL };
 
 			if (butterfly->fwd)
-				bufcatcstr(bflyStr, "fptype dir = -1;\n\n");
+				bufprintf(bflyStr, "%s", ("fptype dir = -1;\n\n") ? ("fptype dir = -1;\n\n") : "");
 			else
-				bufcatcstr(bflyStr, "fptype dir = 1;\n\n");
+				bufprintf(bflyStr, "%s", ("fptype dir = 1;\n\n") ? ("fptype dir = 1;\n\n") : "");
 
 			// Append each radix 11 source fragment without relying on long string
 			// literal concatenation.
 			for (size_t radix11Index = 0; radix11str[radix11Index] != NULL; ++radix11Index)
-				bufcatcstr(bflyStr, radix11str[radix11Index]);
+				bufprintf(bflyStr, "%s", (radix11str[radix11Index]) ? (radix11str[radix11Index]) : "");
 		}
 		break;
 		case 13:
@@ -4038,21 +4272,21 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 				"\t\t\t\t\t\t(*R12).y = e12 + f12 * dir * b13_9 ;\n", NULL };
 
 			if (butterfly->fwd)
-				bufcatcstr(bflyStr, "fptype dir = -1;\n\n");
+				bufprintf(bflyStr, "%s", ("fptype dir = -1;\n\n") ? ("fptype dir = -1;\n\n") : "");
 			else
-				bufcatcstr(bflyStr, "fptype dir = 1;\n\n");
+				bufprintf(bflyStr, "%s", ("fptype dir = 1;\n\n") ? ("fptype dir = 1;\n\n") : "");
 
 			// Append each radix 13 source fragment without relying on long string
 			// literal concatenation.
 			for (size_t radix13Index = 0; radix13str[radix13Index] != NULL; ++radix13Index)
-				bufcatcstr(bflyStr, radix13str[radix13Index]);
+				bufprintf(bflyStr, "%s", (radix13str[radix13Index]) ? (radix13str[radix13Index]) : "");
 		}
 		break;
 
 		default: assert(false);
 	}
 
-	bufcatcstr(bflyStr, "\n\t");
+	bufprintf(bflyStr, "%s", ("\n\t") ? ("\n\t") : "");
 
 	// Assign results
 	if ((butterfly->radix & (butterfly->radix - 1)) || (!butterfly->cReg))
@@ -4065,30 +4299,30 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 				{
 					if ((butterfly->radix != 7) && (butterfly->radix != 11) && (butterfly->radix != 13))
 					{
-						bufcatcstr(bflyStr, "((*R");
-						BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-						bufcatcstr(bflyStr, ").x) = TR");
-						BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-						bufcatcstr(bflyStr, "; ");
-						bufcatcstr(bflyStr, "((*R");
-						BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-						bufcatcstr(bflyStr, ").y) = TI");
-						BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-						bufcatcstr(bflyStr, ";\n\t");
+						bufprintf(bflyStr, "%s", ("((*R") ? ("((*R") : "");
+						bufprintf(bflyStr, "%zu", i);
+						bufprintf(bflyStr, "%s", (").x) = TR") ? (").x) = TR") : "");
+						bufprintf(bflyStr, "%zu", i);
+						bufprintf(bflyStr, "%s", ("; ") ? ("; ") : "");
+						bufprintf(bflyStr, "%s", ("((*R") ? ("((*R") : "");
+						bufprintf(bflyStr, "%zu", i);
+						bufprintf(bflyStr, "%s", (").y) = TI") ? (").y) = TI") : "");
+						bufprintf(bflyStr, "%zu", i);
+						bufprintf(bflyStr, "%s", (";\n\t") ? (";\n\t") : "");
 					}
 				}
 				else
 				{
-					bufcatcstr(bflyStr, "(*R");
-					BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-					bufcatcstr(bflyStr, ") = TR");
-					BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-					bufcatcstr(bflyStr, "; ");
-					bufcatcstr(bflyStr, "(*I");
-					BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-					bufcatcstr(bflyStr, ") = TI");
-					BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-					bufcatcstr(bflyStr, ";\n\t");
+					bufprintf(bflyStr, "%s", ("(*R") ? ("(*R") : "");
+					bufprintf(bflyStr, "%zu", i);
+					bufprintf(bflyStr, "%s", (") = TR") ? (") = TR") : "");
+					bufprintf(bflyStr, "%zu", i);
+					bufprintf(bflyStr, "%s", ("; ") ? ("; ") : "");
+					bufprintf(bflyStr, "%s", ("(*I") ? ("(*I") : "");
+					bufprintf(bflyStr, "%zu", i);
+					bufprintf(bflyStr, "%s", (") = TI") ? (") = TI") : "");
+					bufprintf(bflyStr, "%zu", i);
+					bufprintf(bflyStr, "%s", (";\n\t") ? (";\n\t") : "");
 				}
 			}
 		}
@@ -4101,20 +4335,20 @@ static void ButterflyGenerateButterflyStr(const Butterfly *butterfly, buffer_t *
 
 			if (i < j)
 			{
-				bufcatcstr(bflyStr, "T = (*R");
-				BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-				bufcatcstr(bflyStr, "); (*R");
-				BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(i));
-				bufcatcstr(bflyStr, ") = (*R");
-				BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(j));
-				bufcatcstr(bflyStr, "); (*R");
-				BUFCAT_BUFFER_VALUE(bflyStr, SztToStr(j));
-				bufcatcstr(bflyStr, ") = T;\n\t");
+				bufprintf(bflyStr, "%s", ("T = (*R") ? ("T = (*R") : "");
+				bufprintf(bflyStr, "%zu", i);
+				bufprintf(bflyStr, "%s", ("); (*R") ? ("); (*R") : "");
+				bufprintf(bflyStr, "%zu", i);
+				bufprintf(bflyStr, "%s", (") = (*R") ? (") = (*R") : "");
+				bufprintf(bflyStr, "%zu", j);
+				bufprintf(bflyStr, "%s", ("); (*R") ? ("); (*R") : "");
+				bufprintf(bflyStr, "%zu", j);
+				bufprintf(bflyStr, "%s", (") = T;\n\t") ? (") = T;\n\t") : "");
 			}
 		}
 	}
 
-	bufcatcstr(bflyStr, "\n}\n");
+	bufprintf(bflyStr, "%s", ("\n}\n") ? ("\n}\n") : "");
 }
 
 static inline void ButterflyGenerateButterfly(const Butterfly *butterfly, buffer_t *bflyStr)
@@ -4149,7 +4383,7 @@ static inline void clKernWrite(buffer_stream_t *rhs, const size_t tabIndex)
 {
 	// Emit indentation spaces into the kernel source buffer.
 	for (size_t i = 0; i < tabIndex; ++i)
-		bufstream_cat_char(rhs, ' ');
+		bufprintf(&(rhs)->text, "%c", ' ');
 }
 
 // generate transepose kernel with sqaure 2d matrix of row major with arbitrary
@@ -4553,9 +4787,8 @@ static clfftStatus FFTRepoSetProgramCode(FFTRepo *repo, clfftGenerators gen, con
 	// Prefix copyright statement at the top of generated kernels
 	buffer_stream_t ss;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&ss);
-	bufstream_cat_cstr(&ss,
-		"/* "
+	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
+	bufprintf(&(&ss)->text, "%s", ("/* "
 		"**********************************************************************"
 		"**\n"
 		" * Copyright 2013 Advanced Micro Devices, Inc.\n"
@@ -4577,19 +4810,41 @@ static clfftStatus FFTRepoSetProgramCode(FFTRepo *repo, clfftGenerators gen, con
 		" * limitations under the License.\n"
 		" * "
 		"**********************************************************************"
-		"**/");
+		"**/") ? ("/* "
+		"**********************************************************************"
+		"**\n"
+		" * Copyright 2013 Advanced Micro Devices, Inc.\n"
+		" *\n"
+		" * Licensed under the Apache License, Version 2.0 (the \"License\");\n"
+		" * you may not use this file except in compliance with the License.\n"
+		" * You may obtain a copy of the License at\n"
+		" *\n"
+		" * http://www.apache.org/licenses/LICENSE-2.0\n"
+		" *\n"
+		" * Unless required by applicable law or agreed to in writing, "
+		"software\n"
+		" * distributed under the License is distributed on an \"AS IS\" "
+		"BASIS,\n"
+		" * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or "
+		"implied.\n"
+		" * See the License for the specific language governing permissions "
+		"and\n"
+		" * limitations under the License.\n"
+		" * "
+		"**********************************************************************"
+		"**/") : "");
 	bufprintf(&ss.text, "\n\n");
 
-	buffer_t prefixCopyright = buffer_copy(&ss.text);
+	buffer_t prefixCopyright = buf_copy_part(ss.text, 0, (ss.text).len);
 
 	fftRepoEntryPtr it = fftRepoFind(&repo->mapFFTs, key);
 	if (it == ARRAY_MAP_END(repo->mapFFTs))
 	{
 		// Prefix the generated kernel source with the embedded license text.
-		buffer_t programString = buffer_empty();
-		bufsetbuf(&programString, &prefixCopyright);
-		bufcatbuf(&programString, kernel);
-		bufsetbuf(&fftRepoGet(&repo->mapFFTs, key)->ProgramString, &programString);
+		buffer_t programString = (buffer_t){0};
+		(clear_buf(&programString), bufwrite(&programString, (prefixCopyright).buf, (prefixCopyright).len));
+		bufwrite(&programString, (kernel)->buf, (kernel)->len);
+		(clear_buf(&fftRepoGet(&repo->mapFFTs, key)->ProgramString), bufwrite(&fftRepoGet(&repo->mapFFTs, key)->ProgramString, (programString).buf, (programString).len));
 	}
 	else
 		FFTRepoKeyDeleteData(&key);
@@ -4609,7 +4864,7 @@ static clfftStatus FFTRepoGetProgramCode(FFTRepo *repo, clfftGenerators gen, con
 	if (pos == ARRAY_MAP_END(repo->mapFFTs))
 		return clfftReturnLocked(sLock, CLFFT_FILE_NOT_FOUND);
 
-	bufsetbuf(kernel, &pos->second.ProgramString);
+	(clear_buf(kernel), bufwrite(kernel, (pos->second.ProgramString).buf, (pos->second.ProgramString).len));
 	return clfftReturnLocked(sLock, CLFFT_SUCCESS);
 }
 
@@ -4623,8 +4878,8 @@ static clfftStatus FFTRepoSetProgramEntryPoints(FFTRepo *repo, clfftGenerators g
 	FFTRepoKey key = { gen, data, planContext, device, false };
 
 	fftRepoValue *fft = fftRepoGet(&repo->mapFFTs, key);
-	bufsetcstr(&fft->EntryPoint_fwd, kernel_fwd);
-	bufsetcstr(&fft->EntryPoint_back, kernel_back);
+	(clear_buf(&fft->EntryPoint_fwd), bufprintf(&fft->EntryPoint_fwd, "%s", (kernel_fwd) ? (kernel_fwd) : ""));
+	(clear_buf(&fft->EntryPoint_back), bufprintf(&fft->EntryPoint_back, "%s", (kernel_back) ? (kernel_back) : ""));
 
 	return clfftReturnLocked(sLock, CLFFT_SUCCESS);
 }
@@ -4644,8 +4899,8 @@ static clfftStatus FFTRepoGetProgramEntryPoint(FFTRepo *repo, clfftGenerators ge
 
 	switch (dir)
 	{
-		case CLFFT_FORWARD: bufsetbuf(kernel, &pos->second.EntryPoint_fwd); break;
-		case CLFFT_BACKWARD: bufsetbuf(kernel, &pos->second.EntryPoint_back); break;
+		case CLFFT_FORWARD: (clear_buf(kernel), bufwrite(kernel, (pos->second.EntryPoint_fwd).buf, (pos->second.EntryPoint_fwd).len)); break;
+		case CLFFT_BACKWARD: (clear_buf(kernel), bufwrite(kernel, (pos->second.EntryPoint_back).buf, (pos->second.EntryPoint_back).len)); break;
 		default: assert(false); return clfftReturnLocked(sLock, CLFFT_INVALID_ARG_VALUE);
 	}
 
@@ -5366,15 +5621,15 @@ static void TwiddleTableGenerateTwiddleTable(TwiddleTable *table, Precision pr, 
 	// Stringize the table
 	buffer_stream_t ss;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&ss);
+	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
 	ss.precision_value = 34;
-	bufstream_scientific(&ss);
+	(&ss)->scientific_mode = true;
 	for (size_t i = 0; i < (table->N - 1); i++)
 	{
-		bufprintf(&ss.text, "(%s)(%.*e%s, %.*e%s),\n", bufcstr(&regBase2), ss.precision_value, table->wc[i], bufcstr(&sfx), ss.precision_value, table->ws[i],
-			bufcstr(&sfx));
+		bufprintf(&ss.text, "(%s)(%.*e%s, %.*e%s),\n", ((regBase2).buf ? (const char *) (regBase2).buf : ""), ss.precision_value, table->wc[i], ((sfx).buf ? (const char *) (sfx).buf : ""), ss.precision_value, table->ws[i],
+			((sfx).buf ? (const char *) (sfx).buf : ""));
 	}
-	bufcatbuf(twStr, &ss.text);
+	bufwrite(twStr, (ss.text).buf, (ss.text).len);
 }
 
 static inline void TwiddleTableInit(TwiddleTable *table, size_t length)
@@ -5450,28 +5705,28 @@ typedef enum PassSweepComponent
 static inline void PassRegBase(const Pass *pass, size_t regC, buffer_t *str)
 {
 	// Append the base register name for a pass register group.
-	bufcatcstr(str, "B");
-	BUFCAT_BUFFER_VALUE(str, SztToStr(regC));
+	bufprintf(str, "%s", ("B") ? ("B") : "");
+	bufprintf(str, "%zu", regC);
 }
 
 static inline void PassRegBaseAndCount(const Pass *pass, size_t num, buffer_t *str)
 {
 	// Append the register group count suffix.
-	bufcatcstr(str, "C");
-	BUFCAT_BUFFER_VALUE(str, SztToStr(num));
+	bufprintf(str, "%s", ("C") ? ("C") : "");
+	bufprintf(str, "%zu", num);
 }
 
 static inline void PassRegBaseAndCountAndPos(const Pass *pass, const char *RealImag, size_t radPos, buffer_t *str)
 {
 	// Append the component and radix-position suffix.
-	bufcatcstr(str, RealImag);
-	BUFCAT_BUFFER_VALUE(str, SztToStr(radPos));
+	bufprintf(str, "%s", (RealImag) ? (RealImag) : "");
+	bufprintf(str, "%zu", radPos);
 }
 
 static void PassDeclareRegs(const Pass *pass, const buffer_t regType, size_t regC, size_t numB, buffer_t *passStr)
 {
 	// Declare all registers used by one pass register group.
-	buffer_t regBase = buffer_empty();
+	buffer_t regBase = (buffer_t){0};
 	PassRegBase(pass, regC, &regBase);
 
 	if (pass->linearRegs)
@@ -5482,44 +5737,44 @@ static void PassDeclareRegs(const Pass *pass, const buffer_t regType, size_t reg
 
 	for (size_t i = 0; i < numB; i++)
 	{
-		bufcatcstr(passStr, "\n\t");
-		bufcatbuf(passStr, &regType);
-		bufcatcstr(passStr, " ");
+		bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+		bufwrite(passStr, (regType).buf, (regType).len);
+		bufprintf(passStr, "%s", (" ") ? (" ") : "");
 
-		buffer_t regBaseCount = buffer_copy(&regBase);
+		buffer_t regBaseCount = buf_copy_part(regBase, 0, (regBase).len);
 		PassRegBaseAndCount(pass, i, &regBaseCount);
 
 		for (size_t r = 0;; r++)
 		{
 			if (pass->linearRegs)
 			{
-				buffer_t regIndex = buffer_from_cstr("R");
+				buffer_t regIndex = buf_string_copy("R");
 				PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
 
-				bufcatbuf(passStr, &regIndex);
+				bufwrite(passStr, (regIndex).buf, (regIndex).len);
 			}
 			else
 			{
-				buffer_t regRealIndex = buffer_copy(&regBaseCount);
-				buffer_t regImagIndex = buffer_copy(&regBaseCount);
+				buffer_t regRealIndex = buf_copy_part(regBaseCount, 0, (regBaseCount).len);
+				buffer_t regImagIndex = buf_copy_part(regBaseCount, 0, (regBaseCount).len);
 
 				PassRegBaseAndCountAndPos(pass, "R", r, &regRealIndex); // real
 				PassRegBaseAndCountAndPos(pass, "I", r,
 					&regImagIndex); // imaginary
 
-				bufcatbuf(passStr, &regRealIndex);
-				bufcatcstr(passStr, ", ");
-				bufcatbuf(passStr, &regImagIndex);
+				bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
+				bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
 			}
 
 			if (r == pass->radix - 1)
 			{
-				bufcatcstr(passStr, ";");
+				bufprintf(passStr, "%s", (";") ? (";") : "");
 				break;
 			}
 			else
 			{
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 			}
 		}
 	}
@@ -5528,7 +5783,7 @@ static void PassDeclareRegs(const Pass *pass, const buffer_t regType, size_t reg
 static inline buffer_t PassIterRegArgs(const Pass *pass)
 {
 	// Build the linear register argument list for a pass.
-	buffer_t str = buffer_from_cstr("");
+	buffer_t str = buf_string_copy("");
 
 	if (pass->linearRegs)
 	{
@@ -5537,10 +5792,10 @@ static inline buffer_t PassIterRegArgs(const Pass *pass)
 		for (size_t i = 0; i < pass->cnPerWI; i++)
 		{
 			if (i != 0)
-				bufcatcstr(&str, ", ");
-			bufcatbuf(&str, &regType);
-			bufcatcstr(&str, " *R");
-			BUFCAT_BUFFER_VALUE(&str, SztToStr(i));
+				bufprintf(&str, "%s", (", ") ? (", ") : "");
+			bufwrite(&str, (regType).buf, (regType).len);
+			bufprintf(&str, "%s", (" *R") ? (" *R") : "");
+			bufprintf(&str, "%zu", i);
 		}
 	}
 
@@ -5605,9 +5860,9 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 	buffer_t rType = RegBaseType(pass->pr, 1);
 
 	size_t butterflyIndex = numPrev;
-	buffer_t bufOffset = buffer_empty();
+	buffer_t bufOffset = (buffer_t){0};
 
-	buffer_t regBase = buffer_empty();
+	buffer_t regBase = (buffer_t){0};
 	PassRegBase(pass, regC, &regBase);
 
 	// special write back to global memory with float4 grouping, writing 2
@@ -5616,18 +5871,17 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 		interleaved && (component == SR_COMP_BOTH) && pass->linearRegs && pass->enableGrouping && !pass->fft_doPostCallback)
 	{
 		assert((pass->numButterfly * pass->workGroupSize) == pass->algLS);
-		assert(bufcmp(&bufferRe, &bufferIm) == 0); // Make sure Real & Imag buffer strings are same for
+		assert(strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0); // Make sure Real & Imag buffer strings are same for
 		// interleaved data
 
-		bufcatcstr(passStr, "\n\t");
-		bufcatcstr(passStr, "__global ");
-		BUFCAT_BUFFER_VALUE(passStr, RegBaseType(pass->pr, 4));
-		bufcatcstr(passStr, " *buff4g = (__global ");
-		BUFCAT_BUFFER_VALUE(passStr, RegBaseType(pass->pr, 4));
-		bufcatcstr(passStr, " *)");
-		bufcatbuf(passStr, &bufferRe);
-		bufcatcstr(passStr,
-			";\n\t"); // Assuming 'outOffset' is 0, so not adding it here
+		bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+		bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+		bufprintf(passStr, "%s", (((pass->pr) == P_SINGLE) ? (((4) == 1) ? "float" : (((4) == 2) ? "float2" : (((4) == 4) ? "float4" : ""))) : (((pass->pr) == P_DOUBLE) ? (((4) == 1) ? "double" : (((4) == 2) ? "double2" : (((4) == 4) ? "double4" : ""))) : "")));
+		bufprintf(passStr, "%s", (" *buff4g = (__global ") ? (" *buff4g = (__global ") : "");
+		bufprintf(passStr, "%s", (((pass->pr) == P_SINGLE) ? (((4) == 1) ? "float" : (((4) == 2) ? "float2" : (((4) == 4) ? "float4" : ""))) : (((pass->pr) == P_DOUBLE) ? (((4) == 1) ? "double" : (((4) == 2) ? "double2" : (((4) == 4) ? "double4" : ""))) : "")));
+		bufprintf(passStr, "%s", (" *)") ? (" *)") : "");
+		bufwrite(passStr, (bufferRe).buf, (bufferRe).len);
+		bufprintf(passStr, "%s", (";\n\t") ? (";\n\t") : ""); // Assuming 'outOffset' is 0, so not adding it here
 
 		for (size_t r = 0; r < pass->radix; r++) // setting the radix loop outside to facilitate grouped writing
 		{
@@ -5635,42 +5889,42 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 
 			for (size_t i = 0; i < (numB / 2); i++)
 			{
-				buffer_t regIndexA = buffer_from_cstr("(*R");
-				buffer_t regIndexB = buffer_from_cstr("(*R");
+				buffer_t regIndexA = buf_string_copy("(*R");
+				buffer_t regIndexB = buf_string_copy("(*R");
 
 				PassRegBaseAndCountAndPos(pass, "", (2 * i + 0) * pass->radix + r, &regIndexA);
-				bufcatcstr(&regIndexA, ")");
+				bufprintf(&regIndexA, "%s", (")") ? (")") : "");
 				PassRegBaseAndCountAndPos(pass, "", (2 * i + 1) * pass->radix + r, &regIndexB);
-				bufcatcstr(&regIndexB, ")");
+				bufprintf(&regIndexB, "%s", (")") ? (")") : "");
 
-				bufcatcstr(passStr, "\n\t");
-				bufcatcstr(passStr, "buff4g");
-				bufcatcstr(passStr, "[ ");
-				BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->numButterfly / 2));
-				bufcatcstr(passStr, "*me + ");
-				BUFCAT_BUFFER_VALUE(passStr, SztToStr(butterflyIndex));
-				bufcatcstr(passStr, " + ");
-				BUFCAT_BUFFER_VALUE(passStr, SztToStr(r * (pass->algLS / 2)));
-				bufcatcstr(passStr, " ]");
-				bufcatcstr(passStr, " = ");
-				bufcatcstr(passStr, "(");
-				BUFCAT_BUFFER_VALUE(passStr, RegBaseType(pass->pr, 4));
-				bufcatcstr(passStr, ")(");
-				bufcatbuf(passStr, &regIndexA);
-				bufcatcstr(passStr, ".x, ");
-				bufcatbuf(passStr, &regIndexA);
-				bufcatcstr(passStr, ".y, ");
-				bufcatbuf(passStr, &regIndexB);
-				bufcatcstr(passStr, ".x, ");
-				bufcatbuf(passStr, &regIndexB);
-				bufcatcstr(passStr, ".y) ");
+				bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+				bufprintf(passStr, "%s", ("buff4g") ? ("buff4g") : "");
+				bufprintf(passStr, "%s", ("[ ") ? ("[ ") : "");
+				bufprintf(passStr, "%zu", pass->numButterfly / 2);
+				bufprintf(passStr, "%s", ("*me + ") ? ("*me + ") : "");
+				bufprintf(passStr, "%zu", butterflyIndex);
+				bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+				bufprintf(passStr, "%zu", r * (pass->algLS / 2));
+				bufprintf(passStr, "%s", (" ]") ? (" ]") : "");
+				bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
+				bufprintf(passStr, "%s", ("(") ? ("(") : "");
+				bufprintf(passStr, "%s", (((pass->pr) == P_SINGLE) ? (((4) == 1) ? "float" : (((4) == 2) ? "float2" : (((4) == 4) ? "float4" : ""))) : (((pass->pr) == P_DOUBLE) ? (((4) == 1) ? "double" : (((4) == 2) ? "double2" : (((4) == 4) ? "double4" : ""))) : "")));
+				bufprintf(passStr, "%s", (")(") ? (")(") : "");
+				bufwrite(passStr, (regIndexA).buf, (regIndexA).len);
+				bufprintf(passStr, "%s", (".x, ") ? (".x, ") : "");
+				bufwrite(passStr, (regIndexA).buf, (regIndexA).len);
+				bufprintf(passStr, "%s", (".y, ") ? (".y, ") : "");
+				bufwrite(passStr, (regIndexB).buf, (regIndexB).len);
+				bufprintf(passStr, "%s", (".x, ") ? (".x, ") : "");
+				bufwrite(passStr, (regIndexB).buf, (regIndexB).len);
+				bufprintf(passStr, "%s", (".y) ") ? (".y) ") : "");
 				if (scale != 1.0f)
 				{
-					bufcatcstr(passStr, " * ");
-					BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-					BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+					bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+					bufprintf(passStr, "%.*e", 16, scale);
+					bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 				}
-				bufcatcstr(passStr, ";");
+				bufprintf(passStr, "%s", (";") ? (";") : "");
 
 				butterflyIndex++;
 			}
@@ -5694,21 +5948,21 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 				{
 					swapElement = (pass->fft_doPreCallback && pass->c2r && component == SR_COMP_REAL); // reset at start of loop
 
-					buffer_t tail = buffer_empty();
-					buffer_t regIndex = buffer_empty();
-					buffer_t regIndexC = buffer_empty();
-					bufsetcstr(&regIndex, "(*R");
-					buffer_t buffer = buffer_empty();
+					buffer_t tail = (buffer_t){0};
+					buffer_t regIndex = (buffer_t){0};
+					buffer_t regIndexC = (buffer_t){0};
+					(clear_buf(&regIndex), bufprintf(&regIndex, "%s", ("(*R") ? ("(*R") : ""));
+					buffer_t buffer = (buffer_t){0};
 
 					// Read real & imag at once
 					if (interleaved && (component == SR_COMP_BOTH))
 					{
-						assert(bufcmp(&bufferRe, &bufferIm) == 0); // Make sure Real & Imag buffer strings are
+						assert(strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0); // Make sure Real & Imag buffer strings are
 						// same for interleaved data
-						bufsetbuf(&buffer, &bufferRe);
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-						bufcatcstr(&regIndex, ")");
-						bufsetcstr(&tail, ";");
+						bufprintf(&regIndex, "%s", (")") ? (")") : "");
+						(clear_buf(&tail), bufprintf(&tail, "%s", (";") ? (";") : ""));
 					}
 					else if (c == 0)
 					{
@@ -5720,84 +5974,84 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 						// for last register
 						if (swapElement)
 						{
-							bufsetbuf(&regIndexC, &regIndex);
-							bufcatcstr(&regIndexC, ").y");
+							(clear_buf(&regIndexC), bufwrite(&regIndexC, (regIndex).buf, (regIndex).len));
+							bufprintf(&regIndexC, "%s", (").y") ? (").y") : "");
 						}
 
-						bufcatcstr(&regIndex, ").x");
-						bufsetbuf(&buffer, &bufferRe);
-						bufsetcstr(&tail, interleaved ? ".x;" : ";");
+						bufprintf(&regIndex, "%s", (").x") ? (").x") : "");
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
+						(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".x;" : ";") ? (interleaved ? ".x;" : ";") : ""));
 					}
 					else
 					{
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-						bufcatcstr(&regIndex, ").y");
-						bufsetbuf(&buffer, &bufferIm);
-						bufsetcstr(&tail, interleaved ? ".y;" : ";");
+						bufprintf(&regIndex, "%s", (").y") ? (").y") : "");
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferIm).buf, (bufferIm).len));
+						(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".y;" : ";") ? (interleaved ? ".y;" : ";") : ""));
 					}
 
 					// get offset
-					bufclear(&bufOffset);
-					bufcatcstr(&bufOffset, offset);
-					bufcatcstr(&bufOffset, " + ( ");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(numPrev));
-					bufcatcstr(&bufOffset, " + ");
-					bufcatcstr(&bufOffset, "me*");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-					bufcatcstr(&bufOffset, " + ");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(i));
-					bufcatcstr(&bufOffset, " + ");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(r * pass->length / pass->radix));
-					bufcatcstr(&bufOffset, " )*");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(stride));
+					clear_buf(&bufOffset);
+					bufprintf(&bufOffset, "%s", (offset) ? (offset) : "");
+					bufprintf(&bufOffset, "%s", (" + ( ") ? (" + ( ") : "");
+					bufprintf(&bufOffset, "%zu", numPrev);
+					bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
+					bufprintf(&bufOffset, "%s", ("me*") ? ("me*") : "");
+					bufprintf(&bufOffset, "%zu", pass->numButterfly);
+					bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
+					bufprintf(&bufOffset, "%zu", i);
+					bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
+					bufprintf(&bufOffset, "%zu", r * pass->length / pass->radix);
+					bufprintf(&bufOffset, "%s", (" )*") ? (" )*") : "");
+					bufprintf(&bufOffset, "%zu", stride);
 
 					// If precallback is set invoke callback function
 					// Invoke callback only once in Planar data layout
 					// (i.e.c==0)
 					if (pass->fft_doPreCallback && c == 0 && component == SR_COMP_BOTH)
 					{
-						bufcatcstr(passStr, "\n\t");
-						bufcatcstr(passStr, "retPrecallback = ");
-						bufcatcstr(passStr, pass->fft_preCallback.funcname);
-						bufcatcstr(passStr, "(");
+						bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+						bufprintf(passStr, "%s", ("retPrecallback = ") ? ("retPrecallback = ") : "");
+						bufprintf(passStr, "%s", (pass->fft_preCallback.funcname) ? (pass->fft_preCallback.funcname) : "");
+						bufprintf(passStr, "%s", ("(") ? ("(") : "");
 						if (interleaved)
 						{
-							bufcatbuf(passStr, &buffer);
-							bufcatcstr(passStr, ", ");
+							bufwrite(passStr, (buffer).buf, (buffer).len);
+							bufprintf(passStr, "%s", (", ") ? (", ") : "");
 						}
 						else
 						{
-							bufcatbuf(passStr, &bufferRe);
-							bufcatcstr(passStr, ", ");
-							bufcatbuf(passStr, &bufferIm);
-							bufcatcstr(passStr, ", ");
+							bufwrite(passStr, (bufferRe).buf, (bufferRe).len);
+							bufprintf(passStr, "%s", (", ") ? (", ") : "");
+							bufwrite(passStr, (bufferIm).buf, (bufferIm).len);
+							bufprintf(passStr, "%s", (", ") ? (", ") : "");
 						}
-						bufcatbuf(passStr, &bufOffset);
-						bufcatcstr(passStr, ", pre_userdata");
+						bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+						bufprintf(passStr, "%s", (", pre_userdata") ? (", pre_userdata") : "");
 						if (pass->fft_preCallback.localMemSize > 0)
-							bufcatcstr(passStr, ", localmem");
-						bufcatcstr(passStr, ");");
+							bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+						bufprintf(passStr, "%s", (");") ? (");") : "");
 					}
 
 					if (swapElement)
 					{
-						bufcatcstr(passStr, "\n\t");
-						bufcatbuf(passStr, &regIndexC);
-						bufcatcstr(passStr, " = ");
-						bufcatbuf(passStr, &regIndex);
-						bufcatcstr(passStr, ";");
+						bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+						bufwrite(passStr, (regIndexC).buf, (regIndexC).len);
+						bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
+						bufwrite(passStr, (regIndex).buf, (regIndex).len);
+						bufprintf(passStr, "%s", (";") ? (";") : "");
 					}
 
-					bufcatcstr(passStr, "\n\t");
-					bufcatbuf(passStr, &regIndex);
-					bufcatcstr(passStr, " = ");
+					bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+					bufwrite(passStr, (regIndex).buf, (regIndex).len);
+					bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
 
 					if (initZero)
 					{
 						if (interleaved && (component == SR_COMP_BOTH))
-							bufcatcstr(passStr, "(fvect2)(0, 0);");
+							bufprintf(passStr, "%s", ("(fvect2)(0, 0);") ? ("(fvect2)(0, 0);") : "");
 						else
-							bufcatcstr(passStr, "0;");
+							bufprintf(passStr, "%s", ("0;") ? ("0;") : "");
 					}
 					else
 					{
@@ -5806,35 +6060,35 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 						{
 							if (component == SR_COMP_BOTH)
 							{
-								bufcatcstr(passStr, "retPrecallback");
+								bufprintf(passStr, "%s", ("retPrecallback") ? ("retPrecallback") : "");
 								// Append the vector tail when callback data is
 								// interleaved.
 								if (interleaved)
-									bufcatbuf(passStr, &tail);
+									bufwrite(passStr, (tail).buf, (tail).len);
 								else
-									bufcatcstr(passStr, (c == 0) ? ".x;" : ".y;");
+									bufprintf(passStr, "%s", ((c == 0) ? ".x;" : ".y;") ? ((c == 0) ? ".x;" : ".y;") : "");
 							}
 							else if (pass->r2c)
 							{
-								bufcatcstr(passStr, pass->fft_preCallback.funcname);
-								bufcatcstr(passStr, "(");
-								bufcatbuf(passStr, &buffer);
-								bufcatcstr(passStr, ", ");
-								bufcatbuf(passStr, &bufOffset);
-								bufcatcstr(passStr, ", pre_userdata");
+								bufprintf(passStr, "%s", (pass->fft_preCallback.funcname) ? (pass->fft_preCallback.funcname) : "");
+								bufprintf(passStr, "%s", ("(") ? ("(") : "");
+								bufwrite(passStr, (buffer).buf, (buffer).len);
+								bufprintf(passStr, "%s", (", ") ? (", ") : "");
+								bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+								bufprintf(passStr, "%s", (", pre_userdata") ? (", pre_userdata") : "");
 
 								if (pass->fft_preCallback.localMemSize > 0)
-									bufcatcstr(passStr, ", localmem");
-								bufcatcstr(passStr, ");");
+									bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+								bufprintf(passStr, "%s", (");") ? (");") : "");
 							}
 						}
 						else
 						{
-							bufcatbuf(passStr, &buffer);
-							bufcatcstr(passStr, "[");
-							bufcatbuf(passStr, &bufOffset);
-							bufcatcstr(passStr, "]");
-							bufcatbuf(passStr, &tail);
+							bufwrite(passStr, (buffer).buf, (buffer).len);
+							bufprintf(passStr, "%s", ("[") ? ("[") : "");
+							bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+							bufprintf(passStr, "%s", ("]") ? ("]") : "");
+							bufwrite(passStr, (tail).buf, (tail).len);
 						}
 					}
 
@@ -5863,128 +6117,128 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 					break;
 
 				if (pass->realSpecial && (pass->nextPass == NULL) && (r == pass->radix / 2) && (i == 0))
-					bufcatcstr(passStr, "\n\t}\n\tif( rw && !me)\n\t{");
+					bufprintf(passStr, "%s", ("\n\t}\n\tif( rw && !me)\n\t{") ? ("\n\t}\n\tif( rw && !me)\n\t{") : "");
 
-				buffer_t regIndexC0 = buffer_empty();
+				buffer_t regIndexC0 = (buffer_t){0};
 				for (size_t c = cStart; c < cEnd; c++) // component loop: 0 - real, 1 - imaginary
 				{
-					buffer_t tail = buffer_empty();
-					buffer_t regIndex = buffer_empty();
-					bufsetcstr(&regIndex, "(*R");
-					buffer_t buffer = buffer_empty();
+					buffer_t tail = (buffer_t){0};
+					buffer_t regIndex = (buffer_t){0};
+					(clear_buf(&regIndex), bufprintf(&regIndex, "%s", ("(*R") ? ("(*R") : ""));
+					buffer_t buffer = (buffer_t){0};
 
 					// Write real & imag at once
 					if (interleaved && (component == SR_COMP_BOTH))
 					{
-						assert(bufcmp(&bufferRe, &bufferIm) == 0); // Make sure Real & Imag buffer strings are
+						assert(strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0); // Make sure Real & Imag buffer strings are
 						// same for interleaved data
-						bufsetbuf(&buffer, &bufferRe);
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-						bufcatcstr(&regIndex, ")");
-						bufsetcstr(&tail, "");
+						bufprintf(&regIndex, "%s", (")") ? (")") : "");
+						(clear_buf(&tail), bufprintf(&tail, "%s", ("") ? ("") : ""));
 					}
 					else if (c == 0)
 					{
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-						bufcatcstr(&regIndex, ").x");
-						bufsetbuf(&buffer, &bufferRe);
-						bufsetcstr(&tail, interleaved ? ".x" : "");
+						bufprintf(&regIndex, "%s", (").x") ? (").x") : "");
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
+						(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".x" : "") ? (interleaved ? ".x" : "") : ""));
 					}
 					else
 					{
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-						bufcatcstr(&regIndex, ").y");
-						bufsetbuf(&buffer, &bufferIm);
-						bufsetcstr(&tail, interleaved ? ".y" : "");
+						bufprintf(&regIndex, "%s", (").y") ? (").y") : "");
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferIm).buf, (bufferIm).len));
+						(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".y" : "") ? (interleaved ? ".y" : "") : ""));
 					}
 
-					bufclear(&bufOffset);
-					bufcatcstr(&bufOffset, offset);
-					bufcatcstr(&bufOffset, " + ( ");
+					clear_buf(&bufOffset);
+					bufprintf(&bufOffset, "%s", (offset) ? (offset) : "");
+					bufprintf(&bufOffset, "%s", (" + ( ") ? (" + ( ") : "");
 					if ((pass->numButterfly * pass->workGroupSize) > pass->algLS)
 					{
-						bufcatcstr(&bufOffset, "((");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-						bufcatcstr(&bufOffset, "*me + ");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(butterflyIndex));
-						bufcatcstr(&bufOffset, ")/");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->algLS));
-						bufcatcstr(&bufOffset, ")*");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->algL));
-						bufcatcstr(&bufOffset, " + (");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-						bufcatcstr(&bufOffset, "*me + ");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(butterflyIndex));
-						bufcatcstr(&bufOffset, ")%");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->algLS));
-						bufcatcstr(&bufOffset, " + ");
+						bufprintf(&bufOffset, "%s", ("((") ? ("((") : "");
+						bufprintf(&bufOffset, "%zu", pass->numButterfly);
+						bufprintf(&bufOffset, "%s", ("*me + ") ? ("*me + ") : "");
+						bufprintf(&bufOffset, "%zu", butterflyIndex);
+						bufprintf(&bufOffset, "%s", (")/") ? (")/") : "");
+						bufprintf(&bufOffset, "%zu", pass->algLS);
+						bufprintf(&bufOffset, "%s", (")*") ? (")*") : "");
+						bufprintf(&bufOffset, "%zu", pass->algL);
+						bufprintf(&bufOffset, "%s", (" + (") ? (" + (") : "");
+						bufprintf(&bufOffset, "%zu", pass->numButterfly);
+						bufprintf(&bufOffset, "%s", ("*me + ") ? ("*me + ") : "");
+						bufprintf(&bufOffset, "%zu", butterflyIndex);
+						bufprintf(&bufOffset, "%s", (")%") ? (")%") : "");
+						bufprintf(&bufOffset, "%zu", pass->algLS);
+						bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
 					}
 					else
 					{
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-						bufcatcstr(&bufOffset, "*me + ");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(butterflyIndex));
-						bufcatcstr(&bufOffset, " + ");
+						bufprintf(&bufOffset, "%zu", pass->numButterfly);
+						bufprintf(&bufOffset, "%s", ("*me + ") ? ("*me + ") : "");
+						bufprintf(&bufOffset, "%zu", butterflyIndex);
+						bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
 					}
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(r * pass->algLS));
-					bufcatcstr(&bufOffset, " )*");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(stride));
+					bufprintf(&bufOffset, "%zu", r * pass->algLS);
+					bufprintf(&bufOffset, "%s", (" )*") ? (" )*") : "");
+					bufprintf(&bufOffset, "%zu", stride);
 
 					if (scale != 1.0f)
 					{
-						bufcatcstr(&regIndex, " * ");
-						BUFCAT_BUFFER_VALUE(&regIndex, FloatToStr(scale));
-						BUFCAT_BUFFER_VALUE(&regIndex, FloatSuffix(pass->pr));
+						bufprintf(&regIndex, "%s", (" * ") ? (" * ") : "");
+						bufprintf(&regIndex, "%.*e", 16, scale);
+						bufprintf(&regIndex, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 					}
 					if (c == cStart)
-						bufsetbuf(&regIndexC0, &regIndex);
+						(clear_buf(&regIndexC0), bufwrite(&regIndexC0, (regIndex).buf, (regIndex).len));
 
 					if (pass->fft_doPostCallback && !pass->r2c)
 					{
 						if (interleaved || c == (cEnd - 1))
 						{
-							bufcatcstr(passStr, "\n\t");
-							bufcatcstr(passStr, pass->fft_postCallback.funcname);
-							bufcatcstr(passStr, "(");
+							bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+							bufprintf(passStr, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+							bufprintf(passStr, "%s", ("(") ? ("(") : "");
 
-							if (interleaved || (pass->c2r && bufcmp(&bufferRe, &bufferIm) == 0))
+							if (interleaved || (pass->c2r && strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0))
 							{
-								bufcatbuf(passStr, &buffer);
+								bufwrite(passStr, (buffer).buf, (buffer).len);
 							}
 							else
 							{
-								bufcatbuf(passStr, &bufferRe);
-								bufcatcstr(passStr, ", ");
-								bufcatbuf(passStr, &bufferIm);
+								bufwrite(passStr, (bufferRe).buf, (bufferRe).len);
+								bufprintf(passStr, "%s", (", ") ? (", ") : "");
+								bufwrite(passStr, (bufferIm).buf, (bufferIm).len);
 							}
-							bufcatcstr(passStr, ", ");
-							bufcatbuf(passStr, &bufOffset);
-							bufcatcstr(passStr, ", post_userdata, (");
-							bufcatbuf(passStr, &regIndexC0);
-							bufcatcstr(passStr, ")");
-							if (!(interleaved || (pass->c2r && bufcmp(&bufferRe, &bufferIm) == 0)))
+							bufprintf(passStr, "%s", (", ") ? (", ") : "");
+							bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+							bufprintf(passStr, "%s", (", post_userdata, (") ? (", post_userdata, (") : "");
+							bufwrite(passStr, (regIndexC0).buf, (regIndexC0).len);
+							bufprintf(passStr, "%s", (")") ? (")") : "");
+							if (!(interleaved || (pass->c2r && strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0)))
 							{
-								bufcatcstr(passStr, ", (");
-								bufcatbuf(passStr, &regIndex);
-								bufcatcstr(passStr, ")");
+								bufprintf(passStr, "%s", (", (") ? (", (") : "");
+								bufwrite(passStr, (regIndex).buf, (regIndex).len);
+								bufprintf(passStr, "%s", (")") ? (")") : "");
 							}
 
 							if (pass->fft_postCallback.localMemSize > 0)
-								bufcatcstr(passStr, ", post_localmem");
-							bufcatcstr(passStr, ");");
+								bufprintf(passStr, "%s", (", post_localmem") ? (", post_localmem") : "");
+							bufprintf(passStr, "%s", (");") ? (");") : "");
 						}
 					}
 					else
 					{
-						bufcatcstr(passStr, "\n\t");
-						bufcatbuf(passStr, &buffer);
-						bufcatcstr(passStr, "[");
-						bufcatbuf(passStr, &bufOffset);
-						bufcatcstr(passStr, "]");
-						bufcatbuf(passStr, &tail);
-						bufcatcstr(passStr, " = ");
-						bufcatbuf(passStr, &regIndex);
-						bufcatcstr(passStr, ";");
+						bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+						bufwrite(passStr, (buffer).buf, (buffer).len);
+						bufprintf(passStr, "%s", ("[") ? ("[") : "");
+						bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+						bufprintf(passStr, "%s", ("]") ? ("]") : "");
+						bufwrite(passStr, (tail).buf, (tail).len);
+						bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
+						bufwrite(passStr, (regIndex).buf, (regIndex).len);
+						bufprintf(passStr, "%s", (";") ? (";") : "");
 					}
 
 					// Since we write real & imag at once, we break the loop
@@ -5993,7 +6247,7 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 				}
 
 				if (pass->realSpecial && (pass->nextPass == NULL) && (r == pass->radix / 2) && (i == 0))
-					bufcatcstr(passStr, "\n\t}\n\tif(rw)\n\t{");
+					bufprintf(passStr, "%s", ("\n\t}\n\tif(rw)\n\t{") ? ("\n\t}\n\tif(rw)\n\t{") : "");
 
 				butterflyIndex++;
 			}
@@ -6004,7 +6258,7 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 
 	for (size_t i = 0; i < numB; i++)
 	{
-		buffer_t regBaseCount = buffer_copy(&regBase);
+		buffer_t regBaseCount = buf_copy_part(regBase, 0, (regBase).len);
 		PassRegBaseAndCount(pass, i, &regBaseCount);
 
 		if (flag == SR_READ) // read operation
@@ -6016,21 +6270,21 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 			{
 				for (size_t c = cStart; c < cEnd; c++) // component loop: 0 - real, 1 - imaginary
 				{
-					buffer_t tail = buffer_empty();
-					buffer_t regIndex = buffer_empty();
-					buffer_t regIndexC = buffer_empty();
-					bufset_linear_reg(&regIndex, pass->linearRegs, &regBaseCount);
-					buffer_t buffer = buffer_empty();
+					buffer_t tail = (buffer_t){0};
+					buffer_t regIndex = (buffer_t){0};
+					buffer_t regIndexC = (buffer_t){0};
+					(clear_buf(&regIndex), (pass->linearRegs) ? bufprintf(&regIndex, "%s", "(*R") : bufwrite(&regIndex, (regBaseCount).buf, (regBaseCount).len));
+					buffer_t buffer = (buffer_t){0};
 
 					// Read real & imag at once
 					if (interleaved && (component == SR_COMP_BOTH) && pass->linearRegs)
 					{
-						assert(bufcmp(&bufferRe, &bufferIm) == 0); // Make sure Real & Imag buffer strings are
+						assert(strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0); // Make sure Real & Imag buffer strings are
 						// same for interleaved data
-						bufsetbuf(&buffer, &bufferRe);
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-						bufcatcstr(&regIndex, ")");
-						bufsetcstr(&tail, ";");
+						bufprintf(&regIndex, "%s", (")") ? (")") : "");
+						(clear_buf(&tail), bufprintf(&tail, "%s", (";") ? (";") : ""));
 					}
 					else if (c == 0)
 					{
@@ -6041,150 +6295,150 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 							hid = (i * pass->radix + r) / (numB * pass->radix / 2);
 							if (pass->fft_doPreCallback && pass->c2r && component == SR_COMP_REAL && hid != 0)
 							{
-								bufsetbuf(&regIndexC, &regIndex);
-								bufcatcstr(&regIndexC, ").y");
+								(clear_buf(&regIndexC), bufwrite(&regIndexC, (regIndex).buf, (regIndex).len));
+								bufprintf(&regIndexC, "%s", (").y") ? (").y") : "");
 							}
-							bufcatcstr(&regIndex, ").x");
+							bufprintf(&regIndex, "%s", (").x") ? (").x") : "");
 						}
 						else
 						{
 							PassRegBaseAndCountAndPos(pass, "R", r, &regIndex);
 						}
-						bufsetbuf(&buffer, &bufferRe);
-						bufsetcstr(&tail, interleaved ? ".x;" : ";");
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
+						(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".x;" : ";") ? (interleaved ? ".x;" : ";") : ""));
 					}
 					else
 					{
 						if (pass->linearRegs)
 						{
 							PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-							bufcatcstr(&regIndex, ").y");
+							bufprintf(&regIndex, "%s", (").y") ? (").y") : "");
 						}
 						else
 						{
 							PassRegBaseAndCountAndPos(pass, "I", r, &regIndex);
 						}
-						bufsetbuf(&buffer, &bufferIm);
-						bufsetcstr(&tail, interleaved ? ".y;" : ";");
+						(clear_buf(&buffer), bufwrite(&buffer, (bufferIm).buf, (bufferIm).len));
+						(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".y;" : ";") ? (interleaved ? ".y;" : ";") : ""));
 					}
 
 					for (size_t v = 0; v < regC; v++) // TODO: vectorize the reads; instead of reading
 									  // individually for consecutive reads of vector
 									  // elements
 					{
-						buffer_t regIndexSub = buffer_copy(&regIndex);
+						buffer_t regIndexSub = buf_copy_part(regIndex, 0, (regIndex).len);
 						if (regC != 1)
 						{
-							bufcatcstr(&regIndexSub, ".s");
-							BUFCAT_BUFFER_VALUE(&regIndexSub, SztToStr(v));
+							bufprintf(&regIndexSub, "%s", (".s") ? (".s") : "");
+							bufprintf(&regIndexSub, "%zu", v);
 						}
 
 						// get offset
-						bufclear(&bufOffset);
-						bufcatcstr(&bufOffset, offset);
-						bufcatcstr(&bufOffset, " + ( ");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(numPrev));
-						bufcatcstr(&bufOffset, " + ");
-						bufcatcstr(&bufOffset, "me*");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-						bufcatcstr(&bufOffset, " + ");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(i * regC + v));
-						bufcatcstr(&bufOffset, " + ");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(r * pass->length / pass->radix));
-						bufcatcstr(&bufOffset, " )*");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(stride));
+						clear_buf(&bufOffset);
+						bufprintf(&bufOffset, "%s", (offset) ? (offset) : "");
+						bufprintf(&bufOffset, "%s", (" + ( ") ? (" + ( ") : "");
+						bufprintf(&bufOffset, "%zu", numPrev);
+						bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
+						bufprintf(&bufOffset, "%s", ("me*") ? ("me*") : "");
+						bufprintf(&bufOffset, "%zu", pass->numButterfly);
+						bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
+						bufprintf(&bufOffset, "%zu", i * regC + v);
+						bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
+						bufprintf(&bufOffset, "%zu", r * pass->length / pass->radix);
+						bufprintf(&bufOffset, "%s", (" )*") ? (" )*") : "");
+						bufprintf(&bufOffset, "%zu", stride);
 
 						// If precallback is set invoke callback function
 						// Invoke callback only once in Planar data layout
 						// (i.e.c==0)
 						if (pass->fft_doPreCallback && c == 0 && component == SR_COMP_BOTH)
 						{
-							bufcatcstr(passStr, "\n\t");
-							bufcatcstr(passStr, "retPrecallback");
+							bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+							bufprintf(passStr, "%s", ("retPrecallback") ? ("retPrecallback") : "");
 
 							if (isPrecallVector)
 							{
-								bufcatcstr(passStr, "[");
-								BUFCAT_BUFFER_VALUE(passStr, SztToStr(v));
-								bufcatcstr(passStr, "]");
+								bufprintf(passStr, "%s", ("[") ? ("[") : "");
+								bufprintf(passStr, "%zu", v);
+								bufprintf(passStr, "%s", ("]") ? ("]") : "");
 							}
 
-							bufcatcstr(passStr, " = ");
-							bufcatcstr(passStr, pass->fft_preCallback.funcname);
-							bufcatcstr(passStr, "(");
+							bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
+							bufprintf(passStr, "%s", (pass->fft_preCallback.funcname) ? (pass->fft_preCallback.funcname) : "");
+							bufprintf(passStr, "%s", ("(") ? ("(") : "");
 							if (interleaved)
 							{
-								bufcatbuf(passStr, &buffer);
-								bufcatcstr(passStr, ", ");
+								bufwrite(passStr, (buffer).buf, (buffer).len);
+								bufprintf(passStr, "%s", (", ") ? (", ") : "");
 							}
 							else
 							{
-								bufcatbuf(passStr, &bufferRe);
-								bufcatcstr(passStr, ", ");
-								bufcatbuf(passStr, &bufferIm);
-								bufcatcstr(passStr, ", ");
+								bufwrite(passStr, (bufferRe).buf, (bufferRe).len);
+								bufprintf(passStr, "%s", (", ") ? (", ") : "");
+								bufwrite(passStr, (bufferIm).buf, (bufferIm).len);
+								bufprintf(passStr, "%s", (", ") ? (", ") : "");
 							}
-							bufcatbuf(passStr, &bufOffset);
-							bufcatcstr(passStr, ", pre_userdata");
+							bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+							bufprintf(passStr, "%s", (", pre_userdata") ? (", pre_userdata") : "");
 							if (pass->fft_preCallback.localMemSize > 0)
-								bufcatcstr(passStr, ", localmem");
-							bufcatcstr(passStr, ");");
+								bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+							bufprintf(passStr, "%s", (");") ? (");") : "");
 						}
 
 						if (pass->fft_doPreCallback && pass->c2r && component == SR_COMP_REAL && hid != 0)
 						{
-							bufcatcstr(passStr, "\n\t");
-							bufcatbuf(passStr, &regIndexC);
-							bufcatcstr(passStr, " = ");
-							bufcatbuf(passStr, &regIndexSub);
-							bufcatcstr(passStr, ";");
+							bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+							bufwrite(passStr, (regIndexC).buf, (regIndexC).len);
+							bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
+							bufwrite(passStr, (regIndexSub).buf, (regIndexSub).len);
+							bufprintf(passStr, "%s", (";") ? (";") : "");
 						}
 
-						bufcatcstr(passStr, "\n\t");
-						bufcatbuf(passStr, &regIndexSub);
-						bufcatcstr(passStr, " = ");
+						bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+						bufwrite(passStr, (regIndexSub).buf, (regIndexSub).len);
+						bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
 
 						// Use the return value from precallback if set
 						if (pass->fft_doPreCallback && (component == SR_COMP_BOTH || pass->r2c))
 						{
 							if (component == SR_COMP_BOTH)
 							{
-								bufcatcstr(passStr, "retPrecallback");
+								bufprintf(passStr, "%s", ("retPrecallback") ? ("retPrecallback") : "");
 
 								if (isPrecallVector)
 								{
-									bufcatcstr(passStr, "[");
-									BUFCAT_BUFFER_VALUE(passStr, SztToStr(v));
-									bufcatcstr(passStr, "]");
+									bufprintf(passStr, "%s", ("[") ? ("[") : "");
+									bufprintf(passStr, "%zu", v);
+									bufprintf(passStr, "%s", ("]") ? ("]") : "");
 								}
 								// Append the vector tail when callback data is
 								// interleaved.
 								if (interleaved)
-									bufcatbuf(passStr, &tail);
+									bufwrite(passStr, (tail).buf, (tail).len);
 								else
-									bufcatcstr(passStr, (c == 0) ? ".x;" : ".y;");
+									bufprintf(passStr, "%s", ((c == 0) ? ".x;" : ".y;") ? ((c == 0) ? ".x;" : ".y;") : "");
 							}
 							else if (pass->r2c)
 							{
-								bufcatcstr(passStr, pass->fft_preCallback.funcname);
-								bufcatcstr(passStr, "(");
-								bufcatbuf(passStr, &buffer);
-								bufcatcstr(passStr, ", ");
-								bufcatbuf(passStr, &bufOffset);
-								bufcatcstr(passStr, ", pre_userdata");
+								bufprintf(passStr, "%s", (pass->fft_preCallback.funcname) ? (pass->fft_preCallback.funcname) : "");
+								bufprintf(passStr, "%s", ("(") ? ("(") : "");
+								bufwrite(passStr, (buffer).buf, (buffer).len);
+								bufprintf(passStr, "%s", (", ") ? (", ") : "");
+								bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+								bufprintf(passStr, "%s", (", pre_userdata") ? (", pre_userdata") : "");
 
 								if (pass->fft_preCallback.localMemSize > 0)
-									bufcatcstr(passStr, ", localmem");
-								bufcatcstr(passStr, ");");
+									bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+								bufprintf(passStr, "%s", (");") ? (");") : "");
 							}
 						}
 						else
 						{
-							bufcatbuf(passStr, &buffer);
-							bufcatcstr(passStr, "[");
-							bufcatbuf(passStr, &bufOffset);
-							bufcatcstr(passStr, "]");
-							bufcatbuf(passStr, &tail);
+							bufwrite(passStr, (buffer).buf, (buffer).len);
+							bufprintf(passStr, "%s", ("[") ? ("[") : "");
+							bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+							bufprintf(passStr, "%s", ("]") ? ("]") : "");
+							bufwrite(passStr, (tail).buf, (tail).len);
 						}
 					}
 
@@ -6201,17 +6455,17 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 			{
 				for (size_t r = 0; r < pass->radix; r++)
 				{
-					buffer_t regRealIndex = buffer_empty();
-					buffer_t regImagIndex = buffer_empty();
-					bufset_linear_reg(&regRealIndex, pass->linearRegs, &regBaseCount);
-					bufset_linear_reg(&regImagIndex, pass->linearRegs, &regBaseCount);
+					buffer_t regRealIndex = (buffer_t){0};
+					buffer_t regImagIndex = (buffer_t){0};
+					(clear_buf(&regRealIndex), (pass->linearRegs) ? bufprintf(&regRealIndex, "%s", "(*R") : bufwrite(&regRealIndex, (regBaseCount).buf, (regBaseCount).len));
+					(clear_buf(&regImagIndex), (pass->linearRegs) ? bufprintf(&regImagIndex, "%s", "(*R") : bufwrite(&regImagIndex, (regBaseCount).buf, (regBaseCount).len));
 
 					if (pass->linearRegs)
 					{
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regRealIndex);
-						bufcatcstr(&regRealIndex, ").x");
+						bufprintf(&regRealIndex, "%s", (").x") ? (").x") : "");
 						PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regImagIndex);
-						bufcatcstr(&regImagIndex, ").y");
+						bufprintf(&regImagIndex, "%s", (").y") ? (").y") : "");
 					}
 					else
 					{
@@ -6221,10 +6475,10 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 
 					if (regC != 1)
 					{
-						bufcatcstr(&regRealIndex, ".s");
-						BUFCAT_BUFFER_VALUE(&regRealIndex, SztToStr(v));
-						bufcatcstr(&regImagIndex, ".s");
-						BUFCAT_BUFFER_VALUE(&regImagIndex, SztToStr(v));
+						bufprintf(&regRealIndex, "%s", (".s") ? (".s") : "");
+						bufprintf(&regRealIndex, "%zu", v);
+						bufprintf(&regImagIndex, "%s", (".s") ? (".s") : "");
+						bufprintf(&regImagIndex, "%zu", v);
 					}
 
 					if (flag == SR_TWMUL) // twiddle multiply operation
@@ -6232,157 +6486,157 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 						if (r == 0) // no twiddle muls needed
 							continue;
 
-						bufcatcstr(passStr, "\n\t{\n\t\t");
-						bufcatbuf(passStr, &twType);
-						bufcatcstr(passStr, " W = ");
-						bufcatbuf(passStr, &twTable);
-						bufcatcstr(passStr, "[");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->algLS - 1));
-						bufcatcstr(passStr, " + ");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->radix - 1));
-						bufcatcstr(passStr, "*((");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->numButterfly));
-						bufcatcstr(passStr, "*me + ");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(butterflyIndex));
-						bufcatcstr(passStr, ")%");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->algLS));
-						bufcatcstr(passStr, ") + ");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(r - 1));
-						bufcatcstr(passStr, "];\n\t\t");
+						bufprintf(passStr, "%s", ("\n\t{\n\t\t") ? ("\n\t{\n\t\t") : "");
+						bufwrite(passStr, (twType).buf, (twType).len);
+						bufprintf(passStr, "%s", (" W = ") ? (" W = ") : "");
+						bufwrite(passStr, (twTable).buf, (twTable).len);
+						bufprintf(passStr, "%s", ("[") ? ("[") : "");
+						bufprintf(passStr, "%zu", pass->algLS - 1);
+						bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+						bufprintf(passStr, "%zu", pass->radix - 1);
+						bufprintf(passStr, "%s", ("*((") ? ("*((") : "");
+						bufprintf(passStr, "%zu", pass->numButterfly);
+						bufprintf(passStr, "%s", ("*me + ") ? ("*me + ") : "");
+						bufprintf(passStr, "%zu", butterflyIndex);
+						bufprintf(passStr, "%s", (")%") ? (")%") : "");
+						bufprintf(passStr, "%zu", pass->algLS);
+						bufprintf(passStr, "%s", (") + ") ? (") + ") : "");
+						bufprintf(passStr, "%zu", r - 1);
+						bufprintf(passStr, "%s", ("];\n\t\t") ? ("];\n\t\t") : "");
 					}
 					else // 3-step twiddle
 					{
-						bufcatcstr(passStr, "\n\t{\n\t\t");
-						bufcatbuf(passStr, &twType);
-						bufcatcstr(passStr, " W = ");
-						bufcatbuf(passStr, &tw3StepFunc);
-						bufcatcstr(passStr, "( ");
+						bufprintf(passStr, "%s", ("\n\t{\n\t\t") ? ("\n\t{\n\t\t") : "");
+						bufwrite(passStr, (twType).buf, (twType).len);
+						bufprintf(passStr, "%s", (" W = ") ? (" W = ") : "");
+						bufwrite(passStr, (tw3StepFunc).buf, (tw3StepFunc).len);
+						bufprintf(passStr, "%s", ("( ") ? ("( ") : "");
 
 						if (frontTwiddle)
 						{
 							assert(pass->linearRegs);
-							bufcatcstr(passStr, "(");
-							bufcatcstr(passStr, "me*");
-							BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->numButterfly));
-							bufcatcstr(passStr, " + ");
-							BUFCAT_BUFFER_VALUE(passStr, SztToStr(i));
-							bufcatcstr(passStr, " + ");
-							BUFCAT_BUFFER_VALUE(passStr, SztToStr(r * pass->length / pass->radix));
-							bufcatcstr(passStr, ") * b");
+							bufprintf(passStr, "%s", ("(") ? ("(") : "");
+							bufprintf(passStr, "%s", ("me*") ? ("me*") : "");
+							bufprintf(passStr, "%zu", pass->numButterfly);
+							bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+							bufprintf(passStr, "%zu", i);
+							bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+							bufprintf(passStr, "%zu", r * pass->length / pass->radix);
+							bufprintf(passStr, "%s", (") * b") ? (") * b") : "");
 						}
 						else
 						{
-							bufcatcstr(passStr, "((");
-							BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->numButterfly));
-							bufcatcstr(passStr, "*me + ");
-							BUFCAT_BUFFER_VALUE(passStr, SztToStr(butterflyIndex));
-							bufcatcstr(passStr, ")%");
-							BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->algLS));
-							bufcatcstr(passStr, " + ");
-							BUFCAT_BUFFER_VALUE(passStr, SztToStr(r * pass->algLS));
-							bufcatcstr(passStr, ") * b");
+							bufprintf(passStr, "%s", ("((") ? ("((") : "");
+							bufprintf(passStr, "%zu", pass->numButterfly);
+							bufprintf(passStr, "%s", ("*me + ") ? ("*me + ") : "");
+							bufprintf(passStr, "%zu", butterflyIndex);
+							bufprintf(passStr, "%s", (")%") ? (")%") : "");
+							bufprintf(passStr, "%zu", pass->algLS);
+							bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+							bufprintf(passStr, "%zu", r * pass->algLS);
+							bufprintf(passStr, "%s", (") * b") ? (") * b") : "");
 						}
 
-						bufcatcstr(passStr, " );\n\t\t");
+						bufprintf(passStr, "%s", (" );\n\t\t") ? (" );\n\t\t") : "");
 					}
 
-					bufcatbuf(passStr, &rType);
-					bufcatcstr(passStr, " TR, TI;\n\t\t");
+					bufwrite(passStr, (rType).buf, (rType).len);
+					bufprintf(passStr, "%s", (" TR, TI;\n\t\t") ? (" TR, TI;\n\t\t") : "");
 
 					if (pass->realSpecial && (flag == SR_TWMUL_3STEP))
 					{
 						if (fwd)
 						{
-							bufcatcstr(passStr, "if(t==0)\n\t\t{\n\t\t");
+							bufprintf(passStr, "%s", ("if(t==0)\n\t\t{\n\t\t") ? ("if(t==0)\n\t\t{\n\t\t") : "");
 
-							bufcatcstr(passStr, "TR = (W.x * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") - (W.y * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
-							bufcatcstr(passStr, "TI = (W.y * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") + (W.x * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
+							bufprintf(passStr, "%s", ("TR = (W.x * ") ? ("TR = (W.x * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") - (W.y * ") ? (") - (W.y * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
+							bufprintf(passStr, "%s", ("TI = (W.y * ") ? ("TI = (W.y * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") + (W.x * ") ? (") + (W.x * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
 
-							bufcatcstr(passStr, "}\n\t\telse\n\t\t{\n\t\t");
+							bufprintf(passStr, "%s", ("}\n\t\telse\n\t\t{\n\t\t") ? ("}\n\t\telse\n\t\t{\n\t\t") : "");
 
-							bufcatcstr(passStr, "TR = (W.x * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") + (W.y * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
-							bufcatcstr(passStr, "TI = (W.y * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") - (W.x * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
+							bufprintf(passStr, "%s", ("TR = (W.x * ") ? ("TR = (W.x * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") + (W.y * ") ? (") + (W.y * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
+							bufprintf(passStr, "%s", ("TI = (W.y * ") ? ("TI = (W.y * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") - (W.x * ") ? (") - (W.x * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
 
-							bufcatcstr(passStr, "}\n\t\t");
+							bufprintf(passStr, "%s", ("}\n\t\t") ? ("}\n\t\t") : "");
 						}
 						else
 						{
-							bufcatcstr(passStr, "if(t==0)\n\t\t{\n\t\t");
+							bufprintf(passStr, "%s", ("if(t==0)\n\t\t{\n\t\t") ? ("if(t==0)\n\t\t{\n\t\t") : "");
 
-							bufcatcstr(passStr, "TR = (W.x * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") + (W.y * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
-							bufcatcstr(passStr, "TI = (W.y * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") - (W.x * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
+							bufprintf(passStr, "%s", ("TR = (W.x * ") ? ("TR = (W.x * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") + (W.y * ") ? (") + (W.y * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
+							bufprintf(passStr, "%s", ("TI = (W.y * ") ? ("TI = (W.y * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") - (W.x * ") ? (") - (W.x * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
 
-							bufcatcstr(passStr, "}\n\t\telse\n\t\t{\n\t\t");
+							bufprintf(passStr, "%s", ("}\n\t\telse\n\t\t{\n\t\t") ? ("}\n\t\telse\n\t\t{\n\t\t") : "");
 
-							bufcatcstr(passStr, "TR = (W.x * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") - (W.y * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
-							bufcatcstr(passStr, "TI = (W.y * ");
-							bufcatbuf(passStr, &regRealIndex);
-							bufcatcstr(passStr, ") + (W.x * ");
-							bufcatbuf(passStr, &regImagIndex);
-							bufcatcstr(passStr, ");\n\t\t");
+							bufprintf(passStr, "%s", ("TR = (W.x * ") ? ("TR = (W.x * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") - (W.y * ") ? (") - (W.y * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
+							bufprintf(passStr, "%s", ("TI = (W.y * ") ? ("TI = (W.y * ") : "");
+							bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+							bufprintf(passStr, "%s", (") + (W.x * ") ? (") + (W.x * ") : "");
+							bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+							bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
 
-							bufcatcstr(passStr, "}\n\t\t");
+							bufprintf(passStr, "%s", ("}\n\t\t") ? ("}\n\t\t") : "");
 						}
 					}
 					else if (fwd)
 					{
-						bufcatcstr(passStr, "TR = (W.x * ");
-						bufcatbuf(passStr, &regRealIndex);
-						bufcatcstr(passStr, ") - (W.y * ");
-						bufcatbuf(passStr, &regImagIndex);
-						bufcatcstr(passStr, ");\n\t\t");
-						bufcatcstr(passStr, "TI = (W.y * ");
-						bufcatbuf(passStr, &regRealIndex);
-						bufcatcstr(passStr, ") + (W.x * ");
-						bufcatbuf(passStr, &regImagIndex);
-						bufcatcstr(passStr, ");\n\t\t");
+						bufprintf(passStr, "%s", ("TR = (W.x * ") ? ("TR = (W.x * ") : "");
+						bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+						bufprintf(passStr, "%s", (") - (W.y * ") ? (") - (W.y * ") : "");
+						bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+						bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
+						bufprintf(passStr, "%s", ("TI = (W.y * ") ? ("TI = (W.y * ") : "");
+						bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+						bufprintf(passStr, "%s", (") + (W.x * ") ? (") + (W.x * ") : "");
+						bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+						bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
 					}
 					else
 					{
-						bufcatcstr(passStr, "TR =  (W.x * ");
-						bufcatbuf(passStr, &regRealIndex);
-						bufcatcstr(passStr, ") + (W.y * ");
-						bufcatbuf(passStr, &regImagIndex);
-						bufcatcstr(passStr, ");\n\t\t");
-						bufcatcstr(passStr, "TI = -(W.y * ");
-						bufcatbuf(passStr, &regRealIndex);
-						bufcatcstr(passStr, ") + (W.x * ");
-						bufcatbuf(passStr, &regImagIndex);
-						bufcatcstr(passStr, ");\n\t\t");
+						bufprintf(passStr, "%s", ("TR =  (W.x * ") ? ("TR =  (W.x * ") : "");
+						bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+						bufprintf(passStr, "%s", (") + (W.y * ") ? (") + (W.y * ") : "");
+						bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+						bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
+						bufprintf(passStr, "%s", ("TI = -(W.y * ") ? ("TI = -(W.y * ") : "");
+						bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+						bufprintf(passStr, "%s", (") + (W.x * ") ? (") + (W.x * ") : "");
+						bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+						bufprintf(passStr, "%s", (");\n\t\t") ? (");\n\t\t") : "");
 					}
 
-					bufcatbuf(passStr, &regRealIndex);
-					bufcatcstr(passStr, " = TR;\n\t\t");
-					bufcatbuf(passStr, &regImagIndex);
-					bufcatcstr(passStr, " = TI;\n\t}\n");
+					bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+					bufprintf(passStr, "%s", (" = TR;\n\t\t") ? (" = TR;\n\t\t") : "");
+					bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
+					bufprintf(passStr, "%s", (" = TI;\n\t}\n") ? (" = TI;\n\t}\n") : "");
 				}
 
 				butterflyIndex++;
@@ -6401,105 +6655,105 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 						break;
 
 					if (pass->realSpecial && (pass->nextPass == NULL) && (r == pass->radix / 2) && (i == 0))
-						bufcatcstr(passStr, "\n\t}\n\tif( rw && !me)\n\t{");
+						bufprintf(passStr, "%s", ("\n\t}\n\tif( rw && !me)\n\t{") ? ("\n\t}\n\tif( rw && !me)\n\t{") : "");
 
-					buffer_t regIndexC0 = buffer_empty();
+					buffer_t regIndexC0 = (buffer_t){0};
 
 					for (size_t c = cStart; c < cEnd; c++) // component loop: 0 - real, 1 - imaginary
 					{
-						buffer_t tail = buffer_empty();
-						buffer_t regIndex = buffer_empty();
-						bufset_linear_reg(&regIndex, pass->linearRegs, &regBaseCount);
-						buffer_t buffer = buffer_empty();
+						buffer_t tail = (buffer_t){0};
+						buffer_t regIndex = (buffer_t){0};
+						(clear_buf(&regIndex), (pass->linearRegs) ? bufprintf(&regIndex, "%s", "(*R") : bufwrite(&regIndex, (regBaseCount).buf, (regBaseCount).len));
+						buffer_t buffer = (buffer_t){0};
 
 						// Write real & imag at once
 						if (interleaved && (component == SR_COMP_BOTH) && pass->linearRegs)
 						{
-							assert(bufcmp(&bufferRe, &bufferIm) == 0); // Make sure Real & Imag buffer strings
+							assert(strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0); // Make sure Real & Imag buffer strings
 							// are same for interleaved data
-							bufsetbuf(&buffer, &bufferRe);
+							(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
 							PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-							bufcatcstr(&regIndex, ")");
-							bufsetcstr(&tail, "");
+							bufprintf(&regIndex, "%s", (")") ? (")") : "");
+							(clear_buf(&tail), bufprintf(&tail, "%s", ("") ? ("") : ""));
 						}
 						else if (c == 0)
 						{
 							if (pass->linearRegs)
 							{
 								PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-								bufcatcstr(&regIndex, ").x");
+								bufprintf(&regIndex, "%s", (").x") ? (").x") : "");
 							}
 							else
 							{
 								PassRegBaseAndCountAndPos(pass, "R", r, &regIndex);
 							}
-							bufsetbuf(&buffer, &bufferRe);
-							bufsetcstr(&tail, interleaved ? ".x" : "");
+							(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
+							(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".x" : "") ? (interleaved ? ".x" : "") : ""));
 						}
 						else
 						{
 							if (pass->linearRegs)
 							{
 								PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
-								bufcatcstr(&regIndex, ").y");
+								bufprintf(&regIndex, "%s", (").y") ? (").y") : "");
 							}
 							else
 							{
 								PassRegBaseAndCountAndPos(pass, "I", r, &regIndex);
 							}
-							bufsetbuf(&buffer, &bufferIm);
-							bufsetcstr(&tail, interleaved ? ".y" : "");
+							(clear_buf(&buffer), bufwrite(&buffer, (bufferIm).buf, (bufferIm).len));
+							(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".y" : "") ? (interleaved ? ".y" : "") : ""));
 						}
 
 						if (regC != 1)
 						{
-							bufcatcstr(&regIndex, ".s");
-							BUFCAT_BUFFER_VALUE(&regIndex, SztToStr(v));
+							bufprintf(&regIndex, "%s", (".s") ? (".s") : "");
+							bufprintf(&regIndex, "%zu", v);
 						}
 
-						bufcatcstr(passStr, "\n\t");
+						bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
 
 						if (scale != 1.0f)
 						{
-							bufcatcstr(&regIndex, " * ");
-							BUFCAT_BUFFER_VALUE(&regIndex, FloatToStr(scale));
-							BUFCAT_BUFFER_VALUE(&regIndex, FloatSuffix(pass->pr));
+							bufprintf(&regIndex, "%s", (" * ") ? (" * ") : "");
+							bufprintf(&regIndex, "%.*e", 16, scale);
+							bufprintf(&regIndex, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 						}
 						if (c == 0)
-							bufcatbuf(&regIndexC0, &regIndex);
+							bufwrite(&regIndexC0, (regIndex).buf, (regIndex).len);
 
-						bufclear(&bufOffset);
-						bufcatcstr(&bufOffset, offset);
-						bufcatcstr(&bufOffset, " + ( ");
+						clear_buf(&bufOffset);
+						bufprintf(&bufOffset, "%s", (offset) ? (offset) : "");
+						bufprintf(&bufOffset, "%s", (" + ( ") ? (" + ( ") : "");
 						if ((pass->numButterfly * pass->workGroupSize) > pass->algLS)
 						{
-							bufcatcstr(&bufOffset, "((");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-							bufcatcstr(&bufOffset, "*me + ");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(butterflyIndex));
-							bufcatcstr(&bufOffset, ")/");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->algLS));
-							bufcatcstr(&bufOffset, ")*");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->algL));
-							bufcatcstr(&bufOffset, " + (");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-							bufcatcstr(&bufOffset, "*me + ");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(butterflyIndex));
-							bufcatcstr(&bufOffset, ")%");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->algLS));
-							bufcatcstr(&bufOffset, " + ");
+							bufprintf(&bufOffset, "%s", ("((") ? ("((") : "");
+							bufprintf(&bufOffset, "%zu", pass->numButterfly);
+							bufprintf(&bufOffset, "%s", ("*me + ") ? ("*me + ") : "");
+							bufprintf(&bufOffset, "%zu", butterflyIndex);
+							bufprintf(&bufOffset, "%s", (")/") ? (")/") : "");
+							bufprintf(&bufOffset, "%zu", pass->algLS);
+							bufprintf(&bufOffset, "%s", (")*") ? (")*") : "");
+							bufprintf(&bufOffset, "%zu", pass->algL);
+							bufprintf(&bufOffset, "%s", (" + (") ? (" + (") : "");
+							bufprintf(&bufOffset, "%zu", pass->numButterfly);
+							bufprintf(&bufOffset, "%s", ("*me + ") ? ("*me + ") : "");
+							bufprintf(&bufOffset, "%zu", butterflyIndex);
+							bufprintf(&bufOffset, "%s", (")%") ? (")%") : "");
+							bufprintf(&bufOffset, "%zu", pass->algLS);
+							bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
 						}
 						else
 						{
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(pass->numButterfly));
-							bufcatcstr(&bufOffset, "*me + ");
-							BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(butterflyIndex));
-							bufcatcstr(&bufOffset, " + ");
+							bufprintf(&bufOffset, "%zu", pass->numButterfly);
+							bufprintf(&bufOffset, "%s", ("*me + ") ? ("*me + ") : "");
+							bufprintf(&bufOffset, "%zu", butterflyIndex);
+							bufprintf(&bufOffset, "%s", (" + ") ? (" + ") : "");
 						}
 
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(r * pass->algLS));
-						bufcatcstr(&bufOffset, " )*");
-						BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(stride));
+						bufprintf(&bufOffset, "%zu", r * pass->algLS);
+						bufprintf(&bufOffset, "%s", (" )*") ? (" )*") : "");
+						bufprintf(&bufOffset, "%zu", stride);
 
 						if (pass->fft_doPostCallback)
 						{
@@ -6507,53 +6761,53 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 							{
 								if (c == (cEnd - 1))
 								{
-									bufcatcstr(passStr, "tempC.x = ");
-									bufcatbuf(passStr, &regIndexC0);
-									bufcatcstr(passStr, ";\n\t");
-									bufcatcstr(passStr, "tempC.y = ");
-									bufcatbuf(passStr, &regIndex);
-									bufcatcstr(passStr, ";\n\t");
+									bufprintf(passStr, "%s", ("tempC.x = ") ? ("tempC.x = ") : "");
+									bufwrite(passStr, (regIndexC0).buf, (regIndexC0).len);
+									bufprintf(passStr, "%s", (";\n\t") ? (";\n\t") : "");
+									bufprintf(passStr, "%s", ("tempC.y = ") ? ("tempC.y = ") : "");
+									bufwrite(passStr, (regIndex).buf, (regIndex).len);
+									bufprintf(passStr, "%s", (";\n\t") ? (";\n\t") : "");
 
-									bufcatcstr(passStr, pass->fft_postCallback.funcname);
-									bufcatcstr(passStr, "(");
-									bufcatbuf(passStr, &buffer);
-									bufcatcstr(passStr, ", (");
-									bufcatbuf(passStr, &bufOffset);
-									bufcatcstr(passStr, "), post_userdata, tempC");
+									bufprintf(passStr, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+									bufprintf(passStr, "%s", ("(") ? ("(") : "");
+									bufwrite(passStr, (buffer).buf, (buffer).len);
+									bufprintf(passStr, "%s", (", (") ? (", (") : "");
+									bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+									bufprintf(passStr, "%s", ("), post_userdata, tempC") ? ("), post_userdata, tempC") : "");
 									if (pass->fft_postCallback.localMemSize > 0)
-										bufcatcstr(passStr, ", post_localmem");
-									bufcatcstr(passStr, ");");
+										bufprintf(passStr, "%s", (", post_localmem") ? (", post_localmem") : "");
+									bufprintf(passStr, "%s", (");") ? (");") : "");
 								}
 							}
 							else if (c == (cEnd - 1))
 							{
-								bufcatcstr(passStr, pass->fft_postCallback.funcname);
-								bufcatcstr(passStr, "(");
-								bufcatbuf(passStr, &bufferRe);
-								bufcatcstr(passStr, ", ");
-								bufcatbuf(passStr, &bufferIm);
-								bufcatcstr(passStr, ", (");
-								bufcatbuf(passStr, &bufOffset);
-								bufcatcstr(passStr, "), post_userdata, (");
-								bufcatbuf(passStr, &regIndexC0);
-								bufcatcstr(passStr, "), (");
-								bufcatbuf(passStr, &regIndex);
-								bufcatcstr(passStr, ")");
+								bufprintf(passStr, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+								bufprintf(passStr, "%s", ("(") ? ("(") : "");
+								bufwrite(passStr, (bufferRe).buf, (bufferRe).len);
+								bufprintf(passStr, "%s", (", ") ? (", ") : "");
+								bufwrite(passStr, (bufferIm).buf, (bufferIm).len);
+								bufprintf(passStr, "%s", (", (") ? (", (") : "");
+								bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+								bufprintf(passStr, "%s", ("), post_userdata, (") ? ("), post_userdata, (") : "");
+								bufwrite(passStr, (regIndexC0).buf, (regIndexC0).len);
+								bufprintf(passStr, "%s", ("), (") ? ("), (") : "");
+								bufwrite(passStr, (regIndex).buf, (regIndex).len);
+								bufprintf(passStr, "%s", (")") ? (")") : "");
 								if (pass->fft_postCallback.localMemSize > 0)
-									bufcatcstr(passStr, ", post_localmem");
-								bufcatcstr(passStr, ");");
+									bufprintf(passStr, "%s", (", post_localmem") ? (", post_localmem") : "");
+								bufprintf(passStr, "%s", (");") ? (");") : "");
 							}
 						}
 						else
 						{
-							bufcatbuf(passStr, &buffer);
-							bufcatcstr(passStr, "[");
-							bufcatbuf(passStr, &bufOffset);
-							bufcatcstr(passStr, "]");
-							bufcatbuf(passStr, &tail);
-							bufcatcstr(passStr, " = ");
-							bufcatbuf(passStr, &regIndex);
-							bufcatcstr(passStr, ";");
+							bufwrite(passStr, (buffer).buf, (buffer).len);
+							bufprintf(passStr, "%s", ("[") ? ("[") : "");
+							bufwrite(passStr, (bufOffset).buf, (bufOffset).len);
+							bufprintf(passStr, "%s", ("]") ? ("]") : "");
+							bufwrite(passStr, (tail).buf, (tail).len);
+							bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
+							bufwrite(passStr, (regIndex).buf, (regIndex).len);
+							bufprintf(passStr, "%s", (";") ? (";") : "");
 						}
 
 						// Since we write real & imag at once, we break the loop
@@ -6562,7 +6816,7 @@ static void PassSweepRegs(const Pass *pass, size_t flag, bool fwd, bool interlea
 					}
 
 					if (pass->realSpecial && (pass->nextPass == NULL) && (r == pass->radix / 2) && (i == 0))
-						bufcatcstr(passStr, "\n\t}\n\tif(rw)\n\t{");
+						bufprintf(passStr, "%s", ("\n\t}\n\tif(rw)\n\t{") ? ("\n\t}\n\tif(rw)\n\t{") : "");
 				}
 
 				butterflyIndex++;
@@ -6631,45 +6885,45 @@ static void PassSweepRegsRC(const Pass *pass, size_t flag, bool fwd, bool interl
 
 	for (size_t r = rStart; r < rEnd; r++)
 	{
-		buffer_t val1StrExt = buffer_empty();
+		buffer_t val1StrExt = (buffer_t){0};
 
 		for (size_t c = cStart; c < cEnd; c++) // component loop: 0 - real, 1 - imaginary
 		{
 			if (flag == SR_READ) // read operation
 			{
-				buffer_t tail = buffer_empty();
-				buffer_t tail2 = buffer_empty();
-				buffer_t regIndex = buffer_from_cstr("(*R");
-				buffer_t buffer = buffer_empty();
+				buffer_t tail = (buffer_t){0};
+				buffer_t tail2 = (buffer_t){0};
+				buffer_t regIndex = buf_string_copy("(*R");
+				buffer_t buffer = (buffer_t){0};
 
 				PassRegBaseAndCountAndPos(pass, "", r, &regIndex);
 				if (pass->fft_doPreCallback && pass->c2r)
 				{
-					bufcatcstr(&regIndex, ")");
+					bufprintf(&regIndex, "%s", (")") ? (")") : "");
 					if (interleaved)
 					{
-						bufsetbuf(&buffer, (c == 0) ? &bufferRe : &bufferIm);
+						(clear_buf(&buffer), bufwrite(&buffer, ((c == 0) ? &bufferRe : &bufferIm)->buf, ((c == 0) ? &bufferRe : &bufferIm)->len));
 					}
 					else
 					{
-						bufcatbuf(&buffer, &bufferRe);
-						bufcatcstr(&buffer, ", ");
-						bufcatbuf(&buffer, &bufferIm);
+						bufwrite(&buffer, (bufferRe).buf, (bufferRe).len);
+						bufprintf(&buffer, "%s", (", ") ? (", ") : "");
+						bufwrite(&buffer, (bufferIm).buf, (bufferIm).len);
 					}
 				}
 				else if (c == 0)
 				{
-					bufcatcstr(&regIndex, ").x");
-					bufsetbuf(&buffer, &bufferRe);
-					bufsetcstr(&tail, interleaved ? ".x;" : ";");
-					bufsetcstr(&tail2, interleaved ? ".y;" : ";");
+					bufprintf(&regIndex, "%s", (").x") ? (").x") : "");
+					(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
+					(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".x;" : ";") ? (interleaved ? ".x;" : ";") : ""));
+					(clear_buf(&tail2), bufprintf(&tail2, "%s", (interleaved ? ".y;" : ";") ? (interleaved ? ".y;" : ";") : ""));
 				}
 				else
 				{
-					bufcatcstr(&regIndex, ").y");
-					bufsetbuf(&buffer, &bufferIm);
-					bufsetcstr(&tail, interleaved ? ".y;" : ";");
-					bufsetcstr(&tail2, interleaved ? ".x;" : ";");
+					bufprintf(&regIndex, "%s", (").y") ? (").y") : "");
+					(clear_buf(&buffer), bufwrite(&buffer, (bufferIm).buf, (bufferIm).len));
+					(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".y;" : ";") ? (interleaved ? ".y;" : ";") : ""));
+					(clear_buf(&tail2), bufprintf(&tail2, "%s", (interleaved ? ".x;" : ";") ? (interleaved ? ".x;" : ";") : ""));
 				}
 
 				size_t bid = numCR / 2;
@@ -6687,40 +6941,40 @@ static void PassSweepRegsRC(const Pass *pass, size_t flag, bool fwd, bool interl
 					lid = 1 + r % bid;
 				}
 
-				buffer_t oddpadd = buffer_from_cstr(oddp ? " (me/2) + " : " ");
+				buffer_t oddpadd = buf_string_copy(oddp ? " (me/2) + " : " ");
 
-				buffer_t idxStr = buffer_empty();
-				buffer_t idxStrRev = buffer_empty();
+				buffer_t idxStr = (buffer_t){0};
+				buffer_t idxStrRev = (buffer_t){0};
 				if ((pass->length <= 2) || ((pass->length & (pass->length - 1)) != 0))
 				{
-					BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(bid));
-					bufcatcstr(&idxStr, "*me +");
-					bufcatbuf(&idxStr, &oddpadd);
-					BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(lid));
+					bufprintf(&idxStr, "%zu", bid);
+					bufprintf(&idxStr, "%s", ("*me +") ? ("*me +") : "");
+					bufwrite(&idxStr, (oddpadd).buf, (oddpadd).len);
+					bufprintf(&idxStr, "%zu", lid);
 				}
 				else
 				{
-					bufcatcstr(&idxStr, "me + ");
-					BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(1 + pass->length * (r % bid) / numCR));
-					bufcatbuf(&idxStr, &oddpadd);
+					bufprintf(&idxStr, "%s", ("me + ") ? ("me + ") : "");
+					bufprintf(&idxStr, "%zu", 1 + pass->length * (r % bid) / numCR);
+					bufwrite(&idxStr, (oddpadd).buf, (oddpadd).len);
 				}
-				BUFCAT_BUFFER_VALUE(&idxStrRev, SztToStr(pass->length));
-				bufcatcstr(&idxStrRev, " - (");
-				bufcatbuf(&idxStrRev, &idxStr);
-				bufcatcstr(&idxStrRev, " )");
+				bufprintf(&idxStrRev, "%zu", pass->length);
+				bufprintf(&idxStrRev, "%s", (" - (") ? (" - (") : "");
+				bufwrite(&idxStrRev, (idxStr).buf, (idxStr).len);
+				bufprintf(&idxStrRev, "%s", (" )") ? (" )") : "");
 
 				bool act = (fwd || ((cid == 0) && (!batch2)) || ((cid != 0) && batch2));
 				if (act)
 				{
-					bufcatcstr(passStr, "\n\t");
-					bufcatbuf(passStr, &regIndex);
-					bufcatcstr(passStr, " = ");
+					bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+					bufwrite(passStr, (regIndex).buf, (regIndex).len);
+					bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
 				}
 
 				if (setZero)
 				{
 					if (act)
-						bufcatcstr(passStr, "0;");
+						bufprintf(passStr, "%s", ("0;") ? ("0;") : "");
 				}
 				else
 				{
@@ -6728,85 +6982,85 @@ static void PassSweepRegsRC(const Pass *pass, size_t flag, bool fwd, bool interl
 					{
 						if (pass->fft_doPreCallback)
 						{
-							bufcatcstr(passStr, pass->fft_preCallback.funcname);
-							bufcatcstr(passStr, "(");
-							bufcatbuf(passStr, &buffer);
-							bufcatcstr(passStr, ", ");
+							bufprintf(passStr, "%s", (pass->fft_preCallback.funcname) ? (pass->fft_preCallback.funcname) : "");
+							bufprintf(passStr, "%s", ("(") ? ("(") : "");
+							bufwrite(passStr, (buffer).buf, (buffer).len);
+							bufprintf(passStr, "%s", (", ") ? (", ") : "");
 						}
 						else
 						{
-							bufcatbuf(passStr, &buffer);
-							bufcatcstr(passStr, "[");
+							bufwrite(passStr, (buffer).buf, (buffer).len);
+							bufprintf(passStr, "%s", ("[") ? ("[") : "");
 						}
-						bufcatcstr(passStr, offset);
-						bufcatcstr(passStr, " + ( ");
+						bufprintf(passStr, "%s", (offset) ? (offset) : "");
+						bufprintf(passStr, "%s", (" + ( ") ? (" + ( ") : "");
 					}
 
 					if (fwd)
 					{
 						if (cid == 0)
-							bufcatbuf(passStr, &idxStr);
+							bufwrite(passStr, (idxStr).buf, (idxStr).len);
 						else
-							bufcatbuf(passStr, &idxStrRev);
+							bufwrite(passStr, (idxStrRev).buf, (idxStrRev).len);
 					}
 					else if (cid == 0)
 					{
 						if (!batch2)
-							bufcatbuf(passStr, &idxStr);
+							bufwrite(passStr, (idxStr).buf, (idxStr).len);
 					}
 					else
 					{
 						if (batch2)
-							bufcatbuf(passStr, &idxStr);
+							bufwrite(passStr, (idxStr).buf, (idxStr).len);
 					}
 
 					if (act)
 					{
-						bufcatcstr(passStr, " )*");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(stride));
+						bufprintf(passStr, "%s", (" )*") ? (" )*") : "");
+						bufprintf(passStr, "%zu", stride);
 
 						if (pass->fft_doPreCallback)
 						{
-							bufcatcstr(passStr, ", pre_userdata");
-							bufcatcstr(passStr, (pass->fft_preCallback.localMemSize > 0) ? ", localmem);" : ");");
+							bufprintf(passStr, "%s", (", pre_userdata") ? (", pre_userdata") : "");
+							bufprintf(passStr, "%s", ((pass->fft_preCallback.localMemSize > 0) ? ", localmem);" : ");") ? ((pass->fft_preCallback.localMemSize > 0) ? ", localmem);" : ");") : "");
 						}
 						else
 						{
-							bufcatcstr(passStr, "]");
+							bufprintf(passStr, "%s", ("]") ? ("]") : "");
 
 							if (fwd)
-								bufcatbuf(passStr, &tail);
+								bufwrite(passStr, (tail).buf, (tail).len);
 							else if (!batch2)
-								bufcatbuf(passStr, &tail);
+								bufwrite(passStr, (tail).buf, (tail).len);
 							else
-								bufcatbuf(passStr, &tail2);
+								bufwrite(passStr, (tail2).buf, (tail2).len);
 						}
 					}
 				}
 			}
 			else // write operation
 			{
-				buffer_t tail = buffer_empty();
-				buffer_t regIndex = buffer_from_cstr("(*R");
-				buffer_t regIndexPair = buffer_from_cstr("(*R");
-				buffer_t buffer = buffer_empty();
+				buffer_t tail = (buffer_t){0};
+				buffer_t regIndex = buf_string_copy("(*R");
+				buffer_t regIndexPair = buf_string_copy("(*R");
+				buffer_t buffer = (buffer_t){0};
 
 				// Write real & imag at once
 				if (interleaved && (component == SR_COMP_BOTH))
 				{
-					assert(bufcmp(&bufferRe, &bufferIm) == 0); // Make sure Real & Imag buffer strings are same
+					assert(strcmp(((bufferRe).buf ? (const char *) (bufferRe).buf : ""), ((bufferIm).buf ? (const char *) (bufferIm).buf : "")) == 0); // Make sure Real & Imag buffer strings are same
 					// for interleaved data
-					bufsetbuf(&buffer, &bufferRe);
+					(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
 				}
 				else if (c == 0)
 				{
-					bufsetbuf(&buffer, &bufferRe);
-					bufsetcstr(&tail, interleaved ? ".x" : "");
+					(clear_buf(&buffer), bufwrite(&buffer, (bufferRe).buf, (bufferRe).len));
+					(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".x" : "") ? (interleaved ? ".x" : "") : ""));
 				}
 				else
 				{
-					bufsetbuf(&buffer, &bufferIm);
-					bufsetcstr(&tail, interleaved ? ".y" : "");
+					(clear_buf(&buffer), bufwrite(&buffer, (bufferIm).buf, (bufferIm).len));
+					(clear_buf(&tail), bufprintf(&tail, "%s", (interleaved ? ".y" : "") ? (interleaved ? ".y" : "") : ""));
 				}
 
 				size_t bid, cid, lid;
@@ -6817,9 +7071,9 @@ static void PassSweepRegsRC(const Pass *pass, size_t flag, bool fwd, bool interl
 					cid = r / bid;
 
 					PassRegBaseAndCountAndPos(pass, "", r, &regIndex);
-					bufcatcstr(&regIndex, ")");
+					bufprintf(&regIndex, "%s", (")") ? (")") : "");
 					PassRegBaseAndCountAndPos(pass, "", (pass->radix - r) % pass->radix, &regIndexPair);
-					bufcatcstr(&regIndexPair, ")");
+					bufprintf(&regIndexPair, "%s", (")") ? (")") : "");
 				}
 				else
 				{
@@ -6831,9 +7085,9 @@ static void PassSweepRegsRC(const Pass *pass, size_t flag, bool fwd, bool interl
 						lid = 1 + (numCR / 2);
 
 						PassRegBaseAndCountAndPos(pass, "", r, &regIndex);
-						bufcatcstr(&regIndex, ")");
+						bufprintf(&regIndex, "%s", (")") ? (")") : "");
 						PassRegBaseAndCountAndPos(pass, "", r + 1, &regIndexPair);
-						bufcatcstr(&regIndexPair, ")");
+						bufprintf(&regIndexPair, "%s", (")") ? (")") : "");
 					}
 					else
 					{
@@ -6841,320 +7095,320 @@ static void PassSweepRegsRC(const Pass *pass, size_t flag, bool fwd, bool interl
 						lid = 1 + r % bid;
 
 						PassRegBaseAndCountAndPos(pass, "", r, &regIndex);
-						bufcatcstr(&regIndex, ")");
+						bufprintf(&regIndex, "%s", (")") ? (")") : "");
 						PassRegBaseAndCountAndPos(pass, "", r + bid, &regIndexPair);
-						bufcatcstr(&regIndexPair, ")");
+						bufprintf(&regIndexPair, "%s", (")") ? (")") : "");
 					}
 				}
 
 				if (!cid)
 				{
-					buffer_t oddpadd = buffer_from_cstr(oddp ? " (me/2) + " : " ");
+					buffer_t oddpadd = buf_string_copy(oddp ? " (me/2) + " : " ");
 
-					buffer_t sclStr = buffer_from_cstr("");
+					buffer_t sclStr = buf_string_copy("");
 					if (scale != 1.0f)
 					{
-						bufcatcstr(&sclStr, " * ");
-						BUFCAT_BUFFER_VALUE(&sclStr, FloatToStr(scale));
-						BUFCAT_BUFFER_VALUE(&sclStr, FloatSuffix(pass->pr));
+						bufprintf(&sclStr, "%s", (" * ") ? (" * ") : "");
+						bufprintf(&sclStr, "%.*e", 16, scale);
+						bufprintf(&sclStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 					}
 
 					if (fwd)
 					{
-						buffer_t idxStr = buffer_empty();
-						buffer_t idxStrRev = buffer_empty();
+						buffer_t idxStr = (buffer_t){0};
+						buffer_t idxStrRev = (buffer_t){0};
 						if ((pass->length <= 2) || ((pass->length & (pass->length - 1)) != 0))
 						{
-							BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(pass->length / (2 * pass->workGroupSize)));
-							bufcatcstr(&idxStr, "*me +");
-							bufcatbuf(&idxStr, &oddpadd);
-							BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(lid));
+							bufprintf(&idxStr, "%zu", pass->length / (2 * pass->workGroupSize));
+							bufprintf(&idxStr, "%s", ("*me +") ? ("*me +") : "");
+							bufwrite(&idxStr, (oddpadd).buf, (oddpadd).len);
+							bufprintf(&idxStr, "%zu", lid);
 						}
 						else
 						{
-							bufcatcstr(&idxStr, "me + ");
-							BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(1 + pass->length * (r % bid) / numCR));
-							bufcatbuf(&idxStr, &oddpadd);
+							bufprintf(&idxStr, "%s", ("me + ") ? ("me + ") : "");
+							bufprintf(&idxStr, "%zu", 1 + pass->length * (r % bid) / numCR);
+							bufwrite(&idxStr, (oddpadd).buf, (oddpadd).len);
 						}
-						BUFCAT_BUFFER_VALUE(&idxStrRev, SztToStr(pass->length));
-						bufcatcstr(&idxStrRev, " - (");
-						bufcatbuf(&idxStrRev, &idxStr);
-						bufcatcstr(&idxStrRev, " )");
+						bufprintf(&idxStrRev, "%zu", pass->length);
+						bufprintf(&idxStrRev, "%s", (" - (") ? (" - (") : "");
+						bufwrite(&idxStrRev, (idxStr).buf, (idxStr).len);
+						bufprintf(&idxStrRev, "%s", (" )") ? (" )") : "");
 
-						buffer_t val1Str = buffer_empty();
-						buffer_t val2Str = buffer_empty();
+						buffer_t val1Str = (buffer_t){0};
+						buffer_t val2Str = (buffer_t){0};
 
 						if (pass->fft_doPostCallback && !pass->rcFull)
 						{
 							if (interleaved)
 							{
-								bufcatcstr(&val1Str, "\n\t");
-								bufcatcstr(&val1Str, pass->fft_postCallback.funcname);
-								bufcatcstr(&val1Str, "(");
-								bufcatbuf(&val1Str, &buffer);
-								bufcatcstr(&val1Str, ", ");
-								bufcatcstr(&val1Str, offset);
-								bufcatcstr(&val1Str, " + ( ");
-								bufcatbuf(&val1Str, &idxStr);
-								bufcatcstr(&val1Str, " )*");
-								BUFCAT_BUFFER_VALUE(&val1Str, SztToStr(stride));
-								bufcatcstr(&val1Str, ", post_userdata, ");
+								bufprintf(&val1Str, "%s", ("\n\t") ? ("\n\t") : "");
+								bufprintf(&val1Str, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+								bufprintf(&val1Str, "%s", ("(") ? ("(") : "");
+								bufwrite(&val1Str, (buffer).buf, (buffer).len);
+								bufprintf(&val1Str, "%s", (", ") ? (", ") : "");
+								bufprintf(&val1Str, "%s", (offset) ? (offset) : "");
+								bufprintf(&val1Str, "%s", (" + ( ") ? (" + ( ") : "");
+								bufwrite(&val1Str, (idxStr).buf, (idxStr).len);
+								bufprintf(&val1Str, "%s", (" )*") ? (" )*") : "");
+								bufprintf(&val1Str, "%zu", stride);
+								bufprintf(&val1Str, "%s", (", post_userdata, ") ? (", post_userdata, ") : "");
 							}
 							else if (c == 0)
 							{
-								bufcatcstr(&val1StrExt, "\n\t");
-								bufcatcstr(&val1StrExt, pass->fft_postCallback.funcname);
-								bufcatcstr(&val1StrExt, "(");
-								bufcatbuf(&val1StrExt, &bufferRe);
-								bufcatcstr(&val1StrExt, ", ");
-								bufcatbuf(&val1StrExt, &bufferIm);
-								bufcatcstr(&val1StrExt, ", ");
-								bufcatcstr(&val1StrExt, offset);
-								bufcatcstr(&val1StrExt, " + ( ");
-								bufcatbuf(&val1StrExt, &idxStr);
-								bufcatcstr(&val1StrExt, " )*");
-								BUFCAT_BUFFER_VALUE(&val1StrExt, SztToStr(stride));
-								bufcatcstr(&val1StrExt, ", post_userdata, ");
+								bufprintf(&val1StrExt, "%s", ("\n\t") ? ("\n\t") : "");
+								bufprintf(&val1StrExt, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+								bufprintf(&val1StrExt, "%s", ("(") ? ("(") : "");
+								bufwrite(&val1StrExt, (bufferRe).buf, (bufferRe).len);
+								bufprintf(&val1StrExt, "%s", (", ") ? (", ") : "");
+								bufwrite(&val1StrExt, (bufferIm).buf, (bufferIm).len);
+								bufprintf(&val1StrExt, "%s", (", ") ? (", ") : "");
+								bufprintf(&val1StrExt, "%s", (offset) ? (offset) : "");
+								bufprintf(&val1StrExt, "%s", (" + ( ") ? (" + ( ") : "");
+								bufwrite(&val1StrExt, (idxStr).buf, (idxStr).len);
+								bufprintf(&val1StrExt, "%s", (" )*") ? (" )*") : "");
+								bufprintf(&val1StrExt, "%zu", stride);
+								bufprintf(&val1StrExt, "%s", (", post_userdata, ") ? (", post_userdata, ") : "");
 							}
 						}
 						else
 						{
-							bufcatcstr(&val1Str, "\n\t");
-							bufcatbuf(&val1Str, &buffer);
-							bufcatcstr(&val1Str, "[");
-							bufcatcstr(&val1Str, offset);
-							bufcatcstr(&val1Str, " + ( ");
-							bufcatbuf(&val1Str, &idxStr);
-							bufcatcstr(&val1Str, " )*");
-							BUFCAT_BUFFER_VALUE(&val1Str, SztToStr(stride));
-							bufcatcstr(&val1Str, "]");
-							bufcatbuf(&val1Str, &tail);
-							bufcatcstr(&val1Str, " = ");
+							bufprintf(&val1Str, "%s", ("\n\t") ? ("\n\t") : "");
+							bufwrite(&val1Str, (buffer).buf, (buffer).len);
+							bufprintf(&val1Str, "%s", ("[") ? ("[") : "");
+							bufprintf(&val1Str, "%s", (offset) ? (offset) : "");
+							bufprintf(&val1Str, "%s", (" + ( ") ? (" + ( ") : "");
+							bufwrite(&val1Str, (idxStr).buf, (idxStr).len);
+							bufprintf(&val1Str, "%s", (" )*") ? (" )*") : "");
+							bufprintf(&val1Str, "%zu", stride);
+							bufprintf(&val1Str, "%s", ("]") ? ("]") : "");
+							bufwrite(&val1Str, (tail).buf, (tail).len);
+							bufprintf(&val1Str, "%s", (" = ") ? (" = ") : "");
 						}
 
-						bufcatcstr(&val2Str, "\n\t");
-						bufcatbuf(&val2Str, &buffer);
-						bufcatcstr(&val2Str, "[");
-						bufcatcstr(&val2Str, offset);
-						bufcatcstr(&val2Str, " + ( ");
-						bufcatbuf(&val2Str, &idxStrRev);
-						bufcatcstr(&val2Str, " )*");
-						BUFCAT_BUFFER_VALUE(&val2Str, SztToStr(stride));
-						bufcatcstr(&val2Str, "]");
-						bufcatbuf(&val2Str, &tail);
-						bufcatcstr(&val2Str, " = ");
+						bufprintf(&val2Str, "%s", ("\n\t") ? ("\n\t") : "");
+						bufwrite(&val2Str, (buffer).buf, (buffer).len);
+						bufprintf(&val2Str, "%s", ("[") ? ("[") : "");
+						bufprintf(&val2Str, "%s", (offset) ? (offset) : "");
+						bufprintf(&val2Str, "%s", (" + ( ") ? (" + ( ") : "");
+						bufwrite(&val2Str, (idxStrRev).buf, (idxStrRev).len);
+						bufprintf(&val2Str, "%s", (" )*") ? (" )*") : "");
+						bufprintf(&val2Str, "%zu", stride);
+						bufprintf(&val2Str, "%s", ("]") ? ("]") : "");
+						bufwrite(&val2Str, (tail).buf, (tail).len);
+						bufprintf(&val2Str, "%s", (" = ") ? (" = ") : "");
 
-						buffer_t real1 = buffer_empty();
-						buffer_t imag1 = buffer_empty();
-						buffer_t real2 = buffer_empty();
-						buffer_t imag2 = buffer_empty();
+						buffer_t real1 = (buffer_t){0};
+						buffer_t imag1 = (buffer_t){0};
+						buffer_t real2 = (buffer_t){0};
+						buffer_t imag2 = (buffer_t){0};
 
-						bufcatcstr(&real1, "(");
-						bufcatbuf(&real1, &regIndex);
-						bufcatcstr(&real1, ".x + ");
-						bufcatbuf(&real1, &regIndexPair);
-						bufcatcstr(&real1, ".x)*0.5");
-						bufcatcstr(&imag1, "(");
-						bufcatbuf(&imag1, &regIndex);
-						bufcatcstr(&imag1, ".y - ");
-						bufcatbuf(&imag1, &regIndexPair);
-						bufcatcstr(&imag1, ".y)*0.5");
-						bufcatcstr(&real2, "(");
-						bufcatbuf(&real2, &regIndex);
-						bufcatcstr(&real2, ".y + ");
-						bufcatbuf(&real2, &regIndexPair);
-						bufcatcstr(&real2, ".y)*0.5");
-						bufcatcstr(&imag2, "(-");
-						bufcatbuf(&imag2, &regIndex);
-						bufcatcstr(&imag2, ".x + ");
-						bufcatbuf(&imag2, &regIndexPair);
-						bufcatcstr(&imag2, ".x)*0.5");
+						bufprintf(&real1, "%s", ("(") ? ("(") : "");
+						bufwrite(&real1, (regIndex).buf, (regIndex).len);
+						bufprintf(&real1, "%s", (".x + ") ? (".x + ") : "");
+						bufwrite(&real1, (regIndexPair).buf, (regIndexPair).len);
+						bufprintf(&real1, "%s", (".x)*0.5") ? (".x)*0.5") : "");
+						bufprintf(&imag1, "%s", ("(") ? ("(") : "");
+						bufwrite(&imag1, (regIndex).buf, (regIndex).len);
+						bufprintf(&imag1, "%s", (".y - ") ? (".y - ") : "");
+						bufwrite(&imag1, (regIndexPair).buf, (regIndexPair).len);
+						bufprintf(&imag1, "%s", (".y)*0.5") ? (".y)*0.5") : "");
+						bufprintf(&real2, "%s", ("(") ? ("(") : "");
+						bufwrite(&real2, (regIndex).buf, (regIndex).len);
+						bufprintf(&real2, "%s", (".y + ") ? (".y + ") : "");
+						bufwrite(&real2, (regIndexPair).buf, (regIndexPair).len);
+						bufprintf(&real2, "%s", (".y)*0.5") ? (".y)*0.5") : "");
+						bufprintf(&imag2, "%s", ("(-") ? ("(-") : "");
+						bufwrite(&imag2, (regIndex).buf, (regIndex).len);
+						bufprintf(&imag2, "%s", (".x + ") ? (".x + ") : "");
+						bufwrite(&imag2, (regIndexPair).buf, (regIndexPair).len);
+						bufprintf(&imag2, "%s", (".x)*0.5") ? (".x)*0.5") : "");
 
 						if (interleaved && (component == SR_COMP_BOTH))
 						{
-							bufcatcstr(&val1Str, "(");
-							BUFCAT_BUFFER_VALUE(&val1Str, RegBaseType(pass->pr, 2));
-							bufcatcstr(&val1Str, ")( ");
-							bufcatcstr(&val2Str, "(");
-							BUFCAT_BUFFER_VALUE(&val2Str, RegBaseType(pass->pr, 2));
-							bufcatcstr(&val2Str, ")( ");
+							bufprintf(&val1Str, "%s", ("(") ? ("(") : "");
+							bufprintf(&val1Str, "%s", (((pass->pr) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((pass->pr) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+							bufprintf(&val1Str, "%s", (")( ") ? (")( ") : "");
+							bufprintf(&val2Str, "%s", ("(") ? ("(") : "");
+							bufprintf(&val2Str, "%s", (((pass->pr) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((pass->pr) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+							bufprintf(&val2Str, "%s", (")( ") ? (")( ") : "");
 
 							if (!batch2)
 							{
-								bufcatbuf(&val1Str, &real1);
-								bufcatcstr(&val1Str, ", ");
-								bufcatcstr(&val1Str, "+");
-								bufcatbuf(&val1Str, &imag1);
-								bufcatbuf(&val2Str, &real1);
-								bufcatcstr(&val2Str, ", ");
-								bufcatcstr(&val2Str, "-");
-								bufcatbuf(&val2Str, &imag1);
+								bufwrite(&val1Str, (real1).buf, (real1).len);
+								bufprintf(&val1Str, "%s", (", ") ? (", ") : "");
+								bufprintf(&val1Str, "%s", ("+") ? ("+") : "");
+								bufwrite(&val1Str, (imag1).buf, (imag1).len);
+								bufwrite(&val2Str, (real1).buf, (real1).len);
+								bufprintf(&val2Str, "%s", (", ") ? (", ") : "");
+								bufprintf(&val2Str, "%s", ("-") ? ("-") : "");
+								bufwrite(&val2Str, (imag1).buf, (imag1).len);
 							}
 							else
 							{
-								bufcatbuf(&val1Str, &real2);
-								bufcatcstr(&val1Str, ", ");
-								bufcatcstr(&val1Str, "+");
-								bufcatbuf(&val1Str, &imag2);
-								bufcatbuf(&val2Str, &real2);
-								bufcatcstr(&val2Str, ", ");
-								bufcatcstr(&val2Str, "-");
-								bufcatbuf(&val2Str, &imag2);
+								bufwrite(&val1Str, (real2).buf, (real2).len);
+								bufprintf(&val1Str, "%s", (", ") ? (", ") : "");
+								bufprintf(&val1Str, "%s", ("+") ? ("+") : "");
+								bufwrite(&val1Str, (imag2).buf, (imag2).len);
+								bufwrite(&val2Str, (real2).buf, (real2).len);
+								bufprintf(&val2Str, "%s", (", ") ? (", ") : "");
+								bufprintf(&val2Str, "%s", ("-") ? ("-") : "");
+								bufwrite(&val2Str, (imag2).buf, (imag2).len);
 							}
 
-							bufcatcstr(&val1Str, " )");
-							bufcatcstr(&val2Str, " )");
+							bufprintf(&val1Str, "%s", (" )") ? (" )") : "");
+							bufprintf(&val2Str, "%s", (" )") ? (" )") : "");
 						}
 						else
 						{
-							bufcatcstr(&val1Str, " (");
-							bufcatcstr(&val2Str, " (");
+							bufprintf(&val1Str, "%s", (" (") ? (" (") : "");
+							bufprintf(&val2Str, "%s", (" (") ? (" (") : "");
 							if (c == 0)
 							{
 								if (!batch2)
 								{
-									bufcatbuf(&val1Str, &real1);
-									bufcatbuf(&val2Str, &real1);
+									bufwrite(&val1Str, (real1).buf, (real1).len);
+									bufwrite(&val2Str, (real1).buf, (real1).len);
 								}
 								else
 								{
-									bufcatbuf(&val1Str, &real2);
-									bufcatbuf(&val2Str, &real2);
+									bufwrite(&val1Str, (real2).buf, (real2).len);
+									bufwrite(&val2Str, (real2).buf, (real2).len);
 								}
 							}
 							else if (!batch2)
 							{
-								bufcatcstr(&val1Str, "+");
-								bufcatbuf(&val1Str, &imag1);
-								bufcatcstr(&val2Str, "-");
-								bufcatbuf(&val2Str, &imag1);
+								bufprintf(&val1Str, "%s", ("+") ? ("+") : "");
+								bufwrite(&val1Str, (imag1).buf, (imag1).len);
+								bufprintf(&val2Str, "%s", ("-") ? ("-") : "");
+								bufwrite(&val2Str, (imag1).buf, (imag1).len);
 							}
 							else
 							{
-								bufcatcstr(&val1Str, "+");
-								bufcatbuf(&val1Str, &imag2);
-								bufcatcstr(&val2Str, "-");
-								bufcatbuf(&val2Str, &imag2);
+								bufprintf(&val1Str, "%s", ("+") ? ("+") : "");
+								bufwrite(&val1Str, (imag2).buf, (imag2).len);
+								bufprintf(&val2Str, "%s", ("-") ? ("-") : "");
+								bufwrite(&val2Str, (imag2).buf, (imag2).len);
 							}
-							bufcatcstr(&val1Str, " )");
-							bufcatcstr(&val2Str, " )");
+							bufprintf(&val1Str, "%s", (" )") ? (" )") : "");
+							bufprintf(&val2Str, "%s", (" )") ? (" )") : "");
 						}
 
-						bufcatbuf(&val1Str, &sclStr);
-						bufcatbuf(&val2Str, &sclStr);
+						bufwrite(&val1Str, (sclStr).buf, (sclStr).len);
+						bufwrite(&val2Str, (sclStr).buf, (sclStr).len);
 
 						if (pass->fft_doPostCallback && !pass->rcFull)
 						{
 							if (!interleaved)
 							{
-								bufcatbuf(&val1StrExt, &val1Str);
-								bufclear(&val1Str);
+								bufwrite(&val1StrExt, (val1Str).buf, (val1Str).len);
+								clear_buf(&val1Str);
 
 								if (c == 0)
-									bufcatcstr(&val1StrExt, ", ");
+									bufprintf(&val1StrExt, "%s", (", ") ? (", ") : "");
 								else
-									bufcatbuf(&val1Str, &val1StrExt);
+									bufwrite(&val1Str, (val1StrExt).buf, (val1StrExt).len);
 							}
 
 							if (interleaved || c == (cEnd - 1))
 							{
 								if (pass->fft_postCallback.localMemSize > 0)
-									bufcatcstr(&val1Str, ", localmem");
-								bufcatcstr(&val1Str, ");");
+									bufprintf(&val1Str, "%s", (", localmem") ? (", localmem") : "");
+								bufprintf(&val1Str, "%s", (");") ? (");") : "");
 							}
 						}
 						else
 						{
-							bufcatcstr(&val1Str, ";");
+							bufprintf(&val1Str, "%s", (";") ? (";") : "");
 						}
 
-						bufcatbuf(passStr, &val1Str);
+						bufwrite(passStr, (val1Str).buf, (val1Str).len);
 						if (pass->rcFull)
 						{
-							bufcatbuf(passStr, &val2Str);
-							bufcatcstr(passStr, ";");
+							bufwrite(passStr, (val2Str).buf, (val2Str).len);
+							bufprintf(passStr, "%s", (";") ? (";") : "");
 						}
 					}
 					else
 					{
-						buffer_t idxStr = buffer_empty();
-						buffer_t idxStrRev = buffer_empty();
+						buffer_t idxStr = (buffer_t){0};
+						buffer_t idxStrRev = (buffer_t){0};
 						if ((pass->length <= 2) || ((pass->length & (pass->length - 1)) != 0))
 						{
-							BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(bid));
-							bufcatcstr(&idxStr, "*me +");
-							bufcatbuf(&idxStr, &oddpadd);
-							BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(lid));
+							bufprintf(&idxStr, "%zu", bid);
+							bufprintf(&idxStr, "%s", ("*me +") ? ("*me +") : "");
+							bufwrite(&idxStr, (oddpadd).buf, (oddpadd).len);
+							bufprintf(&idxStr, "%zu", lid);
 						}
 						else
 						{
-							bufcatcstr(&idxStr, "me + ");
-							BUFCAT_BUFFER_VALUE(&idxStr, SztToStr(1 + pass->length * (r % bid) / numCR));
-							bufcatbuf(&idxStr, &oddpadd);
+							bufprintf(&idxStr, "%s", ("me + ") ? ("me + ") : "");
+							bufprintf(&idxStr, "%zu", 1 + pass->length * (r % bid) / numCR);
+							bufwrite(&idxStr, (oddpadd).buf, (oddpadd).len);
 						}
-						BUFCAT_BUFFER_VALUE(&idxStrRev, SztToStr(pass->length));
-						bufcatcstr(&idxStrRev, " - (");
-						bufcatbuf(&idxStrRev, &idxStr);
-						bufcatcstr(&idxStrRev, " )");
+						bufprintf(&idxStrRev, "%zu", pass->length);
+						bufprintf(&idxStrRev, "%s", (" - (") ? (" - (") : "");
+						bufwrite(&idxStrRev, (idxStr).buf, (idxStr).len);
+						bufprintf(&idxStrRev, "%s", (" )") ? (" )") : "");
 
-						bufcatcstr(passStr, "\n\t");
-						bufcatbuf(passStr, &buffer);
-						bufcatcstr(passStr, "[");
-						bufcatcstr(passStr, offset);
-						bufcatcstr(passStr, " + ( ");
+						bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+						bufwrite(passStr, (buffer).buf, (buffer).len);
+						bufprintf(passStr, "%s", ("[") ? ("[") : "");
+						bufprintf(passStr, "%s", (offset) ? (offset) : "");
+						bufprintf(passStr, "%s", (" + ( ") ? (" + ( ") : "");
 
 						if (!batch2)
-							bufcatbuf(passStr, &idxStr);
+							bufwrite(passStr, (idxStr).buf, (idxStr).len);
 						else
-							bufcatbuf(passStr, &idxStrRev);
+							bufwrite(passStr, (idxStrRev).buf, (idxStrRev).len);
 
-						bufcatcstr(passStr, " )*");
-						BUFCAT_BUFFER_VALUE(passStr, SztToStr(stride));
-						bufcatcstr(passStr, "]");
-						bufcatbuf(passStr, &tail);
-						bufcatcstr(passStr, " = ");
+						bufprintf(passStr, "%s", (" )*") ? (" )*") : "");
+						bufprintf(passStr, "%zu", stride);
+						bufprintf(passStr, "%s", ("]") ? ("]") : "");
+						bufwrite(passStr, (tail).buf, (tail).len);
+						bufprintf(passStr, "%s", (" = ") ? (" = ") : "");
 
-						bufcatcstr(passStr, "( ");
+						bufprintf(passStr, "%s", ("( ") ? ("( ") : "");
 						if (c == 0)
 						{
-							bufcatcstr(&regIndex, ".x");
-							bufcatcstr(&regIndexPair, pass->fft_doPreCallback ? ".y" : ".x");
+							bufprintf(&regIndex, "%s", (".x") ? (".x") : "");
+							bufprintf(&regIndexPair, "%s", (pass->fft_doPreCallback ? ".y" : ".x") ? (pass->fft_doPreCallback ? ".y" : ".x") : "");
 
 							if (!batch2)
 							{
-								bufcatbuf(passStr, &regIndex);
-								bufcatcstr(passStr, " - ");
-								bufcatbuf(passStr, &regIndexPair);
+								bufwrite(passStr, (regIndex).buf, (regIndex).len);
+								bufprintf(passStr, "%s", (" - ") ? (" - ") : "");
+								bufwrite(passStr, (regIndexPair).buf, (regIndexPair).len);
 							}
 							else
 							{
-								bufcatbuf(passStr, &regIndex);
-								bufcatcstr(passStr, " + ");
-								bufcatbuf(passStr, &regIndexPair);
+								bufwrite(passStr, (regIndex).buf, (regIndex).len);
+								bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+								bufwrite(passStr, (regIndexPair).buf, (regIndexPair).len);
 							}
 						}
 						else
 						{
-							bufcatcstr(&regIndex, ".y");
-							bufcatcstr(&regIndexPair, (pass->fft_doPreCallback && oddt) ? ".x" : ".y");
+							bufprintf(&regIndex, "%s", (".y") ? (".y") : "");
+							bufprintf(&regIndexPair, "%s", ((pass->fft_doPreCallback && oddt) ? ".x" : ".y") ? ((pass->fft_doPreCallback && oddt) ? ".x" : ".y") : "");
 
 							if (!batch2)
 							{
-								bufcatbuf(passStr, &regIndex);
-								bufcatcstr(passStr, " + ");
-								bufcatbuf(passStr, &regIndexPair);
+								bufwrite(passStr, (regIndex).buf, (regIndex).len);
+								bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+								bufwrite(passStr, (regIndexPair).buf, (regIndexPair).len);
 							}
 							else
 							{
-								bufcatcstr(passStr, " - ");
-								bufcatbuf(passStr, &regIndex);
-								bufcatcstr(passStr, " + ");
-								bufcatbuf(passStr, &regIndexPair);
+								bufprintf(passStr, "%s", (" - ") ? (" - ") : "");
+								bufwrite(passStr, (regIndex).buf, (regIndex).len);
+								bufprintf(passStr, "%s", (" + ") ? (" + ") : "");
+								bufwrite(passStr, (regIndexPair).buf, (regIndexPair).len);
 							}
 						}
-						bufcatcstr(passStr, " )");
-						bufcatbuf(passStr, &sclStr);
-						bufcatcstr(passStr, ";");
+						bufprintf(passStr, "%s", (" )") ? (" )") : "");
+						bufwrite(passStr, (sclStr).buf, (sclStr).len);
+						bufprintf(passStr, "%s", (";") ? (";") : "");
 					}
 
 					// Since we write real & imag at once, we break the loop
@@ -7169,49 +7423,49 @@ static void PassSweepRegsRC(const Pass *pass, size_t flag, bool fwd, bool interl
 static void PassCallButterfly(const Pass *pass, const buffer_t bflyName, size_t regC, size_t numB, buffer_t *passStr)
 {
 	// Emit the butterfly call sequence for a pass.
-	buffer_t regBase = buffer_empty();
+	buffer_t regBase = (buffer_t){0};
 	PassRegBase(pass, regC, &regBase);
 
 	for (size_t i = 0; i < numB; i++)
 	{
-		buffer_t regBaseCount = buffer_copy(&regBase);
+		buffer_t regBaseCount = buf_copy_part(regBase, 0, (regBase).len);
 		PassRegBaseAndCount(pass, i, &regBaseCount);
 
-		bufcatcstr(passStr, "\n\t");
-		bufcatbuf(passStr, &bflyName);
-		bufcatcstr(passStr, "(");
+		bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+		bufwrite(passStr, (bflyName).buf, (bflyName).len);
+		bufprintf(passStr, "%s", ("(") ? ("(") : "");
 
 		for (size_t r = 0;; r++)
 		{
 			if (pass->linearRegs)
 			{
-				buffer_t regIndex = buffer_from_cstr("R");
+				buffer_t regIndex = buf_string_copy("R");
 				PassRegBaseAndCountAndPos(pass, "", i * pass->radix + r, &regIndex);
 
-				bufcatbuf(passStr, &regIndex);
+				bufwrite(passStr, (regIndex).buf, (regIndex).len);
 			}
 			else
 			{
-				buffer_t regRealIndex = buffer_copy(&regBaseCount);
-				buffer_t regImagIndex = buffer_copy(&regBaseCount);
+				buffer_t regRealIndex = buf_copy_part(regBaseCount, 0, (regBaseCount).len);
+				buffer_t regImagIndex = buf_copy_part(regBaseCount, 0, (regBaseCount).len);
 				PassRegBaseAndCountAndPos(pass, "R", r, &regRealIndex);
 				PassRegBaseAndCountAndPos(pass, "I", r, &regImagIndex);
 
-				bufcatcstr(passStr, "&");
-				bufcatbuf(passStr, &regRealIndex);
-				bufcatcstr(passStr, ", ");
-				bufcatcstr(passStr, "&");
-				bufcatbuf(passStr, &regImagIndex);
+				bufprintf(passStr, "%s", ("&") ? ("&") : "");
+				bufwrite(passStr, (regRealIndex).buf, (regRealIndex).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
+				bufprintf(passStr, "%s", ("&") ? ("&") : "");
+				bufwrite(passStr, (regImagIndex).buf, (regImagIndex).len);
 			}
 
 			if (r == pass->radix - 1)
 			{
-				bufcatcstr(passStr, ");");
+				bufprintf(passStr, "%s", (");") ? (");") : "");
 				break;
 			}
 			else
 			{
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 			}
 		}
 	}
@@ -7295,15 +7549,15 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 	bool outReal, size_t inStride, size_t outStride, double scale, bool gIn, bool gOut)
 {
 	// Generate the OpenCL source for one Stockham pass.
-	const buffer_t bufferInRe = buffer_from_cstr((inReal || inInterleaved) ? "bufIn" : "bufInRe");
-	const buffer_t bufferInIm = buffer_from_cstr((inReal || inInterleaved) ? "bufIn" : "bufInIm");
-	const buffer_t bufferOutRe = buffer_from_cstr((outReal || outInterleaved) ? "bufOut" : "bufOutRe");
-	const buffer_t bufferOutIm = buffer_from_cstr((outReal || outInterleaved) ? "bufOut" : "bufOutIm");
+	const buffer_t bufferInRe = buf_string_copy((inReal || inInterleaved) ? "bufIn" : "bufInRe");
+	const buffer_t bufferInIm = buf_string_copy((inReal || inInterleaved) ? "bufIn" : "bufInIm");
+	const buffer_t bufferOutRe = buf_string_copy((outReal || outInterleaved) ? "bufOut" : "bufOutRe");
+	const buffer_t bufferOutIm = buf_string_copy((outReal || outInterleaved) ? "bufOut" : "bufOutIm");
 
-	const buffer_t bufferInRe2 = buffer_from_cstr((inReal || inInterleaved) ? "bufIn2" : "bufInRe2");
-	const buffer_t bufferInIm2 = buffer_from_cstr((inReal || inInterleaved) ? "bufIn2" : "bufInIm2");
-	const buffer_t bufferOutRe2 = buffer_from_cstr((outReal || outInterleaved) ? "bufOut2" : "bufOutRe2");
-	const buffer_t bufferOutIm2 = buffer_from_cstr((outReal || outInterleaved) ? "bufOut2" : "bufOutIm2");
+	const buffer_t bufferInRe2 = buf_string_copy((inReal || inInterleaved) ? "bufIn2" : "bufInRe2");
+	const buffer_t bufferInIm2 = buf_string_copy((inReal || inInterleaved) ? "bufIn2" : "bufInIm2");
+	const buffer_t bufferOutRe2 = buf_string_copy((outReal || outInterleaved) ? "bufOut2" : "bufOutRe2");
+	const buffer_t bufferOutIm2 = buf_string_copy((outReal || outInterleaved) ? "bufOut2" : "bufOutIm2");
 
 	// for real transforms we use only B1 butteflies (regC = 1)
 	if (pass->r2c || pass->c2r)
@@ -7326,17 +7580,17 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 	buffer_t regB4Type = RegBaseType(pass->pr, 4);
 
 	// Function attribute
-	bufcatcstr(passStr, "__attribute__((always_inline)) void\n");
+	bufprintf(passStr, "%s", ("__attribute__((always_inline)) void\n") ? ("__attribute__((always_inline)) void\n") : "");
 
 	// Function name
-	BUFCAT_BUFFER_VALUE(passStr, PassName(pass->position, fwd));
+	bufprintf(passStr, "%sPass%zu", (fwd) ? "Fwd" : "Inv", pass->position);
 
 	// Function arguments
-	bufcatcstr(passStr, "(");
-	bufcatcstr(passStr, "uint rw, uint b, ");
+	bufprintf(passStr, "%s", ("(") ? ("(") : "");
+	bufprintf(passStr, "%s", ("uint rw, uint b, ") ? ("uint rw, uint b, ") : "");
 	if (pass->realSpecial)
-		bufcatcstr(passStr, "uint t, ");
-	bufcatcstr(passStr, "uint me, uint inOffset, uint outOffset, ");
+		bufprintf(passStr, "%s", ("uint t, ") ? ("uint t, ") : "");
+	bufprintf(passStr, "%s", ("uint me, uint inOffset, uint outOffset, ") ? ("uint me, uint inOffset, uint outOffset, ") : "");
 
 	if (pass->r2c || pass->c2r)
 	{
@@ -7346,152 +7600,152 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 		{
 			if (inInterleaved)
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB2Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferInRe);
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB2Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferInRe2);
-					bufcatcstr(passStr, ", ");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferInRe2).buf, (bufferInRe2).len);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				}
 			}
 			else if (inReal)
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferInRe);
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB1Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferInRe2);
-					bufcatcstr(passStr, ", ");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferInRe2).buf, (bufferInRe2).len);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				}
 			}
 			else
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferInRe);
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB1Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferInRe2);
-					bufcatcstr(passStr, ", ");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferInRe2).buf, (bufferInRe2).len);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				}
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferInIm);
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB1Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferInIm2);
-					bufcatcstr(passStr, ", ");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferInIm2).buf, (bufferInIm2).len);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				}
 			}
 		}
 		else
 		{
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferInRe);
-			bufcatcstr(passStr, ", ");
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferInIm);
-			bufcatcstr(passStr, ", ");
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+			bufprintf(passStr, "%s", (", ") ? (", ") : "");
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+			bufprintf(passStr, "%s", (", ") ? (", ") : "");
 		}
 
 		if (gOut)
 		{
 			if (outInterleaved)
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB2Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferOutRe);
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, ", ");
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB2Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferOutRe2);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferOutRe2).buf, (bufferOutRe2).len);
 				}
 			}
 			else if (outReal)
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferOutRe);
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, ", ");
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB1Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferOutRe2);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferOutRe2).buf, (bufferOutRe2).len);
 				}
 			}
 			else
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferOutRe);
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB1Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferOutRe2);
-					bufcatcstr(passStr, ", ");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferOutRe2).buf, (bufferOutRe2).len);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
 				}
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferOutIm);
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferOutIm).buf, (bufferOutIm).len);
 				if (!pass->rcSimple)
 				{
-					bufcatcstr(passStr, ", ");
-					bufcatcstr(passStr, "__global ");
-					bufcatbuf(passStr, &regB1Type);
-					bufcatcstr(passStr, " *");
-					bufcatbuf(passStr, &bufferOutIm2);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
+					bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+					bufprintf(passStr, "%s", (" *") ? (" *") : "");
+					bufwrite(passStr, (bufferOutIm2).buf, (bufferOutIm2).len);
 				}
 			}
 		}
 		else
 		{
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferOutRe);
-			bufcatcstr(passStr, ", ");
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferOutIm);
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
+			bufprintf(passStr, "%s", (", ") ? (", ") : "");
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferOutIm).buf, (bufferOutIm).len);
 		}
 	}
 	else
@@ -7500,96 +7754,99 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 		{
 			if (inInterleaved)
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB2Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferInRe);
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 			}
 			else
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferInRe);
-				bufcatcstr(passStr, ", ");
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferInIm);
-				bufcatcstr(passStr, ", ");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
 			}
 		}
 		else if (inInterleaved)
 		{
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB2Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferInRe);
-			bufcatcstr(passStr, ", ");
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+			bufprintf(passStr, "%s", (", ") ? (", ") : "");
 		}
 		else
 		{
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferInRe);
-			bufcatcstr(passStr, ", ");
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferInIm);
-			bufcatcstr(passStr, ", ");
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+			bufprintf(passStr, "%s", (", ") ? (", ") : "");
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+			bufprintf(passStr, "%s", (", ") ? (", ") : "");
 		}
 
 		if (gOut)
 		{
 			if (outInterleaved)
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB2Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferOutRe);
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
 			}
 			else
 			{
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferOutRe);
-				bufcatcstr(passStr, ", ");
-				bufcatcstr(passStr, "__global ");
-				bufcatbuf(passStr, &regB1Type);
-				bufcatcstr(passStr, " *");
-				bufcatbuf(passStr, &bufferOutIm);
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
+				bufprintf(passStr, "%s", (", ") ? (", ") : "");
+				bufprintf(passStr, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+				bufprintf(passStr, "%s", (" *") ? (" *") : "");
+				bufwrite(passStr, (bufferOutIm).buf, (bufferOutIm).len);
 			}
 		}
 		else if (outInterleaved)
 		{
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB2Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferOutRe);
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
 		}
 		else
 		{
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferOutRe);
-			bufcatcstr(passStr, ", ");
-			bufcatcstr(passStr, "__local ");
-			bufcatbuf(passStr, &regB1Type);
-			bufcatcstr(passStr, " *");
-			bufcatbuf(passStr, &bufferOutIm);
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
+			bufprintf(passStr, "%s", (", ") ? (", ") : "");
+			bufprintf(passStr, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+			bufprintf(passStr, "%s", (" *") ? (" *") : "");
+			bufwrite(passStr, (bufferOutIm).buf, (bufferOutIm).len);
 		}
 	}
 
 	// Register arguments
 	if (pass->linearRegs)
 	{
-		bufcatcstr(passStr, ", ");
-		BUFCAT_BUFFER_VALUE(passStr, PassIterRegArgs(pass));
+		bufprintf(passStr, "%s", (", ") ? (", ") : "");
+		// Append generated register arguments and release the temporary buffer.
+		buffer_t pass_iter_regs = PassIterRegArgs(pass);
+		bufwrite(passStr, pass_iter_regs.buf, pass_iter_regs.len);
+		free_buf(&pass_iter_regs);
 	}
 
 	if (pass->fft_doPreCallback || pass->fft_doPostCallback)
@@ -7598,26 +7855,26 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 		if (pass->fft_doPreCallback)
 		{
 			if ((pass->r2c && !pass->rcSimple) || pass->c2r)
-				bufcatcstr(passStr, ", uint inOffset2");
+				bufprintf(passStr, "%s", (", uint inOffset2") ? (", uint inOffset2") : "");
 
-			bufcatcstr(passStr, ", __global void* pre_userdata");
+			bufprintf(passStr, "%s", (", __global void* pre_userdata") ? (", __global void* pre_userdata") : "");
 		}
 
 		// Include post-callback parameters if post-callback is set
 		if (pass->fft_doPostCallback)
 		{
 			if (pass->r2c || (pass->c2r && !pass->rcSimple))
-				bufcatcstr(passStr, ", uint outOffset2");
-			bufcatcstr(passStr, ", __global void* post_userdata");
+				bufprintf(passStr, "%s", (", uint outOffset2") ? (", uint outOffset2") : "");
+			bufprintf(passStr, "%s", (", __global void* post_userdata") ? (", __global void* post_userdata") : "");
 		}
 
 		if (pass->fft_doPreCallback && pass->fft_preCallback.localMemSize > 0)
-			bufcatcstr(passStr, ", __local void* localmem");
+			bufprintf(passStr, "%s", (", __local void* localmem") ? (", __local void* localmem") : "");
 		if (pass->fft_doPostCallback && pass->fft_postCallback.localMemSize > 0)
-			bufcatcstr(passStr, ", __local void* post_localmem");
+			bufprintf(passStr, "%s", (", __local void* post_localmem") ? (", __local void* post_localmem") : "");
 	}
 
-	bufcatcstr(passStr, ")\n{\n");
+	bufprintf(passStr, "%s", (")\n{\n") ? (")\n{\n") : "");
 
 	// Register Declarations
 	if (!pass->linearRegs)
@@ -7634,19 +7891,19 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 	// additional register for odd
 	if (!pass->rcSimple && oddp && ((pass->r2c && (pass->nextPass == NULL)) || (pass->c2r && (pass->position == 0))))
 	{
-		bufcatcstr(passStr, "\n\t");
-		bufcatcstr(passStr, "uint brv = 0;\n\t");
-		bufcatcstr(passStr, "\n\t");
-		bufcatbuf(passStr, &regB2Type);
-		bufcatcstr(passStr, " R");
-		BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->cnPerWI));
-		bufcatcstr(passStr, "[1];\n\t");
-		bufcatcstr(passStr, "(*R");
-		BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->cnPerWI));
-		bufcatcstr(passStr, ").x = 0; ");
-		bufcatcstr(passStr, "(*R");
-		BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->cnPerWI));
-		bufcatcstr(passStr, ").y = 0;\n");
+		bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+		bufprintf(passStr, "%s", ("uint brv = 0;\n\t") ? ("uint brv = 0;\n\t") : "");
+		bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+		bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+		bufprintf(passStr, "%s", (" R") ? (" R") : "");
+		bufprintf(passStr, "%zu", pass->cnPerWI);
+		bufprintf(passStr, "%s", ("[1];\n\t") ? ("[1];\n\t") : "");
+		bufprintf(passStr, "%s", ("(*R") ? ("(*R") : "");
+		bufprintf(passStr, "%zu", pass->cnPerWI);
+		bufprintf(passStr, "%s", (").x = 0; ") ? (").x = 0; ") : "");
+		bufprintf(passStr, "%s", ("(*R") ? ("(*R") : "");
+		bufprintf(passStr, "%zu", pass->cnPerWI);
+		bufprintf(passStr, "%s", (").y = 0;\n") ? (").y = 0;\n") : "");
 	}
 
 	// Special private memory for c-r 1 pass transforms
@@ -7654,34 +7911,34 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 	{
 		assert(pass->radix == pass->length);
 
-		bufcatcstr(passStr, "\n\t");
-		bufcatbuf(passStr, &regB1Type);
-		bufcatcstr(passStr, " mpvt[");
-		BUFCAT_BUFFER_VALUE(passStr, SztToStr(pass->length));
-		bufcatcstr(passStr, "];\n");
+		bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+		bufwrite(passStr, (regB1Type).buf, (regB1Type).len);
+		bufprintf(passStr, "%s", (" mpvt[") ? (" mpvt[") : "");
+		bufprintf(passStr, "%zu", pass->length);
+		bufprintf(passStr, "%s", ("];\n") ? ("];\n") : "");
 	}
 
-	bufcatcstr(passStr, "\n");
+	bufprintf(passStr, "%s", ("\n") ? ("\n") : "");
 
 	// Read into registers
 	if (pass->r2c)
 	{
 		if (pass->position == 0)
 		{
-			bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+			bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 			PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, pass->numB1, 0, passStr, false,
 				false, false);
-			bufcatcstr(passStr, "\n\t}\n");
+			bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 
 			if (pass->rcSimple)
 			{
-				bufcatcstr(passStr, "\n");
+				bufprintf(passStr, "%s", ("\n") ? ("\n") : "");
 				PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
-				bufcatcstr(passStr, "\n");
+				bufprintf(passStr, "%s", ("\n") ? ("\n") : "");
 			}
 			else
 			{
-				bufcatcstr(passStr, "\n\tif(rw > 1)\n\t{");
+				bufprintf(passStr, "%s", ("\n\tif(rw > 1)\n\t{") ? ("\n\tif(rw > 1)\n\t{") : "");
 				if (pass->fft_doPreCallback)
 				{
 					PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset2", 1, pass->numB1,
@@ -7692,11 +7949,11 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 					PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, pass->numB1,
 						0, passStr, false, false, false);
 				}
-				bufcatcstr(passStr, "\n\t}\n");
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 
-				bufcatcstr(passStr, "\telse\n\t{");
+				bufprintf(passStr, "%s", ("\telse\n\t{") ? ("\telse\n\t{") : "");
 				PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
-				bufcatcstr(passStr, "\n\t}\n");
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 			}
 		}
 	}
@@ -7704,52 +7961,52 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 	{
 		if (pass->position == 0)
 		{
-			buffer_t processBufRe = buffer_copy(&bufferOutRe);
-			buffer_t processBufIm = buffer_copy(&bufferOutIm);
-			buffer_t processBufOffset = buffer_from_cstr("outOffset");
+			buffer_t processBufRe = buf_copy_part(bufferOutRe, 0, (bufferOutRe).len);
+			buffer_t processBufIm = buf_copy_part(bufferOutIm, 0, (bufferOutIm).len);
+			buffer_t processBufOffset = buf_string_copy("outOffset");
 			size_t processBufStride = outStride;
 
 			if (singlePass)
 			{
-				bufsetcstr(&processBufRe, "mpvt");
-				bufsetcstr(&processBufIm, "mpvt");
-				bufsetcstr(&processBufOffset, "0");
+				(clear_buf(&processBufRe), bufprintf(&processBufRe, "%s", ("mpvt") ? ("mpvt") : ""));
+				(clear_buf(&processBufIm), bufprintf(&processBufIm, "%s", ("mpvt") ? ("mpvt") : ""));
+				(clear_buf(&processBufOffset), bufprintf(&processBufOffset, "%s", ("0") ? ("0") : ""));
 				processBufStride = 1;
 			}
 
-			bufcatcstr(passStr, "\n\tif(rw && !me)\n\t{\n\t");
-			bufcatbuf(passStr, &processBufRe);
-			bufcatcstr(passStr, "[");
-			bufcatbuf(passStr, &processBufOffset);
-			bufcatcstr(passStr, "] = ");
+			bufprintf(passStr, "%s", ("\n\tif(rw && !me)\n\t{\n\t") ? ("\n\tif(rw && !me)\n\t{\n\t") : "");
+			bufwrite(passStr, (processBufRe).buf, (processBufRe).len);
+			bufprintf(passStr, "%s", ("[") ? ("[") : "");
+			bufwrite(passStr, (processBufOffset).buf, (processBufOffset).len);
+			bufprintf(passStr, "%s", ("] = ") ? ("] = ") : "");
 
 			if (pass->fft_doPreCallback)
 			{
-				bufcatcstr(passStr, pass->fft_preCallback.funcname);
-				bufcatcstr(passStr, "(");
-				bufcatbuf(passStr, &bufferInRe);
+				bufprintf(passStr, "%s", (pass->fft_preCallback.funcname) ? (pass->fft_preCallback.funcname) : "");
+				bufprintf(passStr, "%s", ("(") ? ("(") : "");
+				bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
 				if (!inInterleaved)
 				{
-					bufcatcstr(passStr, ", ");
-					bufcatbuf(passStr, &bufferInIm);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
+					bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
 				}
-				bufcatcstr(passStr, ", inOffset, pre_userdata");
-				bufcatcstr(passStr, pass->fft_preCallback.localMemSize > 0 ? ", localmem)" : ")");
+				bufprintf(passStr, "%s", (", inOffset, pre_userdata") ? (", inOffset, pre_userdata") : "");
+				bufprintf(passStr, "%s", (pass->fft_preCallback.localMemSize > 0 ? ", localmem)" : ")") ? (pass->fft_preCallback.localMemSize > 0 ? ", localmem)" : ")") : "");
 			}
 			else
 			{
-				bufcatbuf(passStr, &bufferInRe);
-				bufcatcstr(passStr, "[inOffset]");
+				bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+				bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 			}
 
 			if (inInterleaved || pass->fft_doPreCallback)
-				bufcatcstr(passStr, ".x;\n\t}");
+				bufprintf(passStr, "%s", (".x;\n\t}") ? (".x;\n\t}") : "");
 			else
-				bufcatcstr(passStr, ";\n\t}");
+				bufprintf(passStr, "%s", (";\n\t}") ? (";\n\t}") : "");
 
 			if (pass->length > 1)
 			{
-				bufcatcstr(passStr, "\n\n\tif(rw)\n\t{");
+				bufprintf(passStr, "%s", ("\n\n\tif(rw)\n\t{") ? ("\n\n\tif(rw)\n\t{") : "");
 				if (pass->fft_doPreCallback && !inInterleaved)
 				{
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset",
@@ -7760,9 +8017,9 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInRe, "inOffset",
 						passStr);
 				}
-				bufcatcstr(passStr, "\n\t}\n");
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 
-				bufcatcstr(passStr, "\n\tif(rw > 1)\n\t{");
+				bufprintf(passStr, "%s", ("\n\tif(rw > 1)\n\t{") ? ("\n\tif(rw > 1)\n\t{") : "");
 				if (pass->fft_doPreCallback)
 				{
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, false, bufferInRe2, bufferInIm2, "inOffset2",
@@ -7774,13 +8031,13 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 						passStr);
 				}
 
-				bufcatcstr(passStr, "\n\t}\n\telse\n\t{");
+				bufprintf(passStr, "%s", ("\n\t}\n\telse\n\t{") ? ("\n\t}\n\telse\n\t{") : "");
 				PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, true, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr);
-				bufcatcstr(passStr, "\n\t}\n");
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 
 				if (oddp)
 				{
-					bufcatcstr(passStr, "\n\tif(rw && (me%2))\n\t{");
+					bufprintf(passStr, "%s", ("\n\tif(rw && (me%2))\n\t{") ? ("\n\tif(rw && (me%2))\n\t{") : "");
 					if (pass->fft_doPreCallback)
 					{
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm,
@@ -7791,8 +8048,8 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInRe,
 							"inOffset", passStr);
 					}
-					bufcatcstr(passStr, "\n\t}");
-					bufcatcstr(passStr, "\n\tif((rw > 1) && (me%2))\n\t{");
+					bufprintf(passStr, "%s", ("\n\t}") ? ("\n\t}") : "");
+					bufprintf(passStr, "%s", ("\n\tif((rw > 1) && (me%2))\n\t{") ? ("\n\tif((rw > 1) && (me%2))\n\t{") : "");
 					if (pass->fft_doPreCallback)
 					{
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInRe2, bufferInIm2,
@@ -7803,123 +8060,123 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInIm2, bufferInIm2,
 							"inOffset", passStr);
 					}
-					bufcatcstr(passStr, "\n\t}\n");
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 
 				PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, true, false, processBufRe, processBufIm,
-					bufcstr(&processBufOffset), passStr);
+					((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
 				if (oddp)
 				{
-					bufcatcstr(passStr, "\n\tif(me%2)\n\t{");
+					bufprintf(passStr, "%s", ("\n\tif(me%2)\n\t{") ? ("\n\tif(me%2)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, true, true, processBufRe, processBufIm,
-						bufcstr(&processBufOffset), passStr);
-					bufcatcstr(passStr, "\n\t}\n");
+						((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 				PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, false, false, processBufRe, processBufIm,
-					bufcstr(&processBufOffset), passStr);
+					((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
 				if (oddp)
 				{
-					bufcatcstr(passStr, "\n\tif(me%2)\n\t{");
+					bufprintf(passStr, "%s", ("\n\tif(me%2)\n\t{") ? ("\n\tif(me%2)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, false, true, processBufRe, processBufIm,
-						bufcstr(&processBufOffset), passStr);
-					bufcatcstr(passStr, "\n\t}\n");
+						((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 			}
 
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
-			PassSweepRegs(pass, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, processBufRe, processBufIm, bufcstr(&processBufOffset), 1,
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
+			PassSweepRegs(pass, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, processBufRe, processBufIm, ((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), 1,
 				pass->numB1, 0, passStr, false, false, oddp);
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 
-			bufcatcstr(passStr, "\n\tif((rw > 1) && !me)\n\t{\n\t");
-			bufcatbuf(passStr, &processBufIm);
-			bufcatcstr(passStr, "[");
-			bufcatbuf(passStr, &processBufOffset);
-			bufcatcstr(passStr, "] = ");
+			bufprintf(passStr, "%s", ("\n\tif((rw > 1) && !me)\n\t{\n\t") ? ("\n\tif((rw > 1) && !me)\n\t{\n\t") : "");
+			bufwrite(passStr, (processBufIm).buf, (processBufIm).len);
+			bufprintf(passStr, "%s", ("[") ? ("[") : "");
+			bufwrite(passStr, (processBufOffset).buf, (processBufOffset).len);
+			bufprintf(passStr, "%s", ("] = ") ? ("] = ") : "");
 
 			if (pass->fft_doPreCallback)
 			{
-				bufcatcstr(passStr, pass->fft_preCallback.funcname);
-				bufcatcstr(passStr, "(");
-				bufcatbuf(passStr, &bufferInRe2);
+				bufprintf(passStr, "%s", (pass->fft_preCallback.funcname) ? (pass->fft_preCallback.funcname) : "");
+				bufprintf(passStr, "%s", ("(") ? ("(") : "");
+				bufwrite(passStr, (bufferInRe2).buf, (bufferInRe2).len);
 				if (!inInterleaved)
 				{
-					bufcatcstr(passStr, ", ");
-					bufcatbuf(passStr, &bufferInIm2);
+					bufprintf(passStr, "%s", (", ") ? (", ") : "");
+					bufwrite(passStr, (bufferInIm2).buf, (bufferInIm2).len);
 				}
-				bufcatcstr(passStr, ", inOffset2, pre_userdata");
-				bufcatcstr(passStr, pass->fft_preCallback.localMemSize > 0 ? ", localmem)" : ")");
+				bufprintf(passStr, "%s", (", inOffset2, pre_userdata") ? (", inOffset2, pre_userdata") : "");
+				bufprintf(passStr, "%s", (pass->fft_preCallback.localMemSize > 0 ? ", localmem)" : ")") ? (pass->fft_preCallback.localMemSize > 0 ? ", localmem)" : ")") : "");
 			}
 			else
 			{
-				bufcatbuf(passStr, &bufferInRe2);
-				bufcatcstr(passStr, "[inOffset]");
+				bufwrite(passStr, (bufferInRe2).buf, (bufferInRe2).len);
+				bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 			}
 			if (inInterleaved || pass->fft_doPreCallback)
-				bufcatcstr(passStr, ".x;\n\t}");
+				bufprintf(passStr, "%s", (".x;\n\t}") ? (".x;\n\t}") : "");
 			else
-				bufcatcstr(passStr, ";\n\t}");
-			bufcatcstr(passStr, "\n\tif((rw == 1) && !me)\n\t{\n\t");
-			bufcatbuf(passStr, &processBufIm);
-			bufcatcstr(passStr, "[");
-			bufcatbuf(passStr, &processBufOffset);
-			bufcatcstr(passStr, "] = 0;\n\t}");
+				bufprintf(passStr, "%s", (";\n\t}") ? (";\n\t}") : "");
+			bufprintf(passStr, "%s", ("\n\tif((rw == 1) && !me)\n\t{\n\t") ? ("\n\tif((rw == 1) && !me)\n\t{\n\t") : "");
+			bufwrite(passStr, (processBufIm).buf, (processBufIm).len);
+			bufprintf(passStr, "%s", ("[") ? ("[") : "");
+			bufwrite(passStr, (processBufOffset).buf, (processBufOffset).len);
+			bufprintf(passStr, "%s", ("] = 0;\n\t}") ? ("] = 0;\n\t}") : "");
 
 			if (pass->length > 1)
 			{
 				if (!pass->fft_doPreCallback)
 				{
-					bufcatcstr(passStr, "\n\n\tif(rw)\n\t{");
+					bufprintf(passStr, "%s", ("\n\n\tif(rw)\n\t{") ? ("\n\n\tif(rw)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInIm, bufferInIm, "inOffset",
 						passStr);
-					bufcatcstr(passStr, "\n\t}\n");
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 
-					bufcatcstr(passStr, "\n\tif(rw > 1)\n\t{");
+					bufprintf(passStr, "%s", ("\n\tif(rw > 1)\n\t{") ? ("\n\tif(rw > 1)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, false, bufferInRe2, bufferInRe2, "inOffset",
 						passStr);
-					bufcatcstr(passStr, "\n\t}\n\telse\n\t{");
+					bufprintf(passStr, "%s", ("\n\t}\n\telse\n\t{") ? ("\n\t}\n\telse\n\t{") : "");
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInRe2, "inOffset",
 						passStr);
-					bufcatcstr(passStr, "\n\t}");
+					bufprintf(passStr, "%s", ("\n\t}") ? ("\n\t}") : "");
 
 					if (oddp)
 					{
-						bufcatcstr(passStr, "\n\tif(rw && (me%2))\n\t{");
+						bufprintf(passStr, "%s", ("\n\tif(rw && (me%2))\n\t{") ? ("\n\tif(rw && (me%2))\n\t{") : "");
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInIm, bufferInIm,
 							"inOffset", passStr);
-						bufcatcstr(passStr, "\n\t}");
-						bufcatcstr(passStr, "\n\tif((rw > 1) && (me%2))\n\t{");
+						bufprintf(passStr, "%s", ("\n\t}") ? ("\n\t}") : "");
+						bufprintf(passStr, "%s", ("\n\tif((rw > 1) && (me%2))\n\t{") ? ("\n\tif((rw > 1) && (me%2))\n\t{") : "");
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe2, bufferInRe2,
 							"inOffset", passStr);
-						bufcatcstr(passStr, "\n\t}");
+						bufprintf(passStr, "%s", ("\n\t}") ? ("\n\t}") : "");
 					}
 				}
-				bufcatcstr(passStr, "\n");
+				bufprintf(passStr, "%s", ("\n") ? ("\n") : "");
 
 				PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, true, false, processBufRe, processBufIm,
-					bufcstr(&processBufOffset), passStr);
+					((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
 				if (oddp)
 				{
-					bufcatcstr(passStr, "\n\tif(me%2)\n\t{");
+					bufprintf(passStr, "%s", ("\n\tif(me%2)\n\t{") ? ("\n\tif(me%2)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, true, true, processBufRe, processBufIm,
-						bufcstr(&processBufOffset), passStr);
-					bufcatcstr(passStr, "\n\t}\n");
+						((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 				PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, false, false, processBufRe, processBufIm,
-					bufcstr(&processBufOffset), passStr);
+					((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
 				if (oddp)
 				{
-					bufcatcstr(passStr, "\n\tif(me%2)\n\t{");
+					bufprintf(passStr, "%s", ("\n\tif(me%2)\n\t{") ? ("\n\tif(me%2)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, false, true, processBufRe, processBufIm,
-						bufcstr(&processBufOffset), passStr);
-					bufcatcstr(passStr, "\n\t}\n");
+						((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), passStr);
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 			}
 
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
-			PassSweepRegs(pass, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, processBufRe, processBufIm, bufcstr(&processBufOffset), 1,
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
+			PassSweepRegs(pass, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, processBufRe, processBufIm, ((processBufOffset).buf ? (const char *) (processBufOffset).buf : ""), 1,
 				pass->numB1, 0, passStr, false, false, false);
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 		}
 	}
 	else if ((!pass->halfLds) || (pass->halfLds && (pass->position == 0)))
@@ -7928,39 +8185,39 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 		// If precallback is set
 		if (pass->fft_doPreCallback)
 		{
-			bufcatcstr(passStr, "\n\t");
-			bufcatbuf(passStr, &regB2Type);
-			bufcatcstr(passStr, " retPrecallback");
+			bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+			bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+			bufprintf(passStr, "%s", (" retPrecallback") ? (" retPrecallback") : "");
 
 			if (pass->numB4 > 0 || pass->numB2 > 0)
 			{
-				bufcatcstr(passStr, "[");
-				bufcatcstr(passStr, (pass->numB4 > 0) ? "4" : (pass->numB2 > 0) ? "2" : "1");
-				bufcatcstr(passStr, "]");
+				bufprintf(passStr, "%s", ("[") ? ("[") : "");
+				bufprintf(passStr, "%s", ((pass->numB4 > 0) ? "4" : (pass->numB2 > 0) ? "2" : "1") ? ((pass->numB4 > 0) ? "4" : (pass->numB2 > 0) ? "2" : "1") : "");
+				bufprintf(passStr, "%s", ("]") ? ("]") : "");
 
 				isPrecallVector = true;
 			}
-			bufcatcstr(passStr, ";");
+			bufprintf(passStr, "%s", (";") ? (";") : "");
 		}
-		bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+		bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 		PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, pass->numB1, 0, passStr, false,
 			isPrecallVector, false);
 		PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, pass->numB2, pass->numB1, passStr,
 			false, isPrecallVector, false);
 		PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, pass->numB4,
 			2 * pass->numB2 + pass->numB1, passStr, false, isPrecallVector, false);
-		bufcatcstr(passStr, "\n\t}\n");
-		bufcatcstr(passStr, "\n\telse\n\t{");
+		bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
+		bufprintf(passStr, "%s", ("\n\telse\n\t{") ? ("\n\telse\n\t{") : "");
 		PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, pass->numB1, 0, passStr, true,
 			isPrecallVector, false);
 		PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, pass->numB2, pass->numB1, passStr,
 			true, isPrecallVector, false);
 		PassSweepRegs(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, pass->numB4,
 			2 * pass->numB2 + pass->numB1, passStr, true, isPrecallVector, false);
-		bufcatcstr(passStr, "\n\t}\n");
+		bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 	}
 
-	bufcatcstr(passStr, "\n");
+	bufprintf(passStr, "%s", ("\n") ? ("\n") : "");
 
 	// 3-step twiddle multiplies done in the front
 	bool tw3Done = false;
@@ -7981,7 +8238,7 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 		}
 	}
 
-	bufcatcstr(passStr, "\n");
+	bufprintf(passStr, "%s", ("\n") ? ("\n") : "");
 
 	// Twiddle multiply
 	if ((pass->position > 0) && (pass->radix > 1))
@@ -8004,8 +8261,8 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 	}
 
 	if (!pass->halfLds)
-		bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
-	bufcatcstr(passStr, "\n\n");
+		bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
+	bufprintf(passStr, "%s", ("\n\n") ? ("\n\n") : "");
 
 	// 3-step twiddle multiplies
 	if (fft_3StepTwiddle && !tw3Done)
@@ -8040,296 +8297,296 @@ static void PassGeneratePass(const Pass *pass, bool fwd, buffer_t *passStr, bool
 				{
 					PassSweepRegs(pass, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, pass->numB1,
 						0, passStr, false, false, false);
-					bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+					bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset",
 						passStr);
 					if (oddp)
 					{
-						bufcatcstr(passStr, "\n\tif(me%2)\n\t{");
+						bufprintf(passStr, "%s", ("\n\tif(me%2)\n\t{") ? ("\n\tif(me%2)\n\t{") : "");
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm,
 							"inOffset", passStr);
-						bufcatcstr(passStr, "\n\t}\n");
+						bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 					}
 
-					bufcatcstr(passStr, "\n\tif(rw && !me)\n\t{\n\t");
+					bufprintf(passStr, "%s", ("\n\tif(rw && !me)\n\t{\n\t") ? ("\n\tif(rw && !me)\n\t{\n\t") : "");
 					if (outInterleaved)
 					{
 						if (pass->fft_doPostCallback)
 						{
-							bufcatcstr(passStr, pass->fft_postCallback.funcname);
-							bufcatcstr(passStr, "(bufOut, outOffset, post_userdata, ");
-							bufcatcstr(passStr, "(");
-							BUFCAT_BUFFER_VALUE(passStr, RegBaseType(pass->pr, 2));
-							bufcatcstr(passStr, ") ( (");
-							bufcatbuf(passStr, &bufferInRe);
-							bufcatcstr(passStr, "[inOffset]");
+							bufprintf(passStr, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+							bufprintf(passStr, "%s", ("(bufOut, outOffset, post_userdata, ") ? ("(bufOut, outOffset, post_userdata, ") : "");
+							bufprintf(passStr, "%s", ("(") ? ("(") : "");
+							bufprintf(passStr, "%s", (((pass->pr) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((pass->pr) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+							bufprintf(passStr, "%s", (") ( (") ? (") ( (") : "");
+							bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+							bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 							if (scale != 1.0)
 							{
-								bufcatcstr(passStr, " * ");
-								BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-								BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+								bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+								bufprintf(passStr, "%.*e", 16, scale);
+								bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 							}
-							bufcatcstr(passStr, ") , 0 )");
+							bufprintf(passStr, "%s", (") , 0 )") ? (") , 0 )") : "");
 							if (pass->fft_postCallback.localMemSize > 0)
-								bufcatcstr(passStr, ", localmem");
-							bufcatcstr(passStr, ");\n\t}");
+								bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+							bufprintf(passStr, "%s", (");\n\t}") ? (");\n\t}") : "");
 						}
 						else
 						{
-							bufcatbuf(passStr, &bufferOutRe);
-							bufcatcstr(passStr, "[outOffset].x = ");
-							bufcatbuf(passStr, &bufferInRe);
-							bufcatcstr(passStr, "[inOffset]");
+							bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
+							bufprintf(passStr, "%s", ("[outOffset].x = ") ? ("[outOffset].x = ") : "");
+							bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+							bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 							if (scale != 1.0)
 							{
-								bufcatcstr(passStr, " * ");
-								BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-								BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+								bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+								bufprintf(passStr, "%.*e", 16, scale);
+								bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 							}
-							bufcatcstr(passStr, ";\n\t");
-							bufcatbuf(passStr, &bufferOutIm);
-							bufcatcstr(passStr, "[outOffset].y = ");
-							bufcatcstr(passStr, "0;\n\t}");
+							bufprintf(passStr, "%s", (";\n\t") ? (";\n\t") : "");
+							bufwrite(passStr, (bufferOutIm).buf, (bufferOutIm).len);
+							bufprintf(passStr, "%s", ("[outOffset].y = ") ? ("[outOffset].y = ") : "");
+							bufprintf(passStr, "%s", ("0;\n\t}") ? ("0;\n\t}") : "");
 						}
 					}
 					else if (pass->fft_doPostCallback)
 					{
-						bufcatcstr(passStr, pass->fft_postCallback.funcname);
-						bufcatcstr(passStr, "(");
-						bufcatbuf(passStr, &bufferOutRe);
-						bufcatcstr(passStr, ", ");
-						bufcatbuf(passStr, &bufferOutIm);
-						bufcatcstr(passStr, ", outOffset, post_userdata, ");
-						bufcatbuf(passStr, &bufferInRe);
-						bufcatcstr(passStr, "[inOffset]");
+						bufprintf(passStr, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+						bufprintf(passStr, "%s", ("(") ? ("(") : "");
+						bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
+						bufprintf(passStr, "%s", (", ") ? (", ") : "");
+						bufwrite(passStr, (bufferOutIm).buf, (bufferOutIm).len);
+						bufprintf(passStr, "%s", (", outOffset, post_userdata, ") ? (", outOffset, post_userdata, ") : "");
+						bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+						bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 						if (scale != 1.0)
 						{
-							bufcatcstr(passStr, " * ");
-							BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-							BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+							bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+							bufprintf(passStr, "%.*e", 16, scale);
+							bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 						}
-						bufcatcstr(passStr, ", 0");
+						bufprintf(passStr, "%s", (", 0") ? (", 0") : "");
 						if (pass->fft_postCallback.localMemSize > 0)
-							bufcatcstr(passStr, ", localmem");
-						bufcatcstr(passStr, ");\n\t}");
+							bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+						bufprintf(passStr, "%s", (");\n\t}") ? (");\n\t}") : "");
 					}
 					else
 					{
-						bufcatbuf(passStr, &bufferOutRe);
-						bufcatcstr(passStr, "[outOffset] = ");
-						bufcatbuf(passStr, &bufferInRe);
-						bufcatcstr(passStr, "[inOffset]");
+						bufwrite(passStr, (bufferOutRe).buf, (bufferOutRe).len);
+						bufprintf(passStr, "%s", ("[outOffset] = ") ? ("[outOffset] = ") : "");
+						bufwrite(passStr, (bufferInRe).buf, (bufferInRe).len);
+						bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 						if (scale != 1.0)
 						{
-							bufcatcstr(passStr, " * ");
-							BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-							BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+							bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+							bufprintf(passStr, "%.*e", 16, scale);
+							bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 						}
-						bufcatcstr(passStr, ";\n\t");
-						bufcatbuf(passStr, &bufferOutIm);
-						bufcatcstr(passStr, "[outOffset] = ");
-						bufcatcstr(passStr, "0;\n\t}");
+						bufprintf(passStr, "%s", (";\n\t") ? (";\n\t") : "");
+						bufwrite(passStr, (bufferOutIm).buf, (bufferOutIm).len);
+						bufprintf(passStr, "%s", ("[outOffset] = ") ? ("[outOffset] = ") : "");
+						bufprintf(passStr, "%s", ("0;\n\t}") ? ("0;\n\t}") : "");
 					}
-					bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+					bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 
 					PassSweepRegs(pass, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, pass->numB1,
 						0, passStr, false, false, false);
-					bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+					bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 					PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset",
 						passStr);
 					if (oddp)
 					{
-						bufcatcstr(passStr, "\n\tif(me%2)\n\t{");
+						bufprintf(passStr, "%s", ("\n\tif(me%2)\n\t{") ? ("\n\tif(me%2)\n\t{") : "");
 						PassSweepRegsRC(pass, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInRe, bufferInIm,
 							"inOffset", passStr);
-						bufcatcstr(passStr, "\n\t}\n");
+						bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 					}
 
-					bufcatcstr(passStr, "\n\tif((rw > 1) && !me)\n\t{\n\t");
+					bufprintf(passStr, "%s", ("\n\tif((rw > 1) && !me)\n\t{\n\t") ? ("\n\tif((rw > 1) && !me)\n\t{\n\t") : "");
 					if (outInterleaved)
 					{
 						if (pass->fft_doPostCallback)
 						{
-							bufcatcstr(passStr, pass->fft_postCallback.funcname);
-							bufcatcstr(passStr, "(bufOut2, outOffset2, post_userdata, ");
-							bufcatcstr(passStr, "(");
-							BUFCAT_BUFFER_VALUE(passStr, RegBaseType(pass->pr, 2));
-							bufcatcstr(passStr, ") ( (");
-							bufcatbuf(passStr, &bufferInIm);
-							bufcatcstr(passStr, "[inOffset]");
+							bufprintf(passStr, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+							bufprintf(passStr, "%s", ("(bufOut2, outOffset2, post_userdata, ") ? ("(bufOut2, outOffset2, post_userdata, ") : "");
+							bufprintf(passStr, "%s", ("(") ? ("(") : "");
+							bufprintf(passStr, "%s", (((pass->pr) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((pass->pr) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+							bufprintf(passStr, "%s", (") ( (") ? (") ( (") : "");
+							bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+							bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 							if (scale != 1.0)
 							{
-								bufcatcstr(passStr, " * ");
-								BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-								BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+								bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+								bufprintf(passStr, "%.*e", 16, scale);
+								bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 							}
-							bufcatcstr(passStr, ") , 0 )");
+							bufprintf(passStr, "%s", (") , 0 )") ? (") , 0 )") : "");
 							if (pass->fft_postCallback.localMemSize > 0)
-								bufcatcstr(passStr, ", localmem");
-							bufcatcstr(passStr, ");\n\t}");
+								bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+							bufprintf(passStr, "%s", (");\n\t}") ? (");\n\t}") : "");
 						}
 						else
 						{
-							bufcatbuf(passStr, &bufferOutRe2);
-							bufcatcstr(passStr, "[outOffset].x = ");
-							bufcatbuf(passStr, &bufferInIm);
-							bufcatcstr(passStr, "[inOffset]");
+							bufwrite(passStr, (bufferOutRe2).buf, (bufferOutRe2).len);
+							bufprintf(passStr, "%s", ("[outOffset].x = ") ? ("[outOffset].x = ") : "");
+							bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+							bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 							if (scale != 1.0)
 							{
-								bufcatcstr(passStr, " * ");
-								BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-								BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+								bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+								bufprintf(passStr, "%.*e", 16, scale);
+								bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 							}
-							bufcatcstr(passStr, ";\n\t");
-							bufcatbuf(passStr, &bufferOutIm2);
-							bufcatcstr(passStr, "[outOffset].y = ");
-							bufcatcstr(passStr, "0;\n\t}");
+							bufprintf(passStr, "%s", (";\n\t") ? (";\n\t") : "");
+							bufwrite(passStr, (bufferOutIm2).buf, (bufferOutIm2).len);
+							bufprintf(passStr, "%s", ("[outOffset].y = ") ? ("[outOffset].y = ") : "");
+							bufprintf(passStr, "%s", ("0;\n\t}") ? ("0;\n\t}") : "");
 						}
 					}
 					else if (pass->fft_doPostCallback)
 					{
-						bufcatcstr(passStr, pass->fft_postCallback.funcname);
-						bufcatcstr(passStr, "(");
-						bufcatbuf(passStr, &bufferOutRe2);
-						bufcatcstr(passStr, ", ");
-						bufcatbuf(passStr, &bufferOutIm2);
-						bufcatcstr(passStr, ", outOffset2, post_userdata, ");
-						bufcatbuf(passStr, &bufferInIm);
-						bufcatcstr(passStr, "[inOffset]");
+						bufprintf(passStr, "%s", (pass->fft_postCallback.funcname) ? (pass->fft_postCallback.funcname) : "");
+						bufprintf(passStr, "%s", ("(") ? ("(") : "");
+						bufwrite(passStr, (bufferOutRe2).buf, (bufferOutRe2).len);
+						bufprintf(passStr, "%s", (", ") ? (", ") : "");
+						bufwrite(passStr, (bufferOutIm2).buf, (bufferOutIm2).len);
+						bufprintf(passStr, "%s", (", outOffset2, post_userdata, ") ? (", outOffset2, post_userdata, ") : "");
+						bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+						bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 						if (scale != 1.0)
 						{
-							bufcatcstr(passStr, " * ");
-							BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-							BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+							bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+							bufprintf(passStr, "%.*e", 16, scale);
+							bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 						}
-						bufcatcstr(passStr, ", 0");
+						bufprintf(passStr, "%s", (", 0") ? (", 0") : "");
 						if (pass->fft_postCallback.localMemSize > 0)
-							bufcatcstr(passStr, ", localmem");
-						bufcatcstr(passStr, ");\n\t}");
+							bufprintf(passStr, "%s", (", localmem") ? (", localmem") : "");
+						bufprintf(passStr, "%s", (");\n\t}") ? (");\n\t}") : "");
 					}
 					else
 					{
-						bufcatbuf(passStr, &bufferOutRe2);
-						bufcatcstr(passStr, "[outOffset] = ");
-						bufcatbuf(passStr, &bufferInIm);
-						bufcatcstr(passStr, "[inOffset]");
+						bufwrite(passStr, (bufferOutRe2).buf, (bufferOutRe2).len);
+						bufprintf(passStr, "%s", ("[outOffset] = ") ? ("[outOffset] = ") : "");
+						bufwrite(passStr, (bufferInIm).buf, (bufferInIm).len);
+						bufprintf(passStr, "%s", ("[inOffset]") ? ("[inOffset]") : "");
 						if (scale != 1.0)
 						{
-							bufcatcstr(passStr, " * ");
-							BUFCAT_BUFFER_VALUE(passStr, FloatToStr(scale));
-							BUFCAT_BUFFER_VALUE(passStr, FloatSuffix(pass->pr));
+							bufprintf(passStr, "%s", (" * ") ? (" * ") : "");
+							bufprintf(passStr, "%.*e", 16, scale);
+							bufprintf(passStr, "%s", ((pass->pr) == P_SINGLE) ? "f" : "");
 						}
-						bufcatcstr(passStr, ";\n\t");
-						bufcatbuf(passStr, &bufferOutIm2);
-						bufcatcstr(passStr, "[outOffset] = ");
-						bufcatcstr(passStr, "0;\n\t}");
+						bufprintf(passStr, "%s", (";\n\t") ? (";\n\t") : "");
+						bufwrite(passStr, (bufferOutIm2).buf, (bufferOutIm2).len);
+						bufprintf(passStr, "%s", ("[outOffset] = ") ? ("[outOffset] = ") : "");
+						bufprintf(passStr, "%s", ("0;\n\t}") ? ("0;\n\t}") : "");
 					}
-					bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+					bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 				}
 
-				bufcatcstr(passStr, "\n\n\tif(rw)\n\t{");
+				bufprintf(passStr, "%s", ("\n\n\tif(rw)\n\t{") ? ("\n\n\tif(rw)\n\t{") : "");
 				PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, false, bufferOutRe, bufferOutIm, "outOffset",
 					passStr);
-				bufcatcstr(passStr, "\n\t}\n");
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				if (oddp)
 				{
-					bufcatcstr(passStr, "\n\n\tbrv = ((rw != 0) & (me%2 == 1));\n\t");
-					bufcatcstr(passStr, "if(brv)\n\t{");
+					bufprintf(passStr, "%s", ("\n\n\tbrv = ((rw != 0) & (me%2 == 1));\n\t") ? ("\n\n\tbrv = ((rw != 0) & (me%2 == 1));\n\t") : "");
+					bufprintf(passStr, "%s", ("if(brv)\n\t{") ? ("if(brv)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, true, bufferOutRe, bufferOutIm,
 						"outOffset", passStr);
-					bufcatcstr(passStr, "\n\t}\n");
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 
-				bufcatcstr(passStr, "\n\n\tif(rw > 1)\n\t{");
+				bufprintf(passStr, "%s", ("\n\n\tif(rw > 1)\n\t{") ? ("\n\n\tif(rw > 1)\n\t{") : "");
 
-				buffer_t outOffset = buffer_empty();
-				bufcatcstr(&outOffset, "outOffset");
+				buffer_t outOffset = (buffer_t){0};
+				bufprintf(&outOffset, "%s", ("outOffset") ? ("outOffset") : "");
 				if (pass->fft_doPostCallback)
-					bufcatcstr(&outOffset, "2");
+					bufprintf(&outOffset, "%s", ("2") ? ("2") : "");
 
 				PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, false, bufferOutRe2, bufferOutIm2,
-					bufcstr(&outOffset), passStr);
-				bufcatcstr(passStr, "\n\t}\n");
+					((outOffset).buf ? (const char *) (outOffset).buf : ""), passStr);
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				if (oddp)
 				{
-					bufcatcstr(passStr, "\n\n\tbrv = ((rw > 1) & (me%2 == 1));\n\t");
-					bufcatcstr(passStr, "if(brv)\n\t{");
+					bufprintf(passStr, "%s", ("\n\n\tbrv = ((rw > 1) & (me%2 == 1));\n\t") ? ("\n\n\tbrv = ((rw > 1) & (me%2 == 1));\n\t") : "");
+					bufprintf(passStr, "%s", ("if(brv)\n\t{") ? ("if(brv)\n\t{") : "");
 					PassSweepRegsRC(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, true, bufferOutRe2, bufferOutIm2,
-						bufcstr(&outOffset), passStr);
-					bufcatcstr(passStr, "\n\t}\n");
+						((outOffset).buf ? (const char *) (outOffset).buf : ""), passStr);
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 			}
 			else if (pass->c2r)
 			{
-				bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+				bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 				PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, pass->numB1, 0,
 					passStr, false, false, false);
-				bufcatcstr(passStr, "\n\t}\n");
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 
 				if (!pass->rcSimple)
 				{
-					buffer_t outOffset = buffer_empty();
-					bufcatcstr(&outOffset, "outOffset");
+					buffer_t outOffset = (buffer_t){0};
+					bufprintf(&outOffset, "%s", ("outOffset") ? ("outOffset") : "");
 					if (pass->fft_doPostCallback)
-						bufcatcstr(&outOffset, "2");
+						bufprintf(&outOffset, "%s", ("2") ? ("2") : "");
 
-					bufcatcstr(passStr, "\n\tif(rw > 1)\n\t{");
-					PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, bufcstr(&outOffset),
+					bufprintf(passStr, "%s", ("\n\tif(rw > 1)\n\t{") ? ("\n\tif(rw > 1)\n\t{") : "");
+					PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, ((outOffset).buf ? (const char *) (outOffset).buf : ""),
 						1, pass->numB1, 0, passStr, false, false, false);
-					bufcatcstr(passStr, "\n\t}\n");
+					bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 				}
 			}
 			else
 			{
-				bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+				bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 				PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, pass->numB1, 0,
 					passStr, false, false, false);
-				bufcatcstr(passStr, "\n\t}\n");
+				bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 			}
 		}
 		else
 		{
-			bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+			bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 			PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, pass->numB1, 0, passStr,
 				false, false, false);
-			bufcatcstr(passStr, "\n\t}\n");
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
-			bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+			bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
+			bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 			PassSweepRegs(pass->nextPass, SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1,
 				pass->nextPass->numB1, 0, passStr, false, false, false);
-			bufcatcstr(passStr, "\n\t}\n");
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
-			bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+			bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
+			bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 			PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, pass->numB1, 0, passStr,
 				false, false, false);
-			bufcatcstr(passStr, "\n\t}\n");
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
-			bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+			bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
+			bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 			PassSweepRegs(pass->nextPass, SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1,
 				pass->nextPass->numB1, 0, passStr, false, false, false);
-			bufcatcstr(passStr, "\n\t}\n");
-			bufcatcstr(passStr, "\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+			bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
+			bufprintf(passStr, "%s", ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\n\n\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 		}
 	}
 	else
 	{
 		if (pass->fft_doPostCallback && outInterleaved)
 		{
-			bufcatcstr(passStr, "\n\t");
-			bufcatbuf(passStr, &regB2Type);
-			bufcatcstr(passStr, " tempC;");
+			bufprintf(passStr, "%s", ("\n\t") ? ("\n\t") : "");
+			bufwrite(passStr, (regB2Type).buf, (regB2Type).len);
+			bufprintf(passStr, "%s", (" tempC;") ? (" tempC;") : "");
 		}
-		bufcatcstr(passStr, "\n\tif(rw)\n\t{");
+		bufprintf(passStr, "%s", ("\n\tif(rw)\n\t{") ? ("\n\tif(rw)\n\t{") : "");
 		PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, pass->numB1, 0, passStr, false,
 			false, false);
 		PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, pass->numB2, pass->numB1,
 			passStr, false, false, false);
 		PassSweepRegs(pass, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, pass->numB4,
 			2 * pass->numB2 + pass->numB1, passStr, false, false, false);
-		bufcatcstr(passStr, "\n\t}\n");
+		bufprintf(passStr, "%s", ("\n\t}\n") ? ("\n\t}\n") : "");
 	}
 
-	bufcatcstr(passStr, "\n}\n\n");
+	bufprintf(passStr, "%s", ("\n}\n\n") ? ("\n}\n\n") : "");
 }
 
 // FFT kernel
@@ -8448,20 +8705,20 @@ typedef struct Kernel
 static inline buffer_t KernelIterRegs(const Kernel *kernel, const char *pfx, bool initComma)
 {
 	// Build the linear register list for a Stockham kernel.
-	buffer_t str = buffer_from_cstr("");
+	buffer_t str = buf_string_copy("");
 
 	if (kernel->linearRegs)
 	{
 		if (initComma)
-			bufcatcstr(&str, ", ");
+			bufprintf(&str, "%s", (", ") ? (", ") : "");
 
 		for (size_t i = 0; i < kernel->cnPerWI; i++)
 		{
 			if (i != 0)
-				bufcatcstr(&str, ", ");
-			bufcatcstr(&str, pfx);
-			bufcatcstr(&str, "R");
-			BUFCAT_BUFFER_VALUE(&str, SztToStr(i));
+				bufprintf(&str, "%s", (", ") ? (", ") : "");
+			bufprintf(&str, "%s", (pfx) ? (pfx) : "");
+			bufprintf(&str, "%s", ("R") ? ("R") : "");
+			bufprintf(&str, "%zu", i);
 		}
 	}
 
@@ -8510,14 +8767,14 @@ static inline bool KernelIsGroupedReadWritePossible(const Kernel *kernel)
 static inline buffer_t KernelOffsetCalcBlock(const Kernel *kernel, const char *off, bool input)
 {
 	// Generate offset source for block-compute kernels.
-	buffer_t str = buffer_empty();
+	buffer_t str = (buffer_t){0};
 
 	const size_t *pStride = input ? kernel->params.fft_inStride : kernel->params.fft_outStride;
 
-	bufcatcstr(&str, "\t");
-	bufcatcstr(&str, off);
-	bufcatcstr(&str, " = ");
-	buffer_t nextBatch = buffer_from_cstr("batch");
+	bufprintf(&str, "%s", ("\t") ? ("\t") : "");
+	bufprintf(&str, "%s", (off) ? (off) : "");
+	bufprintf(&str, "%s", (" = ") ? (" = ") : "");
+	buffer_t nextBatch = buf_string_copy("batch");
 	for (size_t i = (kernel->params.fft_DataDim - 1); i > 2; i--)
 	{
 		size_t currentLength = 1;
@@ -8525,41 +8782,41 @@ static inline buffer_t KernelOffsetCalcBlock(const Kernel *kernel, const char *o
 			currentLength *= kernel->params.fft_N[j];
 		currentLength *= (kernel->params.fft_N[1] / kernel->blockWidth);
 
-		bufcatcstr(&str, "(");
-		bufcatbuf(&str, &nextBatch);
-		bufcatcstr(&str, "/");
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(currentLength));
-		bufcatcstr(&str, ")*");
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(pStride[i]));
-		bufcatcstr(&str, " + ");
+		bufprintf(&str, "%s", ("(") ? ("(") : "");
+		bufwrite(&str, (nextBatch).buf, (nextBatch).len);
+		bufprintf(&str, "%s", ("/") ? ("/") : "");
+		bufprintf(&str, "%zu", currentLength);
+		bufprintf(&str, "%s", (")*") ? (")*") : "");
+		bufprintf(&str, "%zu", pStride[i]);
+		bufprintf(&str, "%s", (" + ") ? (" + ") : "");
 
 		// Rebuild the next batch expression without temporary merge helpers.
-		buffer_t nextBatchOld = buffer_empty();
+		buffer_t nextBatchOld = (buffer_t){0};
 		buffer_t currentLengthStr = SztToStr(currentLength);
-		bufsetbuf(&nextBatchOld, &nextBatch);
-		bufsetcstr(&nextBatch, "(");
-		bufcatbuf(&nextBatch, &nextBatchOld);
-		bufcatcstr(&nextBatch, "%");
-		bufcatbuf(&nextBatch, &currentLengthStr);
-		bufcatcstr(&nextBatch, ")");
+		(clear_buf(&nextBatchOld), bufwrite(&nextBatchOld, (nextBatch).buf, (nextBatch).len));
+		(clear_buf(&nextBatch), bufprintf(&nextBatch, "%s", ("(") ? ("(") : ""));
+		bufwrite(&nextBatch, (nextBatchOld).buf, (nextBatchOld).len);
+		bufprintf(&nextBatch, "%s", ("%") ? ("%") : "");
+		bufwrite(&nextBatch, (currentLengthStr).buf, (currentLengthStr).len);
+		bufprintf(&nextBatch, "%s", (")") ? (")") : "");
 	}
 
-	bufcatcstr(&str, "(");
-	bufcatbuf(&str, &nextBatch);
-	bufcatcstr(&str, "/");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(kernel->params.fft_N[1] / kernel->blockWidth));
-	bufcatcstr(&str, ")*");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(pStride[2]));
-	bufcatcstr(&str, " + (");
-	bufcatbuf(&str, &nextBatch);
-	bufcatcstr(&str, "%");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(kernel->params.fft_N[1] / kernel->blockWidth));
-	bufcatcstr(&str, ")*");
+	bufprintf(&str, "%s", ("(") ? ("(") : "");
+	bufwrite(&str, (nextBatch).buf, (nextBatch).len);
+	bufprintf(&str, "%s", ("/") ? ("/") : "");
+	bufprintf(&str, "%zu", kernel->params.fft_N[1] / kernel->blockWidth);
+	bufprintf(&str, "%s", (")*") ? (")*") : "");
+	bufprintf(&str, "%zu", pStride[2]);
+	bufprintf(&str, "%s", (" + (") ? (" + (") : "");
+	bufwrite(&str, (nextBatch).buf, (nextBatch).len);
+	bufprintf(&str, "%s", ("%") ? ("%") : "");
+	bufprintf(&str, "%zu", kernel->params.fft_N[1] / kernel->blockWidth);
+	bufprintf(&str, "%s", (")*") ? (")*") : "");
 	if ((input && (kernel->blockComputeType == BCT_R2C)) || (!input && (kernel->blockComputeType == BCT_C2R)))
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(kernel->blockWidth * kernel->length));
+		bufprintf(&str, "%zu", kernel->blockWidth * kernel->length);
 	else
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(kernel->blockWidth));
-	bufcatcstr(&str, ";\n");
+		bufprintf(&str, "%zu", kernel->blockWidth);
+	bufprintf(&str, "%s", (";\n") ? (";\n") : "");
 
 	return str;
 }
@@ -8567,77 +8824,77 @@ static inline buffer_t KernelOffsetCalcBlock(const Kernel *kernel, const char *o
 static inline buffer_t KernelOffsetCalc(const Kernel *kernel, const char *off, bool input, bool rc_second_index)
 {
 	// Generate offset source for normal Stockham kernels.
-	buffer_t str = buffer_empty();
+	buffer_t str = (buffer_t){0};
 
 	const size_t *pStride = input ? kernel->params.fft_inStride : kernel->params.fft_outStride;
 
-	buffer_t batch = buffer_empty();
+	buffer_t batch = (buffer_t){0};
 	if (kernel->r2c2r && !kernel->rcSimple)
 	{
-		bufcatcstr(&batch, "(batch*");
-		BUFCAT_BUFFER_VALUE(&batch, SztToStr(2 * kernel->numTrans));
+		bufprintf(&batch, "%s", ("(batch*") ? ("(batch*") : "");
+		bufprintf(&batch, "%zu", 2 * kernel->numTrans);
 		if (rc_second_index)
-			bufcatcstr(&batch, " + 1");
+			bufprintf(&batch, "%s", (" + 1") ? (" + 1") : "");
 		else
-			bufcatcstr(&batch, " + 0");
+			bufprintf(&batch, "%s", (" + 0") ? (" + 0") : "");
 
 		if (kernel->numTrans != 1)
 		{
-			bufcatcstr(&batch, " + 2*(me/");
-			BUFCAT_BUFFER_VALUE(&batch, SztToStr(kernel->workGroupSizePerTrans));
-			bufcatcstr(&batch, "))");
+			bufprintf(&batch, "%s", (" + 2*(me/") ? (" + 2*(me/") : "");
+			bufprintf(&batch, "%zu", kernel->workGroupSizePerTrans);
+			bufprintf(&batch, "%s", ("))") ? ("))") : "");
 		}
 		else
 		{
-			bufcatcstr(&batch, ")");
+			bufprintf(&batch, "%s", (")") ? (")") : "");
 		}
 	}
 	else if (kernel->numTrans == 1)
 	{
-		bufcatcstr(&batch, "batch");
+		bufprintf(&batch, "%s", ("batch") ? ("batch") : "");
 	}
 	else
 	{
-		bufcatcstr(&batch, "(batch*");
-		BUFCAT_BUFFER_VALUE(&batch, SztToStr(kernel->numTrans));
-		bufcatcstr(&batch, " + (me/");
-		BUFCAT_BUFFER_VALUE(&batch, SztToStr(kernel->workGroupSizePerTrans));
-		bufcatcstr(&batch, "))");
+		bufprintf(&batch, "%s", ("(batch*") ? ("(batch*") : "");
+		bufprintf(&batch, "%zu", kernel->numTrans);
+		bufprintf(&batch, "%s", (" + (me/") ? (" + (me/") : "");
+		bufprintf(&batch, "%zu", kernel->workGroupSizePerTrans);
+		bufprintf(&batch, "%s", ("))") ? ("))") : "");
 	}
 
-	bufcatcstr(&str, "\t");
-	bufcatcstr(&str, off);
-	bufcatcstr(&str, " = ");
-	buffer_t nextBatch = buffer_copy(&batch);
+	bufprintf(&str, "%s", ("\t") ? ("\t") : "");
+	bufprintf(&str, "%s", (off) ? (off) : "");
+	bufprintf(&str, "%s", (" = ") ? (" = ") : "");
+	buffer_t nextBatch = buf_copy_part(batch, 0, (batch).len);
 	for (size_t i = (kernel->params.fft_DataDim - 1); i > 1; i--)
 	{
 		size_t currentLength = 1;
 		for (int j = 1; j < i; j++)
 			currentLength *= kernel->params.fft_N[j];
 
-		bufcatcstr(&str, "(");
-		bufcatbuf(&str, &nextBatch);
-		bufcatcstr(&str, "/");
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(currentLength));
-		bufcatcstr(&str, ")*");
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(pStride[i]));
-		bufcatcstr(&str, " + ");
+		bufprintf(&str, "%s", ("(") ? ("(") : "");
+		bufwrite(&str, (nextBatch).buf, (nextBatch).len);
+		bufprintf(&str, "%s", ("/") ? ("/") : "");
+		bufprintf(&str, "%zu", currentLength);
+		bufprintf(&str, "%s", (")*") ? (")*") : "");
+		bufprintf(&str, "%zu", pStride[i]);
+		bufprintf(&str, "%s", (" + ") ? (" + ") : "");
 
 		// Rebuild the next batch expression without temporary merge helpers.
-		buffer_t nextBatchOld = buffer_empty();
+		buffer_t nextBatchOld = (buffer_t){0};
 		buffer_t currentLengthStr = SztToStr(currentLength);
-		bufsetbuf(&nextBatchOld, &nextBatch);
-		bufsetcstr(&nextBatch, "(");
-		bufcatbuf(&nextBatch, &nextBatchOld);
-		bufcatcstr(&nextBatch, "%");
-		bufcatbuf(&nextBatch, &currentLengthStr);
-		bufcatcstr(&nextBatch, ")");
+		(clear_buf(&nextBatchOld), bufwrite(&nextBatchOld, (nextBatch).buf, (nextBatch).len));
+		(clear_buf(&nextBatch), bufprintf(&nextBatch, "%s", ("(") ? ("(") : ""));
+		bufwrite(&nextBatch, (nextBatchOld).buf, (nextBatchOld).len);
+		bufprintf(&nextBatch, "%s", ("%") ? ("%") : "");
+		bufwrite(&nextBatch, (currentLengthStr).buf, (currentLengthStr).len);
+		bufprintf(&nextBatch, "%s", (")") ? (")") : "");
 	}
 
-	bufcatbuf(&str, &nextBatch);
-	bufcatcstr(&str, "*");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(pStride[1]));
-	bufcatcstr(&str, ";\n");
+	bufwrite(&str, (nextBatch).buf, (nextBatch).len);
+	bufprintf(&str, "%s", ("*") ? ("*") : "");
+	bufprintf(&str, "%zu", pStride[1]);
+	bufprintf(&str, "%s", (";\n") ? (";\n") : "");
 
 	return str;
 }
@@ -8865,7 +9122,7 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 		large1D = kernel->params.fft_N[0] * kernel->params.fft_N[1];
 
 	// Pragma
-	BUFCAT_BUFFER_VALUE(str, ClPragma(kernel->precision));
+	bufprintf(str, "%s", (((kernel->precision) == P_DOUBLE) ? "\n#ifdef cl_khr_fp64\n#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n#else\n#pragma OPENCL EXTENSION cl_amd_fp64 : enable\n#endif\n\n" : ""));
 
 	// Twiddle table
 	if (kernel->length > 1)
@@ -8874,19 +9131,19 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 		// Initialize twiddle table storage explicitly.
 		TwiddleTableInit(&twTable, kernel->length);
 
-		bufcatcstr(str, "\n__constant ");
-		bufcatbuf(str, &twType);
-		bufcatcstr(str, " ");
-		BUFCAT_BUFFER_VALUE(str, TwTableName());
-		bufcatcstr(str, "[");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->length - 1));
-		bufcatcstr(str, "] = {\n");
+		bufprintf(str, "%s", ("\n__constant ") ? ("\n__constant ") : "");
+		bufwrite(str, (twType).buf, (twType).len);
+		bufprintf(str, "%s", (" ") ? (" ") : "");
+		bufprintf(str, "%s", "twiddles");
+		bufprintf(str, "%s", ("[") ? ("[") : "");
+		bufprintf(str, "%zu", kernel->length - 1);
+		bufprintf(str, "%s", ("] = {\n") ? ("] = {\n") : "");
 		TwiddleTableGenerateTwiddleTable(&twTable, kernel->precision, kernel->radices, str);
 		// Release twiddle table storage after emitting source.
 		TwiddleTableFree(&twTable);
-		bufcatcstr(str, "};\n\n");
+		bufprintf(str, "%s", ("};\n\n") ? ("};\n\n") : "");
 	}
-	bufcatcstr(str, "\n");
+	bufprintf(str, "%s", ("\n") ? ("\n") : "");
 
 	// twiddle factors for 1d-large 3-step algorithm
 	if (kernel->params.fft_3StepTwiddle)
@@ -8902,14 +9159,14 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 	buffer_t sfx = FloatSuffix(kernel->precision);
 
 	// Base type
-	bufcatcstr(str, "#define fptype ");
-	BUFCAT_BUFFER_VALUE(str, RegBaseType(kernel->precision, 1));
-	bufcatcstr(str, "\n\n");
+	bufprintf(str, "%s", ("#define fptype ") ? ("#define fptype ") : "");
+	bufprintf(str, "%s", (((kernel->precision) == P_SINGLE) ? (((1) == 1) ? "float" : (((1) == 2) ? "float2" : (((1) == 4) ? "float4" : ""))) : (((kernel->precision) == P_DOUBLE) ? (((1) == 1) ? "double" : (((1) == 2) ? "double2" : (((1) == 4) ? "double4" : ""))) : "")));
+	bufprintf(str, "%s", ("\n\n") ? ("\n\n") : "");
 
 	// Vector type
-	bufcatcstr(str, "#define fvect2 ");
-	BUFCAT_BUFFER_VALUE(str, RegBaseType(kernel->precision, 2));
-	bufcatcstr(str, "\n\n");
+	bufprintf(str, "%s", ("#define fvect2 ") ? ("#define fvect2 ") : "");
+	bufprintf(str, "%s", (((kernel->precision) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((kernel->precision) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+	bufprintf(str, "%s", ("\n\n") ? ("\n\n") : "");
 
 	bool cReg = kernel->linearRegs ? true : false;
 
@@ -8925,200 +9182,200 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 	// constants
 	if (kernel->length % 8 == 0)
 	{
-		bufcatcstr(str, "#define C8Q  0.70710678118654752440084436210485");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
+		bufprintf(str, "%s", ("#define C8Q  0.70710678118654752440084436210485") ? ("#define C8Q  0.70710678118654752440084436210485") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
 	}
 
 	if (kernel->length % 5 == 0)
 	{
-		bufcatcstr(str, "#define C5QA 0.30901699437494742410229341718282");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C5QB 0.95105651629515357211643933337938");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C5QC 0.50000000000000000000000000000000");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C5QD 0.58778525229247312916870595463907");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C5QE 0.80901699437494742410229341718282");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
+		bufprintf(str, "%s", ("#define C5QA 0.30901699437494742410229341718282") ? ("#define C5QA 0.30901699437494742410229341718282") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C5QB 0.95105651629515357211643933337938") ? ("#define C5QB 0.95105651629515357211643933337938") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C5QC 0.50000000000000000000000000000000") ? ("#define C5QC 0.50000000000000000000000000000000") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C5QD 0.58778525229247312916870595463907") ? ("#define C5QD 0.58778525229247312916870595463907") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C5QE 0.80901699437494742410229341718282") ? ("#define C5QE 0.80901699437494742410229341718282") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
 	}
 
 	if (kernel->length % 3 == 0)
 	{
-		bufcatcstr(str, "#define C3QA 0.50000000000000000000000000000000");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C3QB 0.86602540378443864676372317075294");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
+		bufprintf(str, "%s", ("#define C3QA 0.50000000000000000000000000000000") ? ("#define C3QA 0.50000000000000000000000000000000") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C3QB 0.86602540378443864676372317075294") ? ("#define C3QB 0.86602540378443864676372317075294") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
 	}
 
 	if (kernel->length % 7 == 0)
 	{
-		bufcatcstr(str, "#define C7Q1 -1.16666666666666651863693004997913");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C7Q2  0.79015646852540022404554065360571");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C7Q3  0.05585426728964774240049351305970");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C7Q4  0.73430220123575240531721419756650");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C7Q5  0.44095855184409837868031445395900");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C7Q6  0.34087293062393136944265847887436");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C7Q7 -0.53396936033772524066165487965918");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define C7Q8  0.87484229096165666561546458979137");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
+		bufprintf(str, "%s", ("#define C7Q1 -1.16666666666666651863693004997913") ? ("#define C7Q1 -1.16666666666666651863693004997913") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C7Q2  0.79015646852540022404554065360571") ? ("#define C7Q2  0.79015646852540022404554065360571") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C7Q3  0.05585426728964774240049351305970") ? ("#define C7Q3  0.05585426728964774240049351305970") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C7Q4  0.73430220123575240531721419756650") ? ("#define C7Q4  0.73430220123575240531721419756650") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C7Q5  0.44095855184409837868031445395900") ? ("#define C7Q5  0.44095855184409837868031445395900") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C7Q6  0.34087293062393136944265847887436") ? ("#define C7Q6  0.34087293062393136944265847887436") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C7Q7 -0.53396936033772524066165487965918") ? ("#define C7Q7 -0.53396936033772524066165487965918") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define C7Q8  0.87484229096165666561546458979137") ? ("#define C7Q8  0.87484229096165666561546458979137") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
 	}
 
 	if (kernel->length % 11 == 0)
 	{
-		bufcatcstr(str, "#define b11_0 0.9898214418809327");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_1 0.9594929736144973");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_2 0.9189859472289947");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_3 0.8767688310025893");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_4 0.8308300260037728");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_5 0.7784344533346518");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_6 0.7153703234534297");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_7 0.6343562706824244");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_8 0.3425847256816375");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b11_9 0.5211085581132027");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
+		bufprintf(str, "%s", ("#define b11_0 0.9898214418809327") ? ("#define b11_0 0.9898214418809327") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_1 0.9594929736144973") ? ("#define b11_1 0.9594929736144973") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_2 0.9189859472289947") ? ("#define b11_2 0.9189859472289947") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_3 0.8767688310025893") ? ("#define b11_3 0.8767688310025893") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_4 0.8308300260037728") ? ("#define b11_4 0.8308300260037728") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_5 0.7784344533346518") ? ("#define b11_5 0.7784344533346518") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_6 0.7153703234534297") ? ("#define b11_6 0.7153703234534297") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_7 0.6343562706824244") ? ("#define b11_7 0.6343562706824244") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_8 0.3425847256816375") ? ("#define b11_8 0.3425847256816375") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b11_9 0.5211085581132027") ? ("#define b11_9 0.5211085581132027") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
 	}
 
 	if (kernel->length % 13 == 0)
 	{
-		bufcatcstr(str, "#define b13_0  0.9682872443619840");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_1  0.9578059925946651");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_2  0.8755023024091479");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_3  0.8660254037844386");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_4  0.8595425350987748");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_5  0.8534800018598239");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_6  0.7693388175729806");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_7  0.6865583707817543");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_8  0.6122646503767565");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_9  0.6004772719326652");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_10 0.5817047785105157");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_11 0.5751407294740031");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_12 0.5220263851612750");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_13 0.5200285718888646");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_14 0.5165207806234897");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_15 0.5149187780863157");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_16 0.5035370328637666");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_17 0.5000000000000000");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_18 0.3027756377319946");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_19 0.3014792600477098");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_20 0.3004626062886657");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_21 0.2517685164318833");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_22 0.2261094450357824");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_23 0.0833333333333333");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
-		bufcatcstr(str, "#define b13_24 0.0386329546443481");
-		bufcatbuf(str, &sfx);
-		bufcatcstr(str, "\n");
+		bufprintf(str, "%s", ("#define b13_0  0.9682872443619840") ? ("#define b13_0  0.9682872443619840") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_1  0.9578059925946651") ? ("#define b13_1  0.9578059925946651") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_2  0.8755023024091479") ? ("#define b13_2  0.8755023024091479") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_3  0.8660254037844386") ? ("#define b13_3  0.8660254037844386") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_4  0.8595425350987748") ? ("#define b13_4  0.8595425350987748") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_5  0.8534800018598239") ? ("#define b13_5  0.8534800018598239") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_6  0.7693388175729806") ? ("#define b13_6  0.7693388175729806") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_7  0.6865583707817543") ? ("#define b13_7  0.6865583707817543") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_8  0.6122646503767565") ? ("#define b13_8  0.6122646503767565") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_9  0.6004772719326652") ? ("#define b13_9  0.6004772719326652") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_10 0.5817047785105157") ? ("#define b13_10 0.5817047785105157") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_11 0.5751407294740031") ? ("#define b13_11 0.5751407294740031") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_12 0.5220263851612750") ? ("#define b13_12 0.5220263851612750") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_13 0.5200285718888646") ? ("#define b13_13 0.5200285718888646") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_14 0.5165207806234897") ? ("#define b13_14 0.5165207806234897") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_15 0.5149187780863157") ? ("#define b13_15 0.5149187780863157") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_16 0.5035370328637666") ? ("#define b13_16 0.5035370328637666") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_17 0.5000000000000000") ? ("#define b13_17 0.5000000000000000") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_18 0.3027756377319946") ? ("#define b13_18 0.3027756377319946") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_19 0.3014792600477098") ? ("#define b13_19 0.3014792600477098") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_20 0.3004626062886657") ? ("#define b13_20 0.3004626062886657") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_21 0.2517685164318833") ? ("#define b13_21 0.2517685164318833") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_22 0.2261094450357824") ? ("#define b13_22 0.2261094450357824") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_23 0.0833333333333333") ? ("#define b13_23 0.0833333333333333") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
+		bufprintf(str, "%s", ("#define b13_24 0.0386329546443481") ? ("#define b13_24 0.0386329546443481") : "");
+		bufwrite(str, (sfx).buf, (sfx).len);
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
 	}
 
-	bufcatcstr(str, "\n");
+	bufprintf(str, "%s", ("\n") ? ("\n") : "");
 
 	// If pre-callback is set for the plan
-	buffer_t callbackstr = buffer_empty();
+	buffer_t callbackstr = (buffer_t){0};
 	if (kernel->params.fft_hasPreCallback)
 	{
 		// Insert pre-callback function code at the beginning
-		bufcatcstr(&callbackstr, kernel->params.fft_preCallback.funcstring);
-		bufcatcstr(&callbackstr, "\n\n");
+		bufprintf(&callbackstr, "%s", (kernel->params.fft_preCallback.funcstring) ? (kernel->params.fft_preCallback.funcstring) : "");
+		bufprintf(&callbackstr, "%s", ("\n\n") ? ("\n\n") : "");
 
-		bufcatbuf(str, &callbackstr);
+		bufwrite(str, (callbackstr).buf, (callbackstr).len);
 	}
 
 	// If post-callback is set for the plan
 	if (kernel->params.fft_hasPostCallback)
 	{
 		// Insert post-callback function code
-		bufcatcstr(str, kernel->params.fft_postCallback.funcstring);
-		bufcatcstr(str, "\n\n");
+		bufprintf(str, "%s", (kernel->params.fft_postCallback.funcstring) ? (kernel->params.fft_postCallback.funcstring) : "");
+		bufprintf(str, "%s", ("\n\n") ? ("\n\n") : "");
 	}
 
 	// Walk the compact pass array with raw pointers.
@@ -9147,7 +9404,7 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 					Butterfly bfly;
 					ButterflyInit(&bfly, kernel->precision, rad, 1, fwd, cReg);
 					ButterflyGenerateButterfly(&bfly, str);
-					bufcatcstr(str, "\n");
+					bufprintf(str, "%s", ("\n") ? ("\n") : "");
 				}
 				if (p->numB2)
 				{
@@ -9156,7 +9413,7 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 					Butterfly bfly;
 					ButterflyInit(&bfly, kernel->precision, rad, 2, fwd, cReg);
 					ButterflyGenerateButterfly(&bfly, str);
-					bufcatcstr(str, "\n");
+					bufprintf(str, "%s", ("\n") ? ("\n") : "");
 				}
 				if (p->numB4)
 				{
@@ -9165,7 +9422,7 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 					Butterfly bfly;
 					ButterflyInit(&bfly, kernel->precision, rad, 4, fwd, cReg);
 					ButterflyGenerateButterfly(&bfly, str);
-					bufcatcstr(str, "\n");
+					bufprintf(str, "%s", ("\n") ? ("\n") : "");
 				}
 			}
 		}
@@ -9238,7 +9495,7 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 	}
 
 	// TODO : address this kludge
-	bufcatcstr(str, " typedef union  { uint u; int i; } cb_t;\n\n");
+	bufprintf(str, "%s", (" typedef union  { uint u; int i; } cb_t;\n\n") ? (" typedef union  { uint u; int i; } cb_t;\n\n") : "");
 
 	for (size_t d = 0; d < 2; d++)
 	{
@@ -9251,19 +9508,19 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 
 		// FFT kernel begin
 		// Function attribute
-		bufcatcstr(str, "__kernel __attribute__((reqd_work_group_size (");
+		bufprintf(str, "%s", ("__kernel __attribute__((reqd_work_group_size (") ? ("__kernel __attribute__((reqd_work_group_size (") : "");
 		if (kernel->blockCompute)
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS));
+			bufprintf(str, "%zu", kernel->blockWGS);
 		else
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->workGroupSize));
-		bufcatcstr(str, ",1,1)))\nvoid ");
+			bufprintf(str, "%zu", kernel->workGroupSize);
+		bufprintf(str, "%s", (",1,1)))\nvoid ") ? (",1,1)))\nvoid ") : "");
 
 		// Function name
 		if (fwd)
-			bufcatcstr(str, "fft_fwd");
+			bufprintf(str, "%s", ("fft_fwd") ? ("fft_fwd") : "");
 		else
-			bufcatcstr(str, "fft_back");
-		bufcatcstr(str, "(");
+			bufprintf(str, "%s", ("fft_back") ? ("fft_back") : "");
+		bufprintf(str, "%s", ("(") ? ("(") : "");
 
 		// TODO : address this kludge
 		size_t SizeParam_ret = 0;
@@ -9273,26 +9530,26 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 
 		// nv compiler doesn't support __constant kernel argument
 		if (strncmp(nameVendor, "NVIDIA", 6) != 0)
-			bufcatcstr(str, "__constant cb_t *cb __attribute__((max_constant_size(32))), ");
+			bufprintf(str, "%s", ("__constant cb_t *cb __attribute__((max_constant_size(32))), ") ? ("__constant cb_t *cb __attribute__((max_constant_size(32))), ") : "");
 		else
-			bufcatcstr(str, "__global cb_t *cb, ");
+			bufprintf(str, "%s", ("__global cb_t *cb, ") ? ("__global cb_t *cb, ") : "");
 
 		free(nameVendor);
 
 		// If plan has pre/post callback
-		bufclear(&callbackstr);
+		clear_buf(&callbackstr);
 		bool hasCallback = kernel->params.fft_hasPreCallback || kernel->params.fft_hasPostCallback;
 
 		if (hasCallback)
 		{
 			if (kernel->params.fft_hasPreCallback)
-				bufcatcstr(&callbackstr, ", __global void* pre_userdata");
+				bufprintf(&callbackstr, "%s", (", __global void* pre_userdata") ? (", __global void* pre_userdata") : "");
 			if (kernel->params.fft_hasPostCallback)
-				bufcatcstr(&callbackstr, ", __global void* post_userdata");
+				bufprintf(&callbackstr, "%s", (", __global void* post_userdata") ? (", __global void* post_userdata") : "");
 
 			if (kernel->params.fft_preCallback.localMemSize > 0 || kernel->params.fft_postCallback.localMemSize > 0)
 			{
-				bufcatcstr(&callbackstr, ", __local void* localmem");
+				bufprintf(&callbackstr, "%s", (", __local void* localmem") ? (", __local void* localmem") : "");
 			}
 		}
 
@@ -9303,22 +9560,22 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 			{
 				if (outInterleaved)
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &r2Type);
-					bufcatcstr(str, " * restrict gb");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (r2Type).buf, (r2Type).len);
+					bufprintf(str, "%s", (" * restrict gb") ? (" * restrict gb") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " * restrict gb");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" * restrict gb") ? (" * restrict gb") : "");
 				}
 
 				// If plan has callback
 				if (hasCallback)
-					bufcatbuf(str, &callbackstr);
+					bufwrite(str, (callbackstr).buf, (callbackstr).len);
 
-				bufcatcstr(str, ")\n");
+				bufprintf(str, "%s", (")\n") ? (")\n") : "");
 			}
 			else
 			{
@@ -9328,30 +9585,30 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 
 				if (inInterleaved)
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &r2Type);
-					bufcatcstr(str, " * restrict gb");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (r2Type).buf, (r2Type).len);
+					bufprintf(str, "%s", (" * restrict gb") ? (" * restrict gb") : "");
 
 					// If plan has callback
 					if (hasCallback)
-						bufcatbuf(str, &callbackstr);
+						bufwrite(str, (callbackstr).buf, (callbackstr).len);
 
-					bufcatcstr(str, ")\n");
+					bufprintf(str, "%s", (")\n") ? (")\n") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " * restrict gbRe, ");
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " * restrict gbIm");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" * restrict gbRe, ") ? (" * restrict gbRe, ") : "");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" * restrict gbIm") ? (" * restrict gbIm") : "");
 
 					// If plan has callback
 					if (hasCallback)
-						bufcatbuf(str, &callbackstr);
+						bufwrite(str, (callbackstr).buf, (callbackstr).len);
 
-					bufcatcstr(str, ")\n");
+					bufprintf(str, "%s", (")\n") ? (")\n") : "");
 				}
 			}
 		}
@@ -9359,112 +9616,112 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 		{
 			if (inInterleaved)
 			{
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &r2Type);
-				bufcatcstr(str, " * restrict gbIn, ");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (r2Type).buf, (r2Type).len);
+				bufprintf(str, "%s", (" * restrict gbIn, ") ? (" * restrict gbIn, ") : "");
 			}
 			else if (inReal)
 			{
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbIn, ");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbIn, ") ? (" * restrict gbIn, ") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "__global const ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbInRe, ");
-				bufcatcstr(str, "__global const ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbInIm, ");
+				bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbInRe, ") ? (" * restrict gbInRe, ") : "");
+				bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbInIm, ") ? (" * restrict gbInIm, ") : "");
 			}
 
 			if (outInterleaved)
 			{
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &r2Type);
-				bufcatcstr(str, " * restrict gbOut");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (r2Type).buf, (r2Type).len);
+				bufprintf(str, "%s", (" * restrict gbOut") ? (" * restrict gbOut") : "");
 			}
 			else if (outReal)
 			{
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbOut");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbOut") ? (" * restrict gbOut") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbOutRe, ");
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbOutIm");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbOutRe, ") ? (" * restrict gbOutRe, ") : "");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbOutIm") ? (" * restrict gbOutIm") : "");
 			}
 
 			// If plan has callback
 			if (hasCallback)
-				bufcatbuf(str, &callbackstr);
+				bufwrite(str, (callbackstr).buf, (callbackstr).len);
 
-			bufcatcstr(str, ")\n");
+			bufprintf(str, "%s", (")\n") ? (")\n") : "");
 		}
 		else
 		{
 			if (inInterleaved)
 			{
-				bufcatcstr(str, "__global const ");
-				bufcatbuf(str, &r2Type);
-				bufcatcstr(str, " * restrict gbIn, ");
+				bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+				bufwrite(str, (r2Type).buf, (r2Type).len);
+				bufprintf(str, "%s", (" * restrict gbIn, ") ? (" * restrict gbIn, ") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "__global const ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbInRe, ");
-				bufcatcstr(str, "__global const ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbInIm, ");
+				bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbInRe, ") ? (" * restrict gbInRe, ") : "");
+				bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbInIm, ") ? (" * restrict gbInIm, ") : "");
 			}
 
 			if (outInterleaved)
 			{
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &r2Type);
-				bufcatcstr(str, " * restrict gbOut");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (r2Type).buf, (r2Type).len);
+				bufprintf(str, "%s", (" * restrict gbOut") ? (" * restrict gbOut") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbOutRe, ");
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " * restrict gbOutIm");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbOutRe, ") ? (" * restrict gbOutRe, ") : "");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" * restrict gbOutIm") ? (" * restrict gbOutIm") : "");
 			}
 
 			// If plan has callback
 			if (hasCallback)
-				bufcatbuf(str, &callbackstr);
+				bufwrite(str, (callbackstr).buf, (callbackstr).len);
 
-			bufcatcstr(str, ")\n");
+			bufprintf(str, "%s", (")\n") ? (")\n") : "");
 		}
 
-		bufcatcstr(str, "{\n");
+		bufprintf(str, "%s", ("{\n") ? ("{\n") : "");
 
 		// Initialize
-		bufcatcstr(str, "\t");
-		bufcatcstr(str, "uint me = get_local_id(0);\n\t");
-		bufcatcstr(str, "uint batch = get_group_id(0);");
-		bufcatcstr(str, "\n");
+		bufprintf(str, "%s", ("\t") ? ("\t") : "");
+		bufprintf(str, "%s", ("uint me = get_local_id(0);\n\t") ? ("uint me = get_local_id(0);\n\t") : "");
+		bufprintf(str, "%s", ("uint batch = get_group_id(0);") ? ("uint batch = get_group_id(0);") : "");
+		bufprintf(str, "%s", ("\n") ? ("\n") : "");
 
 		// Allocate LDS
 		if (kernel->blockCompute)
 		{
-			bufcatcstr(str, "\n\t");
-			bufcatcstr(str, "__local ");
-			bufcatbuf(str, &r2Type);
-			bufcatcstr(str, " lds[");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockLDS));
-			bufcatcstr(str, "];\n");
+			bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
+			bufprintf(str, "%s", ("__local ") ? ("__local ") : "");
+			bufwrite(str, (r2Type).buf, (r2Type).len);
+			bufprintf(str, "%s", (" lds[") ? (" lds[") : "");
+			bufprintf(str, "%zu", kernel->blockLDS);
+			bufprintf(str, "%s", ("];\n") ? ("];\n") : "");
 		}
 		else
 		{
@@ -9473,25 +9730,25 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 
 			if (kernel->numPasses > 1)
 			{
-				bufcatcstr(str, "\n\t");
-				bufcatcstr(str, "__local ");
-				bufcatbuf(str, ldsInterleaved ? &r2Type : &rType);
-				bufcatcstr(str, " lds[");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(ldsSize));
-				bufcatcstr(str, "];\n");
+				bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
+				bufprintf(str, "%s", ("__local ") ? ("__local ") : "");
+				bufwrite(str, (ldsInterleaved ? &r2Type : &rType)->buf, (ldsInterleaved ? &r2Type : &rType)->len);
+				bufprintf(str, "%s", (" lds[") ? (" lds[") : "");
+				bufprintf(str, "%zu", ldsSize);
+				bufprintf(str, "%s", ("];\n") ? ("];\n") : "");
 			}
 		}
 
 		// Declare memory pointers
-		bufcatcstr(str, "\n\t");
+		bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
 		if (kernel->r2c2r)
 		{
-			bufcatcstr(str, "uint iOffset;\n\t");
-			bufcatcstr(str, "uint oOffset;\n\n\t");
+			bufprintf(str, "%s", ("uint iOffset;\n\t") ? ("uint iOffset;\n\t") : "");
+			bufprintf(str, "%s", ("uint oOffset;\n\n\t") ? ("uint oOffset;\n\n\t") : "");
 			if (!kernel->rcSimple)
 			{
-				bufcatcstr(str, "uint iOffset2;\n\t");
-				bufcatcstr(str, "uint oOffset2;\n\n\t");
+				bufprintf(str, "%s", ("uint iOffset2;\n\t") ? ("uint iOffset2;\n\t") : "");
+				bufprintf(str, "%s", ("uint oOffset2;\n\n\t") ? ("uint oOffset2;\n\n\t") : "");
 			}
 
 			if (!kernel->params.fft_hasPreCallback)
@@ -9500,47 +9757,47 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 				{
 					if (!kernel->rcSimple)
 					{
-						bufcatcstr(str, "__global ");
-						bufcatbuf(str, &r2Type);
-						bufcatcstr(str, " *lwbIn2;\n\t");
+						bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+						bufwrite(str, (r2Type).buf, (r2Type).len);
+						bufprintf(str, "%s", (" *lwbIn2;\n\t") ? (" *lwbIn2;\n\t") : "");
 					}
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &r2Type);
-					bufcatcstr(str, " *lwbIn;\n\t");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (r2Type).buf, (r2Type).len);
+					bufprintf(str, "%s", (" *lwbIn;\n\t") ? (" *lwbIn;\n\t") : "");
 				}
 				else if (inReal)
 				{
 					if (!kernel->rcSimple)
 					{
-						bufcatcstr(str, "__global ");
-						bufcatbuf(str, &rType);
-						bufcatcstr(str, " *lwbIn2;\n\t");
+						bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+						bufwrite(str, (rType).buf, (rType).len);
+						bufprintf(str, "%s", (" *lwbIn2;\n\t") ? (" *lwbIn2;\n\t") : "");
 					}
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbIn;\n\t");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbIn;\n\t") ? (" *lwbIn;\n\t") : "");
 				}
 				else
 				{
 					if (!kernel->rcSimple)
 					{
-						bufcatcstr(str, "__global ");
-						bufcatbuf(str, &rType);
-						bufcatcstr(str, " *lwbInRe2;\n\t");
+						bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+						bufwrite(str, (rType).buf, (rType).len);
+						bufprintf(str, "%s", (" *lwbInRe2;\n\t") ? (" *lwbInRe2;\n\t") : "");
 					}
 					if (!kernel->rcSimple)
 					{
-						bufcatcstr(str, "__global ");
-						bufcatbuf(str, &rType);
-						bufcatcstr(str, " *lwbInIm2;\n\t");
+						bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+						bufwrite(str, (rType).buf, (rType).len);
+						bufprintf(str, "%s", (" *lwbInIm2;\n\t") ? (" *lwbInIm2;\n\t") : "");
 					}
 
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbInRe;\n\t");
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbInIm;\n\t");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbInRe;\n\t") ? (" *lwbInRe;\n\t") : "");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbInIm;\n\t") ? (" *lwbInIm;\n\t") : "");
 				}
 			}
 
@@ -9550,13 +9807,13 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 				{
 					if (!kernel->rcSimple)
 					{
-						bufcatcstr(str, "__global ");
-						bufcatbuf(str, &r2Type);
-						bufcatcstr(str, " *lwbOut2;\n\t");
+						bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+						bufwrite(str, (r2Type).buf, (r2Type).len);
+						bufprintf(str, "%s", (" *lwbOut2;\n\t") ? (" *lwbOut2;\n\t") : "");
 					}
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &r2Type);
-					bufcatcstr(str, " *lwbOut;\n");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (r2Type).buf, (r2Type).len);
+					bufprintf(str, "%s", (" *lwbOut;\n") ? (" *lwbOut;\n") : "");
 				}
 			}
 			else if (outReal)
@@ -9565,85 +9822,85 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 				{
 					if (!kernel->rcSimple)
 					{
-						bufcatcstr(str, "__global ");
-						bufcatbuf(str, &rType);
-						bufcatcstr(str, " *lwbOut2;\n\t");
+						bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+						bufwrite(str, (rType).buf, (rType).len);
+						bufprintf(str, "%s", (" *lwbOut2;\n\t") ? (" *lwbOut2;\n\t") : "");
 					}
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbOut;\n");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbOut;\n") ? (" *lwbOut;\n") : "");
 				}
 			}
 			else if (!kernel->params.fft_hasPostCallback)
 			{
 				if (!kernel->rcSimple)
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbOutRe2;\n\t");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbOutRe2;\n\t") ? (" *lwbOutRe2;\n\t") : "");
 				}
 				if (!kernel->rcSimple)
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbOutIm2;\n\t");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbOutIm2;\n\t") ? (" *lwbOutIm2;\n\t") : "");
 				}
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " *lwbOutRe;\n\t");
-				bufcatcstr(str, "__global ");
-				bufcatbuf(str, &rType);
-				bufcatcstr(str, " *lwbOutIm;\n");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" *lwbOutRe;\n\t") ? (" *lwbOutRe;\n\t") : "");
+				bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+				bufwrite(str, (rType).buf, (rType).len);
+				bufprintf(str, "%s", (" *lwbOutIm;\n") ? (" *lwbOutIm;\n") : "");
 			}
-			bufcatcstr(str, "\n");
+			bufprintf(str, "%s", ("\n") ? ("\n") : "");
 		}
 		else if (kernel->params.fft_placeness == CLFFT_INPLACE)
 		{
-			bufcatcstr(str, "uint ioOffset;\n\t");
+			bufprintf(str, "%s", ("uint ioOffset;\n\t") ? ("uint ioOffset;\n\t") : "");
 
 			// Skip if callback is set
 			if (!kernel->params.fft_hasPreCallback || !kernel->params.fft_hasPostCallback)
 			{
 				if (inInterleaved)
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &r2Type);
-					bufcatcstr(str, " *lwb;\n");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (r2Type).buf, (r2Type).len);
+					bufprintf(str, "%s", (" *lwb;\n") ? (" *lwb;\n") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbRe;\n\t");
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbIm;\n");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbRe;\n\t") ? (" *lwbRe;\n\t") : "");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbIm;\n") ? (" *lwbIm;\n") : "");
 				}
 			}
-			bufcatcstr(str, "\n");
+			bufprintf(str, "%s", ("\n") ? ("\n") : "");
 		}
 		else
 		{
-			bufcatcstr(str, "uint iOffset;\n\t");
-			bufcatcstr(str, "uint oOffset;\n\t");
+			bufprintf(str, "%s", ("uint iOffset;\n\t") ? ("uint iOffset;\n\t") : "");
+			bufprintf(str, "%s", ("uint oOffset;\n\t") ? ("uint oOffset;\n\t") : "");
 
 			// Skip if precallback is set
 			if (!(kernel->params.fft_hasPreCallback))
 			{
 				if (inInterleaved)
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &r2Type);
-					bufcatcstr(str, " *lwbIn;\n\t");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (r2Type).buf, (r2Type).len);
+					bufprintf(str, "%s", (" *lwbIn;\n\t") ? (" *lwbIn;\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbInRe;\n\t");
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbInIm;\n\t");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbInRe;\n\t") ? (" *lwbInRe;\n\t") : "");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbInIm;\n\t") ? (" *lwbInIm;\n\t") : "");
 				}
 			}
 
@@ -9652,71 +9909,74 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 			{
 				if (outInterleaved)
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &r2Type);
-					bufcatcstr(str, " *lwbOut;\n");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (r2Type).buf, (r2Type).len);
+					bufprintf(str, "%s", (" *lwbOut;\n") ? (" *lwbOut;\n") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbOutRe;\n\t");
-					bufcatcstr(str, "__global ");
-					bufcatbuf(str, &rType);
-					bufcatcstr(str, " *lwbOutIm;\n");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbOutRe;\n\t") ? (" *lwbOutRe;\n\t") : "");
+					bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+					bufwrite(str, (rType).buf, (rType).len);
+					bufprintf(str, "%s", (" *lwbOutIm;\n") ? (" *lwbOutIm;\n") : "");
 				}
 			}
-			bufcatcstr(str, "\n");
+			bufprintf(str, "%s", ("\n") ? ("\n") : "");
 		}
 
 		// Setup registers if needed
 		if (kernel->linearRegs)
 		{
-			bufcatcstr(str, "\t");
-			BUFCAT_BUFFER_VALUE(str, RegBaseType(kernel->precision, 2));
-			bufcatcstr(str, " ");
-			BUFCAT_BUFFER_VALUE(str, KernelIterRegs(kernel, "", false));
-			bufcatcstr(str, ";\n\n");
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
+			bufprintf(str, "%s", (((kernel->precision) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((kernel->precision) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+			bufprintf(str, "%s", (" ") ? (" ") : "");
+			// Append generated register declarations and release the temporary buffer.
+			buffer_t kernel_iter_regs = KernelIterRegs(kernel, "", false);
+			bufwrite(str, kernel_iter_regs.buf, kernel_iter_regs.len);
+			free_buf(&kernel_iter_regs);
+			bufprintf(str, "%s", (";\n\n") ? (";\n\n") : "");
 		}
 
 		// Calculate total transform count
-		buffer_t totalBatch = buffer_from_cstr("(");
+		buffer_t totalBatch = buf_string_copy("(");
 		size_t i = 0;
 		while (i < (kernel->params.fft_DataDim - 2))
 		{
-			BUFCAT_BUFFER_VALUE(&totalBatch, SztToStr(kernel->params.fft_N[i + 1]));
-			bufcatcstr(&totalBatch, " * ");
+			bufprintf(&totalBatch, "%zu", kernel->params.fft_N[i + 1]);
+			bufprintf(&totalBatch, "%s", (" * ") ? (" * ") : "");
 			i++;
 		}
-		bufcatcstr(&totalBatch, "cb[0].u)");
+		bufprintf(&totalBatch, "%s", ("cb[0].u)") ? ("cb[0].u)") : "");
 
 		// Conditional read-write ('rw') for arbitrary batch number
 		if (kernel->r2c2r && !kernel->rcSimple)
 		{
-			bufcatcstr(str, "\tuint this = ");
-			bufcatbuf(str, &totalBatch);
-			bufcatcstr(str, " - batch*");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(2 * kernel->numTrans));
-			bufcatcstr(str, ";\n");
-			bufcatcstr(str, "\tuint rw = (me < ((this+1)/2)*");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->workGroupSizePerTrans));
-			bufcatcstr(str, ") ? (this - 2*(me/");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->workGroupSizePerTrans));
-			bufcatcstr(str, ")) : 0;\n\n");
+			bufprintf(str, "%s", ("\tuint this = ") ? ("\tuint this = ") : "");
+			bufwrite(str, (totalBatch).buf, (totalBatch).len);
+			bufprintf(str, "%s", (" - batch*") ? (" - batch*") : "");
+			bufprintf(str, "%zu", 2 * kernel->numTrans);
+			bufprintf(str, "%s", (";\n") ? (";\n") : "");
+			bufprintf(str, "%s", ("\tuint rw = (me < ((this+1)/2)*") ? ("\tuint rw = (me < ((this+1)/2)*") : "");
+			bufprintf(str, "%zu", kernel->workGroupSizePerTrans);
+			bufprintf(str, "%s", (") ? (this - 2*(me/") ? (") ? (this - 2*(me/") : "");
+			bufprintf(str, "%zu", kernel->workGroupSizePerTrans);
+			bufprintf(str, "%s", (")) : 0;\n\n") ? (")) : 0;\n\n") : "");
 		}
 		else if ((kernel->numTrans > 1) && !kernel->blockCompute)
 		{
-			bufcatcstr(str, "\tuint rw = (me < (");
-			bufcatbuf(str, &totalBatch);
-			bufcatcstr(str, " - batch*");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->numTrans));
-			bufcatcstr(str, ")*");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->workGroupSizePerTrans));
-			bufcatcstr(str, ") ? 1 : 0;\n\n");
+			bufprintf(str, "%s", ("\tuint rw = (me < (") ? ("\tuint rw = (me < (") : "");
+			bufwrite(str, (totalBatch).buf, (totalBatch).len);
+			bufprintf(str, "%s", (" - batch*") ? (" - batch*") : "");
+			bufprintf(str, "%zu", kernel->numTrans);
+			bufprintf(str, "%s", (")*") ? (")*") : "");
+			bufprintf(str, "%zu", kernel->workGroupSizePerTrans);
+			bufprintf(str, "%s", (") ? 1 : 0;\n\n") ? (") ? 1 : 0;\n\n") : "");
 		}
 		else
 		{
-			bufcatcstr(str, "\tuint rw = 1;\n\n");
+			bufprintf(str, "%s", ("\tuint rw = 1;\n\n") ? ("\tuint rw = 1;\n\n") : "");
 		}
 
 		// Transform index for 3-step twiddles
@@ -9724,43 +9984,52 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 		{
 			if (kernel->numTrans == 1)
 			{
-				bufcatcstr(str, "\tuint b = batch%");
+				bufprintf(str, "%s", ("\tuint b = batch%") ? ("\tuint b = batch%") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "\tuint b = (batch*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->numTrans));
-				bufcatcstr(str, " + (me/");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->workGroupSizePerTrans));
-				bufcatcstr(str, "))%");
+				bufprintf(str, "%s", ("\tuint b = (batch*") ? ("\tuint b = (batch*") : "");
+				bufprintf(str, "%zu", kernel->numTrans);
+				bufprintf(str, "%s", (" + (me/") ? (" + (me/") : "");
+				bufprintf(str, "%zu", kernel->workGroupSizePerTrans);
+				bufprintf(str, "%s", ("))%") ? ("))%") : "");
 			}
 
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_N[1]));
-			bufcatcstr(str, ";\n\n");
+			bufprintf(str, "%zu", kernel->params.fft_N[1]);
+			bufprintf(str, "%s", (";\n\n") ? (";\n\n") : "");
 
 			if (kernel->params.fft_realSpecial)
-				bufcatcstr(str, "\tuint bt = b;\n\n");
+				bufprintf(str, "%s", ("\tuint bt = b;\n\n") ? ("\tuint bt = b;\n\n") : "");
 		}
 		else
 		{
-			bufcatcstr(str, "\tuint b = 0;\n\n");
+			bufprintf(str, "%s", ("\tuint b = 0;\n\n") ? ("\tuint b = 0;\n\n") : "");
 		}
 
 		// Setup memory pointers
 		if (kernel->r2c2r)
 		{
-			BUFCAT_BUFFER_VALUE(str, KernelOffsetCalc(kernel, "iOffset", true, false));
-			BUFCAT_BUFFER_VALUE(str, KernelOffsetCalc(kernel, "oOffset", false, false));
+			// Append generated offset calculations and release each temporary buffer.
+			buffer_t offset_calc = KernelOffsetCalc(kernel, "iOffset", true, false);
+			bufwrite(str, offset_calc.buf, offset_calc.len);
+			free_buf(&offset_calc);
+			offset_calc = KernelOffsetCalc(kernel, "oOffset", false, false);
+			bufwrite(str, offset_calc.buf, offset_calc.len);
+			free_buf(&offset_calc);
 			if (!kernel->rcSimple)
 			{
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalc(kernel, "iOffset2", true, true));
+				offset_calc = KernelOffsetCalc(kernel, "iOffset2", true, true);
+				bufwrite(str, offset_calc.buf, offset_calc.len);
+				free_buf(&offset_calc);
 			}
 			if (!kernel->rcSimple)
 			{
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalc(kernel, "oOffset2", false, true));
+				offset_calc = KernelOffsetCalc(kernel, "oOffset2", false, true);
+				bufwrite(str, offset_calc.buf, offset_calc.len);
+				free_buf(&offset_calc);
 			}
 
-			bufcatcstr(str, "\n\t");
+			bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
 			if (kernel->params.fft_placeness == CLFFT_INPLACE)
 			{
 				if (!kernel->params.fft_hasPreCallback)
@@ -9769,35 +10038,35 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 					{
 						if (!kernel->rcSimple)
 						{
-							bufcatcstr(str, "lwbIn2 = (__global ");
-							bufcatbuf(str, &r2Type);
-							bufcatcstr(str, " *)gb + iOffset2;\n\t");
+							bufprintf(str, "%s", ("lwbIn2 = (__global ") ? ("lwbIn2 = (__global ") : "");
+							bufwrite(str, (r2Type).buf, (r2Type).len);
+							bufprintf(str, "%s", (" *)gb + iOffset2;\n\t") ? (" *)gb + iOffset2;\n\t") : "");
 						}
-						bufcatcstr(str, "lwbIn  = (__global ");
-						bufcatbuf(str, &r2Type);
-						bufcatcstr(str, " *)gb + iOffset;\n\t");
+						bufprintf(str, "%s", ("lwbIn  = (__global ") ? ("lwbIn  = (__global ") : "");
+						bufwrite(str, (r2Type).buf, (r2Type).len);
+						bufprintf(str, "%s", (" *)gb + iOffset;\n\t") ? (" *)gb + iOffset;\n\t") : "");
 					}
 					else
 					{
 						if (!kernel->rcSimple)
 						{
-							bufcatcstr(str, "lwbIn2 = (__global ");
-							bufcatbuf(str, &rType);
-							bufcatcstr(str, " *)gb + iOffset2;\n\t");
+							bufprintf(str, "%s", ("lwbIn2 = (__global ") ? ("lwbIn2 = (__global ") : "");
+							bufwrite(str, (rType).buf, (rType).len);
+							bufprintf(str, "%s", (" *)gb + iOffset2;\n\t") ? (" *)gb + iOffset2;\n\t") : "");
 						}
-						bufcatcstr(str, "lwbIn  = (__global ");
-						bufcatbuf(str, &rType);
-						bufcatcstr(str, " *)gb + iOffset;\n\t");
+						bufprintf(str, "%s", ("lwbIn  = (__global ") ? ("lwbIn  = (__global ") : "");
+						bufwrite(str, (rType).buf, (rType).len);
+						bufprintf(str, "%s", (" *)gb + iOffset;\n\t") ? (" *)gb + iOffset;\n\t") : "");
 					}
 				}
 
 				if (!kernel->params.fft_hasPostCallback)
 				{
 					if (!kernel->rcSimple)
-						bufcatcstr(str, "lwbOut2 = gb + oOffset2;\n\t");
-					bufcatcstr(str, "lwbOut = gb + oOffset;\n");
+						bufprintf(str, "%s", ("lwbOut2 = gb + oOffset2;\n\t") ? ("lwbOut2 = gb + oOffset2;\n\t") : "");
+					bufprintf(str, "%s", ("lwbOut = gb + oOffset;\n") ? ("lwbOut = gb + oOffset;\n") : "");
 				}
-				bufcatcstr(str, "\n");
+				bufprintf(str, "%s", ("\n") ? ("\n") : "");
 			}
 			else
 			{
@@ -9806,21 +10075,21 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 					if (inInterleaved || inReal)
 					{
 						if (!kernel->rcSimple)
-							bufcatcstr(str, "lwbIn2 = gbIn + iOffset2;\n\t");
-						bufcatcstr(str, "lwbIn = gbIn + iOffset;\n\t");
+							bufprintf(str, "%s", ("lwbIn2 = gbIn + iOffset2;\n\t") ? ("lwbIn2 = gbIn + iOffset2;\n\t") : "");
+						bufprintf(str, "%s", ("lwbIn = gbIn + iOffset;\n\t") ? ("lwbIn = gbIn + iOffset;\n\t") : "");
 					}
 					else
 					{
 						if (!kernel->rcSimple)
 						{
-							bufcatcstr(str, "lwbInRe2 = gbInRe + iOffset2;\n\t");
+							bufprintf(str, "%s", ("lwbInRe2 = gbInRe + iOffset2;\n\t") ? ("lwbInRe2 = gbInRe + iOffset2;\n\t") : "");
 						}
 						if (!kernel->rcSimple)
 						{
-							bufcatcstr(str, "lwbInIm2 = gbInIm + iOffset2;\n\t");
+							bufprintf(str, "%s", ("lwbInIm2 = gbInIm + iOffset2;\n\t") ? ("lwbInIm2 = gbInIm + iOffset2;\n\t") : "");
 						}
-						bufcatcstr(str, "lwbInRe = gbInRe + iOffset;\n\t");
-						bufcatcstr(str, "lwbInIm = gbInIm + iOffset;\n\t");
+						bufprintf(str, "%s", ("lwbInRe = gbInRe + iOffset;\n\t") ? ("lwbInRe = gbInRe + iOffset;\n\t") : "");
+						bufprintf(str, "%s", ("lwbInIm = gbInIm + iOffset;\n\t") ? ("lwbInIm = gbInIm + iOffset;\n\t") : "");
 					}
 				}
 
@@ -9829,76 +10098,90 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 					if (outInterleaved || outReal)
 					{
 						if (!kernel->rcSimple)
-							bufcatcstr(str, "lwbOut2 = gbOut + oOffset2;\n\t");
-						bufcatcstr(str, "lwbOut = gbOut + oOffset;\n");
+							bufprintf(str, "%s", ("lwbOut2 = gbOut + oOffset2;\n\t") ? ("lwbOut2 = gbOut + oOffset2;\n\t") : "");
+						bufprintf(str, "%s", ("lwbOut = gbOut + oOffset;\n") ? ("lwbOut = gbOut + oOffset;\n") : "");
 					}
 					else
 					{
 						if (!kernel->rcSimple)
 						{
-							bufcatcstr(str, "lwbOutRe2 = gbOutRe + oOffset2;\n\t");
+							bufprintf(str, "%s", ("lwbOutRe2 = gbOutRe + oOffset2;\n\t") ? ("lwbOutRe2 = gbOutRe + oOffset2;\n\t") : "");
 						}
 						if (!kernel->rcSimple)
 						{
-							bufcatcstr(str, "lwbOutIm2 = gbOutIm + oOffset2;\n\t");
+							bufprintf(str, "%s", ("lwbOutIm2 = gbOutIm + oOffset2;\n\t") ? ("lwbOutIm2 = gbOutIm + oOffset2;\n\t") : "");
 						}
-						bufcatcstr(str, "lwbOutRe = gbOutRe + oOffset;\n\t");
-						bufcatcstr(str, "lwbOutIm = gbOutIm + oOffset;\n");
+						bufprintf(str, "%s", ("lwbOutRe = gbOutRe + oOffset;\n\t") ? ("lwbOutRe = gbOutRe + oOffset;\n\t") : "");
+						bufprintf(str, "%s", ("lwbOutIm = gbOutIm + oOffset;\n") ? ("lwbOutIm = gbOutIm + oOffset;\n") : "");
 					}
 				}
-				bufcatcstr(str, "\n");
+				bufprintf(str, "%s", ("\n") ? ("\n") : "");
 			}
 		}
 		else if (kernel->params.fft_placeness == CLFFT_INPLACE)
 		{
+			// Append the generated in-place offset calculation.
+			buffer_t offset_calc;
 			if (kernel->blockCompute)
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalcBlock(kernel, "ioOffset", true));
+				offset_calc = KernelOffsetCalcBlock(kernel, "ioOffset", true);
 			else
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalc(kernel, "ioOffset", true, false));
+				offset_calc = KernelOffsetCalc(kernel, "ioOffset", true, false);
+			bufwrite(str, offset_calc.buf, offset_calc.len);
+			free_buf(&offset_calc);
 
-			bufcatcstr(str, "\t");
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
 
 			// Skip if callback is set
 			if (!kernel->params.fft_hasPreCallback || !kernel->params.fft_hasPostCallback)
 			{
 				if (inInterleaved)
 				{
-					bufcatcstr(str, "lwb = gb + ioOffset;\n");
+					bufprintf(str, "%s", ("lwb = gb + ioOffset;\n") ? ("lwb = gb + ioOffset;\n") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "lwbRe = gbRe + ioOffset;\n\t");
-					bufcatcstr(str, "lwbIm = gbIm + ioOffset;\n");
+					bufprintf(str, "%s", ("lwbRe = gbRe + ioOffset;\n\t") ? ("lwbRe = gbRe + ioOffset;\n\t") : "");
+					bufprintf(str, "%s", ("lwbIm = gbIm + ioOffset;\n") ? ("lwbIm = gbIm + ioOffset;\n") : "");
 				}
 			}
-			bufcatcstr(str, "\n");
+			bufprintf(str, "%s", ("\n") ? ("\n") : "");
 		}
 		else
-		{
-			if (kernel->blockCompute)
 			{
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalcBlock(kernel, "iOffset", true));
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalcBlock(kernel, "oOffset", false));
-			}
-			else
-			{
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalc(kernel, "iOffset", true, false));
-				BUFCAT_BUFFER_VALUE(str, KernelOffsetCalc(kernel, "oOffset", false, false));
-			}
+				// Append generated out-of-place offset calculations.
+				buffer_t offset_calc;
+				if (kernel->blockCompute)
+				{
+					offset_calc = KernelOffsetCalcBlock(kernel, "iOffset", true);
+					bufwrite(str, offset_calc.buf, offset_calc.len);
+					free_buf(&offset_calc);
+					offset_calc = KernelOffsetCalcBlock(kernel, "oOffset", false);
+					bufwrite(str, offset_calc.buf, offset_calc.len);
+					free_buf(&offset_calc);
+				}
+				else
+				{
+					offset_calc = KernelOffsetCalc(kernel, "iOffset", true, false);
+					bufwrite(str, offset_calc.buf, offset_calc.len);
+					free_buf(&offset_calc);
+					offset_calc = KernelOffsetCalc(kernel, "oOffset", false, false);
+					bufwrite(str, offset_calc.buf, offset_calc.len);
+					free_buf(&offset_calc);
+				}
 
-			bufcatcstr(str, "\t");
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
 
 			// Skip if precallback is set
 			if (!(kernel->params.fft_hasPreCallback))
 			{
 				if (inInterleaved)
 				{
-					bufcatcstr(str, "lwbIn = gbIn + iOffset;\n\t");
+					bufprintf(str, "%s", ("lwbIn = gbIn + iOffset;\n\t") ? ("lwbIn = gbIn + iOffset;\n\t") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "lwbInRe = gbInRe + iOffset;\n\t");
-					bufcatcstr(str, "lwbInIm = gbInIm + iOffset;\n\t");
+					bufprintf(str, "%s", ("lwbInRe = gbInRe + iOffset;\n\t") ? ("lwbInRe = gbInRe + iOffset;\n\t") : "");
+					bufprintf(str, "%s", ("lwbInIm = gbInIm + iOffset;\n\t") ? ("lwbInIm = gbInIm + iOffset;\n\t") : "");
 				}
 			}
 
@@ -9907,28 +10190,28 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 			{
 				if (outInterleaved)
 				{
-					bufcatcstr(str, "lwbOut = gbOut + oOffset;\n");
+					bufprintf(str, "%s", ("lwbOut = gbOut + oOffset;\n") ? ("lwbOut = gbOut + oOffset;\n") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "lwbOutRe = gbOutRe + oOffset;\n\t");
-					bufcatcstr(str, "lwbOutIm = gbOutIm + oOffset;\n");
+					bufprintf(str, "%s", ("lwbOutRe = gbOutRe + oOffset;\n\t") ? ("lwbOutRe = gbOutRe + oOffset;\n\t") : "");
+					bufprintf(str, "%s", ("lwbOutIm = gbOutIm + oOffset;\n") ? ("lwbOutIm = gbOutIm + oOffset;\n") : "");
 				}
 			}
-			bufcatcstr(str, "\n");
+			bufprintf(str, "%s", ("\n") ? ("\n") : "");
 		}
 
-		buffer_t inOffset = buffer_empty();
-		buffer_t outOffset = buffer_empty();
+		buffer_t inOffset = (buffer_t){0};
+		buffer_t outOffset = (buffer_t){0};
 		if (kernel->params.fft_placeness == CLFFT_INPLACE && !kernel->r2c2r)
 		{
-			bufcatcstr(&inOffset, "ioOffset");
-			bufcatcstr(&outOffset, "ioOffset");
+			bufprintf(&inOffset, "%s", ("ioOffset") ? ("ioOffset") : "");
+			bufprintf(&outOffset, "%s", ("ioOffset") ? ("ioOffset") : "");
 		}
 		else
 		{
-			bufcatcstr(&inOffset, "iOffset");
-			bufcatcstr(&outOffset, "oOffset");
+			bufprintf(&inOffset, "%s", ("iOffset") ? ("iOffset") : "");
+			bufprintf(&outOffset, "%s", ("oOffset") ? ("oOffset") : "");
 		}
 
 		// Read data into LDS for blocked access
@@ -9938,93 +10221,93 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 
 			if ((kernel->blockComputeType == BCT_C2C) && kernel->params.fft_hasPreCallback)
 			{
-				bufcatcstr(str, "\n\t");
-				bufcatbuf(str, &r2Type);
-				bufcatcstr(str, " retCallback;");
+				bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
+				bufwrite(str, (r2Type).buf, (r2Type).len);
+				bufprintf(str, "%s", (" retCallback;") ? (" retCallback;") : "");
 			}
 
-			bufcatcstr(str, "\n\tfor(uint t=0; t<");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(loopCount));
-			bufcatcstr(str, "; t++)\n\t{\n");
+			bufprintf(str, "%s", ("\n\tfor(uint t=0; t<") ? ("\n\tfor(uint t=0; t<") : "");
+			bufprintf(str, "%zu", loopCount);
+			bufprintf(str, "%s", ("; t++)\n\t{\n") ? ("; t++)\n\t{\n") : "");
 
 			// get offset
-			buffer_t bufOffset = buffer_empty();
+			buffer_t bufOffset = (buffer_t){0};
 
 			for (size_t c = 0; c < 2; c++)
 			{
-				buffer_t comp = buffer_from_cstr("");
-				buffer_t readBuf = buffer_from_cstr((kernel->params.fft_placeness == CLFFT_INPLACE) ? "lwb" : "lwbIn");
+				buffer_t comp = buf_string_copy("");
+				buffer_t readBuf = buf_string_copy((kernel->params.fft_placeness == CLFFT_INPLACE) ? "lwb" : "lwbIn");
 				if (!inInterleaved)
-					bufsetcstr(&comp, c ? ".y" : ".x");
+					(clear_buf(&comp), bufprintf(&comp, "%s", (c ? ".y" : ".x") ? (c ? ".y" : ".x") : ""));
 				if (!inInterleaved)
-					bufsetcstr(&readBuf, (kernel->params.fft_placeness == CLFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbInIm" : "lwbInRe"));
+					(clear_buf(&readBuf), bufprintf(&readBuf, "%s", ((kernel->params.fft_placeness == CLFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbInIm" : "lwbInRe")) ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbInIm" : "lwbInRe")) : ""));
 
 				if ((kernel->blockComputeType == BCT_C2C) || (kernel->blockComputeType == BCT_C2R))
 				{
-					bufclear(&bufOffset);
-					bufcatcstr(&bufOffset, "(me%");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(kernel->blockWidth));
-					bufcatcstr(&bufOffset, ") + ");
-					bufcatcstr(&bufOffset, "(me/");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(kernel->blockWidth));
-					bufcatcstr(&bufOffset, ")*");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(kernel->params.fft_inStride[0]));
-					bufcatcstr(&bufOffset, " + t*");
-					BUFCAT_BUFFER_VALUE(&bufOffset, SztToStr(kernel->params.fft_inStride[0] * kernel->blockWGS / kernel->blockWidth));
+					clear_buf(&bufOffset);
+					bufprintf(&bufOffset, "%s", ("(me%") ? ("(me%") : "");
+					bufprintf(&bufOffset, "%zu", kernel->blockWidth);
+					bufprintf(&bufOffset, "%s", (") + ") ? (") + ") : "");
+					bufprintf(&bufOffset, "%s", ("(me/") ? ("(me/") : "");
+					bufprintf(&bufOffset, "%zu", kernel->blockWidth);
+					bufprintf(&bufOffset, "%s", (")*") ? (")*") : "");
+					bufprintf(&bufOffset, "%zu", kernel->params.fft_inStride[0]);
+					bufprintf(&bufOffset, "%s", (" + t*") ? (" + t*") : "");
+					bufprintf(&bufOffset, "%zu", kernel->params.fft_inStride[0] * kernel->blockWGS / kernel->blockWidth);
 
 					if ((kernel->blockComputeType == BCT_C2C) && kernel->params.fft_hasPreCallback)
 					{
 						if (c == 0)
 						{
-							bufcatcstr(str, "\t\tretCallback = ");
-							bufcatcstr(str, kernel->params.fft_preCallback.funcname);
-							bufcatcstr(str, "(");
+							bufprintf(str, "%s", ("\t\tretCallback = ") ? ("\t\tretCallback = ") : "");
+							bufprintf(str, "%s", (kernel->params.fft_preCallback.funcname) ? (kernel->params.fft_preCallback.funcname) : "");
+							bufprintf(str, "%s", ("(") ? ("(") : "");
 
 							if (inInterleaved)
 							{
-								bufcatcstr(str, (kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb, " : "gbIn, ");
+								bufprintf(str, "%s", ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb, " : "gbIn, ") ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb, " : "gbIn, ") : "");
 							}
 							else
 							{
-								bufcatcstr(str, (kernel->params.fft_placeness == CLFFT_INPLACE) ? "gbRe, gbIm, " : "gbInRe, gbInIm, ");
+								bufprintf(str, "%s", ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gbRe, gbIm, " : "gbInRe, gbInIm, ") ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gbRe, gbIm, " : "gbInRe, gbInIm, ") : "");
 							}
 
-							bufcatbuf(str, &inOffset);
-							bufcatcstr(str, " + ");
-							bufcatbuf(str, &bufOffset);
-							bufcatcstr(str, ", pre_userdata");
+							bufwrite(str, (inOffset).buf, (inOffset).len);
+							bufprintf(str, "%s", (" + ") ? (" + ") : "");
+							bufwrite(str, (bufOffset).buf, (bufOffset).len);
+							bufprintf(str, "%s", (", pre_userdata") ? (", pre_userdata") : "");
 							if (kernel->params.fft_preCallback.localMemSize > 0)
-								bufcatcstr(str, ", localmem);\n");
+								bufprintf(str, "%s", (", localmem);\n") ? (", localmem);\n") : "");
 							else
-								bufcatcstr(str, ");\n");
+								bufprintf(str, "%s", (");\n") ? (");\n") : "");
 						}
 
-						bufcatcstr(str, "\t\tR0");
-						bufcatbuf(str, &comp);
-						bufcatcstr(str, " = retCallback");
-						bufcatbuf(str, &comp);
-						bufcatcstr(str, ";\n");
+						bufprintf(str, "%s", ("\t\tR0") ? ("\t\tR0") : "");
+						bufwrite(str, (comp).buf, (comp).len);
+						bufprintf(str, "%s", (" = retCallback") ? (" = retCallback") : "");
+						bufwrite(str, (comp).buf, (comp).len);
+						bufprintf(str, "%s", (";\n") ? (";\n") : "");
 					}
 					else
 					{
-						bufcatcstr(str, "\t\tR0");
-						bufcatbuf(str, &comp);
-						bufcatcstr(str, " = ");
-						bufcatbuf(str, &readBuf);
-						bufcatcstr(str, "[");
-						bufcatbuf(str, &bufOffset);
-						bufcatcstr(str, "];\n");
+						bufprintf(str, "%s", ("\t\tR0") ? ("\t\tR0") : "");
+						bufwrite(str, (comp).buf, (comp).len);
+						bufprintf(str, "%s", (" = ") ? (" = ") : "");
+						bufwrite(str, (readBuf).buf, (readBuf).len);
+						bufprintf(str, "%s", ("[") ? ("[") : "");
+						bufwrite(str, (bufOffset).buf, (bufOffset).len);
+						bufprintf(str, "%s", ("];\n") ? ("];\n") : "");
 					}
 				}
 				else
 				{
-					bufcatcstr(str, "\t\tR0");
-					bufcatbuf(str, &comp);
-					bufcatcstr(str, " = ");
-					bufcatbuf(str, &readBuf);
-					bufcatcstr(str, "[me + t*");
-					BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS));
-					bufcatcstr(str, "];\n");
+					bufprintf(str, "%s", ("\t\tR0") ? ("\t\tR0") : "");
+					bufwrite(str, (comp).buf, (comp).len);
+					bufprintf(str, "%s", (" = ") ? (" = ") : "");
+					bufwrite(str, (readBuf).buf, (readBuf).len);
+					bufprintf(str, "%s", ("[me + t*") ? ("[me + t*") : "");
+					bufprintf(str, "%zu", kernel->blockWGS);
+					bufprintf(str, "%s", ("];\n") ? ("];\n") : "");
 				}
 
 				if (inInterleaved)
@@ -10033,74 +10316,74 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 
 			if ((kernel->blockComputeType == BCT_C2C) || (kernel->blockComputeType == BCT_C2R))
 			{
-				bufcatcstr(str, "\t\tlds[t*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS / kernel->blockWidth));
-				bufcatcstr(str, " + ");
-				bufcatcstr(str, "(me%");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-				bufcatcstr(str, ")*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->length));
-				bufcatcstr(str, " + ");
-				bufcatcstr(str, "(me/");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-				bufcatcstr(str, ")] = R0;");
-				bufcatcstr(str, "\n");
+				bufprintf(str, "%s", ("\t\tlds[t*") ? ("\t\tlds[t*") : "");
+				bufprintf(str, "%zu", kernel->blockWGS / kernel->blockWidth);
+				bufprintf(str, "%s", (" + ") ? (" + ") : "");
+				bufprintf(str, "%s", ("(me%") ? ("(me%") : "");
+				bufprintf(str, "%zu", kernel->blockWidth);
+				bufprintf(str, "%s", (")*") ? (")*") : "");
+				bufprintf(str, "%zu", kernel->length);
+				bufprintf(str, "%s", (" + ") ? (" + ") : "");
+				bufprintf(str, "%s", ("(me/") ? ("(me/") : "");
+				bufprintf(str, "%zu", kernel->blockWidth);
+				bufprintf(str, "%s", (")] = R0;") ? (")] = R0;") : "");
+				bufprintf(str, "%s", ("\n") ? ("\n") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "\t\tlds[t*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS));
-				bufcatcstr(str, " + me] = R0;");
-				bufcatcstr(str, "\n");
+				bufprintf(str, "%s", ("\t\tlds[t*") ? ("\t\tlds[t*") : "");
+				bufprintf(str, "%zu", kernel->blockWGS);
+				bufprintf(str, "%s", (" + me] = R0;") ? (" + me] = R0;") : "");
+				bufprintf(str, "%s", ("\n") ? ("\n") : "");
 			}
 
-			bufcatcstr(str, "\t}\n\n");
-			bufcatcstr(str, "\tbarrier(CLK_LOCAL_MEM_FENCE);\n\n");
+			bufprintf(str, "%s", ("\t}\n\n") ? ("\t}\n\n") : "");
+			bufprintf(str, "%s", ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n\n") ? ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n\n") : "");
 		}
 
 		// Set rw and 'me' per transform
 		// rw string also contains 'b'
-		buffer_t rw = buffer_empty();
-		buffer_t me = buffer_empty();
+		buffer_t rw = (buffer_t){0};
+		buffer_t me = (buffer_t){0};
 
 		if (kernel->r2c2r && !kernel->rcSimple)
-			bufsetcstr(&rw, "rw, b, ");
+			(clear_buf(&rw), bufprintf(&rw, "%s", ("rw, b, ") ? ("rw, b, ") : ""));
 		else
-			bufsetcstr(&rw, ((kernel->numTrans > 1) || kernel->realSpecial) ? "rw, b, " : "1, b, ");
+			(clear_buf(&rw), bufprintf(&rw, "%s", (((kernel->numTrans > 1) || kernel->realSpecial) ? "rw, b, " : "1, b, ") ? (((kernel->numTrans > 1) || kernel->realSpecial) ? "rw, b, " : "1, b, ") : ""));
 
 		if (kernel->numTrans > 1)
 		{
-			bufcatcstr(&me, "me%");
-			BUFCAT_BUFFER_VALUE(&me, SztToStr(kernel->workGroupSizePerTrans));
-			bufcatcstr(&me, ", ");
+			bufprintf(&me, "%s", ("me%") ? ("me%") : "");
+			bufprintf(&me, "%zu", kernel->workGroupSizePerTrans);
+			bufprintf(&me, "%s", (", ") ? (", ") : "");
 		}
 		else
 		{
-			bufcatcstr(&me, "me, ");
+			bufprintf(&me, "%s", ("me, ") ? ("me, ") : "");
 		}
 
 		if (kernel->blockCompute)
 		{
-			bufsetcstr(&me, "me%");
-			BUFCAT_BUFFER_VALUE(&me, SztToStr(kernel->workGroupSizePerTrans));
-			bufcatcstr(&me, ", ");
+			(clear_buf(&me), bufprintf(&me, "%s", ("me%") ? ("me%") : ""));
+			bufprintf(&me, "%zu", kernel->workGroupSizePerTrans);
+			bufprintf(&me, "%s", (", ") ? (", ") : "");
 		}
 
 		// Buffer strings
-		buffer_t inBuf = buffer_empty();
-		buffer_t outBuf = buffer_empty();
+		buffer_t inBuf = (buffer_t){0};
+		buffer_t outBuf = (buffer_t){0};
 		if (kernel->r2c2r)
 		{
 			if (kernel->rcSimple)
 			{
 				if (inInterleaved || inReal)
-					bufsetcstr(&inBuf, kernel->params.fft_hasPreCallback ? "gbIn, " : "lwbIn, ");
+					(clear_buf(&inBuf), bufprintf(&inBuf, "%s", (kernel->params.fft_hasPreCallback ? "gbIn, " : "lwbIn, ") ? (kernel->params.fft_hasPreCallback ? "gbIn, " : "lwbIn, ") : ""));
 				else
-					bufsetcstr(&inBuf, "lwbInRe, lwbInIm, ");
+					(clear_buf(&inBuf), bufprintf(&inBuf, "%s", ("lwbInRe, lwbInIm, ") ? ("lwbInRe, lwbInIm, ") : ""));
 				if (outInterleaved || outReal)
-					bufsetcstr(&outBuf, kernel->params.fft_hasPostCallback ? "gbOut" : "lwbOut");
+					(clear_buf(&outBuf), bufprintf(&outBuf, "%s", (kernel->params.fft_hasPostCallback ? "gbOut" : "lwbOut") ? (kernel->params.fft_hasPostCallback ? "gbOut" : "lwbOut") : ""));
 				else
-					bufsetcstr(&outBuf, "lwbOutRe, lwbOutIm");
+					(clear_buf(&outBuf), bufprintf(&outBuf, "%s", ("lwbOutRe, lwbOutIm") ? ("lwbOutRe, lwbOutIm") : ""));
 			}
 			else
 			{
@@ -10108,115 +10391,118 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 				{
 					if (!kernel->params.fft_hasPreCallback)
 					{
-						bufsetcstr(&inBuf, "lwbIn, lwbIn2, ");
+						(clear_buf(&inBuf), bufprintf(&inBuf, "%s", ("lwbIn, lwbIn2, ") ? ("lwbIn, lwbIn2, ") : ""));
 					}
 					else if (kernel->params.fft_placeness == CLFFT_INPLACE)
 					{
-						bufsetcstr(&inBuf, "(__global ");
-						bufcatbuf(&inBuf, kernel->r2c ? &rType : &r2Type);
-						bufcatcstr(&inBuf, "*) gb, ");
-						bufcatcstr(&inBuf, "(__global ");
-						bufcatbuf(&inBuf, kernel->r2c ? &rType : &r2Type);
-						bufcatcstr(&inBuf, "*) gb, ");
+						(clear_buf(&inBuf), bufprintf(&inBuf, "%s", ("(__global ") ? ("(__global ") : ""));
+						bufwrite(&inBuf, (kernel->r2c ? &rType : &r2Type)->buf, (kernel->r2c ? &rType : &r2Type)->len);
+						bufprintf(&inBuf, "%s", ("*) gb, ") ? ("*) gb, ") : "");
+						bufprintf(&inBuf, "%s", ("(__global ") ? ("(__global ") : "");
+						bufwrite(&inBuf, (kernel->r2c ? &rType : &r2Type)->buf, (kernel->r2c ? &rType : &r2Type)->len);
+						bufprintf(&inBuf, "%s", ("*) gb, ") ? ("*) gb, ") : "");
 					}
 					else
 					{
-						bufsetcstr(&inBuf, "gbIn, gbIn, ");
+						(clear_buf(&inBuf), bufprintf(&inBuf, "%s", ("gbIn, gbIn, ") ? ("gbIn, gbIn, ") : ""));
 					}
 				}
 				else
-					bufsetcstr(&inBuf, (kernel->params.fft_hasPreCallback) ? "gbInRe, gbInRe, gbInIm, gbInIm, " : "lwbInRe, lwbInRe2, lwbInIm, lwbInIm2, ");
+					(clear_buf(&inBuf), bufprintf(&inBuf, "%s", ((kernel->params.fft_hasPreCallback) ? "gbInRe, gbInRe, gbInIm, gbInIm, " : "lwbInRe, lwbInRe2, lwbInIm, lwbInIm2, ") ? ((kernel->params.fft_hasPreCallback) ? "gbInRe, gbInRe, gbInIm, gbInIm, " : "lwbInRe, lwbInRe2, lwbInIm, lwbInIm2, ") : ""));
 
 				if (outInterleaved || outReal)
-					bufsetcstr(&outBuf,
-						kernel->params.fft_hasPostCallback ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb, gb" : "gbOut, gbOut")
-										   : "lwbOut, lwbOut2");
+					(clear_buf(&outBuf), bufprintf(&outBuf, "%s", (kernel->params.fft_hasPostCallback ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb, gb" : "gbOut, gbOut")
+										   : "lwbOut, lwbOut2") ? (kernel->params.fft_hasPostCallback ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb, gb" : "gbOut, gbOut")
+										   : "lwbOut, lwbOut2") : ""));
 				else
-					bufsetcstr(&outBuf, kernel->params.fft_hasPostCallback ? "gbOutRe, gbOutRe, gbOutIm, gbOutIm" : "lwbOutRe, lwbOutRe2, lwbOutIm, lwbOutIm2");
+					(clear_buf(&outBuf), bufprintf(&outBuf, "%s", (kernel->params.fft_hasPostCallback ? "gbOutRe, gbOutRe, gbOutIm, gbOutIm" : "lwbOutRe, lwbOutRe2, lwbOutIm, lwbOutIm2") ? (kernel->params.fft_hasPostCallback ? "gbOutRe, gbOutRe, gbOutIm, gbOutIm" : "lwbOutRe, lwbOutRe2, lwbOutIm, lwbOutIm2") : ""));
 			}
 		}
 		else if (kernel->params.fft_placeness == CLFFT_INPLACE)
 		{
 			if (inInterleaved)
 			{
-				bufsetcstr(&inBuf, kernel->params.fft_hasPreCallback ? "gb, " : "lwb, ");
-				bufsetcstr(&outBuf, kernel->params.fft_hasPostCallback ? "gb" : "lwb");
+				(clear_buf(&inBuf), bufprintf(&inBuf, "%s", (kernel->params.fft_hasPreCallback ? "gb, " : "lwb, ") ? (kernel->params.fft_hasPreCallback ? "gb, " : "lwb, ") : ""));
+				(clear_buf(&outBuf), bufprintf(&outBuf, "%s", (kernel->params.fft_hasPostCallback ? "gb" : "lwb") ? (kernel->params.fft_hasPostCallback ? "gb" : "lwb") : ""));
 			}
 			else
 			{
-				bufsetcstr(&inBuf, kernel->params.fft_hasPreCallback ? "gbRe, gbIm, " : "lwbRe, lwbIm, ");
-				bufsetcstr(&outBuf, kernel->params.fft_hasPostCallback ? "gbRe, gbIm" : "lwbRe, lwbIm");
+				(clear_buf(&inBuf), bufprintf(&inBuf, "%s", (kernel->params.fft_hasPreCallback ? "gbRe, gbIm, " : "lwbRe, lwbIm, ") ? (kernel->params.fft_hasPreCallback ? "gbRe, gbIm, " : "lwbRe, lwbIm, ") : ""));
+				(clear_buf(&outBuf), bufprintf(&outBuf, "%s", (kernel->params.fft_hasPostCallback ? "gbRe, gbIm" : "lwbRe, lwbIm") ? (kernel->params.fft_hasPostCallback ? "gbRe, gbIm" : "lwbRe, lwbIm") : ""));
 			}
 		}
 		else
 		{
 			if (inInterleaved)
-				bufsetcstr(&inBuf, kernel->params.fft_hasPreCallback ? "gbIn, " : "lwbIn, ");
+				(clear_buf(&inBuf), bufprintf(&inBuf, "%s", (kernel->params.fft_hasPreCallback ? "gbIn, " : "lwbIn, ") ? (kernel->params.fft_hasPreCallback ? "gbIn, " : "lwbIn, ") : ""));
 			else
-				bufsetcstr(&inBuf, kernel->params.fft_hasPreCallback ? "gbInRe, gbInIm, " : "lwbInRe, lwbInIm, ");
+				(clear_buf(&inBuf), bufprintf(&inBuf, "%s", (kernel->params.fft_hasPreCallback ? "gbInRe, gbInIm, " : "lwbInRe, lwbInIm, ") ? (kernel->params.fft_hasPreCallback ? "gbInRe, gbInIm, " : "lwbInRe, lwbInIm, ") : ""));
 			if (outInterleaved)
-				bufsetcstr(&outBuf, kernel->params.fft_hasPostCallback ? "gbOut" : "lwbOut");
+				(clear_buf(&outBuf), bufprintf(&outBuf, "%s", (kernel->params.fft_hasPostCallback ? "gbOut" : "lwbOut") ? (kernel->params.fft_hasPostCallback ? "gbOut" : "lwbOut") : ""));
 			else
-				bufsetcstr(&outBuf, kernel->params.fft_hasPostCallback ? "gbOutRe, gbOutIm" : "lwbOutRe, lwbOutIm");
+				(clear_buf(&outBuf), bufprintf(&outBuf, "%s", (kernel->params.fft_hasPostCallback ? "gbOutRe, gbOutIm" : "lwbOutRe, lwbOutIm") ? (kernel->params.fft_hasPostCallback ? "gbOutRe, gbOutIm" : "lwbOutRe, lwbOutIm") : ""));
 		}
 
 		if (kernel->blockCompute)
 		{
-			bufcatcstr(str, "\n\tfor(uint t=0; t<");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth / (kernel->blockWGS / kernel->workGroupSizePerTrans)));
-			bufcatcstr(str, "; t++)\n\t{\n\n");
+			bufprintf(str, "%s", ("\n\tfor(uint t=0; t<") ? ("\n\tfor(uint t=0; t<") : "");
+			bufprintf(str, "%zu", kernel->blockWidth / (kernel->blockWGS / kernel->workGroupSizePerTrans));
+			bufprintf(str, "%s", ("; t++)\n\t{\n\n") ? ("; t++)\n\t{\n\n") : "");
 
-			bufsetcstr(&inBuf, "lds, ");
-			bufsetcstr(&outBuf, "lds");
+			(clear_buf(&inBuf), bufprintf(&inBuf, "%s", ("lds, ") ? ("lds, ") : ""));
+			(clear_buf(&outBuf), bufprintf(&outBuf, "%s", ("lds") ? ("lds") : ""));
 
 			if (kernel->params.fft_3StepTwiddle)
 			{
-				bufcatcstr(str, "\t\tb = (batch%");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_N[1] / kernel->blockWidth));
-				bufcatcstr(str, ")*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-				bufcatcstr(str, " + t*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS / kernel->workGroupSizePerTrans));
-				bufcatcstr(str, " + (me/");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->workGroupSizePerTrans));
-				bufcatcstr(str, ");\n\n");
+				bufprintf(str, "%s", ("\t\tb = (batch%") ? ("\t\tb = (batch%") : "");
+				bufprintf(str, "%zu", kernel->params.fft_N[1] / kernel->blockWidth);
+				bufprintf(str, "%s", (")*") ? (")*") : "");
+				bufprintf(str, "%zu", kernel->blockWidth);
+				bufprintf(str, "%s", (" + t*") ? (" + t*") : "");
+				bufprintf(str, "%zu", kernel->blockWGS / kernel->workGroupSizePerTrans);
+				bufprintf(str, "%s", (" + (me/") ? (" + (me/") : "");
+				bufprintf(str, "%zu", kernel->workGroupSizePerTrans);
+				bufprintf(str, "%s", (");\n\n") ? (");\n\n") : "");
 			}
 		}
 
 		if (kernel->realSpecial)
-			bufcatcstr(str, "\n\tfor(uint t=0; t<2; t++)\n\t{\n\n");
+			bufprintf(str, "%s", ("\n\tfor(uint t=0; t<2; t++)\n\t{\n\n") ? ("\n\tfor(uint t=0; t<2; t++)\n\t{\n\n") : "");
 
 		// Call passes
 		if (kernel->numPasses == 1)
 		{
-			bufcatcstr(str, "\t");
-			BUFCAT_BUFFER_VALUE(str, PassName(0, fwd));
-			bufcatcstr(str, "(");
-			bufcatbuf(str, &rw);
-			bufcatbuf(str, &me);
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
+			bufprintf(str, "%sPass%zu", (fwd) ? "Fwd" : "Inv", 0);
+			bufprintf(str, "%s", ("(") ? ("(") : "");
+			bufwrite(str, (rw).buf, (rw).len);
+			bufwrite(str, (me).buf, (me).len);
 
 			// Append the pre-callback input offset when it is present.
 
 			if (kernel->params.fft_hasPreCallback)
-				bufcatbuf(str, &inOffset);
+				bufwrite(str, (inOffset).buf, (inOffset).len);
 
 			else
-				bufcatcstr(str, "0");
+				bufprintf(str, "%s", ("0") ? ("0") : "");
 
 			if (kernel->params.fft_hasPostCallback)
 			{
-				bufcatcstr(str, ", ");
-				bufcatbuf(str, &outOffset);
-				bufcatcstr(str, ", ");
+				bufprintf(str, "%s", (", ") ? (", ") : "");
+				bufwrite(str, (outOffset).buf, (outOffset).len);
+				bufprintf(str, "%s", (", ") ? (", ") : "");
 			}
-			else
-			{
-				bufcatcstr(str, ", 0, ");
-			}
+				else
+				{
+					bufprintf(str, "%s", (", 0, ") ? (", 0, ") : "");
+				}
 
-			bufcatbuf(str, &inBuf);
-			bufcatbuf(str, &outBuf);
-			BUFCAT_BUFFER_VALUE(str, KernelIterRegs(kernel, "&", true));
+				bufwrite(str, (inBuf).buf, (inBuf).len);
+				bufwrite(str, (outBuf).buf, (outBuf).len);
+				// Append generated kernel register arguments and release the temporary buffer.
+				buffer_t kernel_iter_regs = KernelIterRegs(kernel, "&", true);
+				bufwrite(str, kernel_iter_regs.buf, kernel_iter_regs.len);
+				free_buf(&kernel_iter_regs);
 
 			// If callback is set
 			if (hasCallback)
@@ -10224,7 +10510,7 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 				// if pre-calback set
 				if (kernel->params.fft_hasPreCallback)
 				{
-					bufcatcstr(str, (kernel->r2c2r && !kernel->rcSimple) ? ", iOffset2, pre_userdata" : ", pre_userdata");
+					bufprintf(str, "%s", ((kernel->r2c2r && !kernel->rcSimple) ? ", iOffset2, pre_userdata" : ", pre_userdata") ? ((kernel->r2c2r && !kernel->rcSimple) ? ", iOffset2, pre_userdata" : ", pre_userdata") : "");
 				}
 
 				// if post-calback set
@@ -10232,34 +10518,34 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 				{
 					if ((kernel->r2c || kernel->c2r) && !kernel->rcSimple)
 					{
-						bufcatcstr(str, ", ");
-						bufcatbuf(str, &outOffset);
-						bufcatcstr(str, "2");
+						bufprintf(str, "%s", (", ") ? (", ") : "");
+						bufwrite(str, (outOffset).buf, (outOffset).len);
+						bufprintf(str, "%s", ("2") ? ("2") : "");
 					}
 
-					bufcatcstr(str, ", post_userdata");
+					bufprintf(str, "%s", (", post_userdata") ? (", post_userdata") : "");
 				}
 
 				if (kernel->params.fft_preCallback.localMemSize > 0)
-					bufcatcstr(str, ", localmem");
+					bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
 				if (kernel->params.fft_postCallback.localMemSize > 0)
 				{
 					// if precallback localmem also requested, send the localmem
 					// with the right offset
 					if (kernel->params.fft_hasPreCallback && kernel->params.fft_preCallback.localMemSize > 0)
 					{
-						bufcatcstr(str, ", ((__local char *)localmem + ");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_preCallback.localMemSize));
-						bufcatcstr(str, ")");
+						bufprintf(str, "%s", (", ((__local char *)localmem + ") ? (", ((__local char *)localmem + ") : "");
+						bufprintf(str, "%zu", kernel->params.fft_preCallback.localMemSize);
+						bufprintf(str, "%s", (")") ? (")") : "");
 					}
 					else
 					{
-						bufcatcstr(str, ", localmem");
+						bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
 					}
 				}
 			}
 
-			bufcatcstr(str, ");\n");
+			bufprintf(str, "%s", (");\n") ? (");\n") : "");
 		}
 		else
 		{
@@ -10268,128 +10554,134 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 			const Pass *passes_end = kernel->passes.buf ? kernel->passes.buf + kernel->passes.len : NULL;
 			for (const Pass *p = passes_begin; p != passes_end; p++)
 			{
-				buffer_t exTab = buffer_from_cstr("");
+				buffer_t exTab = buf_string_copy("");
 				if (kernel->blockCompute || kernel->realSpecial)
-					bufsetcstr(&exTab, "\t");
+					(clear_buf(&exTab), bufprintf(&exTab, "%s", ("\t") ? ("\t") : ""));
 
-				bufcatbuf(str, &exTab);
-				bufcatcstr(str, "\t");
-				BUFCAT_BUFFER_VALUE(str, PassName(p->position, fwd));
-				bufcatcstr(str, "(");
+				bufwrite(str, (exTab).buf, (exTab).len);
+				bufprintf(str, "%s", ("\t") ? ("\t") : "");
+				bufprintf(str, "%sPass%zu", (fwd) ? "Fwd" : "Inv", p->position);
+				bufprintf(str, "%s", ("(") ? ("(") : "");
 
-				buffer_t ldsOff = buffer_empty();
+				buffer_t ldsOff = (buffer_t){0};
 				if (kernel->blockCompute)
 				{
-					bufcatcstr(&ldsOff, "t*");
-					BUFCAT_BUFFER_VALUE(&ldsOff, SztToStr(kernel->length * (kernel->blockWGS / kernel->workGroupSizePerTrans)));
-					bufcatcstr(&ldsOff, " + (me/");
-					BUFCAT_BUFFER_VALUE(&ldsOff, SztToStr(kernel->workGroupSizePerTrans));
-					bufcatcstr(&ldsOff, ")*");
-					BUFCAT_BUFFER_VALUE(&ldsOff, SztToStr(kernel->length));
+					bufprintf(&ldsOff, "%s", ("t*") ? ("t*") : "");
+					bufprintf(&ldsOff, "%zu", kernel->length * (kernel->blockWGS / kernel->workGroupSizePerTrans));
+					bufprintf(&ldsOff, "%s", (" + (me/") ? (" + (me/") : "");
+					bufprintf(&ldsOff, "%zu", kernel->workGroupSizePerTrans);
+					bufprintf(&ldsOff, "%s", (")*") ? (")*") : "");
+					bufprintf(&ldsOff, "%zu", kernel->length);
 				}
 				else if (kernel->numTrans > 1)
 				{
-					bufcatcstr(&ldsOff, "(me/");
-					BUFCAT_BUFFER_VALUE(&ldsOff, SztToStr(kernel->workGroupSizePerTrans));
-					bufcatcstr(&ldsOff, ")*");
-					BUFCAT_BUFFER_VALUE(&ldsOff, SztToStr(kernel->length));
+					bufprintf(&ldsOff, "%s", ("(me/") ? ("(me/") : "");
+					bufprintf(&ldsOff, "%zu", kernel->workGroupSizePerTrans);
+					bufprintf(&ldsOff, "%s", (")*") ? (")*") : "");
+					bufprintf(&ldsOff, "%zu", kernel->length);
 				}
 				else
 				{
-					bufcatcstr(&ldsOff, "0");
+					bufprintf(&ldsOff, "%s", ("0") ? ("0") : "");
 				}
 
-				buffer_t ldsArgs = buffer_empty();
+				buffer_t ldsArgs = (buffer_t){0};
 				if (kernel->halfLds)
 				{
-					bufcatcstr(&ldsArgs, "lds, lds");
+					bufprintf(&ldsArgs, "%s", ("lds, lds") ? ("lds, lds") : "");
 				}
 				else if (ldsInterleaved)
 				{
-					bufcatcstr(&ldsArgs, "lds");
+					bufprintf(&ldsArgs, "%s", ("lds") ? ("lds") : "");
 				}
 				else
 				{
-					bufcatcstr(&ldsArgs, "lds, lds + ");
-					BUFCAT_BUFFER_VALUE(&ldsArgs, SztToStr(kernel->length * kernel->numTrans));
+					bufprintf(&ldsArgs, "%s", ("lds, lds + ") ? ("lds, lds + ") : "");
+					bufprintf(&ldsArgs, "%zu", kernel->length * kernel->numTrans);
 				}
 
-				bufcatbuf(str, &rw);
+				bufwrite(str, (rw).buf, (rw).len);
 				if (kernel->params.fft_realSpecial)
-					bufcatcstr(str, "t, ");
-				bufcatbuf(str, &me);
+					bufprintf(str, "%s", ("t, ") ? ("t, ") : "");
+				bufwrite(str, (me).buf, (me).len);
 				if (p == passes_begin) // beginning pass
 				{
 					if (kernel->blockCompute)
 					{
-						bufcatbuf(str, &ldsOff);
+						bufwrite(str, (ldsOff).buf, (ldsOff).len);
 					}
 					else
 					{
 						// Append the pre-callback input offset when it is
 						// present.
 						if (kernel->params.fft_hasPreCallback)
-							bufcatbuf(str, &inOffset);
+							bufwrite(str, (inOffset).buf, (inOffset).len);
 						else
-							bufcatcstr(str, "0");
+							bufprintf(str, "%s", ("0") ? ("0") : "");
 					}
-					bufcatcstr(str, ", ");
-					bufcatbuf(str, &ldsOff);
-					bufcatcstr(str, ", ");
-					bufcatbuf(str, &inBuf);
-					bufcatbuf(str, &ldsArgs);
-					BUFCAT_BUFFER_VALUE(str, KernelIterRegs(kernel, "&", true));
+					bufprintf(str, "%s", (", ") ? (", ") : "");
+					bufwrite(str, (ldsOff).buf, (ldsOff).len);
+					bufprintf(str, "%s", (", ") ? (", ") : "");
+					bufwrite(str, (inBuf).buf, (inBuf).len);
+					bufwrite(str, (ldsArgs).buf, (ldsArgs).len);
+					// Append generated kernel register arguments and release the temporary buffer.
+					buffer_t kernel_iter_regs = KernelIterRegs(kernel, "&", true);
+					bufwrite(str, kernel_iter_regs.buf, kernel_iter_regs.len);
+					free_buf(&kernel_iter_regs);
 
 					// if precalback set, append additional arguments
 					if (!kernel->blockCompute && kernel->params.fft_hasPreCallback)
 					{
-						bufcatcstr(str, (kernel->r2c2r && !kernel->rcSimple) ? ", iOffset2, pre_userdata" : ", pre_userdata");
+						bufprintf(str, "%s", ((kernel->r2c2r && !kernel->rcSimple) ? ", iOffset2, pre_userdata" : ", pre_userdata") ? ((kernel->r2c2r && !kernel->rcSimple) ? ", iOffset2, pre_userdata" : ", pre_userdata") : "");
 
 						if (kernel->params.fft_preCallback.localMemSize > 0)
-							bufcatcstr(str, ", localmem");
+							bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
 					}
 
-					bufcatcstr(str, ");\n");
+					bufprintf(str, "%s", (");\n") ? (");\n") : "");
 					if (!kernel->halfLds)
 					{
-						bufcatbuf(str, &exTab);
-						bufcatcstr(str, "\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+						bufwrite(str, (exTab).buf, (exTab).len);
+						bufprintf(str, "%s", ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 					}
 				}
 				else if ((p + 1) == passes_end) // ending pass
 				{
-					bufcatbuf(str, &ldsOff);
-					bufcatcstr(str, ", ");
+					bufwrite(str, (ldsOff).buf, (ldsOff).len);
+					bufprintf(str, "%s", (", ") ? (", ") : "");
 					if (kernel->blockCompute)
 					{
-						bufcatbuf(str, &ldsOff);
+						bufwrite(str, (ldsOff).buf, (ldsOff).len);
 					}
 					else
 					{
 						// Append the post-callback output offset when it is
 						// present.
 						if (kernel->params.fft_hasPostCallback)
-							bufcatbuf(str, &outOffset);
+							bufwrite(str, (outOffset).buf, (outOffset).len);
 						else
-							bufcatcstr(str, "0");
+							bufprintf(str, "%s", ("0") ? ("0") : "");
 					}
-					bufcatcstr(str, ", ");
-					bufcatbuf(str, &ldsArgs);
-					bufcatcstr(str, ", ");
-					bufcatbuf(str, &outBuf);
+						bufprintf(str, "%s", (", ") ? (", ") : "");
+						bufwrite(str, (ldsArgs).buf, (ldsArgs).len);
+						bufprintf(str, "%s", (", ") ? (", ") : "");
+						bufwrite(str, (outBuf).buf, (outBuf).len);
 
-					BUFCAT_BUFFER_VALUE(str, KernelIterRegs(kernel, "&", true));
+						// Append generated kernel register arguments and release the temporary buffer.
+						buffer_t kernel_iter_regs = KernelIterRegs(kernel, "&", true);
+						bufwrite(str, kernel_iter_regs.buf, kernel_iter_regs.len);
+						free_buf(&kernel_iter_regs);
 
 					if (!kernel->blockCompute && kernel->params.fft_hasPostCallback)
 					{
 						if ((kernel->c2r || kernel->r2c) && !kernel->rcSimple)
 						{
-							bufcatcstr(str, ", ");
-							bufcatbuf(str, &outOffset);
-							bufcatcstr(str, "2");
+							bufprintf(str, "%s", (", ") ? (", ") : "");
+							bufwrite(str, (outOffset).buf, (outOffset).len);
+							bufprintf(str, "%s", ("2") ? ("2") : "");
 						}
 
-						bufcatcstr(str, ", post_userdata");
+						bufprintf(str, "%s", (", post_userdata") ? (", post_userdata") : "");
 
 						if (kernel->params.fft_postCallback.localMemSize > 0)
 						{
@@ -10397,39 +10689,42 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 							// localmem with the right offset
 							if (kernel->params.fft_hasPreCallback && kernel->params.fft_preCallback.localMemSize > 0)
 							{
-								bufcatcstr(str, ", ((__local char *)localmem + ");
-								BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_preCallback.localMemSize));
-								bufcatcstr(str, ")");
+								bufprintf(str, "%s", (", ((__local char *)localmem + ") ? (", ((__local char *)localmem + ") : "");
+								bufprintf(str, "%zu", kernel->params.fft_preCallback.localMemSize);
+								bufprintf(str, "%s", (")") ? (")") : "");
 							}
 							else
 							{
-								bufcatcstr(str, ", localmem");
+								bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
 							}
 						}
 					}
-					bufcatcstr(str, ");\n");
+					bufprintf(str, "%s", (");\n") ? (");\n") : "");
 
 					if (!kernel->halfLds)
 					{
-						bufcatbuf(str, &exTab);
-						bufcatcstr(str, "\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+						bufwrite(str, (exTab).buf, (exTab).len);
+						bufprintf(str, "%s", ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 					}
 				}
 				else // intermediate pass
 				{
-					bufcatbuf(str, &ldsOff);
-					bufcatcstr(str, ", ");
-					bufcatbuf(str, &ldsOff);
-					bufcatcstr(str, ", ");
-					bufcatbuf(str, &ldsArgs);
-					bufcatcstr(str, ", ");
-					bufcatbuf(str, &ldsArgs);
-					BUFCAT_BUFFER_VALUE(str, KernelIterRegs(kernel, "&", true));
-					bufcatcstr(str, ");\n");
+					bufwrite(str, (ldsOff).buf, (ldsOff).len);
+					bufprintf(str, "%s", (", ") ? (", ") : "");
+					bufwrite(str, (ldsOff).buf, (ldsOff).len);
+					bufprintf(str, "%s", (", ") ? (", ") : "");
+						bufwrite(str, (ldsArgs).buf, (ldsArgs).len);
+						bufprintf(str, "%s", (", ") ? (", ") : "");
+						bufwrite(str, (ldsArgs).buf, (ldsArgs).len);
+						// Append generated kernel register arguments and release the temporary buffer.
+						buffer_t kernel_iter_regs = KernelIterRegs(kernel, "&", true);
+						bufwrite(str, kernel_iter_regs.buf, kernel_iter_regs.len);
+						free_buf(&kernel_iter_regs);
+						bufprintf(str, "%s", (");\n") ? (");\n") : "");
 					if (!kernel->halfLds)
 					{
-						bufcatbuf(str, &exTab);
-						bufcatcstr(str, "\tbarrier(CLK_LOCAL_MEM_FENCE);\n");
+						bufwrite(str, (exTab).buf, (exTab).len);
+						bufprintf(str, "%s", ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n") ? ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n") : "");
 					}
 				}
 			}
@@ -10438,107 +10733,107 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 		if (kernel->realSpecial)
 		{
 			size_t Nt = 1 + kernel->length / 2;
-			bufcatcstr(str, "\n\t\tif( (bt == 0) || (2*bt == ");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_realSpecial_Nr));
-			bufcatcstr(str, ") ) { rw = 0; }\n");
+			bufprintf(str, "%s", ("\n\t\tif( (bt == 0) || (2*bt == ") ? ("\n\t\tif( (bt == 0) || (2*bt == ") : "");
+			bufprintf(str, "%zu", kernel->params.fft_realSpecial_Nr);
+			bufprintf(str, "%s", (") ) { rw = 0; }\n") ? (") ) { rw = 0; }\n") : "");
 
-			bufcatcstr(str, "\t\tlwbOut += (");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_realSpecial_Nr));
-			bufcatcstr(str, " - 2*bt)*");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(Nt));
-			bufcatcstr(str, ";\n");
-			bufcatcstr(str, "\t\tb = ");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_realSpecial_Nr));
-			bufcatcstr(str, " - b;\n\n");
+			bufprintf(str, "%s", ("\t\tlwbOut += (") ? ("\t\tlwbOut += (") : "");
+			bufprintf(str, "%zu", kernel->params.fft_realSpecial_Nr);
+			bufprintf(str, "%s", (" - 2*bt)*") ? (" - 2*bt)*") : "");
+			bufprintf(str, "%zu", Nt);
+			bufprintf(str, "%s", (";\n") ? (";\n") : "");
+			bufprintf(str, "%s", ("\t\tb = ") ? ("\t\tb = ") : "");
+			bufprintf(str, "%zu", kernel->params.fft_realSpecial_Nr);
+			bufprintf(str, "%s", (" - b;\n\n") ? (" - b;\n\n") : "");
 		}
 
 		if (kernel->blockCompute || kernel->realSpecial)
-			bufcatcstr(str, "\n\t}\n\n");
+			bufprintf(str, "%s", ("\n\t}\n\n") ? ("\n\t}\n\n") : "");
 
 		// Write data from LDS for blocked access
 		if (kernel->blockCompute)
 		{
 			size_t loopCount = (kernel->length * kernel->blockWidth) / kernel->blockWGS;
 
-			bufcatcstr(str, "\tbarrier(CLK_LOCAL_MEM_FENCE);\n\n");
-			bufcatcstr(str, "\n\tfor(uint t=0; t<");
-			BUFCAT_BUFFER_VALUE(str, SztToStr(loopCount));
-			bufcatcstr(str, "; t++)\n\t{\n");
+			bufprintf(str, "%s", ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n\n") ? ("\tbarrier(CLK_LOCAL_MEM_FENCE);\n\n") : "");
+			bufprintf(str, "%s", ("\n\tfor(uint t=0; t<") ? ("\n\tfor(uint t=0; t<") : "");
+			bufprintf(str, "%zu", loopCount);
+			bufprintf(str, "%s", ("; t++)\n\t{\n") ? ("; t++)\n\t{\n") : "");
 
 			if ((kernel->blockComputeType == BCT_C2C) || (kernel->blockComputeType == BCT_R2C))
 			{
-				bufcatcstr(str, "\t\tR0 = lds[t*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS / kernel->blockWidth));
-				bufcatcstr(str, " + ");
-				bufcatcstr(str, "(me%");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-				bufcatcstr(str, ")*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->length));
-				bufcatcstr(str, " + ");
-				bufcatcstr(str, "(me/");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-				bufcatcstr(str, ")];");
-				bufcatcstr(str, "\n");
+				bufprintf(str, "%s", ("\t\tR0 = lds[t*") ? ("\t\tR0 = lds[t*") : "");
+				bufprintf(str, "%zu", kernel->blockWGS / kernel->blockWidth);
+				bufprintf(str, "%s", (" + ") ? (" + ") : "");
+				bufprintf(str, "%s", ("(me%") ? ("(me%") : "");
+				bufprintf(str, "%zu", kernel->blockWidth);
+				bufprintf(str, "%s", (")*") ? (")*") : "");
+				bufprintf(str, "%zu", kernel->length);
+				bufprintf(str, "%s", (" + ") ? (" + ") : "");
+				bufprintf(str, "%s", ("(me/") ? ("(me/") : "");
+				bufprintf(str, "%zu", kernel->blockWidth);
+				bufprintf(str, "%s", (")];") ? (")];") : "");
+				bufprintf(str, "%s", ("\n") ? ("\n") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "\t\tR0 = lds[t*");
-				BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS));
-				bufcatcstr(str, " + me];");
-				bufcatcstr(str, "\n");
+				bufprintf(str, "%s", ("\t\tR0 = lds[t*") ? ("\t\tR0 = lds[t*") : "");
+				bufprintf(str, "%zu", kernel->blockWGS);
+				bufprintf(str, "%s", (" + me];") ? (" + me];") : "");
+				bufprintf(str, "%s", ("\n") ? ("\n") : "");
 			}
 
 			for (size_t c = 0; c < 2; c++)
 			{
-				buffer_t comp = buffer_from_cstr("");
-				buffer_t writeBuf = buffer_from_cstr((kernel->params.fft_placeness == CLFFT_INPLACE) ? "lwb" : "lwbOut");
+				buffer_t comp = buf_string_copy("");
+				buffer_t writeBuf = buf_string_copy((kernel->params.fft_placeness == CLFFT_INPLACE) ? "lwb" : "lwbOut");
 				if (!outInterleaved)
-					bufsetcstr(&comp, c ? ".y" : ".x");
+					(clear_buf(&comp), bufprintf(&comp, "%s", (c ? ".y" : ".x") ? (c ? ".y" : ".x") : ""));
 				if (!outInterleaved)
-					bufsetcstr(&writeBuf, (kernel->params.fft_placeness == CLFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbOutIm" : "lwbOutRe"));
+					(clear_buf(&writeBuf), bufprintf(&writeBuf, "%s", ((kernel->params.fft_placeness == CLFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbOutIm" : "lwbOutRe")) ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbOutIm" : "lwbOutRe")) : ""));
 
 				if ((kernel->blockComputeType == BCT_C2C) || (kernel->blockComputeType == BCT_R2C))
 				{
 					if (kernel->blockComputeType == BCT_R2C && kernel->params.fft_hasPostCallback)
 					{
 						if (outInterleaved)
-							bufsetcstr(&writeBuf, (kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb" : "gbOut");
+							(clear_buf(&writeBuf), bufprintf(&writeBuf, "%s", ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb" : "gbOut") ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gb" : "gbOut") : ""));
 						else
-							bufsetcstr(&writeBuf, (kernel->params.fft_placeness == CLFFT_INPLACE) ? "gbRe, gbIm" : "gbOutRe, gbOutIm");
+							(clear_buf(&writeBuf), bufprintf(&writeBuf, "%s", ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gbRe, gbIm" : "gbOutRe, gbOutIm") ? ((kernel->params.fft_placeness == CLFFT_INPLACE) ? "gbRe, gbIm" : "gbOutRe, gbOutIm") : ""));
 
-						bufcatcstr(str, "\t\t");
-						bufcatcstr(str, kernel->params.fft_postCallback.funcname);
-						bufcatcstr(str, "(");
-						bufcatbuf(str, &writeBuf);
-						bufcatcstr(str, ", (");
-						bufcatbuf(str, &outOffset);
-						bufcatcstr(str, " + (me%");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-						bufcatcstr(str, ") + ");
-						bufcatcstr(str, "(me/");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-						bufcatcstr(str, ")*");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_outStride[0]));
-						bufcatcstr(str, " + t*");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_outStride[0] * kernel->blockWGS / kernel->blockWidth));
-						bufcatcstr(str, "), post_userdata, R0");
+						bufprintf(str, "%s", ("\t\t") ? ("\t\t") : "");
+						bufprintf(str, "%s", (kernel->params.fft_postCallback.funcname) ? (kernel->params.fft_postCallback.funcname) : "");
+						bufprintf(str, "%s", ("(") ? ("(") : "");
+						bufwrite(str, (writeBuf).buf, (writeBuf).len);
+						bufprintf(str, "%s", (", (") ? (", (") : "");
+						bufwrite(str, (outOffset).buf, (outOffset).len);
+						bufprintf(str, "%s", (" + (me%") ? (" + (me%") : "");
+						bufprintf(str, "%zu", kernel->blockWidth);
+						bufprintf(str, "%s", (") + ") ? (") + ") : "");
+						bufprintf(str, "%s", ("(me/") ? ("(me/") : "");
+						bufprintf(str, "%zu", kernel->blockWidth);
+						bufprintf(str, "%s", (")*") ? (")*") : "");
+						bufprintf(str, "%zu", kernel->params.fft_outStride[0]);
+						bufprintf(str, "%s", (" + t*") ? (" + t*") : "");
+						bufprintf(str, "%zu", kernel->params.fft_outStride[0] * kernel->blockWGS / kernel->blockWidth);
+						bufprintf(str, "%s", ("), post_userdata, R0") ? ("), post_userdata, R0") : "");
 						if (!outInterleaved)
-							bufcatcstr(str, ".x, R0.y");
+							bufprintf(str, "%s", (".x, R0.y") ? (".x, R0.y") : "");
 
 						if (kernel->params.fft_postCallback.localMemSize > 0)
 						{
 							if (kernel->params.fft_hasPreCallback && kernel->params.fft_preCallback.localMemSize > 0)
 							{
-								bufcatcstr(str, ", (char *)(localmem + ");
-								BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_preCallback.localMemSize));
-								bufcatcstr(str, ")");
+								bufprintf(str, "%s", (", (char *)(localmem + ") ? (", (char *)(localmem + ") : "");
+								bufprintf(str, "%zu", kernel->params.fft_preCallback.localMemSize);
+								bufprintf(str, "%s", (")") ? (")") : "");
 							}
 							else
 							{
-								bufcatcstr(str, ", localmem");
+								bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
 							}
 						}
-						bufcatcstr(str, ");\n");
+						bufprintf(str, "%s", (");\n") ? (");\n") : "");
 
 						// in the planar case, break from for loop since both
 						// real and imag components are handled together in
@@ -10548,41 +10843,41 @@ static void KernelGenerateKernel(Kernel *kernel, buffer_t *str, cl_device_id Dev
 					}
 					else
 					{
-						bufcatcstr(str, "\t\t");
-						bufcatbuf(str, &writeBuf);
-						bufcatcstr(str, "[(me%");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-						bufcatcstr(str, ") + ");
-						bufcatcstr(str, "(me/");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWidth));
-						bufcatcstr(str, ")*");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_outStride[0]));
-						bufcatcstr(str, " + t*");
-						BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->params.fft_outStride[0] * kernel->blockWGS / kernel->blockWidth));
-						bufcatcstr(str, "] = R0");
-						bufcatbuf(str, &comp);
-						bufcatcstr(str, ";\n");
+						bufprintf(str, "%s", ("\t\t") ? ("\t\t") : "");
+						bufwrite(str, (writeBuf).buf, (writeBuf).len);
+						bufprintf(str, "%s", ("[(me%") ? ("[(me%") : "");
+						bufprintf(str, "%zu", kernel->blockWidth);
+						bufprintf(str, "%s", (") + ") ? (") + ") : "");
+						bufprintf(str, "%s", ("(me/") ? ("(me/") : "");
+						bufprintf(str, "%zu", kernel->blockWidth);
+						bufprintf(str, "%s", (")*") ? (")*") : "");
+						bufprintf(str, "%zu", kernel->params.fft_outStride[0]);
+						bufprintf(str, "%s", (" + t*") ? (" + t*") : "");
+						bufprintf(str, "%zu", kernel->params.fft_outStride[0] * kernel->blockWGS / kernel->blockWidth);
+						bufprintf(str, "%s", ("] = R0") ? ("] = R0") : "");
+						bufwrite(str, (comp).buf, (comp).len);
+						bufprintf(str, "%s", (";\n") ? (";\n") : "");
 					}
 				}
 				else
 				{
-					bufcatcstr(str, "\t\t");
-					bufcatbuf(str, &writeBuf);
-					bufcatcstr(str, "[me + t*");
-					BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->blockWGS));
-					bufcatcstr(str, "] = R0");
-					bufcatbuf(str, &comp);
-					bufcatcstr(str, ";\n");
+					bufprintf(str, "%s", ("\t\t") ? ("\t\t") : "");
+					bufwrite(str, (writeBuf).buf, (writeBuf).len);
+					bufprintf(str, "%s", ("[me + t*") ? ("[me + t*") : "");
+					bufprintf(str, "%zu", kernel->blockWGS);
+					bufprintf(str, "%s", ("] = R0") ? ("] = R0") : "");
+					bufwrite(str, (comp).buf, (comp).len);
+					bufprintf(str, "%s", (";\n") ? (";\n") : "");
 				}
 
 				if (outInterleaved)
 					break;
 			}
 
-			bufcatcstr(str, "\t}\n\n");
+			bufprintf(str, "%s", ("\t}\n\n") ? ("\t}\n\n") : "");
 		}
 
-		bufcatcstr(str, "}\n\n");
+		bufprintf(str, "%s", ("}\n\n") ? ("}\n\n") : "");
 
 		if (kernel->r2c2r)
 			break;
@@ -10795,7 +11090,7 @@ static clfftStatus FFTGeneratedStockhamActionGenerateKernel(FFTGeneratedStockham
 	status = clGetCommandQueueInfo(commQueueFFT, CL_QUEUE_CONTEXT, sizeof(cl_context), &QueueContext, NULL);
 	OPENCL_V(status, _T( "clGetCommandQueueInfo failed" ));
 
-	buffer_t programCode = buffer_empty();
+	buffer_t programCode = (buffer_t){0};
 	Precision pr = (action->signature.data.fft_precision == CLFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
 	switch (pr)
 	{
@@ -10893,12 +11188,12 @@ as well as the kernels that swap lines following permutation algorithm.
 static void clfft_transpose_generator_OffsetCalc(buffer_stream_t *transKernel, const FFTKernelGenKeyParams *params, bool input)
 {
 	const size_t *stride = input ? params->fft_inStride : params->fft_outStride;
-	buffer_t offset = buffer_from_cstr(input ? "iOffset" : "oOffset");
+	buffer_t offset = buf_string_copy(input ? "iOffset" : "oOffset");
 
 	do
 	{
 		clKernWrite(transKernel, 3);
-		bufprintf(&transKernel->text, "size_t %s = 0;\n", bufcstr(&offset));
+		bufprintf(&transKernel->text, "size_t %s = 0;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 	} while (0);
 	do
 	{
@@ -10911,7 +11206,7 @@ static void clfft_transpose_generator_OffsetCalc(buffer_stream_t *transKernel, c
 		do
 		{
 			clKernWrite(transKernel, 3);
-			bufprintf(&transKernel->text, "%s += (g_index/numGroupsY_%llu)*%llu;\n", bufcstr(&offset), (unsigned long long) (i), (unsigned long long) (stride[i + 1]));
+			bufprintf(&transKernel->text, "%s += (g_index/numGroupsY_%llu)*%llu;\n", ((offset).buf ? (const char *) (offset).buf : ""), (unsigned long long) (i), (unsigned long long) (stride[i + 1]));
 		} while (0);
 		do
 		{
@@ -10923,7 +11218,7 @@ static void clfft_transpose_generator_OffsetCalc(buffer_stream_t *transKernel, c
 	do
 	{
 		clKernWrite(transKernel, 3);
-		bufstream_endline(transKernel);
+		bufprintf(&(transKernel)->text, "%c", '\n');
 	} while (0);
 }
 
@@ -10932,12 +11227,12 @@ static void clfft_transpose_generator_OffsetCalc(buffer_stream_t *transKernel, c
 static void clfft_transpose_generator_OffsetCalcLeadingDimensionBatched(buffer_stream_t *transKernel, const FFTKernelGenKeyParams *params)
 {
 	const size_t *stride = params->fft_inStride;
-	buffer_t offset = buffer_from_cstr("iOffset");
+	buffer_t offset = buf_string_copy("iOffset");
 
 	do
 	{
 		clKernWrite(transKernel, 3);
-		bufprintf(&transKernel->text, "size_t %s = 0;\n", bufcstr(&offset));
+		bufprintf(&transKernel->text, "size_t %s = 0;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 	} while (0);
 	do
 	{
@@ -10950,7 +11245,7 @@ static void clfft_transpose_generator_OffsetCalcLeadingDimensionBatched(buffer_s
 		do
 		{
 			clKernWrite(transKernel, 3);
-			bufprintf(&transKernel->text, "%s += (g_index/numGroupsY_%llu)*%llu;\n", bufcstr(&offset), (unsigned long long) (i), (unsigned long long) (stride[i + 1]));
+			bufprintf(&transKernel->text, "%s += (g_index/numGroupsY_%llu)*%llu;\n", ((offset).buf ? (const char *) (offset).buf : ""), (unsigned long long) (i), (unsigned long long) (stride[i + 1]));
 		} while (0);
 		do
 		{
@@ -10962,7 +11257,7 @@ static void clfft_transpose_generator_OffsetCalcLeadingDimensionBatched(buffer_s
 	do
 	{
 		clKernWrite(transKernel, 3);
-		bufstream_endline(transKernel);
+		bufprintf(&(transKernel)->text, "%c", '\n');
 	} while (0);
 }
 
@@ -10974,7 +11269,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMath(const FFTKernelGenKe
 	do
 	{
 		clKernWrite(transKernel, 9);
-		bufstream_endline(transKernel);
+		bufprintf(&(transKernel)->text, "%c", '\n');
 	} while (0);
 
 	do
@@ -10983,7 +11278,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMath(const FFTKernelGenKe
 		bufprintf(&transKernel->text,
 			"%s Wm = TW3step( (t_gx_p*32 + lidx) * (t_gy_p*32 + lidy + "
 			"loop*8) );\n",
-			bufcstr(dtComplex));
+			((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""));
 	} while (0);
 	do
 	{
@@ -10991,13 +11286,13 @@ static clfftStatus clfft_transpose_generator_genTwiddleMath(const FFTKernelGenKe
 		bufprintf(&transKernel->text,
 			"%s Wt = TW3step( (t_gy_p*32 + lidx) * (t_gx_p*32 + lidy + "
 			"loop*8) );\n",
-			bufcstr(dtComplex));
+			((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""));
 	} while (0);
 
 	do
 	{
 		clKernWrite(transKernel, 9);
-		bufprintf(&transKernel->text, "%s Tm, Tt;\n", bufcstr(dtComplex));
+		bufprintf(&transKernel->text, "%s Tm, Tt;\n", ((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""));
 	} while (0);
 
 	if (fwd)
@@ -11071,7 +11366,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMath(const FFTKernelGenKe
 	do
 	{
 		clKernWrite(transKernel, 9);
-		bufstream_endline(transKernel);
+		bufprintf(&(transKernel)->text, "%c", '\n');
 	} while (0);
 
 	return CLFFT_SUCCESS;
@@ -11086,7 +11381,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMathLeadingDimensionBatch
 	do
 	{
 		clKernWrite(transKernel, 9);
-		bufstream_endline(transKernel);
+		bufprintf(&(transKernel)->text, "%c", '\n');
 	} while (0);
 	if (params->fft_N[0] > params->fft_N[1])
 	{
@@ -11096,7 +11391,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMathLeadingDimensionBatch
 			bufprintf(&transKernel->text,
 				"%s Wm = TW3step( (%llu * square_matrix_index + "
 				"t_gx_p*32 + lidx) * (t_gy_p*32 + lidy + loop*8) );\n",
-				bufcstr(dtComplex), (unsigned long long) (params->fft_N[1]));
+				((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""), (unsigned long long) (params->fft_N[1]));
 		} while (0);
 		do
 		{
@@ -11104,7 +11399,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMathLeadingDimensionBatch
 			bufprintf(&transKernel->text,
 				"%s Wt = TW3step( (%llu * square_matrix_index + "
 				"t_gy_p*32 + lidx) * (t_gx_p*32 + lidy + loop*8) );\n",
-				bufcstr(dtComplex), (unsigned long long) (params->fft_N[1]));
+				((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""), (unsigned long long) (params->fft_N[1]));
 		} while (0);
 	}
 	else
@@ -11115,7 +11410,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMathLeadingDimensionBatch
 			bufprintf(&transKernel->text,
 				"%s Wm = TW3step( (t_gx_p*32 + lidx) * (%llu * "
 				"square_matrix_index + t_gy_p*32 + lidy + loop*8) );\n",
-				bufcstr(dtComplex), (unsigned long long) (params->fft_N[0]));
+				((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""), (unsigned long long) (params->fft_N[0]));
 		} while (0);
 		do
 		{
@@ -11123,13 +11418,13 @@ static clfftStatus clfft_transpose_generator_genTwiddleMathLeadingDimensionBatch
 			bufprintf(&transKernel->text,
 				"%s Wt = TW3step( (t_gy_p*32 + lidx) * (%llu * "
 				"square_matrix_index + t_gx_p*32 + lidy + loop*8) );\n",
-				bufcstr(dtComplex), (unsigned long long) (params->fft_N[0]));
+				((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""), (unsigned long long) (params->fft_N[0]));
 		} while (0);
 	}
 	do
 	{
 		clKernWrite(transKernel, 9);
-		bufprintf(&transKernel->text, "%s Tm, Tt;\n", bufcstr(dtComplex));
+		bufprintf(&transKernel->text, "%s Tm, Tt;\n", ((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""));
 	} while (0);
 
 	if (fwd)
@@ -11203,7 +11498,7 @@ static clfftStatus clfft_transpose_generator_genTwiddleMathLeadingDimensionBatch
 	do
 	{
 		clKernWrite(transKernel, 9);
-		bufstream_endline(transKernel);
+		bufprintf(&(transKernel)->text, "%c", '\n');
 	} while (0);
 
 	return CLFFT_SUCCESS;
@@ -11227,39 +11522,39 @@ static clfftStatus clfft_transpose_generator_genTransposePrototype(const FFTKern
 	do
 	{
 		clKernWrite(transKernel, 0);
-		bufprintf(&transKernel->text, "%s( ", bufcstr(funcName));
+		bufprintf(&transKernel->text, "%s( ", ((funcName)->buf ? (const char *) (funcName)->buf : ""));
 	} while (0);
 
 	switch (params->fft_inputLayout)
 	{
 		case CLFFT_COMPLEX_INTERLEAVED:
-			bufsetbuf(dtInput, dtComplex);
-			bufsetbuf(dtOutput, dtComplex);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtComplex)->buf, (dtComplex)->len));
+			(clear_buf(dtOutput), bufwrite(dtOutput, (dtComplex)->buf, (dtComplex)->len));
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict inputA", bufcstr(dtInput));
+				bufprintf(&transKernel->text, "global %s* restrict inputA", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""));
 			} while (0);
 			break;
 		case CLFFT_COMPLEX_PLANAR:
-			bufsetbuf(dtInput, dtPlanar);
-			bufsetbuf(dtOutput, dtPlanar);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
+			(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict inputA_R, global %s* restrict inputA_I", bufcstr(dtInput), bufcstr(dtInput));
+				bufprintf(&transKernel->text, "global %s* restrict inputA_R, global %s* restrict inputA_I", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""), ((dtInput)->buf ? (const char *) (dtInput)->buf : ""));
 			} while (0);
 			break;
 		case CLFFT_HERMITIAN_INTERLEAVED:
 		case CLFFT_HERMITIAN_PLANAR: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
 		case CLFFT_REAL:
-			bufsetbuf(dtInput, dtPlanar);
-			bufsetbuf(dtOutput, dtPlanar);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
+			(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict inputA", bufcstr(dtInput));
+				bufprintf(&transKernel->text, "global %s* restrict inputA", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""));
 			} while (0);
 			break;
 		default: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
@@ -11269,35 +11564,35 @@ static clfftStatus clfft_transpose_generator_genTransposePrototype(const FFTKern
 		switch (params->fft_outputLayout)
 		{
 			case CLFFT_COMPLEX_INTERLEAVED:
-				bufsetbuf(dtInput, dtComplex);
-				bufsetbuf(dtOutput, dtComplex);
+				(clear_buf(dtInput), bufwrite(dtInput, (dtComplex)->buf, (dtComplex)->len));
+				(clear_buf(dtOutput), bufwrite(dtOutput, (dtComplex)->buf, (dtComplex)->len));
 				do
 				{
 					clKernWrite(transKernel, 0);
-					bufprintf(&transKernel->text, ", global %s* restrict outputA", bufcstr(dtOutput));
+					bufprintf(&transKernel->text, ", global %s* restrict outputA", ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""));
 				} while (0);
 				break;
 			case CLFFT_COMPLEX_PLANAR:
-				bufsetbuf(dtInput, dtPlanar);
-				bufsetbuf(dtOutput, dtPlanar);
+				(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
+				(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 				do
 				{
 					clKernWrite(transKernel, 0);
 					bufprintf(&transKernel->text,
 						", global %s* restrict outputA_R, global %s* "
 						"restrict outputA_I",
-						bufcstr(dtOutput), bufcstr(dtOutput));
+						((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""));
 				} while (0);
 				break;
 			case CLFFT_HERMITIAN_INTERLEAVED:
 			case CLFFT_HERMITIAN_PLANAR: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
 			case CLFFT_REAL:
-				bufsetbuf(dtInput, dtPlanar);
-				bufsetbuf(dtOutput, dtPlanar);
+				(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
+				(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 				do
 				{
 					clKernWrite(transKernel, 0);
-					bufprintf(&transKernel->text, ", global %s* restrict outputA", bufcstr(dtOutput));
+					bufprintf(&transKernel->text, ", global %s* restrict outputA", ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""));
 				} while (0);
 				break;
 			default: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
@@ -11312,7 +11607,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototype(const FFTKern
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* pre_userdata, __local void* localmem");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* pre_userdata, __local void* localmem") ? (", __global void* pre_userdata, __local void* localmem") : "");
 			} while (0);
 		}
 		else
@@ -11320,7 +11615,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototype(const FFTKern
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* pre_userdata");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* pre_userdata") ? (", __global void* pre_userdata") : "");
 			} while (0);
 		}
 	}
@@ -11333,7 +11628,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototype(const FFTKern
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* post_userdata, __local void* localmem");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* post_userdata, __local void* localmem") ? (", __global void* post_userdata, __local void* localmem") : "");
 			} while (0);
 		}
 		else
@@ -11341,7 +11636,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototype(const FFTKern
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* post_userdata");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* post_userdata") ? (", __global void* post_userdata") : "");
 			} while (0);
 		}
 	}
@@ -11373,39 +11668,39 @@ static clfftStatus clfft_transpose_generator_genTransposePrototypeLeadingDimensi
 	do
 	{
 		clKernWrite(transKernel, 0);
-		bufprintf(&transKernel->text, "%s( ", bufcstr(funcName));
+		bufprintf(&transKernel->text, "%s( ", ((funcName)->buf ? (const char *) (funcName)->buf : ""));
 	} while (0);
 
 	switch (params->fft_inputLayout)
 	{
 		case CLFFT_COMPLEX_INTERLEAVED:
-			bufsetbuf(dtInput, dtComplex);
-			bufsetbuf(dtOutput, dtComplex);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtComplex)->buf, (dtComplex)->len));
+			(clear_buf(dtOutput), bufwrite(dtOutput, (dtComplex)->buf, (dtComplex)->len));
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict inputA", bufcstr(dtInput));
+				bufprintf(&transKernel->text, "global %s* restrict inputA", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""));
 			} while (0);
 			break;
 		case CLFFT_COMPLEX_PLANAR:
-			bufsetbuf(dtInput, dtPlanar);
-			bufsetbuf(dtOutput, dtPlanar);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
+			(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict inputA_R, global %s* restrict inputA_I", bufcstr(dtInput), bufcstr(dtInput));
+				bufprintf(&transKernel->text, "global %s* restrict inputA_R, global %s* restrict inputA_I", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""), ((dtInput)->buf ? (const char *) (dtInput)->buf : ""));
 			} while (0);
 			break;
 		case CLFFT_HERMITIAN_INTERLEAVED:
 		case CLFFT_HERMITIAN_PLANAR: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
 		case CLFFT_REAL:
-			bufsetbuf(dtInput, dtPlanar);
-			bufsetbuf(dtOutput, dtPlanar);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
+			(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict inputA", bufcstr(dtInput));
+				bufprintf(&transKernel->text, "global %s* restrict inputA", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""));
 			} while (0);
 			break;
 		default: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
@@ -11419,7 +11714,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototypeLeadingDimensi
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* pre_userdata, __local void* localmem");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* pre_userdata, __local void* localmem") ? (", __global void* pre_userdata, __local void* localmem") : "");
 			} while (0);
 		}
 		else
@@ -11427,7 +11722,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototypeLeadingDimensi
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* pre_userdata");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* pre_userdata") ? (", __global void* pre_userdata") : "");
 			} while (0);
 		}
 	}
@@ -11440,7 +11735,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototypeLeadingDimensi
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* post_userdata, __local void* localmem");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* post_userdata, __local void* localmem") ? (", __global void* post_userdata, __local void* localmem") : "");
 			} while (0);
 		}
 		else
@@ -11448,7 +11743,7 @@ static clfftStatus clfft_transpose_generator_genTransposePrototypeLeadingDimensi
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* post_userdata");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* post_userdata") ? (", __global void* post_userdata") : "");
 			} while (0);
 		}
 	}
@@ -11595,17 +11890,17 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
 	}
 
-	bufreserve(strKernel, 4096);
+	buf_alloc_enough(strKernel, 4096);
 	buffer_stream_t transKernel;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&transKernel);
+	(memset(&transKernel, 0, sizeof(*(&transKernel))), (&transKernel)->precision_value = 6);
 	// These strings represent the various data types we read or write in the
 	// kernel, depending on how the plan is configured
-	buffer_t dtInput = buffer_empty();  // The type read as input into kernel
-	buffer_t dtOutput = buffer_empty(); // The type written as output from kernel
-	buffer_t dtPlanar = buffer_empty(); // Fundamental type for planar arrays
-	buffer_t tmpBuffType = buffer_empty();
-	buffer_t dtComplex = buffer_empty(); // Fundamental type for complex arrays
+	buffer_t dtInput = (buffer_t){0};  // The type read as input into kernel
+	buffer_t dtOutput = (buffer_t){0}; // The type written as output from kernel
+	buffer_t dtPlanar = (buffer_t){0}; // Fundamental type for planar arrays
+	buffer_t tmpBuffType = (buffer_t){0};
+	buffer_t dtComplex = (buffer_t){0}; // Fundamental type for complex arrays
 
 	// NOTE:  Enable only for debug
 
@@ -11616,13 +11911,13 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 	{
 		case CLFFT_SINGLE:
 		case CLFFT_SINGLE_FAST:
-			bufsetcstr(&dtPlanar, "float");
-			bufsetcstr(&dtComplex, "float2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("float") ? ("float") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("float2") ? ("float2") : ""));
 			break;
 		case CLFFT_DOUBLE:
 		case CLFFT_DOUBLE_FAST:
-			bufsetcstr(&dtPlanar, "double");
-			bufsetcstr(&dtComplex, "double2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("double") ? ("double") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("double2") ? ("double2") : ""));
 
 			// Emit code that enables double precision in the kernel
 			do
@@ -11714,7 +12009,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 	// if post-callback is set for the plan
@@ -11729,7 +12024,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 
@@ -11763,7 +12058,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 	{
 		clKernWrite(&transKernel, 0);
 		bufprintf(&transKernel.text, "{%llu},", (unsigned long long) (smaller_dim * dim_ratio - 1));
-		bufstream_endline(&transKernel); // add the first and last row to the
+		bufprintf(&(&transKernel)->text, "%c", '\n'); // add the first and last row to the
 						 // swap table. needed for twiddling
 	} while (0);
 	// Walk the permutation rows with raw array pointers.
@@ -11793,7 +12088,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 	// twiddle in or out should be using the same twiddling table
 	if (twiddleSwapKernel)
 	{
-		buffer_t str = buffer_empty();
+		buffer_t str = (buffer_t){0};
 		TwiddleTableLarge twLarge;
 		// Initialize large twiddle table storage explicitly.
 		TwiddleTableLargeInit(&twLarge, smaller_dim * smaller_dim * dim_ratio);
@@ -11806,34 +12101,34 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufprintf(&transKernel.text, "%s\n", bufcstr(&str));
+			bufprintf(&transKernel.text, "%s\n", ((str).buf ? (const char *) (str).buf : ""));
 		} while (0);
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 
-	buffer_t funcName = buffer_from_cstr("swap_nonsquare_");
+	buffer_t funcName = buf_string_copy("swap_nonsquare_");
 	buffer_t smaller_dim_str = SztToStr(smaller_dim);
 	buffer_t dim_ratio_str = SztToStr(dim_ratio);
 	if (params.fft_N[0] > params.fft_N[1])
 	{
 		// Append the smaller dimension and ratio to the swap kernel name.
-		bufcatbuf(&funcName, &smaller_dim_str);
-		bufcatcstr(&funcName, "_");
-		bufcatbuf(&funcName, &dim_ratio_str);
+		bufwrite(&funcName, (smaller_dim_str).buf, (smaller_dim_str).len);
+		bufprintf(&funcName, "%s", ("_") ? ("_") : "");
+		bufwrite(&funcName, (dim_ratio_str).buf, (dim_ratio_str).len);
 	}
 	else
 	{
 		// Append the ratio and smaller dimension to the swap kernel name.
-		bufcatbuf(&funcName, &dim_ratio_str);
-		bufcatcstr(&funcName, "_");
-		bufcatbuf(&funcName, &smaller_dim_str);
+		bufwrite(&funcName, (dim_ratio_str).buf, (dim_ratio_str).len);
+		bufprintf(&funcName, "%s", ("_") ? ("_") : "");
+		bufwrite(&funcName, (smaller_dim_str).buf, (smaller_dim_str).len);
 	}
 
-	bufsetbuf(KernelFuncName, &funcName);
+	(clear_buf(KernelFuncName), bufwrite(KernelFuncName, (funcName).buf, (funcName).len));
 	size_t local_work_size_swap = 256;
 
 	for (size_t bothDir = 0; bothDir < 2; bothDir++)
@@ -11843,24 +12138,24 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 
 		/*when swap can be performed in LDS itself then, same prototype of
 		 * transpose can be used for swap function too*/
-		buffer_t funcNameTW = buffer_empty();
+		buffer_t funcNameTW = (buffer_t){0};
 		if (twiddleSwapKernel)
 		{
 			if (fwd)
 			{
 				// Append the forward twiddle suffix to the swap kernel name.
-				bufsetbuf(&funcNameTW, &funcName);
-				bufcatcstr(&funcNameTW, "_tw_fwd");
+				(clear_buf(&funcNameTW), bufwrite(&funcNameTW, (funcName).buf, (funcName).len));
+				bufprintf(&funcNameTW, "%s", ("_tw_fwd") ? ("_tw_fwd") : "");
 			}
 			else
 			{
 				// Append the backward twiddle suffix to the swap kernel name.
-				bufsetbuf(&funcNameTW, &funcName);
-				bufcatcstr(&funcNameTW, "_tw_back");
+				(clear_buf(&funcNameTW), bufwrite(&funcNameTW, (funcName).buf, (funcName).len));
+				bufprintf(&funcNameTW, "%s", ("_tw_back") ? ("_tw_back") : "");
 			}
 		}
 		else
-			bufsetbuf(&funcNameTW, &funcName);
+			(clear_buf(&funcNameTW), bufwrite(&funcNameTW, (funcName).buf, (funcName).len));
 
 		clfft_transpose_generator_genTransposePrototypeLeadingDimensionBatched(&params, local_work_size_swap, &dtPlanar, &dtComplex, &funcNameTW, &transKernel, &dtInput,
 			&dtOutput);
@@ -11874,7 +12169,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		{
 			clKernWrite(&transKernel, 3);
 			bufprintf(&transKernel.text, "const size_t num_wg_per_batch = %llu;", (unsigned long long) ((array_size(&permutationTable) + 2) * WG_per_line));
-			bufstream_endline(&transKernel); // number of wg per batch = number
+			bufprintf(&(&transKernel)->text, "%c", '\n'); // number of wg per batch = number
 							 // of independent cycles
 		} while (0);
 		do
@@ -11891,7 +12186,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		do
 		{
@@ -11935,7 +12230,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		if (WG_per_line == 1)
 			do
@@ -11958,7 +12253,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		switch (params.fft_inputLayout)
 		{
@@ -11968,14 +12263,14 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s prevValue[%llu];", bufcstr(&dtInput), (unsigned long long) (LDS_per_WG));
-					bufstream_endline(&transKernel); // lds within each wg should be able to store
+					bufprintf(&transKernel.text, "__local %s prevValue[%llu];", ((dtInput).buf ? (const char *) (dtInput).buf : ""), (unsigned long long) (LDS_per_WG));
+					bufprintf(&(&transKernel)->text, "%c", '\n'); // lds within each wg should be able to store
 									 // a row block (smaller_dim) of element
 				} while (0);
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s nextValue[%llu];\n", bufcstr(&dtInput), (unsigned long long) (LDS_per_WG));
+					bufprintf(&transKernel.text, "__local %s nextValue[%llu];\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""), (unsigned long long) (LDS_per_WG));
 				} while (0);
 				break;
 			}
@@ -11984,14 +12279,14 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s prevValue[%llu];", bufcstr(&dtComplex), (unsigned long long) (LDS_per_WG));
-					bufstream_endline(&transKernel); // lds within each wg should be able to store
+					bufprintf(&transKernel.text, "__local %s prevValue[%llu];", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""), (unsigned long long) (LDS_per_WG));
+					bufprintf(&(&transKernel)->text, "%c", '\n'); // lds within each wg should be able to store
 									 // a row block (smaller_dim) of element
 				} while (0);
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s nextValue[%llu];\n", bufcstr(&dtComplex), (unsigned long long) (LDS_per_WG));
+					bufprintf(&transKernel.text, "__local %s nextValue[%llu];\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""), (unsigned long long) (LDS_per_WG));
 				} while (0);
 				break;
 			}
@@ -12003,7 +12298,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		if (params.fft_N[0] > params.fft_N[1]) // decides whether we have a tall or wide rectangle
 		{
@@ -12061,7 +12356,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		// move to that row block and load that row block to LDS
 		if (twiddleSwapKernelIn)
@@ -12079,7 +12374,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 			do
 			{
 				clKernWrite(&transKernel, 6);
-				bufprintf(&transKernel.text, "%s twiddle_factor;\n", bufcstr(&dtComplex));
+				bufprintf(&transKernel.text, "%s twiddle_factor;\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""));
 			} while (0);
 		}
 		switch (params.fft_inputLayout)
@@ -12642,13 +12937,13 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_cat_cstr(&transKernel, "do{");
-			bufstream_endline(&transKernel); // begining of do-while
+			bufprintf(&(&transKernel)->text, "%s", ("do{") ? ("do{") : "");
+			bufprintf(&(&transKernel)->text, "%c", '\n'); // begining of do-while
 		} while (0);
 		// calculate the next location p(k) = (k*n)mod(m*n-1), if 0 < k < m*n-1
 		if (params.fft_N[0] > params.fft_N[1]) // decides whether we have a tall or wide rectangle
@@ -12679,7 +12974,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 						"(next%%%llu)*%llu;",
 						(unsigned long long) (dim_ratio), (unsigned long long) (smaller_dim), (unsigned long long) (dim_ratio),
 						(unsigned long long) (dim_ratio), (unsigned long long) (smaller_dim));
-					bufstream_endline(&transKernel); // might look like: group_offset =
+					bufprintf(&(&transKernel)->text, "%c", '\n'); // might look like: group_offset =
 									 // (next/3)*729*3 + (next%3)*729;
 				} while (0);
 			}
@@ -12739,7 +13034,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		switch (params.fft_inputLayout)
 		{
@@ -13303,7 +13598,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		switch (params.fft_inputLayout)
 		{
@@ -13325,7 +13620,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 					do
 					{
 						clKernWrite(&transKernel, 6);
-						bufprintf(&transKernel.text, "%s twiddle_factor;\n", bufcstr(&dtComplex));
+						bufprintf(&transKernel.text, "%s twiddle_factor;\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""));
 					} while (0);
 
 					for (size_t i = 0; i < LDS_per_WG; i = i + 256)
@@ -13627,7 +13922,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 					do
 					{
 						clKernWrite(&transKernel, 6);
-						bufprintf(&transKernel.text, "%s twiddle_factor;\n", bufcstr(&dtComplex));
+						bufprintf(&transKernel.text, "%s twiddle_factor;\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""));
 					} while (0);
 					for (size_t i = 0; i < LDS_per_WG; i = i + 256)
 					{
@@ -13823,7 +14118,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufstream_endline(&transKernel);
+							bufprintf(&(&transKernel)->text, "%c", '\n');
 						} while (0);
 					}
 				}
@@ -13943,7 +14238,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		switch (params.fft_inputLayout)
 		{
@@ -13997,7 +14292,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		do
 		{
@@ -14008,21 +14303,21 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 			do
 			{
 				clKernWrite(&transKernel, 3);
-				bufstream_cat_cstr(&transKernel, "}while(next!=swap_table[group_id][0]);");
-				bufstream_endline(&transKernel); // end of do-while
+				bufprintf(&(&transKernel)->text, "%s", ("}while(next!=swap_table[group_id][0]);") ? ("}while(next!=swap_table[group_id][0]);") : "");
+				bufprintf(&(&transKernel)->text, "%c", '\n'); // end of do-while
 			} while (0);
 		else
 			do
 			{
 				clKernWrite(&transKernel, 3);
 				bufprintf(&transKernel.text, "}while(next!=swap_table[group_id/%llu][0]);", (unsigned long long) (WG_per_line));
-				bufstream_endline(&transKernel); // end of do-while
+				bufprintf(&(&transKernel)->text, "%c", '\n'); // end of do-while
 			} while (0);
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_cat_cstr(&transKernel, "}");
-			bufstream_endline(&transKernel); // end of kernel
+			bufprintf(&(&transKernel)->text, "%s", ("}") ? ("}") : "");
+			bufprintf(&(&transKernel)->text, "%c", '\n'); // end of kernel
 		} while (0);
 
 		if (!twiddleSwapKernel)
@@ -14035,7 +14330,7 @@ static clfftStatus clfft_transpose_generator_genSwapKernelGeneral(const FFTKerne
 	//  Release permutation table after generated swap source has been emitted.
 	array_free_size_t_array(&permutationTable);
 	// Copy generated source into the caller-owned buffer explicitly.
-	bufsetbuf(strKernel, &transKernel.text);
+	(clear_buf(strKernel), bufwrite(strKernel, (transKernel.text).buf, (transKernel.text).len));
 	return CLFFT_SUCCESS;
 }
 
@@ -14050,16 +14345,16 @@ The transpose will be done within each sub matrix.
 */
 static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFTKernelGenKeyParams params, buffer_t *strKernel, size_t lwSize, const size_t reShapeFactor)
 {
-	bufreserve(strKernel, 4096);
+	buf_alloc_enough(strKernel, 4096);
 	buffer_stream_t transKernel;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&transKernel);
+	(memset(&transKernel, 0, sizeof(*(&transKernel))), (&transKernel)->precision_value = 6);
 	// These strings represent the various data types we read or write in the
 	// kernel, depending on how the plan is configured
-	buffer_t dtInput = buffer_empty();   // The type read as input into kernel
-	buffer_t dtOutput = buffer_empty();  // The type written as output from kernel
-	buffer_t dtPlanar = buffer_empty();  // Fundamental type for planar arrays
-	buffer_t dtComplex = buffer_empty(); // Fundamental type for complex arrays
+	buffer_t dtInput = (buffer_t){0};   // The type read as input into kernel
+	buffer_t dtOutput = (buffer_t){0};  // The type written as output from kernel
+	buffer_t dtPlanar = (buffer_t){0};  // Fundamental type for planar arrays
+	buffer_t dtComplex = (buffer_t){0}; // Fundamental type for complex arrays
 
 	// NOTE:  Enable only for debug
 
@@ -14070,13 +14365,13 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 	{
 		case CLFFT_SINGLE:
 		case CLFFT_SINGLE_FAST:
-			bufsetcstr(&dtPlanar, "float");
-			bufsetcstr(&dtComplex, "float2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("float") ? ("float") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("float2") ? ("float2") : ""));
 			break;
 		case CLFFT_DOUBLE:
 		case CLFFT_DOUBLE_FAST:
-			bufsetcstr(&dtPlanar, "double");
-			bufsetcstr(&dtComplex, "double2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("double") ? ("double") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("double2") ? ("double2") : ""));
 
 			// Emit code that enables double precision in the kernel
 			do
@@ -14118,7 +14413,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 
 	if (twiddleTransposeKernel)
 	{
-		buffer_t str = buffer_empty();
+		buffer_t str = (buffer_t){0};
 		TwiddleTableLarge twLarge;
 		// Initialize large twiddle table storage explicitly.
 		TwiddleTableLargeInit(&twLarge, params.fft_N[0] * params.fft_N[1]);
@@ -14131,12 +14426,12 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufprintf(&transKernel.text, "%s\n", bufcstr(&str));
+			bufprintf(&transKernel.text, "%s\n", ((str).buf ? (const char *) (str).buf : ""));
 		} while (0);
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 
@@ -14167,7 +14462,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 			do
 			{
 				clKernWrite(&transKernel, 0);
-				bufstream_endline(&transKernel);
+				bufprintf(&(&transKernel)->text, "%c", '\n');
 			} while (0);
 		}
 		// If post-callback is set for the plan
@@ -14182,16 +14477,16 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 			do
 			{
 				clKernWrite(&transKernel, 0);
-				bufstream_endline(&transKernel);
+				bufprintf(&(&transKernel)->text, "%c", '\n');
 			} while (0);
 		}
 
-		buffer_t funcName = buffer_empty();
+		buffer_t funcName = (buffer_t){0};
 		if (twiddleTransposeKernel) // it makes more sense to do twiddling in
 					    // swap kernel
-			bufsetcstr(&funcName, fwd ? "transpose_square_tw_fwd" : "transpose_square_tw_back");
+			(clear_buf(&funcName), bufprintf(&funcName, "%s", (fwd ? "transpose_square_tw_fwd" : "transpose_square_tw_back") ? (fwd ? "transpose_square_tw_fwd" : "transpose_square_tw_back") : ""));
 		else
-			bufsetcstr(&funcName, "transpose_square");
+			(clear_buf(&funcName), bufprintf(&funcName, "%s", ("transpose_square") ? ("transpose_square") : ""));
 
 		// Generate kernel API
 		clfft_transpose_generator_genTransposePrototype(&params, lwSize, &dtPlanar, &dtComplex, &funcName, &transKernel, &dtInput, &dtOutput);
@@ -14224,7 +14519,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 
 		clfft_transpose_generator_OffsetCalc(&transKernel, &params, true);
@@ -14243,8 +14538,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "inputA += iOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("inputA += iOffset;") ? ("inputA += iOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 				}
 				break;
@@ -14256,14 +14551,14 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "inputA_R += iOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("inputA_R += iOffset;") ? ("inputA_R += iOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "inputA_I += iOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("inputA_I += iOffset;") ? ("inputA_I += iOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 				}
 				break;
@@ -14281,8 +14576,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "outputA += oOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("outputA += oOffset;") ? ("outputA += oOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 
 					break;
@@ -14291,14 +14586,14 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "outputA_R += oOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("outputA_R += oOffset;") ? ("outputA_R += oOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "outputA_I += oOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("outputA_I += oOffset;") ? ("outputA_I += oOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 					break;
 				case CLFFT_HERMITIAN_INTERLEAVED:
@@ -14316,13 +14611,13 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "global %s *outputA = inputA + iOffset;\n", bufcstr(&dtInput));
+							bufprintf(&transKernel.text, "global %s *outputA = inputA + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 						} while (0);
 					else
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "global %s *outputA = inputA;\n", bufcstr(&dtInput));
+							bufprintf(&transKernel.text, "global %s *outputA = inputA;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 						} while (0);
 					break;
 				case CLFFT_COMPLEX_PLANAR:
@@ -14331,12 +14626,12 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R + iOffset;\n", bufcstr(&dtInput));
+							bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 						} while (0);
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I + iOffset;\n", bufcstr(&dtInput));
+							bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 						} while (0);
 					}
 					else
@@ -14344,12 +14639,12 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R;\n", bufcstr(&dtInput));
+							bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 						} while (0);
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I;\n", bufcstr(&dtInput));
+							bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 						} while (0);
 					}
 					break;
@@ -14363,7 +14658,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 
 		// Now compute the corresponding y,x coordinates
@@ -14504,18 +14799,18 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufprintf(&transKernel.text, "__local %s xy_s[%llu];\n", bufcstr(&dtComplex), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
+			bufprintf(&transKernel.text, "__local %s xy_s[%llu];\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
 		} while (0);
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufprintf(&transKernel.text, "__local %s yx_s[%llu];\n", bufcstr(&dtComplex), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
+			bufprintf(&transKernel.text, "__local %s yx_s[%llu];\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
 		} while (0);
 
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufprintf(&transKernel.text, "%s tmpm, tmpt;\n", bufcstr(&dtComplex));
+			bufprintf(&transKernel.text, "%s tmpm, tmpt;\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""));
 		} while (0);
 
 		do
@@ -14620,8 +14915,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 				}
 				break;
 				case CLFFT_COMPLEX_PLANAR:
-					bufsetbuf(&dtInput, &dtPlanar);
-					bufsetbuf(&dtOutput, &dtPlanar);
+					(clear_buf(&dtInput), bufwrite(&dtInput, (dtPlanar).buf, (dtPlanar).len));
+					(clear_buf(&dtOutput), bufwrite(&dtOutput, (dtPlanar).buf, (dtPlanar).len));
 					if (params.fft_hasPreCallback)
 					{
 						if (params.fft_preCallback.localMemSize > 0)
@@ -14809,7 +15104,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -14858,7 +15153,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -14929,7 +15224,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -14978,7 +15273,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -15132,8 +15427,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 					}
 					break;
 				case CLFFT_COMPLEX_PLANAR:
-					bufsetbuf(&dtInput, &dtPlanar);
-					bufsetbuf(&dtOutput, &dtPlanar);
+					(clear_buf(&dtInput), bufwrite(&dtInput, (dtPlanar).buf, (dtPlanar).len));
+					(clear_buf(&dtOutput), bufwrite(&dtOutput, (dtPlanar).buf, (dtPlanar).len));
 					if (params.fft_hasPreCallback)
 					{
 						if (params.fft_preCallback.localMemSize > 0)
@@ -15375,8 +15670,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 					}
 					break;
 				case CLFFT_COMPLEX_PLANAR:
-					bufsetbuf(&dtInput, &dtPlanar);
-					bufsetbuf(&dtOutput, &dtPlanar);
+					(clear_buf(&dtInput), bufwrite(&dtInput, (dtPlanar).buf, (dtPlanar).len));
+					(clear_buf(&dtOutput), bufwrite(&dtOutput, (dtPlanar).buf, (dtPlanar).len));
 					do
 					{
 						clKernWrite(&transKernel, 9);
@@ -15599,7 +15894,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -15635,7 +15930,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -15695,7 +15990,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -15733,7 +16028,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -15852,7 +16147,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -15900,7 +16195,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -15981,7 +16276,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -16033,7 +16328,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -16098,14 +16393,14 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 			do
 			{
 				clKernWrite(&transKernel, 6);
-				bufstream_cat_cstr(&transKernel, "}");
-				bufstream_endline(&transKernel); // end for
+				bufprintf(&(&transKernel)->text, "%s", ("}") ? ("}") : "");
+				bufprintf(&(&transKernel)->text, "%c", '\n'); // end for
 			} while (0);
 			do
 			{
 				clKernWrite(&transKernel, 3);
-				bufstream_cat_cstr(&transKernel, "}");
-				bufstream_endline(&transKernel); // end else
+				bufprintf(&(&transKernel)->text, "%s", ("}") ? ("}") : "");
+				bufprintf(&(&transKernel)->text, "%c", '\n'); // end else
 			} while (0);
 		}
 		do
@@ -16115,7 +16410,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelBatched(const FFT
 		} while (0);
 
 		// Copy generated source into the caller-owned buffer explicitly.
-		bufsetbuf(strKernel, &transKernel.text);
+		(clear_buf(strKernel), bufwrite(strKernel, (transKernel.text).buf, (transKernel.text).len));
 
 		if (!twiddleTransposeKernel)
 			break; // break for bothDir
@@ -16133,16 +16428,16 @@ Below is a matrix(row major) contaning three square sub matrix along row
 static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionBatched(const FFTKernelGenKeyParams params, buffer_t *strKernel, size_t lwSize,
 	const size_t reShapeFactor)
 {
-	bufreserve(strKernel, 4096);
+	buf_alloc_enough(strKernel, 4096);
 	buffer_stream_t transKernel;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&transKernel);
+	(memset(&transKernel, 0, sizeof(*(&transKernel))), (&transKernel)->precision_value = 6);
 	// These strings represent the various data types we read or write in the
 	// kernel, depending on how the plan is configured
-	buffer_t dtInput = buffer_empty();   // The type read as input into kernel
-	buffer_t dtOutput = buffer_empty();  // The type written as output from kernel
-	buffer_t dtPlanar = buffer_empty();  // Fundamental type for planar arrays
-	buffer_t dtComplex = buffer_empty(); // Fundamental type for complex arrays
+	buffer_t dtInput = (buffer_t){0};   // The type read as input into kernel
+	buffer_t dtOutput = (buffer_t){0};  // The type written as output from kernel
+	buffer_t dtPlanar = (buffer_t){0};  // Fundamental type for planar arrays
+	buffer_t dtComplex = (buffer_t){0}; // Fundamental type for complex arrays
 
 	// NOTE:  Enable only for debug
 
@@ -16153,13 +16448,13 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 	{
 		case CLFFT_SINGLE:
 		case CLFFT_SINGLE_FAST:
-			bufsetcstr(&dtPlanar, "float");
-			bufsetcstr(&dtComplex, "float2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("float") ? ("float") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("float2") ? ("float2") : ""));
 			break;
 		case CLFFT_DOUBLE:
 		case CLFFT_DOUBLE_FAST:
-			bufsetcstr(&dtPlanar, "double");
-			bufsetcstr(&dtComplex, "double2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("double") ? ("double") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("double2") ? ("double2") : ""));
 
 			// Emit code that enables double precision in the kernel
 			do
@@ -16195,7 +16490,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 	//	If twiddle computation has been requested, generate the lookup function
 	if (params.fft_3StepTwiddle)
 	{
-		buffer_t str = buffer_empty();
+		buffer_t str = (buffer_t){0};
 		TwiddleTableLarge twLarge;
 		// Initialize large twiddle table storage explicitly.
 		TwiddleTableLargeInit(&twLarge, params.fft_N[0] * params.fft_N[1]);
@@ -16208,12 +16503,12 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufprintf(&transKernel.text, "%s\n", bufcstr(&str));
+			bufprintf(&transKernel.text, "%s\n", ((str).buf ? (const char *) (str).buf : ""));
 		} while (0);
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 
@@ -16254,7 +16549,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 			do
 			{
 				clKernWrite(&transKernel, 0);
-				bufstream_endline(&transKernel);
+				bufprintf(&(&transKernel)->text, "%c", '\n');
 			} while (0);
 		}
 		// If post-callback is set for the plan
@@ -16269,15 +16564,15 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 			do
 			{
 				clKernWrite(&transKernel, 0);
-				bufstream_endline(&transKernel);
+				bufprintf(&(&transKernel)->text, "%c", '\n');
 			} while (0);
 		}
 
-		buffer_t funcName = buffer_empty();
+		buffer_t funcName = (buffer_t){0};
 		if (params.fft_3StepTwiddle) // TODO
-			bufsetcstr(&funcName, fwd ? "transpose_nonsquare_tw_fwd" : "transpose_nonsquare_tw_back");
+			(clear_buf(&funcName), bufprintf(&funcName, "%s", (fwd ? "transpose_nonsquare_tw_fwd" : "transpose_nonsquare_tw_back") ? (fwd ? "transpose_nonsquare_tw_fwd" : "transpose_nonsquare_tw_back") : ""));
 		else
-			bufsetcstr(&funcName, "transpose_nonsquare");
+			(clear_buf(&funcName), bufprintf(&funcName, "%s", ("transpose_nonsquare") ? ("transpose_nonsquare") : ""));
 
 		// Generate kernel API
 		clfft_transpose_generator_genTransposePrototypeLeadingDimensionBatched(&params, lwSize, &dtPlanar, &dtComplex, &funcName, &transKernel, &dtInput, &dtOutput);
@@ -16334,7 +16629,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 
 		clfft_transpose_generator_OffsetCalcLeadingDimensionBatched(&transKernel, &params);
@@ -16354,7 +16649,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 
 		if (smaller_dim == params.fft_N[1])
@@ -16392,8 +16687,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "inputA += iOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("inputA += iOffset;") ? ("inputA += iOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 				}
 				break;
@@ -16405,14 +16700,14 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "inputA_R += iOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("inputA_R += iOffset;") ? ("inputA_R += iOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufstream_cat_cstr(&transKernel, "inputA_I += iOffset;");
-						bufstream_endline(&transKernel); // Set A ptr to the start of each slice
+						bufprintf(&(&transKernel)->text, "%s", ("inputA_I += iOffset;") ? ("inputA_I += iOffset;") : "");
+						bufprintf(&(&transKernel)->text, "%c", '\n'); // Set A ptr to the start of each slice
 					} while (0);
 				}
 				break;
@@ -16430,7 +16725,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s *outputA = inputA + iOffset;\n", bufcstr(&dtInput));
+						bufprintf(&transKernel.text, "global %s *outputA = inputA + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 					} while (0);
 				}
 				else
@@ -16438,7 +16733,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s *outputA = inputA;\n", bufcstr(&dtInput));
+						bufprintf(&transKernel.text, "global %s *outputA = inputA;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 					} while (0);
 				}
 				break;
@@ -16448,12 +16743,12 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R + iOffset;\n", bufcstr(&dtInput));
+						bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I + iOffset;\n", bufcstr(&dtInput));
+						bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 					} while (0);
 				}
 				else
@@ -16461,12 +16756,12 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R;\n", bufcstr(&dtInput));
+						bufprintf(&transKernel.text, "global %s *outputA_R = inputA_R;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I;\n", bufcstr(&dtInput));
+						bufprintf(&transKernel.text, "global %s *outputA_I = inputA_I;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 					} while (0);
 				}
 				break;
@@ -16478,7 +16773,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 
 		// Now compute the corresponding y,x coordinates
@@ -16623,38 +16918,38 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s xy_s[%llu];\n", bufcstr(&dtInput), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
+					bufprintf(&transKernel.text, "__local %s xy_s[%llu];\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
 				} while (0);
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s yx_s[%llu];\n", bufcstr(&dtInput), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
+					bufprintf(&transKernel.text, "__local %s yx_s[%llu];\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""), (unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
 				} while (0);
 
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "%s tmpm, tmpt;\n", bufcstr(&dtInput));
+					bufprintf(&transKernel.text, "%s tmpm, tmpt;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""));
 				} while (0);
 				break;
 			case CLFFT_COMPLEX_PLANAR:
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s xy_s[%llu];\n", bufcstr(&dtComplex),
+					bufprintf(&transKernel.text, "__local %s xy_s[%llu];\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""),
 						(unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
 				} while (0);
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "__local %s yx_s[%llu];\n", bufcstr(&dtComplex),
+					bufprintf(&transKernel.text, "__local %s yx_s[%llu];\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""),
 						(unsigned long long) (16 * reShapeFactor * 16 * reShapeFactor));
 				} while (0);
 
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "%s tmpm, tmpt;\n", bufcstr(&dtComplex));
+					bufprintf(&transKernel.text, "%s tmpm, tmpt;\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""));
 				} while (0);
 				break;
 			default: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
@@ -16762,8 +17057,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 				}
 				break;
 				case CLFFT_COMPLEX_PLANAR:
-					bufsetbuf(&dtInput, &dtPlanar);
-					bufsetbuf(&dtOutput, &dtPlanar);
+					(clear_buf(&dtInput), bufwrite(&dtInput, (dtPlanar).buf, (dtPlanar).len));
+					(clear_buf(&dtOutput), bufwrite(&dtOutput, (dtPlanar).buf, (dtPlanar).len));
 					if (params.fft_hasPreCallback)
 					{
 						if (params.fft_preCallback.localMemSize > 0)
@@ -16927,7 +17222,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -16950,7 +17245,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -16998,7 +17293,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17022,7 +17317,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17175,8 +17470,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					}
 					break;
 				case CLFFT_COMPLEX_PLANAR:
-					bufsetbuf(&dtInput, &dtPlanar);
-					bufsetbuf(&dtOutput, &dtPlanar);
+					(clear_buf(&dtInput), bufwrite(&dtInput, (dtPlanar).buf, (dtPlanar).len));
+					(clear_buf(&dtOutput), bufwrite(&dtOutput, (dtPlanar).buf, (dtPlanar).len));
 					if (params.fft_hasPreCallback)
 					{
 						if (params.fft_preCallback.localMemSize > 0)
@@ -17417,8 +17712,8 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 					}
 					break;
 				case CLFFT_COMPLEX_PLANAR:
-					bufsetbuf(&dtInput, &dtPlanar);
-					bufsetbuf(&dtOutput, &dtPlanar);
+					(clear_buf(&dtInput), bufwrite(&dtInput, (dtPlanar).buf, (dtPlanar).len));
+					(clear_buf(&dtOutput), bufwrite(&dtOutput, (dtPlanar).buf, (dtPlanar).len));
 					do
 					{
 						clKernWrite(&transKernel, 9);
@@ -17626,7 +17921,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17649,7 +17944,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17697,7 +17992,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17721,7 +18016,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17827,7 +18122,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17861,7 +18156,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17925,7 +18220,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -17960,7 +18255,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -18025,14 +18320,14 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 			do
 			{
 				clKernWrite(&transKernel, 6);
-				bufstream_cat_cstr(&transKernel, "}");
-				bufstream_endline(&transKernel); // end for
+				bufprintf(&(&transKernel)->text, "%s", ("}") ? ("}") : "");
+				bufprintf(&(&transKernel)->text, "%c", '\n'); // end for
 			} while (0);
 			do
 			{
 				clKernWrite(&transKernel, 3);
-				bufstream_cat_cstr(&transKernel, "}");
-				bufstream_endline(&transKernel); // end else
+				bufprintf(&(&transKernel)->text, "%s", ("}") ? ("}") : "");
+				bufprintf(&(&transKernel)->text, "%c", '\n'); // end else
 			} while (0);
 		}
 		do
@@ -18042,7 +18337,7 @@ static clfftStatus clfft_transpose_generator_genTransposeKernelLeadingDimensionB
 		} while (0);
 
 		// Copy generated source into the caller-owned buffer explicitly.
-		bufsetbuf(strKernel, &transKernel.text);
+		(clear_buf(strKernel), bufwrite(strKernel, (transKernel.text).buf, (transKernel.text).len));
 
 		if (!params.fft_3StepTwiddle)
 			break;
@@ -18160,18 +18455,18 @@ static inline void clKernWrite(buffer_stream_t *rhs, const size_t tabIndex)
 {
 	// Emit indentation spaces into the kernel source buffer.
 	for (size_t i = 0; i < tabIndex; ++i)
-		bufstream_cat_char(rhs, ' ');
+		bufprintf(&(rhs)->text, "%c", ' ');
 }
 
 static void OffsetCalc(buffer_stream_t *transKernel, const FFTKernelGenKeyParams *params, bool input)
 {
 	const size_t *stride = input ? params->fft_inStride : params->fft_outStride;
-	buffer_t offset = buffer_from_cstr(input ? "iOffset" : "oOffset");
+	buffer_t offset = buf_string_copy(input ? "iOffset" : "oOffset");
 
 	do
 	{
 		clKernWrite(transKernel, 3);
-		bufprintf(&transKernel->text, "size_t %s = 0;\n", bufcstr(&offset));
+		bufprintf(&transKernel->text, "size_t %s = 0;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 	} while (0);
 	do
 	{
@@ -18184,7 +18479,7 @@ static void OffsetCalc(buffer_stream_t *transKernel, const FFTKernelGenKeyParams
 		do
 		{
 			clKernWrite(transKernel, 3);
-			bufprintf(&transKernel->text, "%s += (currDimIndex/numGroupsY_%llu)*%llu;\n", bufcstr(&offset), (unsigned long long) (i),
+			bufprintf(&transKernel->text, "%s += (currDimIndex/numGroupsY_%llu)*%llu;\n", ((offset).buf ? (const char *) (offset).buf : ""), (unsigned long long) (i),
 				(unsigned long long) (stride[i + 1]));
 		} while (0);
 		do
@@ -18210,12 +18505,12 @@ static void OffsetCalc(buffer_stream_t *transKernel, const FFTKernelGenKeyParams
 				bufprintf(&transKernel->text,
 					"%s += rowSizeinUnits * wgTileExtent.y * wgUnroll * "
 					"groupIndex.x;\n",
-					bufcstr(&offset));
+					((offset).buf ? (const char *) (offset).buf : ""));
 			} while (0);
 			do
 			{
 				clKernWrite(transKernel, 3);
-				bufprintf(&transKernel->text, "%s += currDimIndex * wgTileExtent.x;\n", bufcstr(&offset));
+				bufprintf(&transKernel->text, "%s += currDimIndex * wgTileExtent.x;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 			} while (0);
 		}
 		else
@@ -18223,12 +18518,12 @@ static void OffsetCalc(buffer_stream_t *transKernel, const FFTKernelGenKeyParams
 			do
 			{
 				clKernWrite(transKernel, 3);
-				bufprintf(&transKernel->text, "%s += rowSizeinUnits * wgTileExtent.x * currDimIndex;\n", bufcstr(&offset));
+				bufprintf(&transKernel->text, "%s += rowSizeinUnits * wgTileExtent.x * currDimIndex;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 			} while (0);
 			do
 			{
 				clKernWrite(transKernel, 3);
-				bufprintf(&transKernel->text, "%s += groupIndex.x * wgTileExtent.y * wgUnroll;\n", bufcstr(&offset));
+				bufprintf(&transKernel->text, "%s += groupIndex.x * wgTileExtent.y * wgUnroll;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 			} while (0);
 		}
 	}
@@ -18240,12 +18535,12 @@ static void OffsetCalc(buffer_stream_t *transKernel, const FFTKernelGenKeyParams
 			bufprintf(&transKernel->text,
 				"%s += rowSizeinUnits * wgTileExtent.y * wgUnroll * "
 				"currDimIndex;\n",
-				bufcstr(&offset));
+				((offset).buf ? (const char *) (offset).buf : ""));
 		} while (0);
 		do
 		{
 			clKernWrite(transKernel, 3);
-			bufprintf(&transKernel->text, "%s += groupIndex.x * wgTileExtent.x;\n", bufcstr(&offset));
+			bufprintf(&transKernel->text, "%s += groupIndex.x * wgTileExtent.x;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 		} while (0);
 	}
 	else
@@ -18253,19 +18548,19 @@ static void OffsetCalc(buffer_stream_t *transKernel, const FFTKernelGenKeyParams
 		do
 		{
 			clKernWrite(transKernel, 3);
-			bufprintf(&transKernel->text, "%s += rowSizeinUnits * wgTileExtent.x * groupIndex.x;\n", bufcstr(&offset));
+			bufprintf(&transKernel->text, "%s += rowSizeinUnits * wgTileExtent.x * groupIndex.x;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 		} while (0);
 		do
 		{
 			clKernWrite(transKernel, 3);
-			bufprintf(&transKernel->text, "%s += currDimIndex * wgTileExtent.y * wgUnroll;\n", bufcstr(&offset));
+			bufprintf(&transKernel->text, "%s += currDimIndex * wgTileExtent.y * wgUnroll;\n", ((offset).buf ? (const char *) (offset).buf : ""));
 		} while (0);
 	}
 
 	do
 	{
 		clKernWrite(transKernel, 3);
-		bufstream_endline(transKernel);
+		bufprintf(&(transKernel)->text, "%c", '\n');
 	} while (0);
 }
 
@@ -18280,12 +18575,12 @@ static clfftStatus genTwiddleMath(const FFTKernelGenKeyParams *params, buffer_st
 		bufprintf(&transKernel->text,
 			"%s W = TW3step( (groupIndex.x * wgTileExtent.x + xInd) * "
 			"(currDimIndex * wgTileExtent.y * wgUnroll + yInd) );\n",
-			bufcstr(dtComplex));
+			((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""));
 	} while (0);
 	do
 	{
 		clKernWrite(transKernel, 9);
-		bufprintf(&transKernel->text, "%s T;\n", bufcstr(dtComplex));
+		bufprintf(&transKernel->text, "%s T;\n", ((dtComplex)->buf ? (const char *) (dtComplex)->buf : ""));
 	} while (0);
 
 	if (fwd)
@@ -18355,40 +18650,40 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 	do
 	{
 		clKernWrite(transKernel, 0);
-		bufprintf(&transKernel->text, "%s( ", bufcstr(funcName));
+		bufprintf(&transKernel->text, "%s( ", ((funcName)->buf ? (const char *) (funcName)->buf : ""));
 	} while (0);
 
 	switch (params->fft_inputLayout)
 	{
 		case CLFFT_COMPLEX_INTERLEAVED:
-			bufsetbuf(dtInput, dtComplex);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtComplex)->buf, (dtComplex)->len));
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict %s", bufcstr(dtInput), pmComplexIn);
+				bufprintf(&transKernel->text, "global %s* restrict %s", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""), pmComplexIn);
 			} while (0);
 
 			switch (params->fft_placeness)
 			{
-				case CLFFT_INPLACE: bufsetbuf(dtOutput, dtComplex); break;
+				case CLFFT_INPLACE: (clear_buf(dtOutput), bufwrite(dtOutput, (dtComplex)->buf, (dtComplex)->len)); break;
 				case CLFFT_OUTOFPLACE:
 					switch (params->fft_outputLayout)
 					{
 						case CLFFT_COMPLEX_INTERLEAVED:
-							bufsetbuf(dtOutput, dtComplex);
+							(clear_buf(dtOutput), bufwrite(dtOutput, (dtComplex)->buf, (dtComplex)->len));
 							do
 							{
 								clKernWrite(transKernel, 0);
-								bufprintf(&transKernel->text, ", global %s* restrict %s", bufcstr(dtOutput), pmComplexOut);
+								bufprintf(&transKernel->text, ", global %s* restrict %s", ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), pmComplexOut);
 							} while (0);
 							break;
 						case CLFFT_COMPLEX_PLANAR:
-							bufsetbuf(dtOutput, dtPlanar);
+							(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 							do
 							{
 								clKernWrite(transKernel, 0);
-								bufprintf(&transKernel->text, ", global %s* restrict %s, global %s* restrict %s", bufcstr(dtOutput), pmRealOut,
-									bufcstr(dtOutput), pmImagOut);
+								bufprintf(&transKernel->text, ", global %s* restrict %s, global %s* restrict %s", ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), pmRealOut,
+									((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), pmImagOut);
 							} while (0);
 							break;
 						case CLFFT_HERMITIAN_INTERLEAVED:
@@ -18401,34 +18696,34 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 			}
 			break;
 		case CLFFT_COMPLEX_PLANAR:
-			bufsetbuf(dtInput, dtPlanar);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict %s, global %s* restrict %s", bufcstr(dtInput), pmRealIn, bufcstr(dtInput), pmImagIn);
+				bufprintf(&transKernel->text, "global %s* restrict %s, global %s* restrict %s", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""), pmRealIn, ((dtInput)->buf ? (const char *) (dtInput)->buf : ""), pmImagIn);
 			} while (0);
 
 			switch (params->fft_placeness)
 			{
-				case CLFFT_INPLACE: bufsetbuf(dtOutput, dtPlanar); break;
+				case CLFFT_INPLACE: (clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len)); break;
 				case CLFFT_OUTOFPLACE:
 					switch (params->fft_outputLayout)
 					{
 						case CLFFT_COMPLEX_INTERLEAVED:
-							bufsetbuf(dtOutput, dtComplex);
+							(clear_buf(dtOutput), bufwrite(dtOutput, (dtComplex)->buf, (dtComplex)->len));
 							do
 							{
 								clKernWrite(transKernel, 0);
-								bufprintf(&transKernel->text, ", global %s* restrict %s", bufcstr(dtOutput), pmComplexOut);
+								bufprintf(&transKernel->text, ", global %s* restrict %s", ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), pmComplexOut);
 							} while (0);
 							break;
 						case CLFFT_COMPLEX_PLANAR:
-							bufsetbuf(dtOutput, dtPlanar);
+							(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 							do
 							{
 								clKernWrite(transKernel, 0);
-								bufprintf(&transKernel->text, ", global %s* restrict %s, global %s* restrict %s", bufcstr(dtOutput), pmRealOut,
-									bufcstr(dtOutput), pmImagOut);
+								bufprintf(&transKernel->text, ", global %s* restrict %s, global %s* restrict %s", ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), pmRealOut,
+									((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), pmImagOut);
 							} while (0);
 							break;
 						case CLFFT_HERMITIAN_INTERLEAVED:
@@ -18443,16 +18738,16 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 		case CLFFT_HERMITIAN_INTERLEAVED:
 		case CLFFT_HERMITIAN_PLANAR: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
 		case CLFFT_REAL:
-			bufsetbuf(dtInput, dtPlanar);
+			(clear_buf(dtInput), bufwrite(dtInput, (dtPlanar)->buf, (dtPlanar)->len));
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufprintf(&transKernel->text, "global %s* restrict %s", bufcstr(dtInput), pmRealIn);
+				bufprintf(&transKernel->text, "global %s* restrict %s", ((dtInput)->buf ? (const char *) (dtInput)->buf : ""), pmRealIn);
 			} while (0);
 
 			switch (params->fft_placeness)
 			{
-				case CLFFT_INPLACE: bufsetbuf(dtOutput, dtPlanar); break;
+				case CLFFT_INPLACE: (clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len)); break;
 				case CLFFT_OUTOFPLACE:
 					switch (params->fft_outputLayout)
 					{
@@ -18461,11 +18756,11 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 						case CLFFT_HERMITIAN_INTERLEAVED:
 						case CLFFT_HERMITIAN_PLANAR: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
 						case CLFFT_REAL:
-							bufsetbuf(dtOutput, dtPlanar);
+							(clear_buf(dtOutput), bufwrite(dtOutput, (dtPlanar)->buf, (dtPlanar)->len));
 							do
 							{
 								clKernWrite(transKernel, 0);
-								bufprintf(&transKernel->text, ", global %s* restrict %s", bufcstr(dtOutput), pmRealOut);
+								bufprintf(&transKernel->text, ", global %s* restrict %s", ((dtOutput)->buf ? (const char *) (dtOutput)->buf : ""), pmRealOut);
 							} while (0);
 							break;
 						default: return CLFFT_TRANSPOSED_NOTIMPLEMENTED;
@@ -18486,7 +18781,7 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* pre_userdata, __local void* localmem");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* pre_userdata, __local void* localmem") ? (", __global void* pre_userdata, __local void* localmem") : "");
 			} while (0);
 		}
 		else
@@ -18494,7 +18789,7 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* pre_userdata");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* pre_userdata") ? (", __global void* pre_userdata") : "");
 			} while (0);
 		}
 	}
@@ -18508,7 +18803,7 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* post_userdata, __local void* localmem");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* post_userdata, __local void* localmem") ? (", __global void* post_userdata, __local void* localmem") : "");
 			} while (0);
 		}
 		else
@@ -18516,7 +18811,7 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 			do
 			{
 				clKernWrite(transKernel, 0);
-				bufstream_cat_cstr(transKernel, ", __global void* post_userdata");
+				bufprintf(&(transKernel)->text, "%s", (", __global void* post_userdata") ? (", __global void* post_userdata") : "");
 			} while (0);
 		}
 	}
@@ -18533,16 +18828,16 @@ static clfftStatus genTransposePrototype(const FFTKernelGenKeyParams *params, co
 
 static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer_t *strKernel, tile lwSize, const size_t reShapeFactor, const size_t loopCount, tile blockSize)
 {
-	bufreserve(strKernel, 4096);
+	buf_alloc_enough(strKernel, 4096);
 	buffer_stream_t transKernel;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&transKernel);
+	(memset(&transKernel, 0, sizeof(*(&transKernel))), (&transKernel)->precision_value = 6);
 	// These strings represent the various data types we read or write in the
 	// kernel, depending on how the plan is configured
-	buffer_t dtInput = buffer_empty();   // The type read as input into kernel
-	buffer_t dtOutput = buffer_empty();  // The type written as output from kernel
-	buffer_t dtPlanar = buffer_empty();  // Fundamental type for planar arrays
-	buffer_t dtComplex = buffer_empty(); // Fundamental type for complex arrays
+	buffer_t dtInput = (buffer_t){0};   // The type read as input into kernel
+	buffer_t dtOutput = (buffer_t){0};  // The type written as output from kernel
+	buffer_t dtPlanar = (buffer_t){0};  // Fundamental type for planar arrays
+	buffer_t dtComplex = (buffer_t){0}; // Fundamental type for complex arrays
 
 	// NOTE:  Enable only for debug
 
@@ -18550,13 +18845,13 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 	{
 		case CLFFT_SINGLE:
 		case CLFFT_SINGLE_FAST:
-			bufsetcstr(&dtPlanar, "float");
-			bufsetcstr(&dtComplex, "float2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("float") ? ("float") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("float2") ? ("float2") : ""));
 			break;
 		case CLFFT_DOUBLE:
 		case CLFFT_DOUBLE_FAST:
-			bufsetcstr(&dtPlanar, "double");
-			bufsetcstr(&dtComplex, "double2");
+			(clear_buf(&dtPlanar), bufprintf(&dtPlanar, "%s", ("double") ? ("double") : ""));
+			(clear_buf(&dtComplex), bufprintf(&dtComplex, "%s", ("double2") ? ("double2") : ""));
 
 			// Emit code that enables double precision in the kernel
 			do
@@ -18591,7 +18886,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 	//	If twiddle computation has been requested, generate the lookup function
 	if (params.fft_3StepTwiddle)
 	{
-		buffer_t str = buffer_empty();
+		buffer_t str = (buffer_t){0};
 		TwiddleTableLarge twLarge;
 		// Initialize large twiddle table storage explicitly.
 		TwiddleTableLargeInit(&twLarge, params.fft_N[0] * params.fft_N[1]);
@@ -18604,12 +18899,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufprintf(&transKernel.text, "%s\n", bufcstr(&str));
+			bufprintf(&transKernel.text, "%s\n", ((str).buf ? (const char *) (str).buf : ""));
 		} while (0);
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 
@@ -18659,7 +18954,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 
@@ -18675,7 +18970,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		do
 		{
 			clKernWrite(&transKernel, 0);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 	}
 
@@ -18685,11 +18980,11 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		//
 		bool fwd = bothDir ? false : true;
 
-		buffer_t funcName = buffer_empty();
+		buffer_t funcName = (buffer_t){0};
 		if (params.fft_3StepTwiddle)
-			bufsetcstr(&funcName, fwd ? "transpose_gcn_tw_fwd" : "transpose_gcn_tw_back");
+			(clear_buf(&funcName), bufprintf(&funcName, "%s", (fwd ? "transpose_gcn_tw_fwd" : "transpose_gcn_tw_back") ? (fwd ? "transpose_gcn_tw_fwd" : "transpose_gcn_tw_back") : ""));
 		else
-			bufsetcstr(&funcName, "transpose_gcn");
+			(clear_buf(&funcName), bufprintf(&funcName, "%s", ("transpose_gcn") ? ("transpose_gcn") : ""));
 
 		genTransposePrototype(&params, &lwSize, &dtPlanar, &dtComplex, &funcName, &transKernel, &dtInput, &dtOutput);
 
@@ -18717,7 +19012,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 
 		do
@@ -18800,7 +19095,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "local %s lds[ %llu ][ %llu ];\n\n", bufcstr(&dtComplex), (unsigned long long) (ldsSize.x),
+					bufprintf(&transKernel.text, "local %s lds[ %llu ][ %llu ];\n\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""), (unsigned long long) (ldsSize.x),
 						(unsigned long long) (ldsSize.y));
 				} while (0);
 				break;
@@ -18810,7 +19105,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "local %s lds[ %llu ][ %llu ];\n\n", bufcstr(&dtPlanar), (unsigned long long) (ldsSize.x),
+					bufprintf(&transKernel.text, "local %s lds[ %llu ][ %llu ];\n\n", ((dtPlanar).buf ? (const char *) (dtPlanar).buf : ""), (unsigned long long) (ldsSize.x),
 						(unsigned long long) (ldsSize.y));
 				} while (0);
 				break;
@@ -18839,7 +19134,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s* tileIn = %s + iOffset;\n", bufcstr(&dtInput), pmComplexIn);
+						bufprintf(&transKernel.text, "global %s* tileIn = %s + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""), pmComplexIn);
 					} while (0);
 				}
 				break;
@@ -18851,12 +19146,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s* realTileIn = %s + iOffset;\n", bufcstr(&dtInput), pmRealIn);
+						bufprintf(&transKernel.text, "global %s* realTileIn = %s + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""), pmRealIn);
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s* imagTileIn = %s + iOffset;\n", bufcstr(&dtInput), pmImagIn);
+						bufprintf(&transKernel.text, "global %s* imagTileIn = %s + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""), pmImagIn);
 					} while (0);
 				}
 				break;
@@ -18870,7 +19165,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s* tileIn = %s + iOffset;\n", bufcstr(&dtInput), pmRealIn);
+						bufprintf(&transKernel.text, "global %s* tileIn = %s + iOffset;\n", ((dtInput).buf ? (const char *) (dtInput).buf : ""), pmRealIn);
 					} while (0);
 				}
 				break;
@@ -18882,7 +19177,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 			do
 			{
 				clKernWrite(&transKernel, 3);
-				bufprintf(&transKernel.text, "%s tmp;\n", bufcstr(&dtPlanar));
+				bufprintf(&transKernel.text, "%s tmp;\n", ((dtPlanar).buf ? (const char *) (dtPlanar).buf : ""));
 			} while (0);
 		}
 		else
@@ -18890,7 +19185,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 			do
 			{
 				clKernWrite(&transKernel, 3);
-				bufprintf(&transKernel.text, "%s tmp;\n", bufcstr(&dtComplex));
+				bufprintf(&transKernel.text, "%s tmp;\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""));
 			} while (0);
 		}
 
@@ -18922,13 +19217,13 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		size_t cornerGroupX = params.transOutHorizontal ? (params.fft_N[1] / blockSize.y) : (params.fft_N[0] / blockSize.x);
 		size_t cornerGroupY = params.transOutHorizontal ? (params.fft_N[0] / blockSize.x) : (params.fft_N[1] / blockSize.y);
 
-		buffer_t gIndexX = buffer_from_cstr("groupIndex.x"); // params.transOutHorizontal ? "currDimIndex" :
+		buffer_t gIndexX = buf_string_copy("groupIndex.x"); // params.transOutHorizontal ? "currDimIndex" :
 								     // "groupIndex.x";
-		buffer_t gIndexY = buffer_from_cstr("currDimIndex"); // params.transOutHorizontal ? "groupIndex.x" :
+		buffer_t gIndexY = buf_string_copy("currDimIndex"); // params.transOutHorizontal ? "groupIndex.x" :
 								     // "currDimIndex";
 
-		buffer_t wIndexX = buffer_from_cstr(params.transOutHorizontal ? "yInd" : "xInd");
-		buffer_t wIndexY = buffer_from_cstr(params.transOutHorizontal ? "xInd" : "yInd");
+		buffer_t wIndexX = buf_string_copy(params.transOutHorizontal ? "yInd" : "xInd");
+		buffer_t wIndexY = buf_string_copy(params.transOutHorizontal ? "xInd" : "yInd");
 
 		size_t wIndexXEnd = params.transOutHorizontal ? params.fft_N[1] % blockSize.y : params.fft_N[0] % blockSize.x;
 		size_t wIndexYEnd = params.transOutHorizontal ? params.fft_N[0] % blockSize.x : params.fft_N[1] % blockSize.y;
@@ -18939,7 +19234,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 			do
 			{
 				clKernWrite(&transKernel, 3);
-				bufprintf(&transKernel.text, "%s retCallback;\n", bufcstr(&dtComplex));
+				bufprintf(&transKernel.text, "%s retCallback;\n", ((dtComplex).buf ? (const char *) (dtComplex).buf : ""));
 			} while (0);
 		}
 
@@ -18951,8 +19246,8 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "if( (%s == %llu) && (%s == %llu) )\n", bufcstr(&gIndexX), (unsigned long long) (cornerGroupX),
-							bufcstr(&gIndexY), (unsigned long long) (cornerGroupY));
+						bufprintf(&transKernel.text, "if( (%s == %llu) && (%s == %llu) )\n", ((gIndexX).buf ? (const char *) (gIndexX).buf : ""), (unsigned long long) (cornerGroupX),
+							((gIndexY).buf ? (const char *) (gIndexY).buf : ""), (unsigned long long) (cornerGroupY));
 					} while (0);
 					do
 					{
@@ -18968,7 +19263,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "else if( %s == %llu )\n", bufcstr(&gIndexX), (unsigned long long) (cornerGroupX));
+						bufprintf(&transKernel.text, "else if( %s == %llu )\n", ((gIndexX).buf ? (const char *) (gIndexX).buf : ""), (unsigned long long) (cornerGroupX));
 					} while (0);
 					do
 					{
@@ -18984,7 +19279,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "else if( %s == %llu )\n", bufcstr(&gIndexY), (unsigned long long) (cornerGroupY));
+						bufprintf(&transKernel.text, "else if( %s == %llu )\n", ((gIndexY).buf ? (const char *) (gIndexY).buf : ""), (unsigned long long) (cornerGroupY));
 					} while (0);
 					do
 					{
@@ -19016,7 +19311,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "if( %s == %llu )\n", bufcstr(&gIndexX), (unsigned long long) (cornerGroupX));
+							bufprintf(&transKernel.text, "if( %s == %llu )\n", ((gIndexX).buf ? (const char *) (gIndexX).buf : ""), (unsigned long long) (cornerGroupX));
 						} while (0);
 						do
 						{
@@ -19029,7 +19324,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "if( %s == %llu )\n", bufcstr(&gIndexY), (unsigned long long) (cornerGroupY));
+							bufprintf(&transKernel.text, "if( %s == %llu )\n", ((gIndexY).buf ? (const char *) (gIndexY).buf : ""), (unsigned long long) (cornerGroupY));
 						} while (0);
 						do
 						{
@@ -19096,13 +19391,13 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufstream_endline(&transKernel);
+						bufprintf(&(&transKernel)->text, "%c", '\n');
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufprintf(&transKernel.text, "if( (%s< %llu) && (%s < %llu) )\n", bufcstr(&wIndexX), (unsigned long long) (wIndexXEnd),
-							bufcstr(&wIndexY), (unsigned long long) (wIndexYEnd));
+						bufprintf(&transKernel.text, "if( (%s< %llu) && (%s < %llu) )\n", ((wIndexX).buf ? (const char *) (wIndexX).buf : ""), (unsigned long long) (wIndexXEnd),
+							((wIndexY).buf ? (const char *) (wIndexY).buf : ""), (unsigned long long) (wIndexYEnd));
 					} while (0);
 					do
 					{
@@ -19115,12 +19410,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufstream_endline(&transKernel);
+						bufprintf(&(&transKernel)->text, "%c", '\n');
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexX), (unsigned long long) (wIndexXEnd));
+						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexX).buf ? (const char *) (wIndexX).buf : ""), (unsigned long long) (wIndexXEnd));
 					} while (0);
 					do
 					{
@@ -19133,12 +19428,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufstream_endline(&transKernel);
+						bufprintf(&(&transKernel)->text, "%c", '\n');
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexY), (unsigned long long) (wIndexYEnd));
+						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexY).buf ? (const char *) (wIndexY).buf : ""), (unsigned long long) (wIndexYEnd));
 					} while (0);
 					do
 					{
@@ -19162,12 +19457,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 9);
-							bufstream_endline(&transKernel);
+							bufprintf(&(&transKernel)->text, "%c", '\n');
 						} while (0);
 						do
 						{
 							clKernWrite(&transKernel, 9);
-							bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexX), (unsigned long long) (wIndexXEnd));
+							bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexX).buf ? (const char *) (wIndexX).buf : ""), (unsigned long long) (wIndexXEnd));
 						} while (0);
 						do
 						{
@@ -19180,12 +19475,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 9);
-							bufstream_endline(&transKernel);
+							bufprintf(&(&transKernel)->text, "%c", '\n');
 						} while (0);
 						do
 						{
 							clKernWrite(&transKernel, 9);
-							bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexY), (unsigned long long) (wIndexYEnd));
+							bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexY).buf ? (const char *) (wIndexY).buf : ""), (unsigned long long) (wIndexYEnd));
 						} while (0);
 						do
 						{
@@ -19355,7 +19650,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 				do
 				{
 					clKernWrite(&transKernel, 9);
-					bufstream_endline(&transKernel);
+					bufprintf(&(&transKernel)->text, "%c", '\n');
 				} while (0);
 			}
 
@@ -19376,7 +19671,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 		do
 		{
@@ -19386,7 +19681,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		do
 		{
 			clKernWrite(&transKernel, 3);
-			bufstream_endline(&transKernel);
+			bufprintf(&(&transKernel)->text, "%c", '\n');
 		} while (0);
 
 		OffsetCalc(&transKernel, &params, false);
@@ -19401,7 +19696,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s* tileOut = %s + oOffset;\n\n", bufcstr(&dtOutput), pmComplexOut);
+						bufprintf(&transKernel.text, "global %s* tileOut = %s + oOffset;\n\n", ((dtOutput).buf ? (const char *) (dtOutput).buf : ""), pmComplexOut);
 					} while (0);
 				}
 				break;
@@ -19413,12 +19708,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s* realTileOut = %s + oOffset;\n", bufcstr(&dtOutput), pmRealOut);
+						bufprintf(&transKernel.text, "global %s* realTileOut = %s + oOffset;\n", ((dtOutput).buf ? (const char *) (dtOutput).buf : ""), pmRealOut);
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "global %s* imagTileOut = %s + oOffset;\n", bufcstr(&dtOutput), pmImagOut);
+						bufprintf(&transKernel.text, "global %s* imagTileOut = %s + oOffset;\n", ((dtOutput).buf ? (const char *) (dtOutput).buf : ""), pmImagOut);
 					} while (0);
 				}
 				break;
@@ -19428,7 +19723,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 				do
 				{
 					clKernWrite(&transKernel, 3);
-					bufprintf(&transKernel.text, "global %s* tileOut = %s + oOffset;\n\n", bufcstr(&dtOutput), pmRealOut);
+					bufprintf(&transKernel.text, "global %s* tileOut = %s + oOffset;\n\n", ((dtOutput).buf ? (const char *) (dtOutput).buf : ""), pmRealOut);
 				} while (0);
 				break;
 		}
@@ -19465,8 +19760,8 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "if( (%s == %llu) && (%s == %llu) )\n", bufcstr(&gIndexX), (unsigned long long) (cornerGroupX),
-							bufcstr(&gIndexY), (unsigned long long) (cornerGroupY));
+						bufprintf(&transKernel.text, "if( (%s == %llu) && (%s == %llu) )\n", ((gIndexX).buf ? (const char *) (gIndexX).buf : ""), (unsigned long long) (cornerGroupX),
+							((gIndexY).buf ? (const char *) (gIndexY).buf : ""), (unsigned long long) (cornerGroupY));
 					} while (0);
 					do
 					{
@@ -19482,7 +19777,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "else if( %s == %llu )\n", bufcstr(&gIndexX), (unsigned long long) (cornerGroupX));
+						bufprintf(&transKernel.text, "else if( %s == %llu )\n", ((gIndexX).buf ? (const char *) (gIndexX).buf : ""), (unsigned long long) (cornerGroupX));
 					} while (0);
 					do
 					{
@@ -19498,7 +19793,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 3);
-						bufprintf(&transKernel.text, "else if( %s == %llu )\n", bufcstr(&gIndexY), (unsigned long long) (cornerGroupY));
+						bufprintf(&transKernel.text, "else if( %s == %llu )\n", ((gIndexY).buf ? (const char *) (gIndexY).buf : ""), (unsigned long long) (cornerGroupY));
 					} while (0);
 					do
 					{
@@ -19530,7 +19825,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "if( %s == %llu )\n", bufcstr(&gIndexX), (unsigned long long) (cornerGroupX));
+							bufprintf(&transKernel.text, "if( %s == %llu )\n", ((gIndexX).buf ? (const char *) (gIndexX).buf : ""), (unsigned long long) (cornerGroupX));
 						} while (0);
 						do
 						{
@@ -19543,7 +19838,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 3);
-							bufprintf(&transKernel.text, "if( %s == %llu )\n", bufcstr(&gIndexY), (unsigned long long) (cornerGroupY));
+							bufprintf(&transKernel.text, "if( %s == %llu )\n", ((gIndexY).buf ? (const char *) (gIndexY).buf : ""), (unsigned long long) (cornerGroupY));
 						} while (0);
 						do
 						{
@@ -19611,13 +19906,13 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufstream_endline(&transKernel);
+						bufprintf(&(&transKernel)->text, "%c", '\n');
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufprintf(&transKernel.text, "if( (%s < %llu) && (%s < %llu) )\n", bufcstr(&wIndexY), (unsigned long long) (wIndexXEnd),
-							bufcstr(&wIndexX), (unsigned long long) (wIndexYEnd));
+						bufprintf(&transKernel.text, "if( (%s < %llu) && (%s < %llu) )\n", ((wIndexY).buf ? (const char *) (wIndexY).buf : ""), (unsigned long long) (wIndexXEnd),
+							((wIndexX).buf ? (const char *) (wIndexX).buf : ""), (unsigned long long) (wIndexYEnd));
 					} while (0);
 					do
 					{
@@ -19630,12 +19925,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufstream_endline(&transKernel);
+						bufprintf(&(&transKernel)->text, "%c", '\n');
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexY), (unsigned long long) (wIndexXEnd));
+						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexY).buf ? (const char *) (wIndexY).buf : ""), (unsigned long long) (wIndexXEnd));
 					} while (0);
 					do
 					{
@@ -19648,12 +19943,12 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufstream_endline(&transKernel);
+						bufprintf(&(&transKernel)->text, "%c", '\n');
 					} while (0);
 					do
 					{
 						clKernWrite(&transKernel, 9);
-						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexX), (unsigned long long) (wIndexYEnd));
+						bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexX).buf ? (const char *) (wIndexX).buf : ""), (unsigned long long) (wIndexYEnd));
 					} while (0);
 					do
 					{
@@ -19670,7 +19965,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 			}
 			else if (branchingInAny)
 			{
-				buffer_t limitToWGForRealSpecial = buffer_from_cstr(params.transOutHorizontal ? "groupIndex.x" : "currDimIndex");
+				buffer_t limitToWGForRealSpecial = buf_string_copy(params.transOutHorizontal ? "groupIndex.x" : "currDimIndex");
 
 				if (i == 0)
 				{
@@ -19679,7 +19974,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 9);
-							bufstream_endline(&transKernel);
+							bufprintf(&(&transKernel)->text, "%c", '\n');
 						} while (0);
 						if (params.fft_realSpecial)
 						{
@@ -19689,15 +19984,15 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 								bufprintf(&transKernel.text,
 									"if( ((%s == %llu) && (%s < 1) && "
 									"(%s == 0)) ",
-									bufcstr(&wIndexY), (unsigned long long) (wIndexXEnd - 1), bufcstr(&wIndexX),
-									bufcstr(&limitToWGForRealSpecial));
+									((wIndexY).buf ? (const char *) (wIndexY).buf : ""), (unsigned long long) (wIndexXEnd - 1), ((wIndexX).buf ? (const char *) (wIndexX).buf : ""),
+									((limitToWGForRealSpecial).buf ? (const char *) (limitToWGForRealSpecial).buf : ""));
 							} while (0);
 							if (wIndexXEnd > 1)
 							{
 								do
 								{
 									clKernWrite(&transKernel, 0);
-									bufprintf(&transKernel.text, "|| (%s < %llu) )\n", bufcstr(&wIndexY),
+									bufprintf(&transKernel.text, "|| (%s < %llu) )\n", ((wIndexY).buf ? (const char *) (wIndexY).buf : ""),
 										(unsigned long long) (wIndexXEnd - 1));
 								} while (0);
 							}
@@ -19715,7 +20010,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 							do
 							{
 								clKernWrite(&transKernel, 9);
-								bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexY), (unsigned long long) (wIndexXEnd));
+								bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexY).buf ? (const char *) (wIndexY).buf : ""), (unsigned long long) (wIndexXEnd));
 							} while (0);
 						}
 						do
@@ -19729,7 +20024,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 						do
 						{
 							clKernWrite(&transKernel, 9);
-							bufstream_endline(&transKernel);
+							bufprintf(&(&transKernel)->text, "%c", '\n');
 						} while (0);
 						if (params.fft_realSpecial)
 						{
@@ -19739,15 +20034,15 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 								bufprintf(&transKernel.text,
 									"if( ((%s == %llu) && (%s < 1) && "
 									"(%s == 0)) ",
-									bufcstr(&wIndexX), (unsigned long long) (wIndexYEnd - 1), bufcstr(&wIndexY),
-									bufcstr(&limitToWGForRealSpecial));
+									((wIndexX).buf ? (const char *) (wIndexX).buf : ""), (unsigned long long) (wIndexYEnd - 1), ((wIndexY).buf ? (const char *) (wIndexY).buf : ""),
+									((limitToWGForRealSpecial).buf ? (const char *) (limitToWGForRealSpecial).buf : ""));
 							} while (0);
 							if (wIndexYEnd > 1)
 							{
 								do
 								{
 									clKernWrite(&transKernel, 0);
-									bufprintf(&transKernel.text, "|| (%s < %llu) )\n", bufcstr(&wIndexX),
+									bufprintf(&transKernel.text, "|| (%s < %llu) )\n", ((wIndexX).buf ? (const char *) (wIndexX).buf : ""),
 										(unsigned long long) (wIndexYEnd - 1));
 								} while (0);
 							}
@@ -19765,7 +20060,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 							do
 							{
 								clKernWrite(&transKernel, 9);
-								bufprintf(&transKernel.text, "if( (%s < %llu) )\n", bufcstr(&wIndexX), (unsigned long long) (wIndexYEnd));
+								bufprintf(&transKernel.text, "if( (%s < %llu) )\n", ((wIndexX).buf ? (const char *) (wIndexX).buf : ""), (unsigned long long) (wIndexYEnd));
 							} while (0);
 						}
 						do
@@ -19798,7 +20093,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -19832,7 +20127,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 							do
 							{
 								clKernWrite(&transKernel, 0);
-								bufstream_cat_cstr(&transKernel, ", localmem");
+								bufprintf(&(&transKernel)->text, "%s", (", localmem") ? (", localmem") : "");
 							} while (0);
 						}
 						do
@@ -19896,7 +20191,7 @@ static clfftStatus genTransposeKernel(const FFTKernelGenKeyParams params, buffer
 		} while (0);
 
 		// Copy generated source into the caller-owned buffer explicitly.
-		bufsetbuf(strKernel, &transKernel.text);
+		(clear_buf(strKernel), bufwrite(strKernel, (transKernel.text).buf, (transKernel.text).len));
 
 		if (!params.fft_3StepTwiddle)
 			break;
@@ -20047,7 +20342,7 @@ static clfftStatus FFTGeneratedTransposeGCNActionGenerateKernel(FFTGeneratedTran
 		}
 	}
 
-	buffer_t programCode = buffer_empty();
+	buffer_t programCode = (buffer_t){0};
 	OPENCL_V(genTransposeKernel(action->signature.data, &programCode, lwSize, reShapeFactor, loopCount, blockSize), _T( "GenerateTransposeKernel() failed!" ));
 
 	cl_int status = CL_SUCCESS;
@@ -20315,8 +20610,8 @@ static const size_t reShapeFactor = 2;
 // generated program as a string
 static clfftStatus FFTGeneratedTransposeNonSquareActionGenerateKernel(FFTGeneratedTransposeNonSquareAction *action, FFTRepo *fftRepo, const cl_command_queue commQueueFFT)
 {
-	buffer_t programCode = buffer_empty();
-	buffer_t kernelFuncName = buffer_empty(); // applied to swap kernel for now
+	buffer_t programCode = (buffer_t){0};
+	buffer_t kernelFuncName = (buffer_t){0}; // applied to swap kernel for now
 	if (action->signature.data.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING)
 	{
 		// Requested local memory size by callback must not exceed the device
@@ -20443,18 +20738,18 @@ static clfftStatus FFTGeneratedTransposeNonSquareActionGenerateKernel(FFTGenerat
 	// swap kernel
 	{
 		// Build the twiddle entry point names without temporary merge helpers.
-		buffer_t kernelFwdFuncName = buffer_empty();
-		buffer_t kernelBwdFuncName = buffer_empty();
-		bufsetbuf(&kernelFwdFuncName, &kernelFuncName);
-		bufcatcstr(&kernelFwdFuncName, "_tw_fwd");
-		bufsetbuf(&kernelBwdFuncName, &kernelFuncName);
-		bufcatcstr(&kernelBwdFuncName, "_tw_back");
-		OPENCL_V(FFTRepoSetProgramEntryPoints(fftRepo, Transpose_NONSQUARE, &action->signature.header, bufcstr(&kernelFwdFuncName), bufcstr(&kernelBwdFuncName), Device,
+		buffer_t kernelFwdFuncName = (buffer_t){0};
+		buffer_t kernelBwdFuncName = (buffer_t){0};
+		(clear_buf(&kernelFwdFuncName), bufwrite(&kernelFwdFuncName, (kernelFuncName).buf, (kernelFuncName).len));
+		bufprintf(&kernelFwdFuncName, "%s", ("_tw_fwd") ? ("_tw_fwd") : "");
+		(clear_buf(&kernelBwdFuncName), bufwrite(&kernelBwdFuncName, (kernelFuncName).buf, (kernelFuncName).len));
+		bufprintf(&kernelBwdFuncName, "%s", ("_tw_back") ? ("_tw_back") : "");
+		OPENCL_V(FFTRepoSetProgramEntryPoints(fftRepo, Transpose_NONSQUARE, &action->signature.header, ((kernelFwdFuncName).buf ? (const char *) (kernelFwdFuncName).buf : ""), ((kernelBwdFuncName).buf ? (const char *) (kernelBwdFuncName).buf : ""), Device,
 				 QueueContext),
 			"FFTRepoSetProgramEntryPoints failed!");
 	}
 	else
-		OPENCL_V(FFTRepoSetProgramEntryPoints(fftRepo, Transpose_NONSQUARE, &action->signature.header, bufcstr(&kernelFuncName), bufcstr(&kernelFuncName), Device,
+		OPENCL_V(FFTRepoSetProgramEntryPoints(fftRepo, Transpose_NONSQUARE, &action->signature.header, ((kernelFuncName).buf ? (const char *) (kernelFuncName).buf : ""), ((kernelFuncName).buf ? (const char *) (kernelFuncName).buf : ""), Device,
 				 QueueContext),
 			"FFTRepoSetProgramEntryPoints failed!");
 	return CLFFT_SUCCESS;
@@ -20824,7 +21119,7 @@ static clfftStatus FFTGeneratedTransposeSquareActionGenerateKernel(FFTGeneratedT
 		}
 	}
 
-	buffer_t programCode = buffer_empty();
+	buffer_t programCode = (buffer_t){0};
 	OPENCL_V(clfft_transpose_generator_genTransposeKernelBatched(action->signature.data, &programCode, lwSize, reShapeFactor), "GenerateTransposeKernel() failed!");
 
 	cl_int status = CL_SUCCESS;
@@ -20963,43 +21258,43 @@ typedef struct CopyKernel
 static inline buffer_t CopyKernelOffsetCalc(const CopyKernel *kernel, const char *off, bool input)
 {
 	// Generate index-offset source for the selected buffer side.
-	buffer_t str = buffer_empty();
+	buffer_t str = (buffer_t){0};
 
 	const size_t *pStride = input ? kernel->params.fft_inStride : kernel->params.fft_outStride;
 
-	bufcatcstr(&str, "\t");
-	bufcatcstr(&str, off);
-	bufcatcstr(&str, " = ");
-	buffer_t nextBatch = buffer_from_cstr("batch");
+	bufprintf(&str, "%s", ("\t") ? ("\t") : "");
+	bufprintf(&str, "%s", (off) ? (off) : "");
+	bufprintf(&str, "%s", (" = ") ? (" = ") : "");
+	buffer_t nextBatch = buf_string_copy("batch");
 	for (size_t i = (kernel->params.fft_DataDim - 1); i > 1; i--)
 	{
 		size_t currentLength = 1;
 		for (int j = 1; j < i; j++)
 			currentLength *= kernel->params.fft_N[j];
 
-		bufcatcstr(&str, "(");
-		bufcatbuf(&str, &nextBatch);
-		bufcatcstr(&str, "/");
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(currentLength));
-		bufcatcstr(&str, ")*");
-		BUFCAT_BUFFER_VALUE(&str, SztToStr(pStride[i]));
-		bufcatcstr(&str, " + ");
+		bufprintf(&str, "%s", ("(") ? ("(") : "");
+		bufwrite(&str, (nextBatch).buf, (nextBatch).len);
+		bufprintf(&str, "%s", ("/") ? ("/") : "");
+		bufprintf(&str, "%zu", currentLength);
+		bufprintf(&str, "%s", (")*") ? (")*") : "");
+		bufprintf(&str, "%zu", pStride[i]);
+		bufprintf(&str, "%s", (" + ") ? (" + ") : "");
 
 		// Rebuild the next batch expression without temporary merge helpers.
-		buffer_t nextBatchOld = buffer_empty();
+		buffer_t nextBatchOld = (buffer_t){0};
 		buffer_t currentLengthStr = SztToStr(currentLength);
-		bufsetbuf(&nextBatchOld, &nextBatch);
-		bufsetcstr(&nextBatch, "(");
-		bufcatbuf(&nextBatch, &nextBatchOld);
-		bufcatcstr(&nextBatch, "%");
-		bufcatbuf(&nextBatch, &currentLengthStr);
-		bufcatcstr(&nextBatch, ")");
+		(clear_buf(&nextBatchOld), bufwrite(&nextBatchOld, (nextBatch).buf, (nextBatch).len));
+		(clear_buf(&nextBatch), bufprintf(&nextBatch, "%s", ("(") ? ("(") : ""));
+		bufwrite(&nextBatch, (nextBatchOld).buf, (nextBatchOld).len);
+		bufprintf(&nextBatch, "%s", ("%") ? ("%") : "");
+		bufwrite(&nextBatch, (currentLengthStr).buf, (currentLengthStr).len);
+		bufprintf(&nextBatch, "%s", (")") ? (")") : "");
 	}
 
-	bufcatbuf(&str, &nextBatch);
-	bufcatcstr(&str, "*");
-	BUFCAT_BUFFER_VALUE(&str, SztToStr(pStride[1]));
-	bufcatcstr(&str, ";\n");
+	bufwrite(&str, (nextBatch).buf, (nextBatch).len);
+	bufprintf(&str, "%s", ("*") ? ("*") : "");
+	bufprintf(&str, "%zu", pStride[1]);
+	bufprintf(&str, "%s", (";\n") ? (";\n") : "");
 
 	return str;
 }
@@ -21031,7 +21326,7 @@ static void CopyKernelGenerateKernel(const CopyKernel *kernel, buffer_t *str)
 	outIlvd = ((kernel->params.fft_outputLayout == CLFFT_COMPLEX_INTERLEAVED) || (kernel->params.fft_outputLayout == CLFFT_HERMITIAN_INTERLEAVED)) ? true : false;
 
 	// Pragma
-	BUFCAT_BUFFER_VALUE(str, ClPragma(kernel->pr));
+	bufprintf(str, "%s", (((kernel->pr) == P_DOUBLE) ? "\n#ifdef cl_khr_fp64\n#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n#else\n#pragma OPENCL EXTENSION cl_amd_fp64 : enable\n#endif\n\n" : ""));
 
 	buffer_t sfx = FloatSuffix(kernel->pr);
 
@@ -21039,118 +21334,118 @@ static void CopyKernelGenerateKernel(const CopyKernel *kernel, buffer_t *str)
 	if (kernel->params.fft_hasPreCallback && kernel->h2c)
 	{
 		// Insert callback function code at the beginning
-		bufcatcstr(str, kernel->params.fft_preCallback.funcstring);
-		bufcatcstr(str, "\n\n");
+		bufprintf(str, "%s", (kernel->params.fft_preCallback.funcstring) ? (kernel->params.fft_preCallback.funcstring) : "");
+		bufprintf(str, "%s", ("\n\n") ? ("\n\n") : "");
 	}
 
 	// if postcallback is set
 	if (kernel->params.fft_hasPostCallback)
 	{
 		// Insert callback function code at the beginning
-		bufcatcstr(str, kernel->params.fft_postCallback.funcstring);
-		bufcatcstr(str, "\n\n");
+		bufprintf(str, "%s", (kernel->params.fft_postCallback.funcstring) ? (kernel->params.fft_postCallback.funcstring) : "");
+		bufprintf(str, "%s", ("\n\n") ? ("\n\n") : "");
 	}
 
 	// Copy kernel begin
-	bufcatcstr(str, "__kernel void ");
+	bufprintf(str, "%s", ("__kernel void ") ? ("__kernel void ") : "");
 
 	// Function name
 	if (kernel->general)
-		bufcatcstr(str, "copy_general");
+		bufprintf(str, "%s", ("copy_general") ? ("copy_general") : "");
 	else if (kernel->h2c)
-		bufcatcstr(str, "copy_h2c");
+		bufprintf(str, "%s", ("copy_h2c") ? ("copy_h2c") : "");
 	else
-		bufcatcstr(str, "copy_c2h");
+		bufprintf(str, "%s", ("copy_c2h") ? ("copy_c2h") : "");
 
-	bufcatcstr(str, "(");
+	bufprintf(str, "%s", ("(") ? ("(") : "");
 
 	if (inIlvd)
 	{
-		bufcatcstr(str, "__global const ");
-		bufcatbuf(str, &r2Type);
-		bufcatcstr(str, " * restrict gbIn, ");
+		bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+		bufwrite(str, (r2Type).buf, (r2Type).len);
+		bufprintf(str, "%s", (" * restrict gbIn, ") ? (" * restrict gbIn, ") : "");
 	}
 	else
 	{
-		bufcatcstr(str, "__global const ");
-		bufcatbuf(str, &rType);
-		bufcatcstr(str, " * restrict gbInRe, ");
-		bufcatcstr(str, "__global const ");
-		bufcatbuf(str, &rType);
-		bufcatcstr(str, " * restrict gbInIm, ");
+		bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+		bufwrite(str, (rType).buf, (rType).len);
+		bufprintf(str, "%s", (" * restrict gbInRe, ") ? (" * restrict gbInRe, ") : "");
+		bufprintf(str, "%s", ("__global const ") ? ("__global const ") : "");
+		bufwrite(str, (rType).buf, (rType).len);
+		bufprintf(str, "%s", (" * restrict gbInIm, ") ? (" * restrict gbInIm, ") : "");
 	}
 
 	if (outIlvd)
 	{
-		bufcatcstr(str, "__global ");
-		bufcatbuf(str, &r2Type);
-		bufcatcstr(str, " * restrict gbOut");
+		bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+		bufwrite(str, (r2Type).buf, (r2Type).len);
+		bufprintf(str, "%s", (" * restrict gbOut") ? (" * restrict gbOut") : "");
 	}
 	else
 	{
-		bufcatcstr(str, "__global ");
-		bufcatbuf(str, &rType);
-		bufcatcstr(str, " * restrict gbOutRe, ");
-		bufcatcstr(str, "__global ");
-		bufcatbuf(str, &rType);
-		bufcatcstr(str, " * restrict gbOutIm");
+		bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+		bufwrite(str, (rType).buf, (rType).len);
+		bufprintf(str, "%s", (" * restrict gbOutRe, ") ? (" * restrict gbOutRe, ") : "");
+		bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+		bufwrite(str, (rType).buf, (rType).len);
+		bufprintf(str, "%s", (" * restrict gbOutIm") ? (" * restrict gbOutIm") : "");
 	}
 
 	if (kernel->params.fft_hasPreCallback && kernel->h2c)
 	{
 		assert(!kernel->params.fft_hasPostCallback);
 
-		bufcatcstr(str, ", __global void* pre_userdata");
+		bufprintf(str, "%s", (", __global void* pre_userdata") ? (", __global void* pre_userdata") : "");
 		if (kernel->params.fft_preCallback.localMemSize > 0)
-			bufcatcstr(str, ", __local void* localmem");
+			bufprintf(str, "%s", (", __local void* localmem") ? (", __local void* localmem") : "");
 	}
 
 	if (kernel->params.fft_hasPostCallback)
 	{
 		assert(!kernel->params.fft_hasPreCallback);
 
-		bufcatcstr(str, ", __global void* post_userdata");
+		bufprintf(str, "%s", (", __global void* post_userdata") ? (", __global void* post_userdata") : "");
 		if (kernel->params.fft_postCallback.localMemSize > 0)
-			bufcatcstr(str, ", __local void* localmem");
+			bufprintf(str, "%s", (", __local void* localmem") ? (", __local void* localmem") : "");
 	}
 
-	bufcatcstr(str, ")\n");
+	bufprintf(str, "%s", (")\n") ? (")\n") : "");
 
-	bufcatcstr(str, "{\n");
+	bufprintf(str, "%s", ("{\n") ? ("{\n") : "");
 
 	// Initialize
 	if (kernel->general)
 	{
-		bufcatcstr(str, "\tuint me = get_local_id(0);\n\t");
-		bufcatcstr(str, "uint batch = get_group_id(0);\n\t");
+		bufprintf(str, "%s", ("\tuint me = get_local_id(0);\n\t") ? ("\tuint me = get_local_id(0);\n\t") : "");
+		bufprintf(str, "%s", ("uint batch = get_group_id(0);\n\t") ? ("uint batch = get_group_id(0);\n\t") : "");
 	}
 	else
 	{
-		bufcatcstr(str, "\tuint me = get_global_id(0);\n\t");
+		bufprintf(str, "%s", ("\tuint me = get_global_id(0);\n\t") ? ("\tuint me = get_global_id(0);\n\t") : "");
 	}
 
 	// Declare memory pointers
-	bufcatcstr(str, "\n\t");
-	bufcatcstr(str, "uint iOffset;\n\t");
-	bufcatcstr(str, "uint oOffset;\n\t");
+	bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
+	bufprintf(str, "%s", ("uint iOffset;\n\t") ? ("uint iOffset;\n\t") : "");
+	bufprintf(str, "%s", ("uint oOffset;\n\t") ? ("uint oOffset;\n\t") : "");
 
 	if (!(kernel->params.fft_hasPreCallback && kernel->h2c))
 	{
 		// input
 		if (inIlvd)
 		{
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &r2Type);
-			bufcatcstr(str, " *lwbIn;\n\t");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (r2Type).buf, (r2Type).len);
+			bufprintf(str, "%s", (" *lwbIn;\n\t") ? (" *lwbIn;\n\t") : "");
 		}
 		else
 		{
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &rType);
-			bufcatcstr(str, " *lwbInRe;\n\t");
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &rType);
-			bufcatcstr(str, " *lwbInIm;\n\t");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (rType).buf, (rType).len);
+			bufprintf(str, "%s", (" *lwbInRe;\n\t") ? (" *lwbInRe;\n\t") : "");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (rType).buf, (rType).len);
+			bufprintf(str, "%s", (" *lwbInIm;\n\t") ? (" *lwbInIm;\n\t") : "");
 		}
 	}
 
@@ -21159,119 +21454,124 @@ static void CopyKernelGenerateKernel(const CopyKernel *kernel, buffer_t *str)
 	{
 		if (!kernel->params.fft_hasPostCallback)
 		{
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &r2Type);
-			bufcatcstr(str, " *lwbOut;\n");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (r2Type).buf, (r2Type).len);
+			bufprintf(str, "%s", (" *lwbOut;\n") ? (" *lwbOut;\n") : "");
 		}
 		if (kernel->h2c)
 		{
-			bufcatcstr(str, "\t");
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &r2Type);
-			bufcatcstr(str, " *lwbOut2;\n\n");
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (r2Type).buf, (r2Type).len);
+			bufprintf(str, "%s", (" *lwbOut2;\n\n") ? (" *lwbOut2;\n\n") : "");
 		}
 	}
 	else
 	{
 		if (!kernel->params.fft_hasPostCallback)
 		{
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &rType);
-			bufcatcstr(str, " *lwbOutRe;\n\t");
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &rType);
-			bufcatcstr(str, " *lwbOutIm;\n");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (rType).buf, (rType).len);
+			bufprintf(str, "%s", (" *lwbOutRe;\n\t") ? (" *lwbOutRe;\n\t") : "");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (rType).buf, (rType).len);
+			bufprintf(str, "%s", (" *lwbOutIm;\n") ? (" *lwbOutIm;\n") : "");
 		}
 		if (kernel->h2c)
 		{
-			bufcatcstr(str, "\t");
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &rType);
-			bufcatcstr(str, " *lwbOutRe2;\n\t");
-			bufcatcstr(str, "__global ");
-			bufcatbuf(str, &rType);
-			bufcatcstr(str, " *lwbOutIm2;\n\n");
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (rType).buf, (rType).len);
+			bufprintf(str, "%s", (" *lwbOutRe2;\n\t") ? (" *lwbOutRe2;\n\t") : "");
+			bufprintf(str, "%s", ("__global ") ? ("__global ") : "");
+			bufwrite(str, (rType).buf, (rType).len);
+			bufprintf(str, "%s", (" *lwbOutIm2;\n\n") ? (" *lwbOutIm2;\n\n") : "");
 		}
 	}
 
 	// Setup registers
-	bufcatcstr(str, "\t");
-	BUFCAT_BUFFER_VALUE(str, RegBaseType(kernel->pr, 2));
-	bufcatcstr(str, " R;\n\n");
+	bufprintf(str, "%s", ("\t") ? ("\t") : "");
+	bufprintf(str, "%s", (((kernel->pr) == P_SINGLE) ? (((2) == 1) ? "float" : (((2) == 2) ? "float2" : (((2) == 4) ? "float4" : ""))) : (((kernel->pr) == P_DOUBLE) ? (((2) == 1) ? "double" : (((2) == 2) ? "double2" : (((2) == 4) ? "double4" : ""))) : "")));
+	bufprintf(str, "%s", (" R;\n\n") ? (" R;\n\n") : "");
 
 	size_t NtRounded64 = DivRoundingUpSizeT(kernel->Nt, 64) * 64;
 
 	if (!kernel->general)
 	{
 		// Setup variables
-		bufcatcstr(str, "\tuint batch, meg, mel, mel2;\n\t");
-		bufcatcstr(str, "batch = me/");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(NtRounded64));
-		bufcatcstr(str, ";\n\t");
-		bufcatcstr(str, "meg = me%");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(NtRounded64));
-		bufcatcstr(str, ";\n\t");
-		bufcatcstr(str, "mel = me%");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->Nt));
-		bufcatcstr(str, ";\n\t");
-		bufcatcstr(str, "mel2 = (");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->N));
-		bufcatcstr(str, " - mel)%");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->N));
-		bufcatcstr(str, ";\n\n");
+		bufprintf(str, "%s", ("\tuint batch, meg, mel, mel2;\n\t") ? ("\tuint batch, meg, mel, mel2;\n\t") : "");
+		bufprintf(str, "%s", ("batch = me/") ? ("batch = me/") : "");
+		bufprintf(str, "%zu", NtRounded64);
+		bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
+		bufprintf(str, "%s", ("meg = me%") ? ("meg = me%") : "");
+		bufprintf(str, "%zu", NtRounded64);
+		bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
+		bufprintf(str, "%s", ("mel = me%") ? ("mel = me%") : "");
+		bufprintf(str, "%zu", kernel->Nt);
+		bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
+		bufprintf(str, "%s", ("mel2 = (") ? ("mel2 = (") : "");
+		bufprintf(str, "%zu", kernel->N);
+		bufprintf(str, "%s", (" - mel)%") ? (" - mel)%") : "");
+		bufprintf(str, "%zu", kernel->N);
+		bufprintf(str, "%s", (";\n\n") ? (";\n\n") : "");
 	}
 
 	// Setup memory pointers
-	BUFCAT_BUFFER_VALUE(str, CopyKernelOffsetCalc(kernel, "iOffset", true));
-	BUFCAT_BUFFER_VALUE(str, CopyKernelOffsetCalc(kernel, "oOffset", false));
+	// Append generated copy offsets and release the temporary buffer.
+	buffer_t copy_offset_calc = CopyKernelOffsetCalc(kernel, "iOffset", true);
+	bufwrite(str, copy_offset_calc.buf, copy_offset_calc.len);
+	free_buf(&copy_offset_calc);
+	copy_offset_calc = CopyKernelOffsetCalc(kernel, "oOffset", false);
+	bufwrite(str, copy_offset_calc.buf, copy_offset_calc.len);
+	free_buf(&copy_offset_calc);
 
 	// offset strings
-	buffer_t inF = buffer_empty();
-	buffer_t inF2 = buffer_empty();
-	buffer_t outF = buffer_empty();
-	buffer_t outF2 = buffer_empty();
+	buffer_t inF = (buffer_t){0};
+	buffer_t inF2 = (buffer_t){0};
+	buffer_t outF = (buffer_t){0};
+	buffer_t outF2 = (buffer_t){0};
 	if (kernel->general)
 	{
-		bufsetcstr(&inF, "");
-		bufsetcstr(&inF2, "");
-		bufsetcstr(&outF, "");
-		bufsetcstr(&outF2, "");
+		(clear_buf(&inF), bufprintf(&inF, "%s", ("") ? ("") : ""));
+		(clear_buf(&inF2), bufprintf(&inF2, "%s", ("") ? ("") : ""));
+		(clear_buf(&outF), bufprintf(&outF, "%s", ("") ? ("") : ""));
+		(clear_buf(&outF2), bufprintf(&outF2, "%s", ("") ? ("") : ""));
 	}
 	else
 	{
-		bufsetcstr(&inF, " + (mel*");
-		BUFCAT_BUFFER_VALUE(&inF, SztToStr(kernel->params.fft_inStride[0]));
-		bufcatcstr(&inF, ")");
-		bufsetcstr(&inF2, " + (mel2*");
-		BUFCAT_BUFFER_VALUE(&inF2, SztToStr(kernel->params.fft_inStride[0]));
-		bufcatcstr(&inF2, ")");
-		bufsetcstr(&outF, " + (mel*");
-		BUFCAT_BUFFER_VALUE(&outF, SztToStr(kernel->params.fft_outStride[0]));
-		bufcatcstr(&outF, ")");
-		bufsetcstr(&outF2, " + (mel2*");
-		BUFCAT_BUFFER_VALUE(&outF2, SztToStr(kernel->params.fft_outStride[0]));
-		bufcatcstr(&outF2, ")");
+		(clear_buf(&inF), bufprintf(&inF, "%s", (" + (mel*") ? (" + (mel*") : ""));
+		bufprintf(&inF, "%zu", kernel->params.fft_inStride[0]);
+		bufprintf(&inF, "%s", (")") ? (")") : "");
+		(clear_buf(&inF2), bufprintf(&inF2, "%s", (" + (mel2*") ? (" + (mel2*") : ""));
+		bufprintf(&inF2, "%zu", kernel->params.fft_inStride[0]);
+		bufprintf(&inF2, "%s", (")") ? (")") : "");
+		(clear_buf(&outF), bufprintf(&outF, "%s", (" + (mel*") ? (" + (mel*") : ""));
+		bufprintf(&outF, "%zu", kernel->params.fft_outStride[0]);
+		bufprintf(&outF, "%s", (")") ? (")") : "");
+		(clear_buf(&outF2), bufprintf(&outF2, "%s", (" + (mel2*") ? (" + (mel2*") : ""));
+		bufprintf(&outF2, "%zu", kernel->params.fft_outStride[0]);
+		bufprintf(&outF2, "%s", (")") ? (")") : "");
 	}
 
-	bufcatcstr(str, "\n\t");
+	bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
 
 	if (!(kernel->params.fft_hasPreCallback && kernel->h2c))
 	{
 		// inputs
 		if (inIlvd)
 		{
-			bufcatcstr(str, "lwbIn = gbIn + iOffset");
-			bufcatbuf(str, &inF);
-			bufcatcstr(str, ";\n\t");
+			bufprintf(str, "%s", ("lwbIn = gbIn + iOffset") ? ("lwbIn = gbIn + iOffset") : "");
+			bufwrite(str, (inF).buf, (inF).len);
+			bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
 		}
 		else
 		{
-			bufcatcstr(str, "lwbInRe = gbInRe + iOffset");
-			bufcatbuf(str, &inF);
-			bufcatcstr(str, ";\n\t");
-			bufcatcstr(str, "lwbInIm = gbInIm + iOffset");
-			bufcatbuf(str, &inF);
-			bufcatcstr(str, ";\n\t");
+			bufprintf(str, "%s", ("lwbInRe = gbInRe + iOffset") ? ("lwbInRe = gbInRe + iOffset") : "");
+			bufwrite(str, (inF).buf, (inF).len);
+			bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
+			bufprintf(str, "%s", ("lwbInIm = gbInIm + iOffset") ? ("lwbInIm = gbInIm + iOffset") : "");
+			bufwrite(str, (inF).buf, (inF).len);
+			bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
 		}
 	}
 
@@ -21280,121 +21580,121 @@ static void CopyKernelGenerateKernel(const CopyKernel *kernel, buffer_t *str)
 	{
 		if (!kernel->params.fft_hasPostCallback)
 		{
-			bufcatcstr(str, "lwbOut = gbOut + oOffset");
-			bufcatbuf(str, &outF);
-			bufcatcstr(str, ";\n");
+			bufprintf(str, "%s", ("lwbOut = gbOut + oOffset") ? ("lwbOut = gbOut + oOffset") : "");
+			bufwrite(str, (outF).buf, (outF).len);
+			bufprintf(str, "%s", (";\n") ? (";\n") : "");
 		}
 		if (kernel->h2c)
 		{
-			bufcatcstr(str, "\t");
-			bufcatcstr(str, "lwbOut2 = gbOut + oOffset");
-			bufcatbuf(str, &outF2);
-			bufcatcstr(str, ";\n");
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
+			bufprintf(str, "%s", ("lwbOut2 = gbOut + oOffset") ? ("lwbOut2 = gbOut + oOffset") : "");
+			bufwrite(str, (outF2).buf, (outF2).len);
+			bufprintf(str, "%s", (";\n") ? (";\n") : "");
 		}
 	}
 	else
 	{
 		if (!kernel->params.fft_hasPostCallback)
 		{
-			bufcatcstr(str, "lwbOutRe = gbOutRe + oOffset");
-			bufcatbuf(str, &outF);
-			bufcatcstr(str, ";\n\t");
-			bufcatcstr(str, "lwbOutIm = gbOutIm + oOffset");
-			bufcatbuf(str, &outF);
-			bufcatcstr(str, ";\n");
+			bufprintf(str, "%s", ("lwbOutRe = gbOutRe + oOffset") ? ("lwbOutRe = gbOutRe + oOffset") : "");
+			bufwrite(str, (outF).buf, (outF).len);
+			bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
+			bufprintf(str, "%s", ("lwbOutIm = gbOutIm + oOffset") ? ("lwbOutIm = gbOutIm + oOffset") : "");
+			bufwrite(str, (outF).buf, (outF).len);
+			bufprintf(str, "%s", (";\n") ? (";\n") : "");
 		}
 		if (kernel->h2c)
 		{
-			bufcatcstr(str, "\t");
-			bufcatcstr(str, "lwbOutRe2 = gbOutRe + oOffset");
-			bufcatbuf(str, &outF2);
-			bufcatcstr(str, ";\n\t");
-			bufcatcstr(str, "lwbOutIm2 = gbOutIm + oOffset");
-			bufcatbuf(str, &outF2);
-			bufcatcstr(str, ";\n");
+			bufprintf(str, "%s", ("\t") ? ("\t") : "");
+			bufprintf(str, "%s", ("lwbOutRe2 = gbOutRe + oOffset") ? ("lwbOutRe2 = gbOutRe + oOffset") : "");
+			bufwrite(str, (outF2).buf, (outF2).len);
+			bufprintf(str, "%s", (";\n\t") ? (";\n\t") : "");
+			bufprintf(str, "%s", ("lwbOutIm2 = gbOutIm + oOffset") ? ("lwbOutIm2 = gbOutIm + oOffset") : "");
+			bufwrite(str, (outF2).buf, (outF2).len);
+			bufprintf(str, "%s", (";\n") ? (";\n") : "");
 		}
 	}
 
-	bufcatcstr(str, "\n\t");
+	bufprintf(str, "%s", ("\n\t") ? ("\n\t") : "");
 
 	// Do the copy
 	if (kernel->general)
 	{
-		bufcatcstr(str, "for(uint t=0; t<");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->N / 64));
-		bufcatcstr(str, "; t++)\n\t{\n\t\t");
+		bufprintf(str, "%s", ("for(uint t=0; t<") ? ("for(uint t=0; t<") : "");
+		bufprintf(str, "%zu", kernel->N / 64);
+		bufprintf(str, "%s", ("; t++)\n\t{\n\t\t") ? ("; t++)\n\t{\n\t\t") : "");
 
 		if (inIlvd)
 		{
-			bufcatcstr(str, "R = lwbIn[me + t*64];\n\t\t");
+			bufprintf(str, "%s", ("R = lwbIn[me + t*64];\n\t\t") ? ("R = lwbIn[me + t*64];\n\t\t") : "");
 		}
 		else
 		{
-			bufcatcstr(str, "R.x = lwbInRe[me + t*64];\n\t\t");
-			bufcatcstr(str, "R.y = lwbInIm[me + t*64];\n\t\t");
+			bufprintf(str, "%s", ("R.x = lwbInRe[me + t*64];\n\t\t") ? ("R.x = lwbInRe[me + t*64];\n\t\t") : "");
+			bufprintf(str, "%s", ("R.y = lwbInIm[me + t*64];\n\t\t") ? ("R.y = lwbInIm[me + t*64];\n\t\t") : "");
 		}
 
 		if (outIlvd)
 		{
-			bufcatcstr(str, "lwbOut[me + t*64] = R;\n");
+			bufprintf(str, "%s", ("lwbOut[me + t*64] = R;\n") ? ("lwbOut[me + t*64] = R;\n") : "");
 		}
 		else
 		{
-			bufcatcstr(str, "lwbOutRe[me + t*64] = R.x;\n\t\t");
-			bufcatcstr(str, "lwbOutIm[me + t*64] = R.y;\n");
+			bufprintf(str, "%s", ("lwbOutRe[me + t*64] = R.x;\n\t\t") ? ("lwbOutRe[me + t*64] = R.x;\n\t\t") : "");
+			bufprintf(str, "%s", ("lwbOutIm[me + t*64] = R.y;\n") ? ("lwbOutIm[me + t*64] = R.y;\n") : "");
 		}
 
-		bufcatcstr(str, "\t}\n\n");
+		bufprintf(str, "%s", ("\t}\n\n") ? ("\t}\n\n") : "");
 	}
 	else
 	{
-		bufcatcstr(str, "if(meg < ");
-		BUFCAT_BUFFER_VALUE(str, SztToStr(kernel->Nt));
-		bufcatcstr(str, ")\n\t{\n\t");
+		bufprintf(str, "%s", ("if(meg < ") ? ("if(meg < ") : "");
+		bufprintf(str, "%zu", kernel->Nt);
+		bufprintf(str, "%s", (")\n\t{\n\t") ? (")\n\t{\n\t") : "");
 		if (kernel->c2h)
 		{
 			if (inIlvd)
 			{
-				bufcatcstr(str, "R = lwbIn[0];\n\t");
+				bufprintf(str, "%s", ("R = lwbIn[0];\n\t") ? ("R = lwbIn[0];\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "R.x = lwbInRe[0];\n\t");
-				bufcatcstr(str, "R.y = lwbInIm[0];\n\t");
+				bufprintf(str, "%s", ("R.x = lwbInRe[0];\n\t") ? ("R.x = lwbInRe[0];\n\t") : "");
+				bufprintf(str, "%s", ("R.y = lwbInIm[0];\n\t") ? ("R.y = lwbInIm[0];\n\t") : "");
 			}
 
 			if (outIlvd)
 			{
 				if (kernel->params.fft_hasPostCallback)
 				{
-					bufcatcstr(str, kernel->params.fft_postCallback.funcname);
-					bufcatcstr(str, "(gbOut, oOffset");
-					bufcatbuf(str, &outF);
-					bufcatcstr(str, ", post_userdata, R");
+					bufprintf(str, "%s", (kernel->params.fft_postCallback.funcname) ? (kernel->params.fft_postCallback.funcname) : "");
+					bufprintf(str, "%s", ("(gbOut, oOffset") ? ("(gbOut, oOffset") : "");
+					bufwrite(str, (outF).buf, (outF).len);
+					bufprintf(str, "%s", (", post_userdata, R") ? (", post_userdata, R") : "");
 					if (kernel->params.fft_postCallback.localMemSize > 0)
-						bufcatcstr(str, ", localmem");
-					bufcatcstr(str, ");\n\n");
+						bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
+					bufprintf(str, "%s", (");\n\n") ? (");\n\n") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "lwbOut[0] = R;\n\n");
+					bufprintf(str, "%s", ("lwbOut[0] = R;\n\n") ? ("lwbOut[0] = R;\n\n") : "");
 				}
 			}
 			else if (kernel->params.fft_hasPostCallback)
 			{
-				bufcatcstr(str, kernel->params.fft_postCallback.funcname);
-				bufcatcstr(str, "(gbOutRe, gbOutIm, oOffset");
-				bufcatbuf(str, &outF);
-				bufcatcstr(str, ", post_userdata, R.x, R.y");
+				bufprintf(str, "%s", (kernel->params.fft_postCallback.funcname) ? (kernel->params.fft_postCallback.funcname) : "");
+				bufprintf(str, "%s", ("(gbOutRe, gbOutIm, oOffset") ? ("(gbOutRe, gbOutIm, oOffset") : "");
+				bufwrite(str, (outF).buf, (outF).len);
+				bufprintf(str, "%s", (", post_userdata, R.x, R.y") ? (", post_userdata, R.x, R.y") : "");
 
 				if (kernel->params.fft_postCallback.localMemSize > 0)
-					bufcatcstr(str, ", localmem");
-				bufcatcstr(str, ");\n\t");
+					bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
+				bufprintf(str, "%s", (");\n\t") ? (");\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "lwbOutRe[0] = R.x;\n\t");
-				bufcatcstr(str, "lwbOutIm[0] = R.y;\n\t");
+				bufprintf(str, "%s", ("lwbOutRe[0] = R.x;\n\t") ? ("lwbOutRe[0] = R.x;\n\t") : "");
+				bufprintf(str, "%s", ("lwbOutIm[0] = R.y;\n\t") ? ("lwbOutIm[0] = R.y;\n\t") : "");
 			}
 		}
 		else
@@ -21403,53 +21703,53 @@ static void CopyKernelGenerateKernel(const CopyKernel *kernel, buffer_t *str)
 			{
 				if (inIlvd)
 				{
-					bufcatcstr(str, "R = ");
-					bufcatcstr(str, kernel->params.fft_preCallback.funcname);
-					bufcatcstr(str, "( gbIn, (iOffset");
-					bufcatbuf(str, &inF);
-					bufcatcstr(str, "), pre_userdata");
+					bufprintf(str, "%s", ("R = ") ? ("R = ") : "");
+					bufprintf(str, "%s", (kernel->params.fft_preCallback.funcname) ? (kernel->params.fft_preCallback.funcname) : "");
+					bufprintf(str, "%s", ("( gbIn, (iOffset") ? ("( gbIn, (iOffset") : "");
+					bufwrite(str, (inF).buf, (inF).len);
+					bufprintf(str, "%s", ("), pre_userdata") ? ("), pre_userdata") : "");
 				}
 				else
 				{
-					bufcatcstr(str, "R = ");
-					bufcatcstr(str, kernel->params.fft_preCallback.funcname);
-					bufcatcstr(str, "( gbInRe, gbInIm, (iOffset");
-					bufcatbuf(str, &inF);
-					bufcatcstr(str, "), pre_userdata");
+					bufprintf(str, "%s", ("R = ") ? ("R = ") : "");
+					bufprintf(str, "%s", (kernel->params.fft_preCallback.funcname) ? (kernel->params.fft_preCallback.funcname) : "");
+					bufprintf(str, "%s", ("( gbInRe, gbInIm, (iOffset") ? ("( gbInRe, gbInIm, (iOffset") : "");
+					bufwrite(str, (inF).buf, (inF).len);
+					bufprintf(str, "%s", ("), pre_userdata") ? ("), pre_userdata") : "");
 				}
 				if (kernel->params.fft_preCallback.localMemSize > 0)
-					bufcatcstr(str, ", localmem");
-				bufcatcstr(str, ");\n\t\t");
+					bufprintf(str, "%s", (", localmem") ? (", localmem") : "");
+				bufprintf(str, "%s", (");\n\t\t") ? (");\n\t\t") : "");
 			}
 			else if (inIlvd)
 			{
-				bufcatcstr(str, "R = lwbIn[0];\n\t");
+				bufprintf(str, "%s", ("R = lwbIn[0];\n\t") ? ("R = lwbIn[0];\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "R.x = lwbInRe[0];\n\t");
-				bufcatcstr(str, "R.y = lwbInIm[0];\n\t");
+				bufprintf(str, "%s", ("R.x = lwbInRe[0];\n\t") ? ("R.x = lwbInRe[0];\n\t") : "");
+				bufprintf(str, "%s", ("R.y = lwbInIm[0];\n\t") ? ("R.y = lwbInIm[0];\n\t") : "");
 			}
 
 			if (outIlvd)
 			{
-				bufcatcstr(str, "lwbOut[0] = R;\n\t");
-				bufcatcstr(str, "R.y = -R.y;\n\t");
-				bufcatcstr(str, "lwbOut2[0] = R;\n\t");
+				bufprintf(str, "%s", ("lwbOut[0] = R;\n\t") ? ("lwbOut[0] = R;\n\t") : "");
+				bufprintf(str, "%s", ("R.y = -R.y;\n\t") ? ("R.y = -R.y;\n\t") : "");
+				bufprintf(str, "%s", ("lwbOut2[0] = R;\n\t") ? ("lwbOut2[0] = R;\n\t") : "");
 			}
 			else
 			{
-				bufcatcstr(str, "lwbOutRe[0] = R.x;\n\t");
-				bufcatcstr(str, "lwbOutIm[0] = R.y;\n\t");
-				bufcatcstr(str, "R.y = -R.y;\n\t");
-				bufcatcstr(str, "lwbOutRe2[0] = R.x;\n\t");
-				bufcatcstr(str, "lwbOutIm2[0] = R.y;\n\t");
+				bufprintf(str, "%s", ("lwbOutRe[0] = R.x;\n\t") ? ("lwbOutRe[0] = R.x;\n\t") : "");
+				bufprintf(str, "%s", ("lwbOutIm[0] = R.y;\n\t") ? ("lwbOutIm[0] = R.y;\n\t") : "");
+				bufprintf(str, "%s", ("R.y = -R.y;\n\t") ? ("R.y = -R.y;\n\t") : "");
+				bufprintf(str, "%s", ("lwbOutRe2[0] = R.x;\n\t") ? ("lwbOutRe2[0] = R.x;\n\t") : "");
+				bufprintf(str, "%s", ("lwbOutIm2[0] = R.y;\n\t") ? ("lwbOutIm2[0] = R.y;\n\t") : "");
 			}
 		}
-		bufcatcstr(str, "}\n\n");
+		bufprintf(str, "%s", ("}\n\n") ? ("}\n\n") : "");
 	}
 
-	bufcatcstr(str, "}\n");
+	bufprintf(str, "%s", ("}\n") ? ("}\n") : "");
 }
 
 static clfftStatus FFTGeneratedCopyActionInitParams(FFTGeneratedCopyAction *action)
@@ -21567,7 +21867,7 @@ static clfftStatus FFTGeneratedCopyActionGenerateKernel(FFTGeneratedCopyAction *
 
 	bool general = !(h2c || c2h);
 
-	buffer_t programCode = buffer_empty();
+	buffer_t programCode = (buffer_t){0};
 	Precision pr = (action->signature.data.fft_precision == CLFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
 	switch (pr)
 	{
@@ -22178,19 +22478,19 @@ static clfftStatus FFTActionWriteKernel(clfftPlanHandle plHandle, clfftGenerator
 	buffer_t kernelPath = getKernelName(gen, plHandle, true);
 
 	// Open the generated kernel file with C stdio.
-	FILE *kernelFile = fopen(bufcstr(&kernelPath), "wb");
+	FILE *kernelFile = fopen(((kernelPath).buf ? (const char *) (kernelPath).buf : ""), "wb");
 	if (!kernelFile)
 	{
 		// Report kernel dump creation failures with C stdio.
-		fprintf(stderr, "Failed to open kernel file for writing: %s\n", bufcstr(&kernelPath));
+		fprintf(stderr, "Failed to open kernel file for writing: %s\n", ((kernelPath).buf ? (const char *) (kernelPath).buf : ""));
 		return CLFFT_FILE_CREATE_FAILURE;
 	}
 
-	buffer_t kernel = buffer_empty();
+	buffer_t kernel = (buffer_t){0};
 	OPENCL_V(FFTRepoGetProgramCode(fftRepo, gen, data, &kernel, device, context), _T( "FFTRepoGetProgramCode failed." ));
 
 	// Write the generated kernel source with a trailing newline.
-	if (fwrite(bufcstr(&kernel), 1, kernel.len, kernelFile) != kernel.len || fwrite("\n", 1, 1, kernelFile) != 1)
+	if (fwrite(((kernel).buf ? (const char *) (kernel).buf : ""), 1, kernel.len, kernelFile) != kernel.len || fwrite("\n", 1, 1, kernelFile) != 1)
 	{
 		fclose(kernelFile);
 		return CLFFT_FILE_CREATE_FAILURE;
@@ -22233,11 +22533,11 @@ static clfftStatus FFTActionCompileKernels(FFTAction *action, const cl_command_q
 				_T( "writeKernel failed." ));
 		}
 
-		buffer_t programCode = buffer_empty();
+		buffer_t programCode = (buffer_t){0};
 		OPENCL_V(FFTRepoGetProgramCode(fftRepo, FFTActionGetGenerator(action), FFTActionGetSignatureData(action), &programCode, q_device, fftPlan->context),
 			_T( "FFTRepoGetProgramCode failed." ));
 
-		const char *source = bufcstr(&programCode);
+		const char *source = ((programCode).buf ? (const char *) (programCode).buf : "");
 		program = clCreateProgramWithSource(fftPlan->context, 1, &source, NULL, &status);
 		OPENCL_V(status, _T( "clCreateProgramWithSource failed." ));
 
@@ -22296,12 +22596,12 @@ static clfftStatus FFTActionCompileKernels(FFTAction *action, const cl_command_q
 			lockRAII *kernelLock;
 			if (FFTRepoGetclKernel(fftRepo, program, CLFFT_FORWARD, &kernel, &kernelLock) == CLFFT_INVALID_KERNEL)
 			{
-				buffer_t entryPoint = buffer_empty();
+				buffer_t entryPoint = (buffer_t){0};
 				OPENCL_V(FFTRepoGetProgramEntryPoint(fftRepo, FFTActionGetGenerator(action), FFTActionGetSignatureData(action), CLFFT_FORWARD, &entryPoint,
 						 q_device, fftPlan->context),
 					_T( "FFTRepoGetProgramEntryPoint failed." ));
 
-				kernel = clCreateKernel(program, bufcstr(&entryPoint), &status);
+				kernel = clCreateKernel(program, ((entryPoint).buf ? (const char *) (entryPoint).buf : ""), &status);
 				OPENCL_V(status, _T( "clCreateKernel failed" ));
 
 				FFTRepoSetclKernel(fftRepo, program, CLFFT_FORWARD, kernel);
@@ -22313,12 +22613,12 @@ static clfftStatus FFTActionCompileKernels(FFTAction *action, const cl_command_q
 			lockRAII *kernelLock;
 			if (FFTRepoGetclKernel(fftRepo, program, CLFFT_BACKWARD, &kernel, &kernelLock) == CLFFT_INVALID_KERNEL)
 			{
-				buffer_t entryPoint = buffer_empty();
+				buffer_t entryPoint = (buffer_t){0};
 				OPENCL_V(FFTRepoGetProgramEntryPoint(fftRepo, FFTActionGetGenerator(action), FFTActionGetSignatureData(action), CLFFT_BACKWARD, &entryPoint,
 						 q_device, fftPlan->context),
 					_T( "FFTRepoGetProgramEntryPoint failed." ));
 
-				kernel = clCreateKernel(program, bufcstr(&entryPoint), &status);
+				kernel = clCreateKernel(program, ((entryPoint).buf ? (const char *) (entryPoint).buf : ""), &status);
 				OPENCL_V(status, _T( "clCreateKernel failed" ));
 
 				FFTRepoSetclKernel(fftRepo, program, CLFFT_BACKWARD, kernel);
@@ -22508,9 +22808,9 @@ static clfftStatus checkDevExt(const char *ext, cl_device_id device)
 		"Getting CL_DEVICE_EXTENSIONS Platform Info string ( "
 		"clGetDeviceInfo() )");
 
-	buffer_t strDeviceExt = buffer_from_cstr(&szDeviceExt.buf[0]);
+	buffer_t strDeviceExt = buf_string_copy(&szDeviceExt.buf[0]);
 
-	if (buffindc(&strDeviceExt, ext, 0) == BUFFER_NPOS)
+	if (strstr((strDeviceExt.buf ? (const char *) strDeviceExt.buf : ""), ext) == NULL)
 		return CLFFT_DEVICE_NO_DOUBLE;
 
 	return CLFFT_SUCCESS;
@@ -22611,7 +22911,7 @@ static clfftStatus clfftCreateDefaultPlanInternal(clfftPlanHandle *plHandle, cl_
 	//	Need to devise a way to generate better names
 	buffer_stream_t tstream;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&tstream);
+	(memset(&tstream, 0, sizeof(*(&tstream))), (&tstream)->precision_value = 6);
 	bufprintf(&tstream.text, "plan_%llu", (unsigned long long) (*plHandle));
 
 	lockRAII *planLock = NULL;
@@ -22687,26 +22987,26 @@ clfftStatus clfftCreateDefaultPlan(clfftPlanHandle *plHandle, cl_context context
 static buffer_t getKernelName(const clfftGenerators gen, const clfftPlanHandle plHandle, bool withPlHandle)
 {
 	//	Logic to define a sensible filename
-	const buffer_t kernelPrefix = buffer_from_cstr("clfft.kernel.");
-	buffer_t generatorName = buffer_empty();
+	const buffer_t kernelPrefix = buf_string_copy("clfft.kernel.");
+	buffer_t generatorName = (buffer_t){0};
 	buffer_stream_t kernelPath;
 	// Initialize stream formatting state explicitly.
-	bufstream_init(&kernelPath);
+	(memset(&kernelPath, 0, sizeof(*(&kernelPath))), (&kernelPath)->precision_value = 6);
 	switch (gen)
 	{
-		case Stockham: bufsetcstr(&generatorName, "Stockham"); break;
-		case Transpose_GCN: bufsetcstr(&generatorName, "Transpose"); break;
-		case Transpose_SQUARE: bufsetcstr(&generatorName, "Transpose"); break;
-		case Transpose_NONSQUARE: bufsetcstr(&generatorName, "TransposeNonSquare"); break;
-		case Copy: bufsetcstr(&generatorName, "Copy"); break;
+		case Stockham: (clear_buf(&generatorName), bufprintf(&generatorName, "%s", ("Stockham") ? ("Stockham") : "")); break;
+		case Transpose_GCN: (clear_buf(&generatorName), bufprintf(&generatorName, "%s", ("Transpose") ? ("Transpose") : "")); break;
+		case Transpose_SQUARE: (clear_buf(&generatorName), bufprintf(&generatorName, "%s", ("Transpose") ? ("Transpose") : "")); break;
+		case Transpose_NONSQUARE: (clear_buf(&generatorName), bufprintf(&generatorName, "%s", ("TransposeNonSquare") ? ("TransposeNonSquare") : "")); break;
+		case Copy: (clear_buf(&generatorName), bufprintf(&generatorName, "%s", ("Copy") ? ("Copy") : "")); break;
 	}
 
-	bufprintf(&kernelPath.text, "%s%s", bufcstr(&kernelPrefix), bufcstr(&generatorName));
+	bufprintf(&kernelPath.text, "%s%s", ((kernelPrefix).buf ? (const char *) (kernelPrefix).buf : ""), ((generatorName).buf ? (const char *) (generatorName).buf : ""));
 
 	if (withPlHandle)
-		bufstream_cat_size(&kernelPath, plHandle);
+		bufprintf(&(&kernelPath)->text, "%zu", plHandle);
 
-	bufstream_cat_cstr(&kernelPath, ".cl");
+	bufprintf(&(&kernelPath)->text, "%s", (".cl") ? (".cl") : "");
 
 	return kernelPath.text;
 }
