@@ -82,7 +82,7 @@ miniz:
 
 miniaudio:
 	https://github.com/mackron/miniaudio/blob/dev/miniaudio.h
-	v0.11.9, Apr 20, 2022
+	v0.11.25, Mar 3, 2026
 
 manymouse:
 	https://github.com/icculus/manymouse
