@@ -2,12 +2,6 @@
 #ifdef RL_CLFFT
 
 #include <stdbool.h>
-#ifndef CLFFT_STATIC
-#define CLFFT_STATIC
-#endif
-#ifndef CLFFT_OPENCL_HEADER
-#define CLFFT_OPENCL_HEADER "orig/clew.h"
-#endif
 #include "clFFT-amalgamated.c"
 #undef array_init
 #undef array_size
