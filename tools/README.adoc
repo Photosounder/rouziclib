@@ -29,3 +29,7 @@ void my_fileballz_extraction(char *dir_path)
     fileball_extract_z_mem_to_path(&zball, dir_path);
 }
 ```
+
+=== gen-call-tree.js
+
+This is a vibeslopped script to show how functions call each other. This helps identify functions that aren't called by anything, which is useful when making a cut-down version of a library. Example usage: `tools/gen-call-tree.js rouziclib/libraries/libminiaudio.c`.
