@@ -307,7 +307,6 @@ typedef struct buffer_stream_t
 {
 	buffer_t text;
 	int precision_value;
-	bool scientific_mode;
 } buffer_stream_t;
 
 /* Begin inlined header: src\include\unicode.compatibility.h */
@@ -1726,21 +1725,6 @@ static inline size_t StockhamPrecisionWidth(Precision pr)
 	}
 }
 
-static inline buffer_t ClPragma(Precision pr)
-{
-	switch (pr)
-	{
-		case P_SINGLE: return buf_string_copy("");
-		case P_DOUBLE:
-			return buf_string_copy("\n#ifdef cl_khr_fp64\n"
-						"#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n"
-						"#else\n"
-						"#pragma OPENCL EXTENSION cl_amd_fp64 : enable\n"
-						"#endif\n\n");
-		default: assert(false); return buf_string_copy("");
-	}
-}
-
 // Convert unsigned integers to string
 static inline buffer_t SztToStr(size_t i)
 {
@@ -1748,17 +1732,6 @@ static inline buffer_t SztToStr(size_t i)
 	// Initialize stream formatting state explicitly.
 	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
 	bufprintf(&(&ss)->text, "%zu", i);
-	return ss.text;
-}
-
-static inline buffer_t FloatToStr(double f)
-{
-	buffer_stream_t ss;
-	// Initialize stream formatting state explicitly.
-	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
-	ss.precision_value = 16;
-	(&ss)->scientific_mode = true;
-	bufprintf(&(&ss)->text, (&ss)->scientific_mode ? "%.*e" : "%.*f", (&ss)->precision_value, f);
 	return ss.text;
 }
 
@@ -1876,18 +1849,6 @@ static inline buffer_t ButterflyName(size_t radix, size_t count, bool fwd)
 	return str;
 }
 
-static inline buffer_t PassName(size_t pos, bool fwd)
-{
-	buffer_t str = (buffer_t){0};
-	if (fwd)
-		bufprintf(&str, "%s", ("Fwd") ? ("Fwd") : "");
-	else
-		bufprintf(&str, "%s", ("Inv") ? ("Inv") : "");
-	bufprintf(&str, "%s", ("Pass") ? ("Pass") : "");
-	bufprintf(&str, "%zu", pos);
-	return str;
-}
-
 static inline buffer_t TwTableName(void)
 {
 	return buf_string_copy("twiddles");
@@ -1952,7 +1913,6 @@ static void TwiddleTableLargeGenerateTwiddleTable(TwiddleTableLarge *table, Prec
 	// Initialize stream formatting state explicitly.
 	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
 	ss.precision_value = 34;
-	(&ss)->scientific_mode = true;
 	nt = 0;
 
 	bufprintf(&ss.text, "\n __constant %s %s[%llu][%llu] = {\n", ((regBase2).buf ? (const char *) (regBase2).buf : ""), ((twTableName).buf ? (const char *) (twTableName).buf : ""), (unsigned long long) (table->Y), (unsigned long long) (table->X));
@@ -5623,7 +5583,6 @@ static void TwiddleTableGenerateTwiddleTable(TwiddleTable *table, Precision pr, 
 	// Initialize stream formatting state explicitly.
 	(memset(&ss, 0, sizeof(*(&ss))), (&ss)->precision_value = 6);
 	ss.precision_value = 34;
-	(&ss)->scientific_mode = true;
 	for (size_t i = 0; i < (table->N - 1); i++)
 	{
 		bufprintf(&ss.text, "(%s)(%.*e%s, %.*e%s),\n", ((regBase2).buf ? (const char *) (regBase2).buf : ""), ss.precision_value, table->wc[i], ((sfx).buf ? (const char *) (sfx).buf : ""), ss.precision_value, table->ws[i],
