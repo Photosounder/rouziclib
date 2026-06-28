@@ -34,39 +34,113 @@ void win_reorder_screenshot_pixels(raster_t r)
 #endif
 #endif
 
-raster_t take_desktop_screenshot()
+raster_t *take_desktop_screenshot(int *raster_count)
 {
-	raster_t r={0};
+	raster_t *r=NULL;
+
+	// Initialise the returned count
+	if (raster_count)
+		*raster_count = 0;
+	else
+		return NULL;
 
 #ifdef _WIN32
 #ifdef RL_GDI32
-	// Capture the primary display
-	int nScreenWidth = GetSystemMetrics(0 /*SM_CXSCREEN*/);
-	int nScreenHeight = GetSystemMetrics(1 /*SM_CYSCREEN*/);
-	HWND hDesktopWnd = GetDesktopWindow();
-	HDC hDesktopDC = GetDC(hDesktopWnd);
-	HDC hCaptureDC = CreateCompatibleDC(hDesktopDC);
-	HBITMAP hCaptureBitmap = CreateCompatibleBitmap(hDesktopDC, nScreenWidth, nScreenHeight);
-	SelectObject(hCaptureDC, hCaptureBitmap);
-	BitBlt(hCaptureDC, 0, 0, nScreenWidth, nScreenHeight, hDesktopDC, 0, 0, (DWORD)0x00CC0020 /*SRCCOPY*/ | (DWORD)0x40000000 /*CAPTUREBLT*/);	// this does the capture
+	DISPLAY_DEVICEA dd;
+	DEVMODEA dm;
+	DWORD dev_id;
+	HWND hDesktopWnd=NULL;
+	HDC hDesktopDC=NULL, hCaptureDC=NULL;
+	HBITMAP *hCaptureBitmap=NULL, hBitmap=NULL;
+	HGDIOBJ hPrevBitmap;
+	BITMAPINFO bmi;
+	xyi_t pos;
+	int i, display_count=0, capture_count=0;
 
-	// Convert the bitmap to a raster
-	r = make_raster(NULL, xyi(nScreenWidth, nScreenHeight), XYI0, IMAGE_USE_SRGB);
+	// Count active displays
+	for (dev_id=0; ; dev_id++)
+	{
+		memset(&dd, 0, sizeof(dd));
+		dd.cb = sizeof(dd);
+		if (!EnumDisplayDevicesA(NULL, dev_id, &dd, 0))
+			break;
 
-	BITMAPINFO bmi = {0};
-	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bmi.bmiHeader.biWidth = nScreenWidth;
-	bmi.bmiHeader.biHeight = nScreenHeight;
-	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = 32;
-	bmi.bmiHeader.biCompression = BI_RGB;
-	GetDIBits(hCaptureDC, hCaptureBitmap, 0, nScreenHeight, r.srgb, &bmi, DIB_RGB_COLORS);
+		memset(&dm, 0, sizeof(dm));
+		dm.dmSize = sizeof(dm);
+		if ((dd.StateFlags & DISPLAY_DEVICE_ACTIVE) && !(dd.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER) && EnumDisplaySettingsA(dd.DeviceName, ENUM_CURRENT_SETTINGS, &dm))
+			display_count++;
+	}
 
-	win_reorder_screenshot_pixels(r);
+	// Allocate the capture and raster arrays
+	if (display_count <= 0)
+		goto cleanup;
+	r = calloc(display_count, sizeof(raster_t));
+	hCaptureBitmap = calloc(display_count, sizeof(HBITMAP));
 
-	ReleaseDC(hDesktopWnd, hDesktopDC);
-	DeleteDC(hCaptureDC);
-	DeleteObject(hCaptureBitmap);
+	// Open the desktop DC used for every capture
+	hDesktopWnd = GetDesktopWindow();
+	hDesktopDC = GetDC(hDesktopWnd);
+	if (!hDesktopDC)
+		goto cleanup;
+
+	// Capture every display before processing any pixels
+	for (dev_id=0; ; dev_id++)
+	{
+		memset(&dd, 0, sizeof(dd));
+		dd.cb = sizeof(dd);
+		if (!EnumDisplayDevicesA(NULL, dev_id, &dd, 0))
+			break;
+
+		memset(&dm, 0, sizeof(dm));
+		dm.dmSize = sizeof(dm);
+		if (!(dd.StateFlags & DISPLAY_DEVICE_ACTIVE) || (dd.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER) || !EnumDisplaySettingsA(dd.DeviceName, ENUM_CURRENT_SETTINGS, &dm))
+			continue;
+		if (capture_count >= display_count)
+			break;
+
+		r[capture_count].dim = xyi((int) dm.dmPelsWidth, (int) dm.dmPelsHeight);
+		pos = xyi((int) dm.dmPosition.x, (int) dm.dmPosition.y);
+		hCaptureDC = CreateCompatibleDC(hDesktopDC);
+		hBitmap = CreateCompatibleBitmap(hDesktopDC, r[capture_count].dim.x, r[capture_count].dim.y);
+		if (hCaptureDC && hBitmap)
+		{
+			hPrevBitmap = SelectObject(hCaptureDC, hBitmap);
+			if (hPrevBitmap && BitBlt(hCaptureDC, 0, 0, r[capture_count].dim.x, r[capture_count].dim.y, hDesktopDC, pos.x, pos.y, (DWORD)0x00CC0020 /*SRCCOPY*/ | (DWORD)0x40000000 /*CAPTUREBLT*/))
+				hCaptureBitmap[capture_count++] = hBitmap, hBitmap = NULL;
+			if (hPrevBitmap)
+				SelectObject(hCaptureDC, hPrevBitmap);
+		}
+		if (hCaptureDC)	DeleteDC(hCaptureDC), hCaptureDC = NULL;
+		if (hBitmap)	DeleteObject(hBitmap), hBitmap = NULL;
+	}
+
+	// Convert the captured bitmaps to rasters
+	for (i=0; i < capture_count; i++)
+	{
+		r[i] = make_raster(NULL, r[i].dim, XYI0, IMAGE_USE_SRGB);
+
+		memset(&bmi, 0, sizeof(bmi));
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = r[i].dim.x;
+		bmi.bmiHeader.biHeight = r[i].dim.y;
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+		GetDIBits(hDesktopDC, hCaptureBitmap[i], 0, r[i].dim.y, r[i].srgb, &bmi, DIB_RGB_COLORS);
+		win_reorder_screenshot_pixels(r[i]);
+	}
+
+	*raster_count = capture_count;
+
+cleanup:
+	// Free temporary capture resources
+	for (i=0; i < capture_count; i++)
+		if (hCaptureBitmap[i])
+			DeleteObject(hCaptureBitmap[i]);
+	if (hDesktopDC)	ReleaseDC(hDesktopWnd, hDesktopDC);
+	free(hCaptureBitmap);
+	if (*raster_count == 0)
+		free_null(&r);
 #endif
 #endif
 
