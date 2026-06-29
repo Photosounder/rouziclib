@@ -69,7 +69,7 @@ void draw_circle_lrgb(const int circlemode, xy_t pos, double circrad, double rad
 
 void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, double intensity)
 {
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 	float *df;
 	double grad, circum;
 	int32_t i, ix, iy;
@@ -144,12 +144,12 @@ void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radiu
 			if (check_box_wholly_inside_circle(secbox, pos, circrad-grad))	// if we're inside the plain fill area
 				drawq_add_sector_id(iy*fb->sector_w + ix);	// add sector reference
 		}
-#endif	// __wasm__
+#endif	// RL_FREESTANDING
 }
 
 void draw_circle_dqnq(const int circlemode, xy_t pos, double circrad, double radius, frgb_t colour, double intensity)
 {
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 	enum dqnq_type type = circlemode == FULLCIRCLE ? DQNQT_CIRCLE_FULL : DQNQT_CIRCLE_HOLLOW;
 
 	// Get pointer to data buffer
@@ -165,7 +165,7 @@ void draw_circle_dqnq(const int circlemode, xy_t pos, double circrad, double rad
 	write_LE32(&p, float_as_u32(colour.b * intensity));
 
 	dqnq_finish_entry(type);
-#endif	// __wasm__
+#endif	// RL_FREESTANDING
 }
 
 void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, col_t colour, const blend_func_t bf, double intensity)
@@ -190,7 +190,7 @@ void draw_circle(const int circlemode, xy_t pos, double circrad, double radius, 
 
 void draw_black_circle_dq(xy_t pos, double circrad, double radius, double intensity)
 {
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 	float *df;
 	double grad, circum;
 	int32_t i, ix, iy;
@@ -236,7 +236,7 @@ void draw_black_circle_dq(xy_t pos, double circrad, double radius, double intens
 			if (check_box_circle_intersection(secbox, pos, circrad+grad))
 				drawq_add_sector_id(iy*fb->sector_w + ix);	// add sector reference
 		}
-#endif	// __wasm__
+#endif	// RL_FREESTANDING
 }
 
 void draw_black_circle(xy_t pos, double circrad, double radius, double intensity)
@@ -540,7 +540,7 @@ void draw_point_frgb(xy_t pos, double radius, frgb_t colour, const blend_func_fl
 
 void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 {
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 	double grad;
 	int32_t ix, iy;
 	float *df;
@@ -576,12 +576,12 @@ void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 	for (iy=bb.p0.y; iy<=bb.p1.y; iy++)
 		for (ix=bb.p0.x; ix<=bb.p1.x; ix++)
 			drawq_add_sector_id(iy*fb->sector_w + ix);	// add sector reference
-#endif	// __wasm__
+#endif	// RL_FREESTANDING
 }
 
 void draw_point_dqnq(xy_t pos, double radius, frgb_t colour, double intensity)
 {
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 	const enum dqnq_type type = DQNQT_POINT_ADD;
 
 	// Get pointer to data buffer
@@ -596,7 +596,7 @@ void draw_point_dqnq(xy_t pos, double radius, frgb_t colour, double intensity)
 	write_LE32(&p, float_as_u32(colour.b * intensity));
 
 	dqnq_finish_entry(type);
-#endif	// __wasm__
+#endif	// RL_FREESTANDING
 }
 
 void draw_point(xy_t pos, double radius, col_t colour, const blend_func_t bf, double intensity)
@@ -686,10 +686,11 @@ void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, cons
 }
 
 
-#ifdef __wasm__
+#ifdef RL_FREESTANDING
 #define drawq_bracket_open() ((void)0)
 #define drawq_bracket_close(x) ((void)0)
-#endif	// __wasm__
+#define draw_clamp(); ((void)0)
+#endif	// RL_FREESTANDING
 
 void draw_mousecursor(xy_t pos)
 {

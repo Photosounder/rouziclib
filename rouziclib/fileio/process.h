@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 #include <processthreadsapi.h>
 
 extern PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags);

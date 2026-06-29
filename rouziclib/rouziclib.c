@@ -70,7 +70,7 @@
 #include "graphics/drawrect.c"
 #include "graphics/drawpolygon.c"
 #include "graphics/drawprimitives.c"
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 #include "graphics/drawqueue.c"
 #include "graphics/drawqueue_enqueue.c"
 #include "graphics/drawqueue/drawqueue_soft.c"

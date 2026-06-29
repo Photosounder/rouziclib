@@ -64,10 +64,10 @@ void data_cl_realloc(ssize_t buffer_size)
 	}
 	#endif
 
-	#ifndef __wasm__
+	#ifndef RL_FREESTANDING
 	if (fb->use_drawq==2)
 		drawq_soft_finish();
-	#endif	// __wasm__
+	#endif	// RL_FREESTANDING
 
 	// Only free the device buffer if requested size is negative
 	if (buffer_size < 0)

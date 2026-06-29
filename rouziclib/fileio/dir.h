@@ -1,7 +1,7 @@
 // in fileio/dir_struct.h:
 // DIR_CHAR, fs_file_t, fs_dir_t
 
-#ifdef __wasm__
+#ifdef RL_FREESTANDING
   #define DIR_CHAR '/'
 #else
 
@@ -39,4 +39,4 @@ extern double get_volume_free_space_gb(const char *path);
 #define sprint_dir_depth(dir, current_depth)	sprint_dir_depth_fullarg(dir, current_depth, NULL, NULL)
 #define export_subfiles_to_path(path, dir)	export_subfiles_to_path_fullarg(path, dir, 0)
 
-#endif // __wasm__
+#endif // RL_FREESTANDING

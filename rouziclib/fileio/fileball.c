@@ -1,4 +1,4 @@
-#ifndef WAHE_MODULE
+#ifndef RL_FREESTANDING
 
 void fileball_add_file(buffer_t *sout, const char *path, const char *name, int abs_path_len)
 {
@@ -191,7 +191,7 @@ void fileball_extract_z_file_to_path(const char *in_path, const char *extract_pa
 	free_buf(&zball);
 }
 
-#endif	// WAHE_MODULE
+#endif	// RL_FREESTANDING
 
 fileball_t fileball_extract_mem_to_struct(buffer_t *ball)
 {

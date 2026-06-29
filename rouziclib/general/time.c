@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 #include <mmsystem.h>
 
 #ifdef PRAGMA_COMMENT
@@ -10,7 +10,7 @@ uint32_t get_time_ms()
 	return timeGetTime();
 }
 
-#elif !defined(WAHE_MODULE)
+#elif !defined(RL_FREESTANDING)
 #include <sys/types.h> 
 #include <sys/time.h>
 
@@ -29,7 +29,7 @@ uint32_t get_time_ms()
 #include <mach/mach_time.h>
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 #include <profileapi.h>
 #endif
 
@@ -37,13 +37,16 @@ uint32_t get_time_ms()
 
 double get_time_hr()	// High-resolution timing
 {
-#ifdef WAHE_MODULE
+#ifdef RL_FREESTANDING
+	#ifdef WAHE_MODULE
 	double t = NAN;
 	char *response = wahe_run_command("Get raw time");
 	sscanf(response, "Raw time %lg", &t);
 	free(response);
 	return t;
-#else	// WAHE_MODULE
+	#endif	// WAHE_MODULE
+	return NAN;
+#else	// RL_FREESTANDING
 
 	static double tick_dur = 0.;
 
@@ -93,11 +96,11 @@ double get_time_hr()	// High-resolution timing
 	#endif
 	return (double) ((uint64_t) now.tv_sec*1000000000LL + now.tv_nsec) * tick_dur;
 	#endif
-#endif	// WAHE_MODULE
+#endif	// RL_FREESTANDING
 }
 
 // the caller should give a pointer to the old time value for it to be replaced with the new value, and the difference is returned
-#ifndef WAHE_MODULE
+#ifndef RL_FREESTANDING
 int32_t get_time_diff(uint32_t *t)
 {
 	uint32_t now, diff;
@@ -108,7 +111,7 @@ int32_t get_time_diff(uint32_t *t)
 
 	return diff;
 }
-#endif	// WAHE_MODULE
+#endif	// RL_FREESTANDING
 
 double get_time_diff_hr(double *t)
 {
@@ -258,17 +261,16 @@ double parse_date_time_string_hr(const char *string)	// expected format is "YYYY
 	return (double) tt + sec;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 #include <synchapi.h>
 #endif
 
 void sleep_ms(int ms)
 {
-#ifdef WAHE_MODULE
+	#if defined(WAHE_MODULE) || defined(RL_FREESTANDING)
 	sleep_hr(ms * 1e-3);
-#else	// WAHE_MODULE
 
-	#ifdef _WIN32
+	#elif defined(_WIN32)
 	Sleep(ms);
 
 	#elif __EMSCRIPTEN__
@@ -282,10 +284,9 @@ void sleep_ms(int ms)
 
 	nanosleep(&t, NULL);
 	#endif
-#endif	// WAHE_MODULE
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 #ifndef _NTDEF_
 typedef _Return_type_success_(return >= 0) LONG NTSTATUS;	// taken from bcrypt.h
 #endif
@@ -300,11 +301,13 @@ ZwSetTimerResolution_func ZwSetTimerResolution;
 
 void sleep_hr(double t)
 {
-#ifdef WAHE_MODULE
+#ifdef RL_FREESTANDING
+	#ifdef WAHE_MODULE
 	char cmd[20];
 	sprintf(cmd, "Sleep %g", t);
 	free(wahe_run_command(cmd));
-#else	// WAHE_MODULE
+	#endif	// WAHE_MODULE
+#else	// RL_FREESTANDING
 
 	#ifdef _WIN32
 	static int init=1;
@@ -333,7 +336,7 @@ void sleep_hr(double t)
 
 	nanosleep(&ts, NULL);
 	#endif
-#endif	// WAHE_MODULE
+#endif	// RL_FREESTANDING
 }
 
 void time_struct_minimise_elem(struct tm *ts, const int level)

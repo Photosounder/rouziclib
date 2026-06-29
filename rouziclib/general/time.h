@@ -2,7 +2,7 @@
   #include <time.h>
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(MINQND_LIBC_H)
   #define timegm _mkgmtime
   #define gmtime_r(t, tm) gmtime_s(tm, t)
   #define localtime_r(t, tm) localtime_s(tm, t)

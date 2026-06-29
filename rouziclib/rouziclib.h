@@ -58,7 +58,9 @@ extern "C" {
   #pragma clang diagnostic ignored "-Wparentheses"
 #endif
 
-#include "general/windows_includes.h"
+#ifndef RL_FREESTANDING
+  #include "general/windows_includes.h"
+#endif
 
 #if defined(_MSC_VER)
   #include <BaseTsd.h>
@@ -157,7 +159,7 @@ extern "C" {
 #include "graphics/drawrect.h"
 #include "graphics/drawpolygon.h"
 #include "graphics/drawprimitives.h"
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 #include "graphics/drawqueue.h"
 #include "graphics/drawqueue_enqueue.h"
 #include "graphics/drawqueue/drawqueue_soft.h"

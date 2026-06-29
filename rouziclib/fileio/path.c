@@ -242,7 +242,7 @@ int is_path_video_file(const char *path)
 	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
 }
 
-#ifndef WAHE_MODULE
+#ifndef RL_FREESTANDING
 
 #ifdef _WIN32
 #ifndef SHFOLDERAPI
@@ -339,4 +339,4 @@ int chdir_utf8(const char *dirname)
 #endif
 }
 
-#endif	// WAHE_MODULE
+#endif	// RL_FREESTANDING

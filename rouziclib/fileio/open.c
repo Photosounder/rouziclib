@@ -1,4 +1,4 @@
-#ifndef WAHE_MODULE
+#ifndef RL_FREESTANDING
 
 #define C_FOPEN_UTF8
 FILE *fopen_utf8(const char *path, const char *mode)
@@ -240,7 +240,7 @@ int check_dir_exists(const char *path)
 	return ret;
 }
 
-#else	// WAHE_MODULE
+#else	// RL_FREESTANDING
 
 uint8_t *load_raw_file(const char *path, size_t *size)
 {
@@ -280,4 +280,4 @@ int save_raw_file(const char *path, const char *mode, uint8_t *data, size_t data
 	return 1;
 }
 
-#endif	// WAHE_MODULE
+#endif	// RL_FREESTANDING

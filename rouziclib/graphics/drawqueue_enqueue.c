@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_THREADING
+
 int32_t dqnqt_arg_size[DQNQT_COUNT] =
 {
 	0,	// DQNQT_NOTYPE
@@ -404,3 +406,5 @@ void dqnq_read_execute(const enum dqnq_type type, size_t *read_pos)
 			fprintf_rl(stderr, "Unhandled DQNQ type %d in dqnq_read_execute().\n", type);
 	}
 }
+
+#endif // RL_EXCL_THREADING

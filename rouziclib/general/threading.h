@@ -38,7 +38,7 @@ extern void rl_thread_set_priority_low();
 
 // Semaphores
 #ifdef _WIN32
-typedef HANDLE rl_sem_t;
+typedef void *rl_sem_t; // HANDLE
 #elif defined(NOT_WINDOWS)
 typedef sem_t rl_sem_t;
 #endif

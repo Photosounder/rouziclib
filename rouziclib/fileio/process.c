@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 
 PROCESS_INFORMATION create_process_direct(const char *cmd, DWORD flags)
 {
@@ -123,7 +123,7 @@ extern char ***_NSGetArgv(void);
 extern int *_NSGetArgc(void);
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 
 // from ShlObj.h
 #ifndef SHSTDAPI
@@ -143,7 +143,7 @@ SHSTDAPI_(LPWSTR *)  CommandLineToArgvW(_In_ LPCWSTR lpCmdLine, _Out_ int* pNumA
 
 char **get_argv(int *argc)
 {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 	LPWSTR *argv_w = CommandLineToArgvW(GetCommandLineW(), argc);
 	char **argv = calloc(*argc, sizeof(char *));
 

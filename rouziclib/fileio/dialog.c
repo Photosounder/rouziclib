@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 #include <commdlg.h>
 
 char *open_file_dialog(const char *filter)		// the filter must use \1 instead of \0 as separator, e.g. "TIFF image, 32-bit (.TIF)\1*.tif;*.tiff\1"
@@ -87,8 +87,7 @@ char *save_file_dialog(const char *filter)		// the filter must use \1 instead of
 }
 #endif
 
-#ifndef _WIN32
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !(defined(_WIN32) && !defined(RL_FREESTANDING))
 char *open_file_dialog(const char *filter)
 {
 	fprintf_rl(stderr, "open_file_dialog() not implemented on this platform\n");
@@ -100,5 +99,4 @@ char *save_file_dialog(const char *filter)
 	fprintf_rl(stderr, "save_file_dialog() not implemented on this platform\n");
 	return NULL;
 }
-#endif
 #endif

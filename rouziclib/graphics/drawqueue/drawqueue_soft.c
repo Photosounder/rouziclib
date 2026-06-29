@@ -1,3 +1,5 @@
+#ifndef RL_EXCL_THREADING
+
 #ifdef RL_INTEL_INTR
 
 #ifdef GNU_SSE
@@ -286,3 +288,5 @@ void drawq_soft_quit()
 		}
 	}
 }
+
+#endif // RL_EXCL_THREADING

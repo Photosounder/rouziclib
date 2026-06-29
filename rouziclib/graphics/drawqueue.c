@@ -147,6 +147,7 @@ void drawq_run()
 	{
 		//** Complete execution in the dqnq thread **
 
+	#ifndef RL_EXCL_THREADING
 		// Flag the dqnq thread to unblock this thread when it finishes processing all data
 		rl_atomic_store_i32(&fb->dqnq_end_wait_flag, 1);
 
@@ -156,6 +157,7 @@ void drawq_run()
 
 		// Wait for the dqnq thread to unblock this thread
 		rl_sem_wait(&fb->dqnq_end_sem);
+	#endif
 	}
 
 	// Make entry list for each sector

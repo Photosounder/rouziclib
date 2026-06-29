@@ -1,4 +1,4 @@
-#ifndef WAHE_MODULE
+#ifndef RL_FREESTANDING
 
 #ifndef _WIN32
 #include <sys/stat.h>
@@ -251,7 +251,7 @@ void show_file_in_explorer(const char *path)
 	free(wpath);
 }
 
-#else	// WAHE_MODULE
+#else	// RL_FREESTANDING
 
 void show_file_in_explorer(const char *path)
 {
@@ -261,4 +261,4 @@ void show_file_in_explorer(const char *path)
 	free(rsp);
 }
 
-#endif	// WAHE_MODULE
+#endif	// RL_FREESTANDING

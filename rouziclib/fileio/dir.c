@@ -1,4 +1,4 @@
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 
 #ifdef _WIN32
 #define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)	// handleapi.h
@@ -382,4 +382,4 @@ double get_volume_free_space_gb(const char *path)
 	return (double) bytes / (1024.*1024.*1024.);
 }
 
-#endif // __wasm__
+#endif // RL_FREESTANDING

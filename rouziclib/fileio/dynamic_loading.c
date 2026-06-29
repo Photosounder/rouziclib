@@ -1,6 +1,6 @@
-#ifndef __wasm__
+#ifndef RL_FREESTANDING
 
-#ifndef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 #include <dlfcn.h>
 #endif
 

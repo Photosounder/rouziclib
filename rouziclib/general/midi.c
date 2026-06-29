@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(RL_FREESTANDING)
 int init_midi_input_device(int dev_id, midiin_dev_t *dev, buffer_t *err_log, void *callback_func, void *callback_data)
 {
 	int ret;
