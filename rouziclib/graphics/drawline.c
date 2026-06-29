@@ -156,7 +156,7 @@ void draw_line_thin_lrgb(xy_t p1, xy_t p2, double radius, lrgb_t colour, const b
 				p -= fperfr_d0(xrp-xr2) >> 15;
 				p *= fpgauss_d0(yrp-yr1) >> 15;
 				p >>= 15;
-				p = p * intens_q15 >> 15;
+				p = (int32_t) ((int64_t) p * intens_q15 >> 15);
 
 				bf(&fb->r.l[fbi], colour, p);
 			}
