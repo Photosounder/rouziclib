@@ -333,7 +333,7 @@ void get_volumes_path()
 #endif
 }
 
-#if !defined(_WIN32) && !defined(__wasi__)
+#if !defined(_WIN32) && !defined(__wasm__)
 #include <sys/statvfs.h>
 #endif
 

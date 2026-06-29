@@ -10,7 +10,7 @@ uint32_t get_time_ms()
 	return timeGetTime();
 }
 
-#elif !defined(RL_FREESTANDING)
+#elif !defined(RL_FREESTANDING) && !defined(__wasm__)
 #include <sys/types.h> 
 #include <sys/time.h>
 

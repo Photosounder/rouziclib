@@ -14,7 +14,7 @@
 #include "../libraries/dirent.h"
 
 #define DIR_CHAR '\\'
-#else
+#elif !defined(__wasm__)
 #include <dirent.h>
 #define DIR_CHAR '/'
 #endif

@@ -58,6 +58,10 @@ extern "C" {
   #pragma clang diagnostic ignored "-Wparentheses"
 #endif
 
+#ifdef __wasm__
+  #define RL_FREESTANDING
+#endif
+
 #ifndef RL_FREESTANDING
   #include "general/windows_includes.h"
 #endif
