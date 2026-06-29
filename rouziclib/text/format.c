@@ -241,19 +241,22 @@ char *sprint_size(char *string, size_t size)
 	else if (size < (size_t)  900<<20) sprintf(string, "%.1f MB", size / sq(1024.));
 	else if (size < (size_t) 9000<<20) sprintf(string, "%.0f MB", size / sq(1024.));
 
+	#if SIZE_MAX > UINT32_MAX
 	else if (size < (size_t)   90<<30) sprintf(string, "%.2f GB", size / cube(1024.));
 	else if (size < (size_t)  900<<30) sprintf(string, "%.1f GB", size / cube(1024.));
 	else if (size < (size_t) 9000<<30) sprintf(string, "%.0f GB", size / cube(1024.));
 
-	// Include TB formatting only when size_t can represent TB values
-	#if SIZE_MAX > UINT32_MAX
 	else if (size < (size_t)   90<<40) sprintf(string, "%.2f TB", size / sq(sq(1024.)));
 	else if (size < (size_t)  900<<40) sprintf(string, "%.1f TB", size / sq(sq(1024.)));
 	else if (size < (size_t) 9000<<40) sprintf(string, "%.0f TB", size / sq(sq(1024.)));
 	#endif
 
 	else if (size == SIZE_MAX) sprintf(string, "-1");
+	#if SIZE_MAX > UINT32_MAX
 	else sprintf(string, "%.4g B", (double) size);
+	#else
+	else sprintf(string, "%.2f GB", size / cube(1024.));
+	#endif
 
 	return string;
 }
