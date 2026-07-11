@@ -1,4 +1,4 @@
-textedit_t *cur_textedit=NULL, *prev_textedit=NULL, *next_textedit=NULL;
+_Thread_local textedit_t *cur_textedit=NULL, *prev_textedit=NULL, *next_textedit=NULL;
 
 void textedit_init(textedit_t *te, const int alloc)
 {

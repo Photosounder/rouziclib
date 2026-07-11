@@ -20,4 +20,4 @@ extern void ctrl_textedit_draw(textedit_t *te, rect_t box, col_t colour);
 extern int ctrl_textedit(textedit_t *te, rect_t box, col_t colour);
 extern void draw_textedit_cursor(xy_t offset, double scale, int bidi, int bidi_change, double drawing_thickness);
 
-extern textedit_t *cur_textedit, *prev_textedit, *next_textedit;
+extern _Thread_local textedit_t *cur_textedit, *prev_textedit, *next_textedit;
