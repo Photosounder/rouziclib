@@ -23,6 +23,10 @@ float *load_sound_wav_mem(const uint8_t *data, size_t data_len, size_t *sample_c
 			*samplerate = read_LE32(p, (size_t *) &p);
 			p = &p[4+2];				// skip byte rate, block align
 			bit_depth = read_LE16(p, (size_t *) &p);
+
+			// Use the extensible subformat tag
+			if (compression==0xFFFE && chunk_size >= 40)
+				compression = read_LE16(&p[8], NULL);
 		}
 
 		// Data chunk
