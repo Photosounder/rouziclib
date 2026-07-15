@@ -652,8 +652,9 @@ static void sdl_graphics_deinit_mode()
 	if (fb->tex_lock && fb->texture)
 		SDL_UnlockTexture(fb->texture);
 	fb->tex_lock = 0;
-	if (old_mode!=0)
-		fb->r.srgb = NULL;
+
+	// Detach SDL-owned texture memory before freeing raster-owned buffers
+	fb->r.srgb = NULL;
 
 	// Release shared draw queue allocations and threads
 	if (old_mode)
@@ -976,7 +977,7 @@ int sdl_handle_window_resize(zoom_t *zc)
 	return 1;
 }
 
-void sdl_flip_fb()
+static void sdl_flip_fb_internal(int start_drawq)
 {
 	if (fb->timing==NULL)
 		fb->timing = calloc(fb->timing_as = fb->timing_count = 120, sizeof(frame_timing_t));
@@ -1063,12 +1064,16 @@ void sdl_flip_fb()
 
 	if (fb->use_drawq)
 	{
-		if (mouse.window_minimised_flag <= 0)
-			drawq_run();
-		else				// if the window is minimised just don't do any drawq stuff
+		// Start the next draw queue only when the current backend will remain active
+		if (start_drawq)
 		{
-			drawq_reinit();
-			SDL_Delay(80);		// there's no more vsync therefore the loop can easily run at 500+ FPS without the delay
+			if (mouse.window_minimised_flag <= 0)
+				drawq_run();
+			else				// if the window is minimised just don't do any drawq stuff
+			{
+				drawq_reinit();
+				SDL_Delay(80);		// there's no more vsync therefore the loop can easily run at 500+ FPS without the delay
+			}
 		}
 	}
 	else
@@ -1106,6 +1111,18 @@ void sdl_flip_fb()
 	fb->timing[fb->timing_index].start_sleep = get_time_hr();
 
 	fb->frame_count++;
+}
+
+void sdl_flip_fb()
+{
+	// Present the completed frame and start work for the following frame
+	sdl_flip_fb_internal(1);
+}
+
+void sdl_flip_fb_mode_switch_pending()
+{
+	// Present the completed frame without starting work on the backend being replaced
+	sdl_flip_fb_internal(0);
 }
 
 void sdl_flip_fb_srgb(srgb_t *sfb)
