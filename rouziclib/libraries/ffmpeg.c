@@ -359,6 +359,9 @@ void ffstream_close_free(ffstream_t *s)
 	avcodec_close(s->codec_ctx);
 	avformat_close_input(&s->fmt_ctx);
 	memset(s, 0, sizeof(ffstream_t));
+
+	// Preserve the invalid stream marker after fully clearing the structure
+	s->stream_id = -1;
 }
 
 double ff_get_timestamp(ffstream_t *s, int64_t timestamp)
@@ -1250,13 +1253,24 @@ double ff_get_stream_duration(ffstream_t *s, const char *path, int stream_type)
 	}
 
 	if (s->fmt_ctx==NULL)
-	{
 		*s = ff_load_stream_init(path, stream_type, 1);
-		if (s->stream_id == -1)
-			return NAN;
+
+	// Reject incomplete stream states before accessing FFmpeg data
+	if (s->fmt_ctx==NULL || s->fmt_ctx->streams==NULL || s->stream_id < 0 || (unsigned int) s->stream_id >= s->fmt_ctx->nb_streams)
+	{
+		fprintf_rl(stderr, "Invalid FFmpeg stream state while reading duration for '%s'\n", path ? path : "(unknown)");
+		return NAN;
 	}
 
 	st = s->fmt_ctx->streams[s->stream_id];
+
+	// Reject missing stream entries before reading their duration
+	if (st==NULL)
+	{
+		fprintf_rl(stderr, "Missing FFmpeg stream %d while reading duration for '%s'\n", s->stream_id, path ? path : "(unknown)");
+		return NAN;
+	}
+
 	if (st->duration != AV_NOPTS_VALUE)
 		return (double) st->duration * av_q2d(st->time_base);
 
