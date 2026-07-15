@@ -3,6 +3,7 @@
 extern void drawq_reinit();
 extern void drawq_alloc();
 extern void drawq_free();
+extern void drawq_deinit();
 extern void drawq_add_layer(uint32_t *dataint, const uint32_t layer_type);
 extern void drawq_run();
 extern int32_t drawq_entry_size(const enum dq_type type);

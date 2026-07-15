@@ -51,6 +51,51 @@ void dqnq_reset()
 	fb->dqnq_room_for_writing = fb->dqnq_as;
 }
 
+void dqnq_finish()
+{
+	if (fb->dqnq_thread_on == 0)
+		return;
+
+	// Ask the enqueue thread to signal after consuming all pending entries
+	rl_atomic_store_i32(&fb->dqnq_end_wait_flag, 1);
+
+	// Wake the enqueue thread if it is waiting for more entries
+	if (rl_atomic_get_and_set(&fb->dqnq_read_wait_flag, 0))
+		rl_sem_post(&fb->dqnq_read_sem);
+
+	// Wait until every pending entry has been processed
+	rl_sem_wait(&fb->dqnq_end_sem);
+}
+
+void dqnq_quit()
+{
+	if (fb->dqnq_data == NULL)
+		return;
+
+	// Finish pending entries before stopping the enqueue thread
+	dqnq_finish();
+	fb->dqnq_thread_on = 0;
+	rl_sem_post(&fb->dqnq_read_sem);
+	rl_thread_join_and_null(&fb->dqnq_thread);
+
+	// Destroy synchronisation objects and release the circular buffer
+	rl_sem_destroy(&fb->dqnq_read_sem);
+	rl_sem_destroy(&fb->dqnq_end_sem);
+	rl_mutex_destroy(&fb->dqnq_mutex);
+	free_null((uint8_t **) &fb->dqnq_data);
+
+	// Reset enqueue state so dqnq_init can recreate it later
+	fb->dqnq_as = 0;
+	fb->dqnq_read_pos = 0;
+	fb->dqnq_write_pos = 0;
+	fb->dqnq_room_for_writing = 0;
+	fb->dqnq_size_to_read = 0;
+	fb->dqnq_wasted_room = 0;
+	fb->dqnq_write_pos_next = 0;
+	fb->dqnq_read_wait_flag = 0;
+	fb->dqnq_end_wait_flag = 0;
+}
+
 enum dqnq_type dqnq_read_type_id(volatile uint8_t *data, size_t *index)
 {
 	enum dqnq_type type;

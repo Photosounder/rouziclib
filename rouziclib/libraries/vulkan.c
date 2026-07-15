@@ -145,13 +145,43 @@ int vk_init_queue()
 
 	ret = vkCreateCommandPool(fb->vk.device, &cmd_pool_info, NULL, &fb->vk.cmd_pool);
 	VK_ERR_RET("vkCreateCommandPool (in vk_init_queue)", ret);
+
+	return ret;
 }
 
 int vk_init()
 {
-	vk_create_instance();
-	vk_pick_physical_device();
-	vk_init_queue();
+	VkResult ret;
+
+	// Create each dependent Vulkan object in ownership order
+	ret = vk_create_instance();
+	VK_ERR_RET("vk_create_instance (in vk_init)", ret);
+	ret = vk_pick_physical_device();
+	VK_ERR_RET("vk_pick_physical_device (in vk_init)", ret);
+	ret = vk_init_queue();
+	VK_ERR_RET("vk_init_queue (in vk_init)", ret);
+
+	return ret;
+}
+
+void vk_deinit()
+{
+	// Wait for the device before destroying objects that may still be in use
+	if (fb->vk.device)
+		vkDeviceWaitIdle(fb->vk.device);
+
+	// Destroy Vulkan objects in reverse ownership order
+	if (fb->vk.cmd_pool)
+		vkDestroyCommandPool(fb->vk.device, fb->vk.cmd_pool, NULL);
+	if (fb->vk.device)
+		vkDestroyDevice(fb->vk.device, NULL);
+	if (fb->vk.surface)
+		vkDestroySurfaceKHR(fb->vk.instance, fb->vk.surface, NULL);
+	if (fb->vk.instance)
+		vkDestroyInstance(fb->vk.instance, NULL);
+
+	// Clear handles so Vulkan can be initialised again
+	memset(&fb->vk, 0, sizeof(fb->vk));
 }
 
 #endif

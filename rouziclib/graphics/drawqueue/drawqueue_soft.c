@@ -54,7 +54,7 @@ typedef struct
 {
 	volatile int thread_on;
 	rl_thread_t thread_handle;
-	rl_mutex_t proc_mtx, cont_mtx;
+	rl_sem_t proc_sem, done_sem;
 	int current_locks;
 	uint8_t *data;
 	int32_t *drawq_data, *sector_pos, *entry_list;
@@ -83,12 +83,14 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 	xy_t pos;
 	int brlvl;
 
-	rl_mutex_unlock(&d->cont_mtx);		// unlock cont_mtx so that the calling thread can go on
 	rl_thread_set_priority_high();
 
-	while (d->thread_on)
+	while (1)
 	{
-		rl_mutex_lock(&d->proc_mtx);
+		// Wait until the main thread submits a frame or requests shutdown
+		rl_sem_wait(&d->proc_sem);
+		if (d->thread_on==0)
+			break;
 
 		if (d->thread_id==0)
 			d->timing->thread_start = get_time_hr();
@@ -161,9 +163,8 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 
 		d->timing->thread_end = get_time_hr();
 
-		rl_mutex_unlock(&d->proc_mtx);
-		rl_mutex_lock(&d->cont_mtx);		// Wait to be allowed to continue by drawq_soft_finish
-		rl_mutex_unlock(&d->cont_mtx);
+		// Signal that this worker completed its part of the frame
+		rl_sem_post(&d->done_sem);
 	}
 
 #endif
@@ -183,20 +184,16 @@ void drawq_soft_run()
 		{
 			drawq_soft_data_t *d = &dqs_data[i];
 
-			// Init everything permanent
+			// Initialise permanent worker state and synchronisation
 			d->thread_on = 1;
-			rl_mutex_init(&d->proc_mtx);
-			rl_mutex_init(&d->cont_mtx);
+			rl_sem_init(&d->proc_sem, 0);
+			rl_sem_init(&d->done_sem, 0);
 			d->thread_id = i;
 			d->thread_count = DQS_THREADS;
 			d->block = (float **) calloc_2d(4, 1 << 2*fb->sector_size, 4*sizeof(float));	// alloc float blocks once, one block per bracket level
 
-			// Create thread
-			rl_mutex_lock(&d->proc_mtx);		// lock proc_mtx so the thread has to wait to proceed
-			rl_mutex_lock(&d->cont_mtx);
+			// Create a worker that initially waits on its processing semaphore
 			rl_thread_create(&d->thread_handle, drawq_soft_thread, d);
-			rl_mutex_lock(&d->cont_mtx);		// double lock cont_mtx so we can't go on until the thread unlocks it
-			rl_mutex_unlock(&d->cont_mtx);
 		}
 	}
 
@@ -237,9 +234,9 @@ void drawq_soft_run()
 		d->srgb_order = fb->srgb_order;
 		d->r_pitch = r_pitch;
 
-		d->current_locks++;
-		rl_mutex_lock(&d->cont_mtx);	// will make the thread stop after processing is done
-		rl_mutex_unlock(&d->proc_mtx);	// this makes the thread start processing this frame
+		// Submit this worker's frame data and remember that completion is pending
+		d->current_locks = 1;
+		rl_sem_post(&d->proc_sem);
 	}
 
 	fb->timing[fb->timing_index].cl_copy_end = get_time_hr();
@@ -261,10 +258,9 @@ void drawq_soft_finish()
 		if (d)
 		if (d->current_locks==1)
 		{
-			d->current_locks--;
-			rl_mutex_lock(&d->proc_mtx);		// will make the thread wait for drawq_soft_run() to add the new frame data
-			rl_mutex_unlock(&d->cont_mtx);		// makes the thread complete the loop and wait for proc_mtx
-			//rl_thread_join_and_null(&d->thread_handle);
+			// Wait until this worker finishes the submitted frame
+			rl_sem_wait(&d->done_sem);
+			d->current_locks = 0;
 		}
 	}
 }
@@ -276,17 +272,36 @@ void drawq_soft_quit()
 	if (dqs_data==NULL)
 		return ;
 
+	// Finish any active frame before stopping the worker threads
+	drawq_soft_finish();
+
 	for (i=0; i < DQS_THREADS; i++)
 	{
 		drawq_soft_data_t *d = &dqs_data[i];
 
 		if (d)
 		{
+			// Wake the worker so it can observe the shutdown request
 			d->thread_on = 0;
-			rl_mutex_unlock(&d->cont_mtx);
+			rl_sem_post(&d->proc_sem);
 			rl_thread_join_and_null(&d->thread_handle);
+
+			// Destroy per-thread synchronisation and working blocks
+			rl_sem_destroy(&d->proc_sem);
+			rl_sem_destroy(&d->done_sem);
+			free_2d((void **) d->block, 4);
 		}
 	}
+
+	// Free the copied frame data owned by the first worker
+	free_null(&dqs_data[0].data);
+	free_null(&dqs_data[0].drawq_data);
+	free_null(&dqs_data[0].sector_pos);
+	free_null(&dqs_data[0].entry_list);
+
+	// Clear the global state so the workers can be initialised again
+	free(dqs_data);
+	dqs_data = NULL;
 }
 
 #endif // RL_EXCL_THREADING

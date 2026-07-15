@@ -279,13 +279,30 @@ cl_int init_cl_context(clctx_t *c, const int from_gl)
 
 void deinit_clctx(clctx_t *c, int deinit_kernel)
 {
+	if (c==NULL)
+		return;
+
+	// Release any retained profiling event
+	if (c->ev)
+		clReleaseEvent(c->ev);
+
+	// Release program objects when the caller owns them
 	if (deinit_kernel)
 	{
-		clReleaseKernel(c->kernel);
-		clReleaseProgram(c->program);
+		if (c->kernel)
+			clReleaseKernel(c->kernel);
+		if (c->program)
+			clReleaseProgram(c->program);
 	}
-	clReleaseCommandQueue(c->command_queue);
-	clReleaseContext(c->context);
+
+	// Release the queue and context after their child objects
+	if (c->command_queue)
+		clReleaseCommandQueue(c->command_queue);
+	if (c->context)
+		clReleaseContext(c->context);
+
+	// Clear handles so the context can be initialised again safely
+	memset(c, 0, sizeof(*c));
 }
 
 uint64_t cl_make_program_and_device_hash(clctx_t *c, const char *src, const char *compil_opt)
@@ -432,9 +449,15 @@ void init_framebuffer_cl(const clctx_t *clctx)		// inits the linear CL buffer an
 		fb->clctx = *clctx;		// copy the original cl context
 }
 
-void cl_make_srgb_tex()
+cl_int cl_make_srgb_tex()
 {
 	cl_int ret=0;
+
+	// Reset ownership and synchronisation options for the new output buffer
+	fb->cl_srgb_acquired = 0;
+	fb->opt_clfinish = 0;
+	fb->opt_glfinish = 0;
+	fb->opt_interop = 0;
 #ifdef RL_OPENCL_GL
 
 	// Detect whether or not to do interop sync
@@ -456,12 +479,13 @@ void cl_make_srgb_tex()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fb->maxdim.x, fb->maxdim.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);		// specify texture dimensions, format etc
 
 	fb->cl_srgb = clCreateFromGLTexture(fb->clctx.context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, fb->gltex, &ret);	// Creating the OpenCL image corresponding to the texture (once)
-	CL_ERR_NORET("clCreateFromGLTexture (in cl_make_srgb_tex(), for fb->cl_srgb)", ret);
+	CL_ERR_RET("clCreateFromGLTexture (in cl_make_srgb_tex(), for fb->cl_srgb)", ret);
 
 	if (fb->interop_sync==0)		// acquire the GL texture with OpenCL only once if no interop sync is needed
 	{
 		ret = clEnqueueAcquireGLObjects_wrap(fb->clctx.command_queue, 1,  &fb->cl_srgb, 0, NULL, NULL);		// get the ownership of cl_srgb
-		CL_ERR_NORET("clEnqueueAcquireGLObjects (in cl_make_srgb_tex(), for fb->cl_srgb)", ret);
+		CL_ERR_RET("clEnqueueAcquireGLObjects (in cl_make_srgb_tex(), for fb->cl_srgb)", ret);
+		fb->cl_srgb_acquired = 1;
 
 		fb->opt_clfinish = 1;		// needed to prevent tearing
 		fb->opt_glfinish = 1;
@@ -475,8 +499,52 @@ void cl_make_srgb_tex()
 
 #else
 	fb->cl_srgb = clCreateBuffer(fb->clctx.context, CL_MEM_WRITE_ONLY, mul_x_by_y_xyi(fb->maxdim)*4, NULL, &ret);
-	CL_ERR_NORET("clCreateBuffer (in cl_make_srgb_tex(), for fb->cl_srgb)", ret);
+	CL_ERR_RET("clCreateBuffer (in cl_make_srgb_tex(), for fb->cl_srgb)", ret);
 #endif
+
+	return ret;
+}
+
+void deinit_fb_cl()
+{
+	// Finish queued work before releasing shared output resources
+	if (fb->clctx.command_queue)
+		clFinish_wrap(fb->clctx.command_queue);
+
+	#ifdef RL_OPENCL_GL
+	// Return the shared texture to OpenGL when OpenCL still owns it
+	if (fb->cl_srgb_acquired && fb->cl_srgb && fb->clctx.command_queue)
+	{
+		clEnqueueReleaseGLObjects_wrap(fb->clctx.command_queue, 1, &fb->cl_srgb, 0, NULL, NULL);
+		clFinish_wrap(fb->clctx.command_queue);
+		fb->cl_srgb_acquired = 0;
+	}
+	#endif
+
+	// Release framebuffer memory objects before destroying their context
+	if (fb->cl_srgb)
+		clReleaseMemObject(fb->cl_srgb);
+	if (fb->data_cl)
+		clReleaseMemObject(fb->data_cl);
+	fb->cl_srgb = NULL;
+	fb->data_cl = NULL;
+
+	// Release program and context state so drawq_run can rebuild it later
+	deinit_clctx(&fb->clctx, 1);
+	fb->drawq_run_init = 0;
+
+	#ifdef RL_OPENCL_GL
+	// Release the OpenGL texture created for OpenCL interoperation
+	if (fb->gltex)
+		glDeleteTextures(1, &fb->gltex);
+	fb->gltex = 0;
+	#endif
+
+	// Reset backend options that belong to the old context
+	fb->interop_sync = 0;
+	fb->opt_clfinish = 0;
+	fb->opt_glfinish = 0;
+	fb->opt_interop = 0;
 }
 
 cl_int init_fb_cl()
@@ -484,10 +552,7 @@ cl_int init_fb_cl()
 	cl_int ret;
 
 	if (fb->clctx.command_queue)
-	{
-		clReleaseMemObject(fb->data_cl);
-		deinit_clctx(&fb->clctx, 0);
-	}
+		deinit_fb_cl();
 
 	#ifdef RL_OPENCL_GL
 	ret = init_cl_context(&fb->clctx, 1);
@@ -496,7 +561,8 @@ cl_int init_fb_cl()
 	#endif
 	CL_ERR_RET("init_cl_context", ret);
 
-	cl_make_srgb_tex();
+	ret = cl_make_srgb_tex();
+	CL_ERR_RET("cl_make_srgb_tex (in init_fb_cl)", ret);
 
 	return ret;
 }

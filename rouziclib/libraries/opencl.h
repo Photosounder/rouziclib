@@ -9,13 +9,14 @@ extern char *cl_get_device_string(clctx_t *c, cl_device_info param_name);
 extern cl_int init_cl_context_from_gl(clctx_t *c, cl_platform_id platform);
 extern cl_int init_cl_context(clctx_t *c, const int from_gl);
 extern void deinit_clctx(clctx_t *c, int deinit_kernel);
+extern void deinit_fb_cl();
 extern uint64_t cl_make_program_and_device_hash(clctx_t *c, const char *src, const char *compil_opt);
 extern cl_int build_cl_program(clctx_t *c, cl_program *program, const char *src);
 extern cl_int build_cl_program_filecache(clctx_t *c, cl_program *program, const char *src);
 extern cl_int create_cl_kernel(clctx_t *c, cl_program program, cl_kernel *kernel, const char *name);
 extern cl_int zero_cl_mem(clctx_t *c, cl_mem buffer, size_t size);
 extern void init_framebuffer_cl(const clctx_t *clctx);
-extern void cl_make_srgb_tex();
+extern cl_int cl_make_srgb_tex();
 extern cl_int init_fb_cl();
 
 extern cl_int clEnqueueNDRangeKernel_wrap(cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);

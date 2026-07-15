@@ -132,6 +132,7 @@ typedef struct
 	int sector_size;	// size of the sectors in powers of two. sector_size==6 means 64x64 sized sectors
 	int sector_w;		// number of sectors per row (for instance rows of 30 64x64 sectors for 1920x1080)
 	int entry_count;	// number of entries in the main queue
+	int drawq_run_init;	// whether the OpenCL draw queue program and kernel are initialised
 
 	// Draw queue enqueue
 	volatile uint8_t *dqnq_data;			// circular buffer where drawing instructions are enqueued from the main thread and read by the dqnq thread
@@ -155,6 +156,7 @@ typedef struct
 	int opt_clfinish, opt_glfinish, opt_interop;
 	cl_mem cl_srgb;		// device memory which is the same as the OpenGL texture
 	uint32_t gltex;		// ID of the GL texture for cl_srgb
+	int cl_srgb_acquired;	// whether OpenCL currently owns the shared OpenGL texture
 	void *gl_ctx;
 	clctx_t clctx;		// contains the context and the command queue
 

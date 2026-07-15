@@ -35,6 +35,8 @@ extern int32_t dqnqt_arg_size[DQNQT_COUNT];
 
 extern void dqnq_init();
 extern void dqnq_reset();
+extern void dqnq_finish();
+extern void dqnq_quit();
 extern enum dqnq_type dqnq_read_type_id(volatile uint8_t *data, size_t *index);
 extern void dqnq_write_type_id(volatile uint8_t *entry, const enum dqnq_type type);
 extern void dqnq_finish_entry(const enum dqnq_type type);

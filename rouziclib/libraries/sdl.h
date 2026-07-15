@@ -68,6 +68,7 @@ extern SDL_GLContext init_sdl_gl(SDL_Window *window);
 extern void sdl_graphics_init_from_handle(const void *window_handle, int flags);
 extern void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags);
 extern void sdl_graphics_init_autosize(const char *window_name, int flags, int window_index);
+extern int sdl_graphics_set_drawq_mode(int mode);
 extern int sdl_handle_window_resize(zoom_t *zc);
 extern void sdl_flip_fb();
 extern void sdl_flip_fb_srgb(srgb_t *sfb);

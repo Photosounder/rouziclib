@@ -72,18 +72,50 @@ ss_calc:
 
 void drawq_free()
 {
-	if (fb->drawq_data)
-	{
-		free(fb->drawq_data);
-		free(fb->sector_pos);
-		free(fb->entry_list);
-		free(fb->sector_list);
-		free(fb->sector_count);
-		free(fb->pending_bracket);
-		free(fb->entry_pos);
+	// Release every queue array and clear its pointer
+	free_null(&fb->drawq_data);
+	free_null(&fb->sector_pos);
+	free_null(&fb->entry_list);
+	free_null(&fb->sector_list);
+	free_null(&fb->sector_count);
+	free_null(&fb->pending_bracket);
+	free_null(&fb->entry_pos);
 
-		fb->drawq_data = NULL;
-	}
+	// Reset queue dimensions and allocation sizes
+	fb->drawq_as = 0;
+	fb->entry_list_as = 0;
+	fb->sector_list_as = 0;
+	fb->entry_pos_as = 0;
+	fb->max_sector_count = 0;
+	fb->entry_list_end = 0;
+	fb->sectors = 0;
+	fb->sector_size = 0;
+	fb->sector_w = 0;
+	fb->entry_count = 0;
+}
+
+void drawq_deinit()
+{
+	// Stop the enqueue thread before freeing the queues it writes to
+	dqnq_quit();
+
+	// Free the draw queue and its shared host-side data storage
+	drawq_free();
+	free_null(&fb->data);
+	free_null(&fb->data_alloc_table);
+	free_null(&fb->hash_table.elem);
+	free_null(&fb->hash_table.overflow);
+
+	// Reset allocation state so a later draw queue starts cleanly
+	fb->data_cl_as = 0;
+	fb->data_alloc_table_count = 0;
+	fb->data_alloc_table_as = 0;
+	fb->data_copy_start = 0;
+	fb->data_space_start = 0;
+	fb->data_space_end = 0;
+	fb->data_space_index = 0;
+	fb->hash_table.overflow_as = 0;
+	fb->hash_table.overflow_first_avail = 0;
 }
 
 void drawq_run()
@@ -95,15 +127,13 @@ void drawq_run()
 	int32_t i;
 	cl_int ret, randseed;
 	cl_event ev;
-	static int init=1;
 	size_t global_work_offset[2], global_work_size[2], local_work_size[2];
 
 	if (fb->use_drawq==1)
 	{
 		// Init OpenCL program and kernel
-		if (init)
+		if (fb->drawq_run_init==0)
 		{
-			init=0;
 			ret = build_cl_program_filecache(&fb->clctx, &fb->clctx.program, clsrc_draw_queue);
 			CL_ERR_NORET("build_cl_program_filecache (in drawq_run)", ret);
 
@@ -113,6 +143,7 @@ void drawq_run()
 			ret = create_cl_kernel(&fb->clctx, fb->clctx.program, &fb->clctx.kernel, "draw_queue_srgb_buf_kernel");
 			#endif
 			CL_ERR_NORET("create_cl_kernel (in drawq_run)", ret);
+			fb->drawq_run_init = 1;
 		}
 		if (fb->clctx.kernel==NULL)
 			return ;
@@ -129,6 +160,8 @@ void drawq_run()
 		{
 			#if 1
 			ret = clEnqueueAcquireGLObjects_wrap(fb->clctx.command_queue, 1,  &fb->cl_srgb, 0, NULL, NULL);	// get the ownership of cl_srgb
+			fb->cl_srgb_acquired = ret == CL_SUCCESS;
+			CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb->cl_srgb)", ret);
 			#else
 			ret = clEnqueueAcquireGLObjects(fb->clctx.command_queue, 1,  &fb->cl_srgb, 0, NULL, &ev);		// get the ownership of cl_srgb
 			CL_ERR_NORET("clEnqueueAcquireGLObjects (in drawq_run(), for fb->cl_srgb)", ret);
@@ -145,18 +178,9 @@ void drawq_run()
 	// Drawqueue-enqueue completion
 	if (fb->use_drawq && fb->use_dqnq)
 	{
-		//** Complete execution in the dqnq thread **
-
 	#ifndef RL_EXCL_THREADING
-		// Flag the dqnq thread to unblock this thread when it finishes processing all data
-		rl_atomic_store_i32(&fb->dqnq_end_wait_flag, 1);
-
-		// Unblock the dqnq thread if it's waiting
-		if (rl_atomic_get_and_set(&fb->dqnq_read_wait_flag, 0))
-			rl_sem_post(&fb->dqnq_read_sem);
-
-		// Wait for the dqnq thread to unblock this thread
-		rl_sem_wait(&fb->dqnq_end_sem);
+		// Complete execution in the draw queue enqueue thread
+		dqnq_finish();
 	#endif
 	}
 
@@ -177,6 +201,7 @@ void drawq_run()
 		clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &fb->clctx.start_time, NULL);
 		clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &fb->clctx.end_time, NULL);
 		clReleaseEvent_wrap(fb->clctx.ev);
+		fb->clctx.ev = NULL;
 		frame_timing_t *timing = &fb->timing[circ_index(fb->timing_index-1, fb->timing_count)];
 		timing->thread_start = timing->cl_enqueue_end;// + (double) (fb->clctx.start_time - fb->clctx.queue_time)*1e-9;
 		timing->thread_end = timing->cl_enqueue_end + (double) (fb->clctx.end_time-fb->clctx.queue_time)*1e-9;

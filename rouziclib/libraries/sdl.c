@@ -489,36 +489,295 @@ SDL_GLContext init_sdl_gl(SDL_Window *window)
 #endif
 #endif*/
 
-void sdl_graphics_init_from_handle(const void *window_handle, int flags)
+static uint32_t sdl_graphics_texture_format = SDL_PIXELFORMAT_ARGB8888;
+static int sdl_graphics_srgb_order = ORDER_BGRA;
+
+static void sdl_init()
 {
-	static int init=1;
-	SDL_DisplayMode dm;
+	static int initialised=0;
 
-	if (init)
-	{
-		init = 0;
+	if (initialised)
+		return;
+
+	// Initialise every SDL subsystem used by rouziclib once
+	initialised = 1;
 #if RL_SDL == 2
-		if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 #else
-		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 #endif
-			fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+		fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
 
-		#ifdef __EMSCRIPTEN__
-		em_mmb_capture();		// captures the mouse correctly on a middle-click
-		#endif
+	#ifdef __EMSCRIPTEN__
+	// Capture middle mouse button events correctly in the browser
+	em_mmb_capture();
+	#endif
+}
+
+static int sdl_graphics_mode_available(int mode)
+{
+	if (mode==0)
+		return 1;
+
+	// Check OpenCL availability for the hardware draw queue
+	if (mode==1)
+		return check_opencl();
+
+	// Check the instruction sets required by the software draw queue
+	if (mode==2)
+		return check_ssse3() && check_sse41();
+
+	return 0;
+}
+
+static int sdl_graphics_fallback_mode(int mode)
+{
+	return mode==1 ? 2 : 0;
+}
+
+static void sdl_graphics_set_maxdim()
+{
+	// Set the largest framebuffer allocation needed across all displays
+	fb->maxdim = sdl_screen_max_window_size();
+	if (fb->use_drawq==1)
+		fb->maxdim = and_xyi(add_xyi(fb->maxdim, set_xyi(31)), 0xFFFFFFE0);
+}
+
+static int sdl_graphics_create_renderer(int opengl)
+{
+	// Create the SDL renderer appropriate for the selected presentation path
+#if RL_SDL == 3
+	fb->renderer = SDL_CreateRenderer(fb->window, opengl ? "opengl" : NULL);
+	if (fb->renderer)
+		SDL_SetRenderVSync(fb->renderer, SDL_RENDERER_VSYNC_ADAPTIVE);
+#else
+	fb->renderer = SDL_CreateRenderer(fb->window, opengl ? get_sdl_opengl_renderer_index() : -1, SDL_RENDERER_PRESENTVSYNC);
+#endif
+
+	if (fb->renderer==NULL)
+	{
+		fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+		return 0;
 	}
 
-	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
+	return 1;
+}
 
+static int sdl_graphics_create_texture()
+{
+	// Create the streaming texture used by CPU and non-interop rendering
+	fb->texture = SDL_CreateTexture(fb->renderer, sdl_graphics_texture_format, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
+	if (fb->texture==NULL)
+	{
+		fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+		return 0;
+	}
+
+	return 1;
+}
+
+static int sdl_graphics_init_mode()
+{
+	int raster_mode = fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB;
+
+	// Initialise the presentation backend required by the selected mode
+	if (fb->use_drawq==1)
+	{
+		#ifdef RL_VULKAN
+		if (vk_init() != VK_SUCCESS)
+			return 0;
+		if (SDL_Vulkan_CreateSurface(fb->window, fb->vk.instance, &fb->vk.surface) == 0)
+		{
+			fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
+			return 0;
+		}
+		#elif defined(RL_OPENCL_GL)
+		fb->gl_ctx = init_sdl_gl(fb->window);
+		if (fb->gl_ctx==NULL || !sdl_graphics_create_renderer(1))
+			return 0;
+		#else
+		if (!sdl_graphics_create_renderer(0) || !sdl_graphics_create_texture())
+			return 0;
+		#endif
+
+		#ifdef RL_OPENCL
+		if (init_fb_cl() != CL_SUCCESS)
+			return 0;
+		#else
+		return 0;
+		#endif
+	}
+	else
+	{
+		if (!sdl_graphics_create_renderer(0) || !sdl_graphics_create_texture())
+			return 0;
+
+		// Allocate the direct framebuffer only for the non-drawqueue mode
+		if (fb->use_drawq==0)
+			fb->r = make_raster(NULL, XYI0, fb->maxdim, raster_mode);
+	}
+
+	// Allocate shared draw queue state after its backend is ready
+	if (fb->use_drawq)
+		drawq_alloc();
+
+	// Reset frame state for the newly initialised graphics mode
+	fb->srgb_order = sdl_graphics_srgb_order;
+	fb->r.dim = xyi(fb->w, fb->h);
+	fb->first_frame_done = 0;
+	fb->pixel_scale_oldframe = 0;
+	fb->tex_lock = 0;
+	return 1;
+}
+
+static void sdl_graphics_deinit_mode()
+{
+	int old_mode = fb->use_drawq;
+
+	// Stop mode-specific asynchronous work before releasing its destination
+	if (old_mode==2)
+		drawq_soft_quit();
+
+	#ifdef RL_OPENCL
+	if (old_mode==1)
+		deinit_fb_cl();
+	#endif
+
+	#ifdef RL_VULKAN
+	if (old_mode==1)
+		vk_deinit();
+	#endif
+
+	// Unlock a streaming texture after all writers have finished
+	if (fb->tex_lock && fb->texture)
+		SDL_UnlockTexture(fb->texture);
+	fb->tex_lock = 0;
+	if (old_mode!=0)
+		fb->r.srgb = NULL;
+
+	// Release shared draw queue allocations and threads
+	if (old_mode)
+		drawq_deinit();
+
+	// Release the direct framebuffer owned by mode zero
+	if (old_mode==0)
+		free_raster(&fb->r);
+
+	// Destroy SDL and OpenGL presentation resources while keeping the window
+	SDL_DestroyTexture(fb->texture);
+	SDL_DestroyRenderer(fb->renderer);
+	fb->texture = NULL;
+	fb->renderer = NULL;
+
+	#ifdef RL_OPENCL_GL
+	if (fb->gl_ctx)
+		SDL_GL_DeleteContext(fb->gl_ctx);
+	fb->gl_ctx = NULL;
+	#endif
+
+	// Reset frame state that cannot carry across graphics modes
+	fb->first_frame_done = 0;
+	fb->pixel_scale_oldframe = 0;
+}
+
+static int sdl_graphics_init_with_fallback(const char *caller)
+{
+	int use_frgb = fb->r.use_frgb;
+
+	// Try successively simpler modes until one initialises
+	while (fb->use_drawq >= 0 && fb->use_drawq <= 2)
+	{
+		if (!sdl_graphics_mode_available(fb->use_drawq))
+		{
+			fprintf_rl(stderr, "%s: draw queue mode %d is unavailable, falling back\n", caller, fb->use_drawq);
+			fb->use_drawq = sdl_graphics_fallback_mode(fb->use_drawq);
+			continue;
+		}
+
+		sdl_graphics_set_maxdim();
+		if (sdl_graphics_init_mode())
+			return 1;
+
+		fprintf_rl(stderr, "%s: draw queue mode %d failed to initialise, falling back\n", caller, fb->use_drawq);
+		sdl_graphics_deinit_mode();
+		fb->r.use_frgb = use_frgb;
+
+		if (fb->use_drawq==0)
+			return 0;
+		fb->use_drawq = sdl_graphics_fallback_mode(fb->use_drawq);
+	}
+
+	// Recover invalid startup values by trying direct rendering
+	fprintf_rl(stderr, "%s: invalid draw queue mode %d, using mode 0\n", caller, fb->use_drawq);
+	fb->use_drawq = 0;
+	sdl_graphics_set_maxdim();
+	return sdl_graphics_init_mode();
+}
+
+int sdl_graphics_set_drawq_mode(int mode)
+{
+	int old_mode, use_frgb;
+
+	// Reject invalid and unavailable modes without disturbing the current mode
+	if (mode < 0 || mode > 2)
+	{
+		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): invalid draw queue mode %d\n", mode);
+		return 0;
+	}
+	if (fb->window==NULL)
+	{
+		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): graphics have not been initialised\n");
+		return 0;
+	}
+	if (mode==fb->use_drawq)
+		return 1;
+	if (!sdl_graphics_mode_available(mode))
+	{
+		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): draw queue mode %d is unavailable\n", mode);
+		return 0;
+	}
+	// Save configuration needed to restore or initialise raster mode
+	old_mode = fb->use_drawq;
+	use_frgb = fb->r.use_frgb;
+
+	// Replace the current mode while preserving the SDL window
+	sdl_graphics_deinit_mode();
+	fb->use_drawq = mode;
+	fb->r.use_frgb = use_frgb;
+	sdl_graphics_set_maxdim();
+	if (sdl_graphics_init_mode())
+	{
+		SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
+		return 1;
+	}
+
+	// Tear down the partial target mode before restoring the previous mode
+	fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): draw queue mode %d failed to initialise, restoring mode %d\n", mode, old_mode);
+	sdl_graphics_deinit_mode();
+	fb->use_drawq = old_mode;
+	fb->r.use_frgb = use_frgb;
+	sdl_graphics_set_maxdim();
+	if (!sdl_graphics_init_mode())
+		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): failed to restore draw queue mode %d\n", old_mode);
+	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
+	return 0;
+}
+
+void sdl_graphics_init_from_handle(const void *window_handle, int flags)
+{
+	// Initialise SDL and shared graphics defaults
+	sdl_init();
+	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
 	if (fb->pixel_scale == 0)
 		fb->pixel_scale = 1;
+	sdl_graphics_texture_format = SDL_PIXELFORMAT_RGBA32;
+	sdl_graphics_srgb_order = ORDER_RGBA;
 
-	// Create window from handle
+	// Create a temporary window whose pixel format can be shared
 #if RL_SDL == 2
-	SDL_Window *temp_window = SDL_CreateWindow("", 0, 0, 1, 1, flags | SDL_WINDOW_HIDDEN);	// flags could be something like SDL_WINDOW_OPENGL
+	SDL_Window *temp_window = SDL_CreateWindow("", 0, 0, 1, 1, flags | SDL_WINDOW_HIDDEN);
 #else
-	SDL_Window *temp_window = SDL_CreateWindow("", 1, 1, flags | SDL_WINDOW_HIDDEN);	// flags could be something like SDL_WINDOW_OPENGL
+	SDL_Window *temp_window = SDL_CreateWindow("", 1, 1, flags | SDL_WINDOW_HIDDEN);
 #endif
 	char hint[32];
 	sprintf(hint, "%p", temp_window);
@@ -535,278 +794,105 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 #endif
 
 #if RL_SDL == 2
+	// Adopt the foreign window and release the temporary format donor
 	fb->window = SDL_CreateWindowFrom(window_handle);
 	if (fb->window==NULL)
+	{
 		fprintf_rl(stderr, "SDL_CreateWindowFrom failed: %s\n", SDL_GetError());
-
+		SDL_DestroyWindow(temp_window);
+		return;
+	}
 	SDL_SetHint(SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, NULL);
 	SDL_DestroyWindow(temp_window);
 
-	// Window dimensions
+	// Initialise the selected graphics mode for the adopted window
 	SDL_GetWindowSizeInPixels(fb->window, &fb->w, &fb->h);
-
-	// Set max dimension used for allocation
-	fb->maxdim = sdl_screen_max_window_size();
-	if (fb->use_drawq == 1)
-		fb->maxdim = and_xyi(add_xyi(fb->maxdim, set_xyi(31)), 0xFFFFFFE0);	// pad the dimensions for OpenCL due to work size rounding up
-
-	// Check that the requested mode can work
-	if (fb->use_drawq==1)
-	{
-		#ifndef RL_OPENCL
-		fb->use_drawq = 2;
-		#else
-		if (check_opencl()==0)
-			fprintf_rl(stderr, "In sdl_graphics_init_from_handle(): Cannot render using the OpenCL draw queue\n");
-		#endif
-	}
-
-	if (fb->use_drawq==2)
-		if (check_ssse3()==0 || check_sse41()==0)
-		{
-			fprintf_rl(stderr, "In sdl_graphics_init_from_handle(): Cannot render using the software draw queue on a CPU that lacks SSSE3 or SSE4.1. Go buy a new computer, this ancient wreck is unworthy of running my code.\n");
-			fb->use_drawq = 0;
-		}
-
-	// Renderer and texture
-	if (fb->use_drawq==1)
-	{
-		#ifdef RL_VULKAN
-		vk_init();
-
-		if (SDL_Vulkan_CreateSurface(fb->window, fb->vk.instance, &fb->vk.surface) == 0)
-			fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
-		#else
-		#ifdef RL_OPENCL_GL
-		fb->gl_ctx = init_sdl_gl(fb->window);
-		#if RL_SDL == 3
-		fb->renderer = SDL_CreateRenderer(fb->window, "opengl", SDL_RENDERER_PRESENTVSYNC);
-		#else
-		fb->renderer = SDL_CreateRenderer(fb->window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
-		#endif
-		if (fb->renderer==NULL)
-			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-		#endif
-		#endif
-	}
-	else
-	{
-		#if RL_SDL == 3
-		fb->renderer = SDL_CreateRenderer(fb->window, NULL, SDL_RENDERER_PRESENTVSYNC);
-		#else
-		fb->renderer = SDL_CreateRenderer(fb->window, -1, SDL_RENDERER_PRESENTVSYNC);
-		#endif
-		if (fb->renderer==NULL)
-			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-
-		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
-		if (fb->texture==NULL)
-			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
-
-		fb->srgb_order = ORDER_RGBA;
-
-		if (fb->use_drawq==0)
-			fb->r = make_raster(NULL, XYI0, fb->maxdim, fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB);
-		// fb->r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
-	}
-
-	if (fb->use_drawq)
-	{
-		#ifdef RL_OPENCL
-		if (fb->use_drawq==1)
-			init_fb_cl();
-		#endif
-
-		drawq_alloc();
-	}
-
+	if (!sdl_graphics_init_with_fallback("sdl_graphics_init_from_handle()"))
+		return;
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	fb->r.dim = xyi(fb->w, fb->h);
-
 	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
 
 	#ifdef __EMSCRIPTEN__
+	// Direct keyboard events to the Emscripten canvas
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#screen");
 	#endif
 #else
-	// TODO
+	// Leave foreign-window support disabled until its SDL 3 path is implemented
+	SDL_DestroyWindow(temp_window);
 #endif
 }
 
 void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags)
 {
-	static int init=1;
-	SDL_DisplayMode dm;
-
-	if (init)
-	{
-		init = 0;
-#if RL_SDL == 2
-		if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
-#else
-		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
-#endif
-			fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-
-		#ifdef __EMSCRIPTEN__
-		em_mmb_capture();		// captures the mouse correctly on a middle-click
-		#endif
-	}
-
+	// Initialise SDL and shared graphics defaults
+	sdl_init();
 	SDL_SetHint(SDL_HINT_MOUSE_DOUBLE_CLICK_RADIUS, "4");
-
-	/*// DPI awareness
-	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
-	#ifdef _WIN32
-	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
-	#endif*/
-
 	if (fb->pixel_scale == 0)
 		fb->pixel_scale = 1;
-
-	// Window
+	sdl_graphics_texture_format = SDL_PIXELFORMAT_ARGB8888;
+	sdl_graphics_srgb_order = ORDER_BGRA;
 	fb->w = dim.x;
 	fb->h = dim.y;
 
-	// Set max dimension used for allocation
-	fb->maxdim = sdl_screen_max_window_size();
-	if (fb->use_drawq == 1)
-		fb->maxdim = and_xyi(add_xyi(fb->maxdim, set_xyi(31)), 0xFFFFFFE0);	// pad the dimensions for OpenCL due to work size rounding up
+	// Select an available startup mode before sizing the initial window
+	if (fb->use_drawq < 0 || fb->use_drawq > 2)
+	{
+		fprintf_rl(stderr, "sdl_graphics_init_full(): invalid draw queue mode %d, using mode 0\n", fb->use_drawq);
+		fb->use_drawq = 0;
+	}
+	while (!sdl_graphics_mode_available(fb->use_drawq) && fb->use_drawq)
+	{
+		fprintf_rl(stderr, "sdl_graphics_init_full(): draw queue mode %d is unavailable, falling back\n", fb->use_drawq);
+		fb->use_drawq = sdl_graphics_fallback_mode(fb->use_drawq);
+	}
+	sdl_graphics_set_maxdim();
 
-	// FIXME SDL_WINDOW_MAXIMIZED flag should probably be dealt with because it doesn't work well with the maxdim initialisation
-
+	// Create a window compatible with every supported presentation backend
 #if RL_SDL == 3
-	fb->window = SDL_CreateWindow
-			( window_name,			// window title
-			  fb->w,			// width, in pixels
-			  fb->h,			// height, in pixels
+	fb->window = SDL_CreateWindow(window_name, fb->w, fb->h,
 		#ifdef RL_VULKAN
-			  SDL_WINDOW_VULKAN | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		SDL_WINDOW_VULKAN | flags
 		#else
-			  SDL_WINDOW_OPENGL | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		SDL_WINDOW_OPENGL | flags
 		#endif
-			);
+		);
 #else
-	fb->window = SDL_CreateWindow
-			( window_name,			// window title
-			  -fb->maxdim.x-100,		// initial x position
-			  SDL_WINDOWPOS_UNDEFINED,	// initial y position
-			  fb->maxdim.x,			// width, in pixels
-			  fb->maxdim.y,			// height, in pixels
+	fb->window = SDL_CreateWindow(window_name, -fb->maxdim.x-100, SDL_WINDOWPOS_UNDEFINED, fb->maxdim.x, fb->maxdim.y,
 		#ifdef RL_VULKAN
-			  SDL_WINDOW_VULKAN | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		SDL_WINDOW_VULKAN | flags
 		#else
-			  SDL_WINDOW_OPENGL | flags	// flags - see https://wiki.libsdl.org/SDL_CreateWindow
+		SDL_WINDOW_OPENGL | flags
 		#endif
-			);
+		);
 #endif
-
 	if (fb->window==NULL)
+	{
 		fprintf_rl(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-
-	// Check that the requested mode can work
-	if (fb->use_drawq==1)
-	{
-		#ifndef RL_OPENCL
-		fb->use_drawq = 2;
-		#else
-		if (check_opencl()==0)
-			fprintf_rl(stderr, "In sdl_graphics_init_full(): Cannot render using the OpenCL draw queue\n");
-		#endif
+		return;
 	}
 
-	if (fb->use_drawq==2)
-		if (check_ssse3()==0 || check_sse41()==0)
-		{
-			fprintf_rl(stderr, "In sdl_graphics_init_full(): Cannot render using the software draw queue on a CPU that lacks SSSE3 or SSE4.1. Go buy a new computer, this ancient wreck is unworthy of running my code.\n");
-			fb->use_drawq = 0;
-		}
+	// Initialise the selected graphics mode through the shared path
+	if (!sdl_graphics_init_with_fallback("sdl_graphics_init_full()"))
+		return;
 
-	// Renderer and texture
-	if (fb->use_drawq==1)
-	{
-		#ifdef RL_VULKAN
-		vk_init();
-
-		if (SDL_Vulkan_CreateSurface(fb->window, fb->vk.instance, &fb->vk.surface) == 0)
-			fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
-		#else
-		#ifdef RL_OPENCL_GL
-		fb->gl_ctx = init_sdl_gl(fb->window);
-		#if RL_SDL == 3
-		fb->renderer = SDL_CreateRenderer(fb->window, "opengl");
-		SDL_SetRenderVSync(fb->renderer, SDL_RENDERER_VSYNC_ADAPTIVE);
-		#else
-		fb->renderer = SDL_CreateRenderer(fb->window, get_sdl_opengl_renderer_index(), SDL_RENDERER_PRESENTVSYNC);
-		#endif
-		if (fb->renderer==NULL)
-			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-		#endif
-		#endif
-	}
-	else
-	{
-		#if RL_SDL == 3
-		fb->renderer = SDL_CreateRenderer(fb->window, NULL);
-		SDL_SetRenderVSync(fb->renderer, SDL_RENDERER_VSYNC_ADAPTIVE);
-		#else
-		fb->renderer = SDL_CreateRenderer(fb->window, -1, SDL_RENDERER_PRESENTVSYNC);
-		#endif
-		if (fb->renderer==NULL)
-			fprintf_rl(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-
-		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
-		if (fb->texture==NULL)
-			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
-
-		fb->srgb_order = ORDER_BGRA;
-
-		if (fb->use_drawq==0)
-			fb->r = make_raster(NULL, XYI0, fb->maxdim, fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB);
-		// fb->r.srgb doesn't need to be allocated if it points to the SDL surface thanks to SDL_LockTexture
-	}
-
-	if (fb->use_drawq)
-	{
-		#ifdef RL_OPENCL
-		if (fb->use_drawq==1)
-			init_fb_cl();
-		#endif
-
-		drawq_alloc();
-	}
-
-	#ifndef __APPLE__	// see https://bugzilla.libsdl.org/show_bug.cgi?id=4401
+	// Move and resize the oversized hidden initial window to its requested rectangle
+	#ifndef __APPLE__
 	SDL_SetWindowPosition(fb->window, pos.x, pos.y);
 	#endif
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
 	fb->r.dim = xyi(fb->w, fb->h);
-
 	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
 
 #if RL_SDL == 3
+	// Enable text input for the newly created SDL 3 window
 	SDL_StartTextInput(fb->window);
 #endif
 
-	// focus flags, useless since SDL_WINDOW_INPUT_FOCUS is always on when it shouldn't be
-/*	mouse.mouse_focus_flag = 1;
-	mouse.window_focus_flag = 1;
-	mouse.window_minimised_flag = -1;
-
-	if ((SDL_GetWindowFlags(fb->window) & SDL_WINDOW_MOUSE_FOCUS)==0)
-		mouse.mouse_focus_flag = -1;
-
-	if ((SDL_GetWindowFlags(fb->window) & SDL_WINDOW_INPUT_FOCUS)==0)
-		mouse.window_focus_flag = -1;
-
-	if (SDL_GetWindowFlags(fb->window) & SDL_WINDOW_MINIMIZED)
-		mouse.window_minimised_flag = 1;
-
-	fprintf_rl(stdout, "mouse %d focus %d minimised %d\n", mouse.mouse_focus_flag, mouse.window_focus_flag, mouse.window_minimised_flag);*/
-
 	#ifdef __EMSCRIPTEN__
+	// Direct keyboard events to the Emscripten canvas
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#screen");
 	#endif
 }
@@ -815,13 +901,8 @@ void sdl_graphics_init_autosize(const char *window_name, int flags, int window_i
 {
 	recti_t r;
 
-#if RL_SDL==2
-	if (SDL_Init(SDL_INIT_VIDEO))
-#else
-	if (!SDL_Init(SDL_INIT_VIDEO))
-#endif
-		fprintf_rl(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-
+	// Initialise SDL before querying display geometry
+	sdl_init();
 	r = sdl_get_display_usable_rect(window_index);
 	r = recti_add_margin(r, xyi(-8, -16));
 	r.p0.y += 14;
@@ -878,7 +959,7 @@ int sdl_handle_window_resize(zoom_t *zc)
 
 		SDL_DestroyTexture(fb->texture);
 
-		fb->texture = SDL_CreateTexture(fb->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
+		fb->texture = SDL_CreateTexture(fb->renderer, sdl_graphics_texture_format, SDL_TEXTUREACCESS_STREAMING, fb->w, fb->h);
 		if (fb->texture==NULL)
 			fprintf_rl(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
 
@@ -908,10 +989,11 @@ void sdl_flip_fb()
 		{
 			cl_int ret=0;
 			#ifdef RL_OPENCL_GL
-			if (fb->opt_interop)
+			if (fb->opt_interop && fb->cl_srgb_acquired)
 			{
 				ret = clEnqueueReleaseGLObjects_wrap(fb->clctx.command_queue, 1, &fb->cl_srgb, 0, 0, NULL);		// release the ownership (back to GL)
 				CL_ERR_NORET("clEnqueueReleaseGLObjects in sdl_flip_fb()", ret);
+				fb->cl_srgb_acquired = 0;
 			}
 			#endif
 
@@ -1089,19 +1171,12 @@ int sdl_toggle_borderless_fullscreen()
 
 void sdl_quit_actions()
 {
-	#ifdef RL_OPENCL
-	if (fb->use_drawq==1)
-		deinit_clctx(&fb->clctx, 1);
-	#endif
+	// Release the active graphics mode through the shared teardown path
+	sdl_graphics_deinit_mode();
 
-	if (fb->use_drawq==2)
-		drawq_soft_quit();
-
-	#ifdef RL_OPENCL_GL
-	SDL_GL_DeleteContext(fb->gl_ctx);
-	#endif
-	SDL_DestroyRenderer(fb->renderer);
+	// Destroy the retained window and shut down SDL
 	SDL_DestroyWindow(fb->window);
+	fb->window = NULL;
 	SDL_Quit();
 }
 
