@@ -10,7 +10,7 @@ void draw_rect_full_dq(rect_t box, double radius, frgb_t colour, double intensit
 	if (intensity==0.)
 		return ;
 
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = Â±4
 
 	if (drawq_get_bounding_box(box, set_xy(grad), &bbi)==0)
 			return ;
@@ -83,7 +83,7 @@ void draw_rect_full_lrgb(rect_t box, double radius, lrgb_t colour, const blend_f
 		return;
 
 	// Shrink box to fit in a maximum size and check if it's entirely off-screen
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±3
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = Â±3
 	box = rect_intersection(box, rect_add_margin(recti_to_rect(screen_box), set_xy(grad+1.)));
 	if (isnan(box.p0.x))
 		return;
@@ -275,7 +275,7 @@ void draw_black_rect_dq(rect_t box, double radius, double intensity)
 	xyi_t ip;
 	recti_t bbi;
 
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = Â±4
 
 	if (drawq_get_bounding_box(box, set_xy(grad), &bbi)==0)
 			return ;
@@ -348,7 +348,7 @@ void draw_black_rect_inverted_dq(rect_t box, double radius, double intensity)
 	xyi_t ip;
 	recti_t bbi;
 
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = Â±4
 
 	drawq_get_inner_box(box, set_xy(grad), &bbi);
 
@@ -396,6 +396,172 @@ void draw_black_rect_inverted_dqnq(rect_t box, double radius, double intensity)
 #endif	// RL_FREESTANDING
 }
 
+static int32_t draw_black_rect_inverted_axis_weight_direct(int32_t p, double p0, double p1, int32_t p0f, int32_t p1f, int32_t iradf, int hard_edge)
+{
+	int32_t pf, d0, d1, weight;
+	const int32_t fp = 16;
+
+	// Use an exact binary mask when no soft radius was requested
+	if (hard_edge)
+		return p >= p0 && p <= p1 ? 32768 : 0;
+
+	// Evaluate the same fixed-point error-function rectangle profile as direct filled rectangles
+	pf = p << fp;
+	d0 = (int64_t) (pf - p0f) * iradf >> fp;
+	d1 = (int64_t) (pf - p1f) * iradf >> fp;
+	weight = (fperfr_d0(d0) - fperfr_d0(d1)) >> 15;
+	return rangelimit(weight, 0, 32768);
+}
+
+static int draw_black_rect_inverted_weights_direct(rect_t box, double radius, int32_t **x_weightp, recti_t *rfpp, int32_t *iradfp, int *hard_edgep, int *x0p, int *x1p)
+{
+	int32_t *x_weight;
+	int32_t iradf=0;
+	int x, x0=fb->w, x1=-1, hard_edge;
+	const int32_t fp = 16;
+	const double fpratio = (double) (1 << fp);
+
+	// Reject invalid rectangles before allocating temporary weights
+	box = sort_rect(box);
+	if (isnan(box.p0.x) || isnan(box.p0.y) || isnan(box.p1.x) || isnan(box.p1.y))
+		return 0;
+
+	// Allocate one row of horizontal mask weights
+	x_weight = malloc((size_t) fb->w * sizeof(*x_weight));
+	if (x_weight==NULL)
+	{
+		fprintf_rl(stderr, "Direct inverted rectangle could not allocate %d mask weights\n", fb->w);
+		return 0;
+	}
+
+	// Prepare fixed-point bounds and the optional soft-edge reciprocal radius
+	hard_edge = radius <= 0.;
+	*rfpp = rect_to_recti_fixedpoint(box, fpratio);
+	if (!hard_edge)
+	{
+		if (!isfinite(radius))
+		{
+			free(x_weight);
+			return 0;
+		}
+		iradf = roundaway((1. / radius) * fpratio);
+	}
+
+	// Cache horizontal weights and their nonzero span for the common full mask
+	for (x=0; x < fb->w; x++)
+	{
+		x_weight[x] = draw_black_rect_inverted_axis_weight_direct(x, box.p0.x, box.p1.x, rfpp->p0.x, rfpp->p1.x, iradf, hard_edge);
+		if (x_weight[x])
+		{
+			x0 = MINN(x0, x);
+			x1 = MAXN(x1, x);
+		}
+	}
+
+	// Return the prepared mask state to the pixel-format-specific multiplier
+	*x_weightp = x_weight;
+	*iradfp = iradf;
+	*hard_edgep = hard_edge;
+	*x0p = x0;
+	*x1p = x1;
+	return 1;
+}
+
+static void draw_black_rect_inverted_lrgb(rect_t box, double radius, double intensity)
+{
+	int32_t *x_weight, y_weight, coverage, mask, iradf;
+	int x, y, ic, x0, x1, hard_edge, ratio;
+	recti_t rfp;
+	lrgb_t *row;
+	uint16_t *channel;
+
+	// Prepare the separable rectangle mask shared by all rows
+	box = sort_rect(box);
+	if (!draw_black_rect_inverted_weights_direct(box, radius, &x_weight, &rfp, &iradf, &hard_edge, &x0, &x1))
+		return;
+	ratio = rangelimit(intensity, 0., 1.) * 32768. + 0.5;
+
+	// Multiply every LRGB and alpha channel by the inverted-black rectangle mask
+	for (y=0; y < fb->h; y++)
+	{
+		row = &fb->r.l[(size_t) y * fb->w];
+		y_weight = draw_black_rect_inverted_axis_weight_direct(y, box.p0.y, box.p1.y, rfp.p0.y, rfp.p1.y, iradf, hard_edge);
+
+		if (ratio==32768 && (y_weight==0 || x1 < x0))
+		{
+			memset(row, 0, (size_t) fb->w * sizeof(*row));
+			continue;
+		}
+		if (ratio==32768)
+		{
+			memset(row, 0, (size_t) x0 * sizeof(*row));
+			memset(&row[x1+1], 0, (size_t) (fb->w-x1-1) * sizeof(*row));
+		}
+
+		for (x = ratio==32768 ? x0 : 0; x < (ratio==32768 ? x1+1 : fb->w); x++)
+		{
+			coverage = (int64_t) x_weight[x] * y_weight >> 15;
+			mask = ((int64_t) coverage * ratio >> 15) + (32768 - ratio);
+			if (mask==32768)
+				continue;
+
+			channel = (uint16_t *) &row[x];
+			for (ic=0; ic < 4; ic++)
+				channel[ic] = ((uint32_t) channel[ic] * mask + 16384) >> 15;
+		}
+	}
+
+	free(x_weight);
+}
+
+static void draw_black_rect_inverted_frgb(rect_t box, double radius, double intensity)
+{
+	int32_t *x_weight, y_weight, iradf;
+	int x, y, ic, x0, x1, hard_edge, ratio;
+	float coverage, mask, mask_intensity, *channel;
+	recti_t rfp;
+	frgb_t *row;
+
+	// Prepare the separable rectangle mask shared by all rows
+	box = sort_rect(box);
+	if (!draw_black_rect_inverted_weights_direct(box, radius, &x_weight, &rfp, &iradf, &hard_edge, &x0, &x1))
+		return;
+	ratio = rangelimit(intensity, 0., 1.) * 32768. + 0.5;
+	mask_intensity = (float) ratio * (1.f / 32768.f);
+
+	// Multiply every floating-point colour and alpha channel by the rectangle mask
+	for (y=0; y < fb->h; y++)
+	{
+		row = &fb->r.f[(size_t) y * fb->w];
+		y_weight = draw_black_rect_inverted_axis_weight_direct(y, box.p0.y, box.p1.y, rfp.p0.y, rfp.p1.y, iradf, hard_edge);
+
+		if (ratio==32768 && (y_weight==0 || x1 < x0))
+		{
+			memset(row, 0, (size_t) fb->w * sizeof(*row));
+			continue;
+		}
+		if (ratio==32768)
+		{
+			memset(row, 0, (size_t) x0 * sizeof(*row));
+			memset(&row[x1+1], 0, (size_t) (fb->w-x1-1) * sizeof(*row));
+		}
+
+		for (x = ratio==32768 ? x0 : 0; x < (ratio==32768 ? x1+1 : fb->w); x++)
+		{
+			coverage = (float) ((int64_t) x_weight[x] * y_weight >> 15) * (1.f / 32768.f);
+			mask = coverage * mask_intensity + (1.f - mask_intensity);
+			if (mask==1.f)
+				continue;
+
+			channel = (float *) &row[x];
+			for (ic=0; ic < 4; ic++)
+				channel[ic] *= mask;
+		}
+	}
+
+	free(x_weight);
+}
+
 void draw_black_rect_inverted(rect_t box, double radius, double intensity)
 {
 	if (fb->discard)
@@ -408,5 +574,8 @@ void draw_black_rect_inverted(rect_t box, double radius, double intensity)
 			draw_black_rect_inverted_dqnq(box, radius, intensity);
 		else
 			draw_black_rect_inverted_dq(box, radius, intensity);
-	// TODO lrgb version
+	else if (fb->r.use_frgb)
+		draw_black_rect_inverted_frgb(box, radius, intensity);
+	else
+		draw_black_rect_inverted_lrgb(box, radius, intensity);
 }

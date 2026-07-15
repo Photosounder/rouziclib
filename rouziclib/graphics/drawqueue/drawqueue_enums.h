@@ -39,6 +39,8 @@ enum dq_type	// entry types
 	DQT_TEST1,
 };
 
+#ifndef RL_DQ_BLEND_ENUM_DEFINED
+#define RL_DQ_BLEND_ENUM_DEFINED
 enum dq_blend	// blending modes
 {
 	DQB_ADD,
@@ -48,3 +50,4 @@ enum dq_blend	// blending modes
 	DQB_BLEND,
 	DQB_SOLID,
 };
+#endif

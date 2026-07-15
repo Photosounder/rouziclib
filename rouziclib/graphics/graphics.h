@@ -27,7 +27,7 @@
 #define GAUSSRAD_HQ	4.
 #endif
 
-// solves e^-x² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002 with a radius of 1
+// solves e^-xÂ² = GAUSSLIMIT for x, giving 2.92 (the necessary Gaussian radius) for GAUSSLIMIT of 0.0002 with a radius of 1
 #define GAUSSRAD gaussrad	// this is much faster
 
 extern double gaussrad(double intensity, double radius);
@@ -45,6 +45,9 @@ extern size_t get_raster_buffer_size(raster_t r);
 extern srgb_t get_raster_pixel_in_srgb(raster_t r, const size_t index);
 extern frgb_t get_raster_pixel_in_frgb(raster_t r, const size_t index);
 extern frgb_t get_raster_pixel_in_frgb_xyi(raster_t r, xyi_t p);
+extern void drawq_bracket_open();
+extern void drawq_bracket_close(enum dq_blend blending_mode);
+extern void drawq_bracket_deinit_direct();
 extern void free_raster(raster_t *r);
 extern void cl_unref_raster(raster_t *r);
 extern framebuffer_t *init_framebuffer(xyi_t dim, xyi_t maxdim, const int mode);

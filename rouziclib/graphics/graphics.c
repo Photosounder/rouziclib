@@ -249,6 +249,10 @@ void free_raster(raster_t *r)
 {
 	void **ptr;
 
+	// Release framebuffer-owned direct bracket layers before their base raster
+	if (fb && r == &fb->r)
+		drawq_bracket_deinit_direct();
+
 	ptr = get_raster_buffer_ptr(r);
 
 	while (ptr)	// free every possible buffer
@@ -263,6 +267,259 @@ void free_raster(raster_t *r)
 	}
 
 	memset(r, 0, sizeof(raster_t));
+}
+
+static lrgb_t drawq_bracket_blend_lrgb(lrgb_t bg, lrgb_t fg, enum dq_blend blending_mode)
+{
+	uint16_t *b = (uint16_t *) &bg;
+	uint16_t *f = (uint16_t *) &fg;
+	uint32_t v;
+	int i;
+
+	// Apply the requested bracket operation to every colour and alpha channel
+	for (i=0; i < 4; i++)
+	{
+		switch (blending_mode)
+		{
+			case DQB_ADD:
+				v = (uint32_t) b[i] + f[i];
+				b[i] = MINN(v, ONE);
+				break;
+
+			case DQB_SUB:
+				b[i] = b[i] > f[i] ? b[i] - f[i] : 0;
+				break;
+
+			case DQB_MUL:
+				b[i] = ((uint32_t) b[i] * f[i] + (ONE >> 1)) >> LBD;
+				break;
+
+			case DQB_DIV:
+				if (f[i])
+					b[i] = MINN(((uint32_t) b[i] << LBD) / f[i], ONE);
+				else
+					b[i] = b[i] ? ONE : 0;
+				break;
+
+			case DQB_BLEND:
+				v = (uint32_t) f[i] * fg.a + (uint32_t) b[i] * (ONE - fg.a);
+				b[i] = (v + (ONE >> 1)) >> LBD;
+				break;
+
+			case DQB_SOLID:
+				b[i] = f[i];
+				break;
+		}
+	}
+
+	return bg;
+}
+
+static frgb_t drawq_bracket_blend_frgb(frgb_t bg, frgb_t fg, enum dq_blend blending_mode)
+{
+	float *b = (float *) &bg;
+	float *f = (float *) &fg;
+	int i;
+
+	// Apply the requested bracket operation to every colour and alpha channel
+	for (i=0; i < 4; i++)
+	{
+		switch (blending_mode)
+		{
+			case DQB_ADD:		b[i] += f[i];					break;
+			case DQB_SUB:		b[i] -= f[i];					break;
+			case DQB_MUL:		b[i] *= f[i];					break;
+			case DQB_DIV:		b[i] /= f[i];					break;
+			case DQB_BLEND:	b[i] = f[i] * fg.a + b[i] * (1.f - fg.a);	break;
+			case DQB_SOLID:	b[i] = f[i];					break;
+		}
+	}
+
+	return bg;
+}
+
+static void drawq_bracket_open_direct()
+{
+	raster_t *layer;
+	void **active_ptr;
+	void *layer_buffer;
+	size_t pixel_count;
+	int level, mode;
+
+	if (fb->discard)
+		return;
+
+	// Suppress overflowing nested brackets without closing a valid parent level
+	if (fb->drawq_direct_bracket_overflow || fb->drawq_direct_bracket_depth >= DRAWQ_DIRECT_BRACKET_LEVELS)
+	{
+		if (fb->drawq_direct_bracket_overflow++ == 0)
+			fprintf_rl(stderr, "Direct bracket nesting exceeds %d levels\n", DRAWQ_DIRECT_BRACKET_LEVELS);
+		return;
+	}
+
+	// Select the direct framebuffer buffer independently of transient SDL texture memory
+	mode = fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB;
+	active_ptr = get_raster_buffer_for_mode_ptr(&fb->r, mode);
+	if (active_ptr==NULL || *active_ptr==NULL)
+	{
+		fprintf_rl(stderr, "Direct bracket cannot open without a framebuffer\n");
+		fb->drawq_direct_bracket_overflow++;
+		return;
+	}
+
+	// Lazily allocate a reusable zeroed layer for this nesting level
+	level = fb->drawq_direct_bracket_depth;
+	layer = &fb->drawq_direct_bracket_layer[level];
+	pixel_count = mul_x_by_y_xyi(fb->r.dim);
+	if (get_raster_mode(*layer) != mode || layer->as < pixel_count)
+	{
+		free_raster(layer);
+		*layer = make_raster(NULL, fb->r.dim, fb->r.dim, mode);
+	}
+	else
+		layer->dim = fb->r.dim;
+
+	// Keep the matching close harmless if layer allocation failed
+	layer_buffer = get_raster_buffer_for_mode(*layer, mode);
+	if (layer_buffer==NULL)
+	{
+		fprintf_rl(stderr, "Direct bracket layer allocation failed for %zu pixels\n", pixel_count);
+		fb->drawq_direct_bracket_overflow++;
+		return;
+	}
+
+	// Save the parent and redirect every immediate drawing primitive to the child layer
+	fb->drawq_direct_bracket_parent[level] = *active_ptr;
+	*active_ptr = layer_buffer;
+	fb->drawq_direct_bracket_depth++;
+}
+
+static void drawq_bracket_close_direct(enum dq_blend blending_mode)
+{
+	void **active_ptr;
+	void *child, *parent;
+	size_t i, pixel_count;
+	int level, mode;
+
+	if (fb->discard)
+		return;
+
+	// Consume a close belonging to an open that was suppressed after overflow
+	if (fb->drawq_direct_bracket_overflow)
+	{
+		fb->drawq_direct_bracket_overflow--;
+		return;
+	}
+
+	// Reject unmatched closes without changing the active framebuffer
+	if (fb->drawq_direct_bracket_depth <= 0)
+	{
+		fprintf_rl(stderr, "Direct bracket close has no matching open\n");
+		return;
+	}
+
+	// Recover invalid blend values as additive brackets
+	if (blending_mode < DQB_ADD || blending_mode > DQB_SOLID)
+	{
+		fprintf_rl(stderr, "Invalid direct bracket blend mode %d, using DQB_ADD\n", blending_mode);
+		blending_mode = DQB_ADD;
+	}
+
+	// Restore the parent before compositing the completed child layer
+	mode = fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB;
+	active_ptr = get_raster_buffer_for_mode_ptr(&fb->r, mode);
+	level = --fb->drawq_direct_bracket_depth;
+	child = *active_ptr;
+	parent = fb->drawq_direct_bracket_parent[level];
+	*active_ptr = parent;
+	fb->drawq_direct_bracket_parent[level] = NULL;
+	pixel_count = mul_x_by_y_xyi(fb->r.dim);
+
+	// Composite and clear in one pass so the retained layer is ready for reuse
+	if (mode==IMAGE_USE_FRGB)
+	{
+		frgb_t *parent_f = parent;
+		frgb_t *child_f = child;
+
+		for (i=0; i < pixel_count; i++)
+		{
+			parent_f[i] = drawq_bracket_blend_frgb(parent_f[i], child_f[i], blending_mode);
+			child_f[i] = (frgb_t) {0};
+		}
+	}
+	else
+	{
+		lrgb_t *parent_l = parent;
+		lrgb_t *child_l = child;
+
+		for (i=0; i < pixel_count; i++)
+		{
+			parent_l[i] = drawq_bracket_blend_lrgb(parent_l[i], child_l[i], blending_mode);
+			child_l[i] = (lrgb_t) {0};
+		}
+	}
+}
+
+void drawq_bracket_deinit_direct()
+{
+	void **active_ptr;
+	int i, mode;
+
+	if (fb==NULL)
+		return;
+
+	// Restore the base framebuffer if teardown catches unmatched bracket opens
+	mode = fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB;
+	active_ptr = get_raster_buffer_for_mode_ptr(&fb->r, mode);
+	if (fb->drawq_direct_bracket_depth || fb->drawq_direct_bracket_overflow)
+		fprintf_rl(stderr, "Discarding %d open and %d suppressed brackets while resetting direct bracket state\n", fb->drawq_direct_bracket_depth, fb->drawq_direct_bracket_overflow);
+	while (fb->drawq_direct_bracket_depth > 0)
+	{
+		fb->drawq_direct_bracket_depth--;
+		*active_ptr = fb->drawq_direct_bracket_parent[fb->drawq_direct_bracket_depth];
+		fb->drawq_direct_bracket_parent[fb->drawq_direct_bracket_depth] = NULL;
+	}
+	fb->drawq_direct_bracket_overflow = 0;
+
+	// Release every lazily allocated child layer
+	for (i=0; i < DRAWQ_DIRECT_BRACKET_LEVELS; i++)
+		free_raster(&fb->drawq_direct_bracket_layer[i]);
+}
+
+void drawq_bracket_open()
+{
+	// Execute direct brackets immediately on their reusable raster stack
+	if (fb->use_drawq==0)
+	{
+		drawq_bracket_open_direct();
+		return;
+	}
+
+	#ifndef RL_FREESTANDING
+	// Route queued brackets to the selected queue implementation
+	if (fb->use_dqnq)
+		drawq_bracket_open_dqnq();
+	else
+		drawq_bracket_open_dq();
+	#endif
+}
+
+void drawq_bracket_close(enum dq_blend blending_mode)
+{
+	// Execute direct bracket compositing immediately
+	if (fb->use_drawq==0)
+	{
+		drawq_bracket_close_direct(blending_mode);
+		return;
+	}
+
+	#ifndef RL_FREESTANDING
+	// Route queued brackets to the selected queue implementation
+	if (fb->use_dqnq)
+		drawq_bracket_close_dqnq(blending_mode);
+	else
+		drawq_bracket_close_dq(blending_mode);
+	#endif
 }
 
 void cl_unref_raster(raster_t *r)

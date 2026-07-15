@@ -561,6 +561,7 @@ void drawq_remove_prev_entry_for_sector(int32_t sector_id, int bracket_search, x
 	fprintf_rl(stderr, "Entry to remove for sector_id %d not found in drawq_remove_prev_entry_for_sector()\n", sector_id);
 }
 
+
 void drawq_bracket_open_dq()
 {
 	int sector_id;
@@ -647,20 +648,4 @@ void drawq_bracket_close_dqnq(enum dq_blend blending_mode)
 	write_LE32(&p, blending_mode);
 
 	dqnq_finish_entry(type);
-}
-
-void drawq_bracket_open()
-{
-	if (fb->use_dqnq)
-		drawq_bracket_open_dqnq();
-	else
-		drawq_bracket_open_dq();
-}
-
-void drawq_bracket_close(enum dq_blend blending_mode)	// blending modes are listed in drawqueue_enums.h
-{
-	if (fb->use_dqnq)
-		drawq_bracket_close_dqnq(blending_mode);
-	else
-		drawq_bracket_close_dq(blending_mode);
 }

@@ -87,6 +87,22 @@ typedef struct
 	double thread_start, thread_end;
 } frame_timing_t;
 
+// Bracket compositing modes shared by direct and queued rendering
+#ifndef RL_DQ_BLEND_ENUM_DEFINED
+#define RL_DQ_BLEND_ENUM_DEFINED
+enum dq_blend
+{
+	DQB_ADD,
+	DQB_SUB,
+	DQB_MUL,
+	DQB_DIV,
+	DQB_BLEND,
+	DQB_SOLID,
+};
+#endif
+
+#define DRAWQ_DIRECT_BRACKET_LEVELS 4
+
 typedef struct
 {
 	raster_t r;
@@ -113,6 +129,11 @@ typedef struct
 	frame_timing_t *timing;
 	size_t timing_as, timing_count, timing_index;
 	double start_sleep_dur;
+
+	// Direct-mode bracket layers
+	raster_t drawq_direct_bracket_layer[DRAWQ_DIRECT_BRACKET_LEVELS];
+	void *drawq_direct_bracket_parent[DRAWQ_DIRECT_BRACKET_LEVELS];
+	int drawq_direct_bracket_depth, drawq_direct_bracket_overflow;
 
 	// Draw queue data
 	uint8_t *data;			// local version of data_cl (but doesn't mirror the draw queue data)

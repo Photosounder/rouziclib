@@ -660,7 +660,7 @@ static void sdl_graphics_deinit_mode()
 	if (old_mode)
 		drawq_deinit();
 
-	// Release the direct framebuffer owned by mode zero
+	// Release the framebuffer owned by direct rendering
 	if (old_mode==0)
 		free_raster(&fb->r);
 
@@ -919,6 +919,10 @@ int sdl_handle_window_resize(zoom_t *zc)
 	if (fb->w == w && fb->h == h && fb->pixel_scale == fb->pixel_scale_new)
 		return 0;
 
+	// Restore the base direct framebuffer before changing dimensions
+	if (fb->use_drawq==0 && (fb->drawq_direct_bracket_depth || fb->drawq_direct_bracket_overflow))
+		drawq_bracket_deinit_direct();
+
 	// Finish drawqueue processing
 	#ifdef RL_OPENCL_GL
 	if (fb->use_drawq==1)
@@ -1078,6 +1082,10 @@ static void sdl_flip_fb_internal(int start_drawq)
 	}
 	else
 	{
+		// Recover unbalanced direct brackets before converting the base framebuffer
+		if (fb->drawq_direct_bracket_depth || fb->drawq_direct_bracket_overflow)
+			drawq_bracket_deinit_direct();
+
 		// Blits framebuffer to screen
 		int pitch;
 		SDL_Rect rs;

@@ -79,7 +79,7 @@ void draw_circle_dq(const int circlemode, xy_t pos, double circrad, double radiu
 	if (intensity==0.)
 		return ;
 
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = Â±4
 
 	// calculate the bounding box
 	bb.p0 = ceil_xy(sub_xy(pos, set_xy(grad+circrad)));
@@ -200,7 +200,7 @@ void draw_black_circle_dq(xy_t pos, double circrad, double radius, double intens
 	if (intensity==0.)
 		return ;
 
-	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = ±4
+	grad = GAUSSRAD_HQ * radius;		// erfr and gaussian can go up to x = Â±4
 
 	// calculate the bounding box
 	bb.p0 = ceil_xy(sub_xy(pos, set_xy(grad+circrad)));
@@ -546,7 +546,7 @@ void draw_point_dq(xy_t pos, double radius, frgb_t colour, double intensity)
 	float *df;
 	recti_t bb;
 
-	grad = GAUSSRAD_HQ * radius;		// gaussian will go to x = ±4, radially
+	grad = GAUSSRAD_HQ * radius;		// gaussian will go to x = Â±4, radially
 
 	if (pos.x + grad < 0.)			return ;
 	if (pos.y + grad < 0.)			return ;
@@ -687,8 +687,6 @@ void draw_triangle_thin(triangle_t tr, double drawing_thickness, col_t col, cons
 
 
 #ifdef RL_FREESTANDING
-#define drawq_bracket_open() ((void)0)
-#define drawq_bracket_close(x) ((void)0)
 #define draw_clamp(); ((void)0)
 #endif	// RL_FREESTANDING
 

@@ -21,5 +21,5 @@ extern void drawq_remove_prev_entry_for_sector(int32_t sector_id, int bracket_se
 
 extern void drawq_bracket_open_dq();
 extern void drawq_bracket_close_dq(enum dq_blend blending_mode);
-extern void drawq_bracket_open();
-extern void drawq_bracket_close(enum dq_blend blending_mode);
+extern void drawq_bracket_open_dqnq();
+extern void drawq_bracket_close_dqnq(enum dq_blend blending_mode);
