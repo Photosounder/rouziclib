@@ -5,7 +5,12 @@ void cl_copy_buffer_to_device(void *buffer, size_t offset, size_t size)
 
 	if (fb->use_drawq==1 && fb->discard==0)
 	{
-		#ifdef RL_OPENCL
+		#ifdef RL_VULKAN
+		// Accumulate Vulkan uploads until the next command buffer is recorded
+		(void) buffer;
+		vk_mark_data_dirty(offset, size);
+		#elif defined(RL_OPENCL)
+		// Enqueue an immediate copy for the OpenCL hardware backend
 		cl_int ret = clEnqueueWriteBuffer_wrap(fb->clctx.command_queue, fb->data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
 		CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device(), for fb->data_cl)", ret);
 		#endif
@@ -29,7 +34,12 @@ void data_cl_alloc(int mb)
 	fb->data_cl_as = mb * 1024*1024;
 	fb->data = calloc(fb->data_cl_as, 1);
 
-	#ifdef RL_OPENCL
+	#ifdef RL_VULKAN
+	// Allocate the Vulkan device-local resource arena selected by mode 1
+	if (fb->use_drawq==1 && !vk_data_buffer_resize(fb->data_cl_as))
+		fprintf_rl(stderr, "vk_data_buffer_resize() failed in data_cl_alloc()\n");
+	#elif defined(RL_OPENCL)
+	// Allocate the OpenCL resource arena selected by mode 1
 	if (fb->use_drawq==1)
 	{
 		cl_int ret;
@@ -48,7 +58,7 @@ void data_cl_realloc(ssize_t buffer_size)
 	size_t orig_as, new_as;
 
 	// Free device buffer
-	#ifdef RL_OPENCL
+	#if defined(RL_OPENCL) && !defined(RL_VULKAN)
 	cl_int ret;
 	if (fb->use_drawq==1)
 	{
@@ -72,6 +82,10 @@ void data_cl_realloc(ssize_t buffer_size)
 	// Only free the device buffer if requested size is negative
 	if (buffer_size < 0)
 	{
+		#ifdef RL_VULKAN
+		// Release Vulkan device memory while a minimised draw queue is suspended
+		vk_data_buffer_free();
+		#endif
 		#ifdef RL_OPENCL
 		memset(&fb->data_cl, 0, sizeof(cl_mem));
 		#endif
@@ -91,7 +105,19 @@ void data_cl_realloc(ssize_t buffer_size)
 	// Allocate the CL buffer and shrink it if needed
 	if (fb->use_drawq==1)
 	{
-		#ifdef RL_OPENCL
+		#ifdef RL_VULKAN
+		// Grow the Vulkan arena, reducing the request if device allocation fails
+		while (!vk_data_buffer_resize(new_as))
+		{
+			if (new_as <= (8 << 20))
+			{
+				fprintf_rl(stderr, "Unable to resize the Vulkan draw resource buffer\n");
+				return;
+			}
+			new_as -= 8 << 20;
+		}
+		#elif defined(RL_OPENCL)
+		// Grow the OpenCL arena with the existing allocation fallback
 		do
 		{
 			fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, new_as, NULL, &ret);

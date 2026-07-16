@@ -26,7 +26,6 @@ typedef struct
 	VkFence fence;
 	VkSemaphore image_available;
 	VkSemaphore render_finished;
-	VkQueryPool timestamp_pool;
 	VkImage output_image;
 	VkDeviceMemory output_memory;
 	VkImageView output_view;
@@ -36,8 +35,6 @@ typedef struct
 	vk_buffer_t sector_pos;
 	vk_buffer_t entry_list;
 	int output_layout_initialised;
-	int timestamp_results_pending;
-	size_t timing_index;
 } vk_frame_t;
 
 typedef struct
@@ -54,9 +51,8 @@ typedef struct
 	VkFormat swapchain_format;
 	VkExtent2D swapchain_extent;
 	VkImage *swapchain_images;
+	VkFence *swapchain_image_fences;
 	uint32_t swapchain_image_count;
-	uint32_t timestamp_valid_bits;
-	float timestamp_period;
 
 	VkDescriptorSetLayout descriptor_layout;
 	VkDescriptorPool descriptor_pool;

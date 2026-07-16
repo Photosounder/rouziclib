@@ -30,7 +30,7 @@ void drawq_alloc()
 	int32_t *dataint;
 	double ss;
 
-	#ifdef RL_OPENCL
+	#if defined(RL_OPENCL) && !defined(RL_VULKAN)
 	if (fb->use_drawq==1)
 		clFinish_wrap(fb->clctx.command_queue);	// wait for end of queue
 	#endif
@@ -120,7 +120,7 @@ void drawq_deinit()
 
 void drawq_run()
 {
-	#ifdef RL_OPENCL
+	#if defined(RL_OPENCL) && !defined(RL_VULKAN)
 	const char clsrc_draw_queue[] =
 	#include "drawqueue/opencl/drawqueue.cl.h"
 
@@ -193,7 +193,18 @@ void drawq_run()
 
 	if (fb->use_drawq==1)
 	{
-		#ifdef RL_OPENCL
+		#ifdef RL_VULKAN
+		// Include newly packed resource data in the Vulkan upload interval
+		if (fb->data_space_start > fb->data_copy_start)
+		{
+			// Mark the exact contiguous allocation range produced this frame
+			vk_mark_data_dirty(fb->data_copy_start, fb->data_space_start-fb->data_copy_start);
+			fb->data_copy_start=fb->data_space_start;
+		}
+		// Submit the compiled queue through the Vulkan compute and presentation path
+		if (!vk_drawq_run())
+			fprintf_rl(stderr, "vk_drawq_run() failed\n");
+		#elif defined(RL_OPENCL)
 
 		// Get profiling times
 		clWaitForEvents_wrap(1, &fb->clctx.ev);

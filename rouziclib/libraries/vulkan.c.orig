@@ -680,11 +680,28 @@ int vk_drawq_run()
 	frame=&fb->vk.frame[fb->vk.frame_index];
 
 	// Wait for every resource owned by this frame slot to become reusable
+	double slot_wait_start=get_time_hr();
 	ret=vkWaitForFences(fb->vk.device, 1, &frame->fence, VK_TRUE, UINT64_MAX);
 	if (ret!=VK_SUCCESS)
 		return 0;
+	double slot_wait_end=get_time_hr();
 	vk_collect_frame_timestamps(frame);
 	ret=vkAcquireNextImageKHR(fb->vk.device, fb->vk.swapchain, UINT64_MAX, frame->image_available, VK_NULL_HANDLE, &image_index);
+	double acquire_end=get_time_hr();
+	// Average waits by reusable frame slot during an explicit diagnostic run
+	if (getenv("RL_VK_SLOT_PROBE"))
+	{
+		static double slot_wait[RL_VK_FRAMES_IN_FLIGHT]={0}, acquire_wait[RL_VK_FRAMES_IN_FLIGHT]={0};
+		static int sample_count[RL_VK_FRAMES_IN_FLIGHT]={0};
+		uint32_t slot=fb->vk.frame_index;
+		slot_wait[slot] += slot_wait_end-slot_wait_start;
+		acquire_wait[slot] += acquire_end-slot_wait_end;
+		if (++sample_count[slot]==120)
+		{
+			fprintf_rl(stderr, "Vulkan slot %u: fence %.3f ms acquire %.3f ms\n", slot, slot_wait[slot]*1000./sample_count[slot], acquire_wait[slot]*1000./sample_count[slot]);
+			slot_wait[slot]=acquire_wait[slot]=0.; sample_count[slot]=0;
+		}
+	}
 	if (ret==VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		fb->vk.swapchain_dirty=1;

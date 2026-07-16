@@ -1,0 +1,684 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer DrawQueueBuffer
+{
+	uint drawq[];
+};
+
+layout(std430, binding = 1) readonly buffer SectorPositionBuffer
+{
+	uint sector_pos[];
+};
+
+layout(std430, binding = 2) readonly buffer EntryListBuffer
+{
+	uint entry_list[];
+};
+
+layout(std430, binding = 3) readonly buffer ResourceDataBuffer
+{
+	uint resource_data[];
+};
+
+layout(rgba8, binding = 4) uniform writeonly image2D output_image;
+
+layout(push_constant) uniform DrawQueueConstants
+{
+	int width;
+	int height;
+	int sector_width;
+	int sector_size;
+	uint random_seed;
+} constants;
+
+#define DQT_BRACKET_OPEN 1
+#define DQT_BRACKET_CLOSE 2
+#define DQT_LINE_THIN_ADD 3
+#define DQT_POINT_ADD 4
+#define DQT_RECT_FULL 5
+#define DQT_RECT_BLACK 6
+#define DQT_RECT_BLACK_INV 7
+#define DQT_PLAIN_FILL 8
+#define DQT_TRIANGLE 9
+#define DQT_TETRAGON 10
+#define DQT_GAIN 11
+#define DQT_GAIN_PARAB 12
+#define DQT_LUMA_COMPRESS 13
+#define DQT_COL_MATRIX 14
+#define DQT_CLIP 15
+#define DQT_CLAMP 16
+#define DQT_GAMMA_BANDAID 17
+#define DQT_CIRCLE_FULL 18
+#define DQT_CIRCLE_BLACK 19
+#define DQT_CIRCLE_HOLLOW 20
+#define DQT_BLIT_FLATTOP 22
+#define DQT_BLIT_FLATTOP_ROT 23
+#define DQT_BLIT_AANEAREST 24
+#define DQT_BLIT_AANEAREST_ROT 25
+#define DQT_TEST1 27
+
+#define DQB_ADD 0
+#define DQB_SUB 1
+#define DQB_MUL 2
+#define DQB_DIV 3
+#define DQB_BLEND 4
+#define DQB_SOLID 5
+
+float qf(uint index)
+{
+	return uintBitsToFloat(drawq[index]);
+}
+
+int qi(uint index)
+{
+	return int(drawq[index]);
+}
+
+uint data_u8(uint offset)
+{
+	uint word = resource_data[offset >> 2u];
+	return (word >> ((offset & 3u) * 8u)) & 255u;
+}
+
+uint data_u16(uint offset)
+{
+	return data_u8(offset) | (data_u8(offset + 1u) << 8u);
+}
+
+uint data_u32(uint offset)
+{
+	return data_u8(offset) | (data_u8(offset + 1u) << 8u) |
+		(data_u8(offset + 2u) << 16u) | (data_u8(offset + 3u) << 24u);
+}
+
+float data_f32(uint offset)
+{
+	return uintBitsToFloat(data_u32(offset));
+}
+
+float copy_sign(float magnitude, float sign_value)
+{
+	return sign_value < 0.0 ? -abs(magnitude) : abs(magnitude);
+}
+
+float cube_root(float value)
+{
+	return copy_sign(pow(abs(value), 1.0 / 3.0), value);
+}
+
+float gaussian(float x)
+{
+	return exp(-x*x);
+}
+
+float erf_fast(float x)
+{
+	float xa = abs(x);
+	float y = ((-0.06388*xa - 0.66186)*xa - 1.123613)*xa;
+	y = 1.0 - exp(y);
+	return copy_sign(y, x);
+}
+
+uint rand_xsm32(uint x)
+{
+	x ^= x >> 16u;
+	x *= 0x21f0aaadU;
+	x ^= x >> 15u;
+	x *= 0x735a2d97U;
+	x ^= x >> 15u;
+	return x;
+}
+
+float rand01_to_gaussian_approx(float r)
+{
+	r = (r - 0.5) * 1.9999999;
+	return copy_sign(0.88622693 * sqrt(-log(1.0 - r*r)), r);
+}
+
+vec3 lsrgb(vec3 linear_value)
+{
+	vec3 line = linear_value * 12.92;
+	vec3 x = sqrt(linear_value);
+	vec3 curve = ((((0.455*x - 1.48)*x + 1.92137)*x - 1.373254)*x + 1.51733216)*x - 0.0404733783;
+	return mix(line, curve, greaterThan(linear_value, vec3(0.0031308)));
+}
+
+vec3 slrgb(vec3 srgb_value)
+{
+	vec3 line = srgb_value * (1.0 / 12.92);
+	vec3 curve = ((((0.05757*srgb_value - 0.2357)*srgb_value + 0.60668)*srgb_value + 0.540468)*srgb_value + 0.0299805)*srgb_value + 0.001010107;
+	return mix(line, curve, greaterThan(srgb_value, vec3(0.04045)));
+}
+
+vec3 s8lrgb(vec3 srgb_value)
+{
+	return slrgb(srgb_value * (1.0 / 255.0));
+}
+
+vec4 linear_to_srgb(vec4 linear_pixel, uint seed)
+{
+	const float max_s = 255.0;
+	const float dither_scale = 0.7071067811865476 / max_s;
+	const float transition_zero = 0.3 * dither_scale;
+	const float transition_one = 0.9 * dither_scale;
+	const float transition_mul = 1.0 / (transition_one - transition_zero);
+	vec3 srgb_pixel = lsrgb(clamp(linear_pixel.rgb, 0.0, 1.0));
+	uint random_value = rand_xsm32(seed);
+	float random_uniform = float(random_value) * (2.3283064e-10 / max_s) - (0.5 / max_s);
+	float random_gaussian = rand01_to_gaussian_approx(float(random_value) * 2.3283064e-10) * dither_scale;
+	vec3 transition = clamp((min(srgb_pixel, vec3(max_s)-srgb_pixel) - transition_zero) * transition_mul, 0.0, 1.0);
+	vec3 random_offset = mix(vec3(random_uniform), vec3(random_gaussian), transition);
+	srgb_pixel = clamp(srgb_pixel + random_offset, 0.0, 1.0);
+	return vec4(srgb_pixel, 1.0);
+}
+
+float lab_l_to_linear(float value)
+{
+	const float stn = 6.0 / 29.0;
+	value = (value + 0.16) / 1.16;
+	return value > stn ? value*value*value : 3.0*stn*stn*(value - 4.0/29.0);
+}
+
+float linear_to_lab_l(float value)
+{
+	const float threshold = 6.0 / 29.0;
+	const float threshold_cube = threshold*threshold*threshold;
+	value = value > threshold_cube ? cube_root(value) : value * 841.0/108.0 + 4.0/29.0;
+	return 1.16 * value - 0.16;
+}
+
+vec4 gain_parabolic(vec4 pixel, float gain)
+{
+	pixel = min(pixel, 1.0);
+	return 1.0 - pow(1.0-pixel, vec4(gain));
+}
+
+vec4 luma_compression(vec4 pixel, float level_linear)
+{
+	float grey_zero_linear = dot(pixel.rgb, vec3(0.16, 0.73, 0.11));
+	if (grey_zero_linear == 0.0)
+		return pixel;
+	float level_perceptual = linear_to_lab_l(level_linear);
+	float grey_one_perceptual = linear_to_lab_l(grey_zero_linear) + level_perceptual;
+	float grey_one_linear = lab_l_to_linear(grey_one_perceptual) - level_linear;
+	float white_one_linear = lab_l_to_linear(1.0 + level_perceptual) - level_linear;
+	return pixel * ((grey_one_linear / grey_zero_linear) / white_one_linear);
+}
+
+vec4 colour_matrix(uint base, vec4 pixel)
+{
+	return vec4(
+		qf(base)*pixel.r + qf(base+3u)*pixel.g + qf(base+6u)*pixel.b,
+		qf(base+1u)*pixel.r + qf(base+4u)*pixel.g + qf(base+7u)*pixel.b,
+		qf(base+2u)*pixel.r + qf(base+5u)*pixel.g + qf(base+8u)*pixel.b,
+		pixel.a);
+}
+
+vec4 blend_pixel(vec4 background, vec4 foreground, int blend_mode)
+{
+	switch (blend_mode)
+	{
+		case DQB_ADD: return background + foreground;
+		case DQB_SUB: return background - foreground;
+		case DQB_MUL: return background * foreground;
+		case DQB_DIV: return background / foreground;
+		case DQB_BLEND: return foreground * foreground.a + background * (1.0 - foreground.a);
+		case DQB_SOLID: return foreground;
+	}
+	return foreground;
+}
+
+vec4 draw_line_thin_add(uint base, vec4 pixel, vec2 position)
+{
+	float cosine = qf(base+3u);
+	float sine = qf(base+4u);
+	vec2 rotated = vec2(position.x*cosine - position.y*sine, position.x*sine + position.y*cosine);
+	float value = (erf_fast(rotated.x-qf(base)) - erf_fast(rotated.x-qf(base+2u))) * 0.5;
+	value *= gaussian(rotated.y-qf(base+1u));
+	return pixel + value * vec4(qf(base+5u), qf(base+6u), qf(base+7u), qf(base+8u));
+}
+
+vec4 draw_point_add(uint base, vec4 pixel, vec2 position)
+{
+	float distance_scaled = distance(vec2(qf(base), qf(base+1u)), position) * qf(base+2u);
+	return pixel + gaussian(distance_scaled) * vec4(qf(base+3u), qf(base+4u), qf(base+5u), 1.0);
+}
+
+vec4 draw_plain_fill_add(uint base, vec4 pixel)
+{
+	return pixel + vec4(qf(base), qf(base+1u), qf(base+2u), 1.0);
+}
+
+vec4 draw_rect_full_add(uint base, vec4 pixel, vec2 position)
+{
+	vec2 distance_zero = (position - vec2(qf(base), qf(base+1u))) * qf(base+4u);
+	vec2 distance_one = (position - vec2(qf(base+2u), qf(base+3u))) * qf(base+4u);
+	vec2 gaussian_value = vec2(erf_fast(distance_zero.x)-erf_fast(distance_one.x), erf_fast(distance_zero.y)-erf_fast(distance_one.y));
+	return pixel + gaussian_value.x*gaussian_value.y*0.25 * vec4(qf(base+5u), qf(base+6u), qf(base+7u), 1.0);
+}
+
+vec4 draw_black_rect(uint base, vec4 pixel, vec2 position, bool inverse)
+{
+	vec2 distance_zero = (position - vec2(qf(base), qf(base+1u))) * qf(base+4u);
+	vec2 distance_one = (position - vec2(qf(base+2u), qf(base+3u))) * qf(base+4u);
+	vec2 gaussian_value = vec2(erf_fast(distance_zero.x)-erf_fast(distance_one.x), erf_fast(distance_zero.y)-erf_fast(distance_one.y));
+	float coverage = 0.25*gaussian_value.x*gaussian_value.y;
+	float intensity = qf(base+5u);
+	return pixel * (inverse ? coverage*intensity + (1.0-intensity) : 1.0-coverage*intensity);
+}
+
+vec4 draw_circle(uint base, vec4 pixel, vec2 position, int circle_type)
+{
+	vec2 centre = vec2(qf(base), qf(base+1u));
+	float circle_radius = qf(base+2u);
+	float inverse_radius = qf(base+3u);
+	float centre_distance = distance(position, centre);
+	float near_distance = (circle_radius-centre_distance) * inverse_radius;
+	float far_distance = -(circle_radius+centre_distance) * inverse_radius;
+	if (circle_type == DQT_CIRCLE_BLACK)
+		return pixel * (1.0-(erf_fast(near_distance)-erf_fast(far_distance))*0.5*qf(base+4u));
+	vec4 colour = vec4(qf(base+4u), qf(base+5u), qf(base+6u), 1.0);
+	if (circle_type == DQT_CIRCLE_HOLLOW)
+		return pixel + (gaussian(near_distance)+gaussian(far_distance))*colour;
+	return pixel + (erf_fast(near_distance)-erf_fast(far_distance))*0.5*colour;
+}
+
+float erf_right_triangle_acute_integral(float x, float y)
+{
+	float x2 = x*x;
+	float y2 = y*y;
+	float value = (((((-1.6663128e-05*y2 + 5.104393e-06)*x2 + 0.0005496131*y2 - 5.30433e-05)*x2 +
+		(0.0001584783*y2 - 0.00741157237)*y2 - 0.0018265954)*x2 +
+		(-0.003881739*y2 + 0.0523013844)*y2 + 0.04582956)*x2 +
+		((-0.00368418*y2 + 0.03692744)*y2 - 0.1996548)*y2 - 0.50360028)*x2 +
+		((-0.0012717*y2 - 0.0101518)*y2 + 0.0109084)*y2 - 1.836892;
+	return exp(value) * x2 * y;
+}
+
+float calc_right_triangle_pixel_weight(vec2 point)
+{
+	bool use_obtuse = abs(point.y) > abs(point.x);
+	if (use_obtuse)
+		point = point.yx;
+	float slope = abs(point.x) < 1e-5 ? 0.0 : point.y / point.x;
+	slope = clamp(slope, -1.0, 1.0);
+	point.x = clamp(point.x, -3.0, 3.0);
+	float acute = erf_right_triangle_acute_integral(point.x, slope);
+	float obtuse = 0.25*erf_fast(point.y)*erf_fast(point.x)-acute;
+	acute = copy_sign(acute, slope);
+	obtuse = copy_sign(obtuse, slope);
+	return use_obtuse ? obtuse : acute;
+}
+
+float calc_subtriangle_pixel_weight(vec2 point_zero, vec2 point_one)
+{
+	vec2 rotation = normalize(point_one-point_zero);
+	vec2 rotated_zero = vec2(rotation.x*point_zero.y-rotation.y*point_zero.x, rotation.x*point_zero.x+rotation.y*point_zero.y);
+	vec2 rotated_one = vec2(rotated_zero.x, rotation.x*point_one.x+rotation.y*point_one.y);
+	return calc_right_triangle_pixel_weight(rotated_one)-calc_right_triangle_pixel_weight(rotated_zero);
+}
+
+vec4 draw_polygon(uint base, vec4 pixel, vec2 position, int point_count)
+{
+	float inverse_radius = qf(base);
+	vec4 colour = vec4(qf(base+1u), qf(base+2u), qf(base+3u), 1.0);
+	vec2 points[4];
+	for (int index=0; index < point_count; index++)
+		points[index] = (vec2(qf(base+4u+uint(index*2)), qf(base+5u+uint(index*2)))-position)*inverse_radius;
+	float weight = 0.0;
+	for (int index=0; index < point_count; index++)
+		weight += calc_subtriangle_pixel_weight(points[index], points[(index+1)%point_count]);
+	return pixel + weight*colour;
+}
+
+bool image_bounds(ivec2 position, ivec2 dimensions)
+{
+	return all(greaterThanEqual(position, ivec2(0))) && all(lessThan(position, dimensions));
+}
+
+vec4 read_frgb_pixel(uint base, int index)
+{
+	uint offset = base + uint(index)*16u;
+	return vec4(data_f32(offset), data_f32(offset+4u), data_f32(offset+8u), data_f32(offset+12u));
+}
+
+vec4 read_sqrgb_pixel(uint base, int index)
+{
+	uint value = data_u32(base+uint(index)*4u);
+	uvec3 square_root_pixel = uvec3(value & 1023u, (value >> 10u) & 4095u, value >> 22u);
+	vec3 pixel = vec3(square_root_pixel*square_root_pixel) * vec3(1.0/(1023.0*1023.0), 1.0/(4092.0*4092.0), 1.0/(1023.0*1023.0));
+	return vec4(pixel, 1.0);
+}
+
+vec4 read_srgb_pixel(uint base, int index)
+{
+	uint value = data_u32(base+uint(index)*4u);
+	return vec4(s8lrgb(vec3(value & 255u, (value >> 8u) & 255u, (value >> 16u) & 255u)), 1.0);
+}
+
+vec4 read_lrgb_pixel(uint base, int index)
+{
+	uint offset = base+uint(index)*8u;
+	return vec4(vec3(data_u16(offset), data_u16(offset+2u), data_u16(offset+4u))*(1.0/32768.0), 1.0);
+}
+
+vec4 rec709_to_linear(vec4 pixel)
+{
+	vec4 line = pixel*(1.0/4.5);
+	vec4 curve = pow((pixel+0.09929682)/1.0992968, vec4(1.0/0.45));
+	return mix(line, curve, greaterThan(pixel, vec4(0.08125635)));
+}
+
+vec4 raw_yuv_to_lrgb(vec3 raw, float depth_multiplier)
+{
+	raw *= depth_multiplier;
+	vec3 yuv = vec3((raw.x-16.0/255.0)*(255.0/219.0), raw.y-128.0/255.0, raw.z-128.0/255.0);
+	vec4 pixel = vec4(yuv.x+1.7927*yuv.z, yuv.x-0.2132*yuv.y-0.5329*yuv.z, yuv.x+2.1124*yuv.y, 1.0);
+	return rec709_to_linear(pixel);
+}
+
+vec4 raw_yuvj_to_lrgb(vec3 raw)
+{
+	float y = raw.x;
+	float u = raw.y-128.0;
+	float v = raw.z-128.0;
+	return vec4(s8lrgb(vec3(y+1.596*v, y-0.813*v-0.391*u, y+2.018*u)), 1.0);
+}
+
+vec4 read_yuv420p8_pixel(uint base, ivec2 dimensions, ivec2 position, bool full_range)
+{
+	ivec2 half_dimensions = dimensions/2;
+	int full_size = dimensions.x*dimensions.y;
+	int half_size = full_size/4;
+	int y_index = position.y*dimensions.x+position.x;
+	int uv_index = position.y/2*half_dimensions.x+position.x/2;
+	vec3 raw = vec3(data_u8(base+uint(y_index)), data_u8(base+uint(full_size+uv_index)), data_u8(base+uint(full_size+half_size+uv_index)));
+	return full_range ? raw_yuvj_to_lrgb(raw) : raw_yuv_to_lrgb(raw, 1.0/255.0);
+}
+
+vec4 read_yuv420pn_pixel(uint base, ivec2 dimensions, ivec2 position, float depth_multiplier)
+{
+	ivec2 half_dimensions = dimensions/2;
+	int full_size = dimensions.x*dimensions.y;
+	int half_size = full_size/4;
+	int y_index = position.y*dimensions.x+position.x;
+	int uv_index = position.y/2*half_dimensions.x+position.x/2;
+	vec3 raw = vec3(data_u16(base+uint(y_index*2)), data_u16(base+uint((full_size+uv_index)*2)), data_u16(base+uint((full_size+half_size+uv_index)*2)));
+	return raw_yuv_to_lrgb(raw, depth_multiplier);
+}
+
+uint get_bits_in_stream(uint base, uint start_bit, uint bit_count)
+{
+	uint result = 0u;
+	uint start_byte = start_bit >> 3u;
+	start_bit &= 7u;
+	int result_shift = max(0, int(bit_count)-min(int(8u-start_bit), int(bit_count)));
+	while (bit_count > 0u)
+	{
+		uint bits_to_read = min(8u-start_bit, bit_count);
+		uint actual_start = 8u-start_bit-bits_to_read;
+		uint mask = ((1u << bits_to_read)-1u) << actual_start;
+		uint value = (data_u8(base+start_byte) & mask) >> actual_start;
+		result |= value << uint(result_shift);
+		result_shift = max(0, result_shift-8);
+		bit_count -= bits_to_read;
+		start_bit = 0u;
+		start_byte++;
+	}
+	return result;
+}
+
+struct CompressedDecoder
+{
+	bool initialised;
+	int block_size;
+	int bits_per_block;
+	int quincunx;
+	int bits_colour;
+	int bits_per_pixel;
+	int line_width_zero;
+	int line_width_one;
+	int previous_pixel;
+	ivec2 block_position;
+	ivec2 block_start;
+	uint data_index;
+	vec4 colour_zero;
+	vec4 colour_one;
+	vec4 pixel;
+	float pixel_multiplier;
+};
+
+vec4 read_compressed_pixel(uint base, ivec2 dimensions, ivec2 position, inout CompressedDecoder decoder)
+{
+	if (!decoder.initialised)
+	{
+		decoder.block_size = 8;
+		decoder.bits_per_block = 240;
+		decoder.quincunx = 1;
+		decoder.bits_colour = 8;
+		decoder.bits_per_pixel = 3;
+		decoder.line_width_zero = (dimensions.x+decoder.block_size-1)/decoder.block_size;
+		decoder.line_width_one = (dimensions.x+decoder.quincunx*(decoder.block_size>>1)+decoder.block_size-1)/decoder.block_size;
+		decoder.pixel_multiplier = 2.0/float((1u << uint(decoder.bits_per_pixel))-1u);
+		decoder.block_position = ivec2(-1);
+		decoder.previous_pixel = -1;
+		decoder.initialised = true;
+	}
+	ivec2 block_position;
+	block_position.y = position.y/decoder.block_size;
+	int quincunx_offset = (block_position.y & 1)*decoder.quincunx*(decoder.block_size >> 1);
+	block_position.x = (position.x+quincunx_offset)/decoder.block_size;
+	if (block_position != decoder.block_position)
+	{
+		int line_count_zero = (block_position.y+1) >> 1;
+		int line_count_one = block_position.y >> 1;
+		uint data_index = uint(line_count_zero*decoder.line_width_zero+line_count_one*decoder.line_width_one+block_position.x);
+		data_index = data_index*uint(decoder.bits_per_block)+64u;
+		uvec3 colour_zero;
+		uvec3 colour_one;
+		for (int channel=0; channel < 3; channel++)
+		{
+			colour_zero[channel] = get_bits_in_stream(base, data_index, uint(decoder.bits_colour));
+			data_index += uint(decoder.bits_colour);
+		}
+		for (int channel=0; channel < 3; channel++)
+		{
+			colour_one[channel] = get_bits_in_stream(base, data_index, uint(decoder.bits_colour));
+			data_index += uint(decoder.bits_colour);
+		}
+		float ratio = 1.0/float((1u << uint(decoder.bits_colour))-1u);
+		decoder.colour_zero = vec4(vec3(colour_zero)*ratio, 1.0);
+		decoder.colour_one = vec4(vec3(colour_one)*ratio, 1.0);
+		decoder.data_index = data_index;
+		decoder.block_start = block_position*decoder.block_size;
+		decoder.block_start.x -= quincunx_offset;
+		decoder.block_position = block_position;
+		decoder.previous_pixel = -1;
+	}
+	ivec2 in_block = position-decoder.block_start;
+	uint data_index = decoder.data_index+uint(in_block.y*decoder.block_size+in_block.x)*uint(decoder.bits_per_pixel);
+	int pixel_index = int(get_bits_in_stream(base, data_index, uint(decoder.bits_per_pixel)));
+	if (pixel_index != decoder.previous_pixel)
+	{
+		decoder.pixel = mix(decoder.colour_zero, decoder.colour_one, float(pixel_index)*decoder.pixel_multiplier*0.5);
+		decoder.pixel.rgb = vec3(lab_l_to_linear(decoder.pixel.r), lab_l_to_linear(decoder.pixel.g), lab_l_to_linear(decoder.pixel.b));
+		decoder.previous_pixel = pixel_index;
+	}
+	return decoder.pixel;
+}
+
+vec4 read_format_pixel(uint base, int format, ivec2 dimensions, ivec2 position, inout CompressedDecoder decoder)
+{
+	int index = position.y*dimensions.x+position.x;
+	switch (format)
+	{
+		case 0: return read_frgb_pixel(base, index);
+		case 1: return read_sqrgb_pixel(base, index);
+		case 2: return read_srgb_pixel(base, index);
+		case 3: return read_lrgb_pixel(base, index);
+		case 10: return read_yuv420p8_pixel(base, dimensions, position, false);
+		case 11: return read_yuv420pn_pixel(base, dimensions, position, 0.25/255.0);
+		case 12: return read_yuv420pn_pixel(base, dimensions, position, 0.0625/255.0);
+		case 15: return read_yuv420p8_pixel(base, dimensions, position, true);
+		case 20: return read_compressed_pixel(base, dimensions, position, decoder);
+		case 31:
+		case 41: return vec4(data_f32(base+uint(index)*4u), 0.0, 0.0, 1.0);
+		case 32: return vec4(data_f32(base+uint(index)*8u), data_f32(base+uint(index)*8u+4u), 0.0, 1.0);
+		case 33: return vec4(data_f32(base+uint(index)*12u), data_f32(base+uint(index)*12u+4u), data_f32(base+uint(index)*12u+8u), 1.0);
+		case 42:
+		{
+			uint plane_size = uint(dimensions.x*dimensions.y)*4u;
+			return vec4(data_f32(base+uint(index)*4u), data_f32(base+plane_size+uint(index)*4u), 0.0, 1.0);
+		}
+		case 43:
+		{
+			uint plane_size = uint(dimensions.x*dimensions.y)*4u;
+			return vec4(data_f32(base+uint(index)*4u), data_f32(base+plane_size+uint(index)*4u), data_f32(base+2u*plane_size+uint(index)*4u), 1.0);
+		}
+	}
+	return vec4(0.0);
+}
+
+vec4 read_format_pixel_checked(uint base, int format, ivec2 dimensions, ivec2 position, inout CompressedDecoder decoder)
+{
+	return image_bounds(position, dimensions) ? read_format_pixel(base, format, dimensions, position, decoder) : vec4(0.0);
+}
+
+float flattop_weight(vec2 position, vec2 sample_position, vec2 knee, vec2 slope, vec2 pixel_scale)
+{
+	vec2 distance_value = max(abs(position-sample_position), knee);
+	vec2 weight = slope*(distance_value-pixel_scale);
+	return weight.x*weight.y;
+}
+
+vec4 filter_flattop(uint data_base, int format, ivec2 dimensions, vec2 image_position, vec2 pixel_scale, vec2 slope)
+{
+	vec4 pixel = vec4(0.0);
+	vec2 knee = 0.5-abs(mod(pixel_scale, 1.0)-0.5);
+	ivec2 start = max(ivec2(0), ivec2(ceil(image_position-pixel_scale)));
+	ivec2 end = min(dimensions-1, ivec2(floor(image_position+pixel_scale)));
+	CompressedDecoder decoder;
+	decoder.initialised = false;
+	for (int y=start.y; y <= end.y; y++)
+		for (int x=start.x; x <= end.x; x++)
+			pixel += read_format_pixel(data_base, format, dimensions, ivec2(x,y), decoder)*flattop_weight(image_position, vec2(x,y), knee, slope, pixel_scale);
+	return pixel;
+}
+
+vec2 aa_nearest_weights(vec2 image_position, vec2 sample_position, vec2 pixel_scale)
+{
+	return clamp((0.5-abs(image_position-sample_position))/pixel_scale+0.5, 0.0, 1.0);
+}
+
+vec4 filter_aa_nearest(uint data_base, int format, ivec2 dimensions, vec2 image_position, vec2 pixel_scale)
+{
+	CompressedDecoder decoder;
+	decoder.initialised = false;
+	ivec2 sample_zero = ivec2(floor(image_position));
+	vec2 weight_zero = aa_nearest_weights(image_position, vec2(sample_zero), pixel_scale);
+	float weight = weight_zero.x*weight_zero.y;
+	vec4 pixel = read_format_pixel_checked(data_base, format, dimensions, sample_zero, decoder)*weight;
+	if (weight < 1.0)
+	{
+		pixel += read_format_pixel_checked(data_base, format, dimensions, sample_zero+ivec2(0,1), decoder)*weight_zero.x*(1.0-weight_zero.y);
+		pixel += read_format_pixel_checked(data_base, format, dimensions, sample_zero+ivec2(1,0), decoder)*(1.0-weight_zero.x)*weight_zero.y;
+		pixel += read_format_pixel_checked(data_base, format, dimensions, sample_zero+ivec2(1,1), decoder)*(1.0-weight_zero.x)*(1.0-weight_zero.y);
+	}
+	return pixel;
+}
+
+vec4 draw_blit(uint base, vec4 pixel, vec2 position, int type)
+{
+	uint data_base = drawq[base];
+	if (drawq[base+1u] != 0u)
+		return pixel;
+	ivec2 dimensions = ivec2(qi(base+2u), qi(base+3u));
+	vec2 pixel_scale;
+	vec2 image_offset;
+	vec2 image_position;
+	int format;
+	if (type == DQT_BLIT_FLATTOP || type == DQT_BLIT_AANEAREST)
+	{
+		pixel_scale = vec2(qf(base+4u), qf(base+5u));
+		image_offset = vec2(qf(base+6u), qf(base+7u));
+		format = qi(base+8u);
+		image_position = pixel_scale*(position+image_offset);
+		if (type == DQT_BLIT_FLATTOP)
+			return pixel+filter_flattop(data_base, format, dimensions, image_position, max(vec2(1.0), pixel_scale), vec2(qf(base+9u), qf(base+10u)));
+		return pixel+filter_aa_nearest(data_base, format, dimensions, image_position, pixel_scale);
+	}
+	pixel_scale = vec2(qf(base+4u));
+	image_offset = vec2(qf(base+5u), qf(base+6u));
+	format = qi(base+7u);
+	vec2 unrotated = pixel_scale*(position+image_offset);
+	float cosine;
+	float sine;
+	if (type == DQT_BLIT_FLATTOP_ROT)
+	{
+		cosine = qf(base+9u);
+		sine = qf(base+10u);
+		image_position = vec2(unrotated.x*cosine-unrotated.y*sine, unrotated.x*sine+unrotated.y*cosine);
+		return pixel+filter_flattop(data_base, format, dimensions, image_position, max(vec2(1.0), pixel_scale), vec2(qf(base+8u)));
+	}
+	cosine = qf(base+8u);
+	sine = qf(base+9u);
+	image_position = vec2(unrotated.x*cosine-unrotated.y*sine, unrotated.x*sine+unrotated.y*cosine);
+	return pixel+filter_aa_nearest(data_base, format, dimensions, image_position, pixel_scale);
+}
+
+void main()
+{
+	ivec2 integer_position = ivec2(gl_GlobalInvocationID.xy);
+	if (integer_position.x >= constants.width || integer_position.y >= constants.height)
+		return;
+	vec2 position = vec2(integer_position);
+	int sector = (integer_position.y >> constants.sector_size)*constants.sector_width + (integer_position.x >> constants.sector_size);
+	int entry_position = int(sector_pos[sector]);
+	vec4 pixel = vec4(0.0);
+	if (entry_position >= 0)
+	{
+		int entry_count = int(entry_list[entry_position]);
+		vec4 bracket_pixels[4];
+		int bracket_level = 0;
+		for (int entry_index=0; entry_index < entry_count; entry_index++)
+		{
+			uint queue_index = entry_list[entry_position+entry_index+1];
+			int type = qi(queue_index);
+			uint base = queue_index+1u;
+			switch (type)
+			{
+				case DQT_BRACKET_OPEN: bracket_pixels[bracket_level++] = pixel; pixel = vec4(0.0); break;
+				case DQT_BRACKET_CLOSE: pixel = blend_pixel(bracket_pixels[--bracket_level], pixel, qi(base)); break;
+				case DQT_LINE_THIN_ADD: pixel = draw_line_thin_add(base, pixel, position); break;
+				case DQT_POINT_ADD: pixel = draw_point_add(base, pixel, position); break;
+				case DQT_RECT_FULL: pixel = draw_rect_full_add(base, pixel, position); break;
+				case DQT_RECT_BLACK: pixel = draw_black_rect(base, pixel, position, false); break;
+				case DQT_RECT_BLACK_INV: pixel = draw_black_rect(base, pixel, position, true); break;
+				case DQT_PLAIN_FILL: pixel = draw_plain_fill_add(base, pixel); break;
+				case DQT_TRIANGLE: pixel = draw_polygon(base, pixel, position, 3); break;
+				case DQT_TETRAGON: pixel = draw_polygon(base, pixel, position, 4); break;
+				case DQT_GAIN: pixel *= qf(base); break;
+				case DQT_GAIN_PARAB: pixel = gain_parabolic(pixel, qf(base)); break;
+				case DQT_LUMA_COMPRESS: pixel = luma_compression(pixel, qf(base)); break;
+				case DQT_COL_MATRIX: pixel = colour_matrix(base, pixel); break;
+				case DQT_CLIP: pixel = min(pixel, qf(base)); break;
+				case DQT_CLAMP: pixel = clamp(pixel, 0.0, 1.0); break;
+				case DQT_GAMMA_BANDAID: pixel = vec4(slrgb(pow(pixel.rgb, vec3(qf(base)))), pixel.a); break;
+				case DQT_CIRCLE_FULL:
+				case DQT_CIRCLE_BLACK:
+				case DQT_CIRCLE_HOLLOW: pixel = draw_circle(base, pixel, position, type); break;
+				case DQT_BLIT_FLATTOP:
+				case DQT_BLIT_FLATTOP_ROT:
+				case DQT_BLIT_AANEAREST:
+				case DQT_BLIT_AANEAREST_ROT: pixel = draw_blit(base, pixel, position, type); break;
+				case DQT_TEST1: pixel = vec4(-(position.x-float(constants.width)*0.5)/(float(constants.width)*0.1)); break;
+			}
+		}
+	}
+	if (all(equal(pixel.rgb, vec3(0.0))))
+		imageStore(output_image, integer_position, vec4(0.0));
+	else
+		imageStore(output_image, integer_position, linear_to_srgb(pixel, constants.random_seed+uint(integer_position.y*constants.width+integer_position.x)));
+}

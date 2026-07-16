@@ -1318,6 +1318,28 @@ static void sdl_flip_fb_internal(int start_drawq)
 
 	double t = get_time_hr();
 	fb->timing[fb->timing_index].end = t;
+	// Average serial phases by frame parity during an explicit pacing probe
+	if (getenv("RL_FRAME_PARITY_PROBE"))
+	{
+		static double sum[2][8]={0};
+		static int count[2]={0};
+		frame_timing_t *timing=&fb->timing[fb->timing_index];
+		double stamp[9] = { timing->start, timing->start_sleep, timing->func_end, timing->flip_end, timing->interop_sync_end, timing->dq_comp_end, timing->cl_copy_end, timing->cl_enqueue_end, timing->end };
+		int parity=(int) (fb->frame_count & 1);
+		for (int phase=0; phase < 8; phase++)
+			sum[parity][phase] += stamp[phase+1]-stamp[phase];
+		if (++count[parity]==240)
+		{
+			fprintf_rl(stderr, "Parity %d ms:", parity);
+			for (int phase=0; phase < 8; phase++)
+			{
+				fprintf_rl(stderr, " %.3f", sum[parity][phase]*1000./count[parity]);
+				sum[parity][phase]=0.;
+			}
+			fprintf_rl(stderr, "\n");
+			count[parity]=0;
+		}
+	}
 	fb->timing_index = circ_index(fb->timing_index+1, fb->timing_count);
 	fb->timing[fb->timing_index].start = t;
 	sleep_hr(rangelimit(fb->start_sleep_dur - t + fb->timing[circ_index(fb->timing_index-1, fb->timing_count)].flip_end, 0., fb->start_sleep_dur));
