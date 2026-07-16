@@ -239,14 +239,78 @@ void draw_black_circle_dq(xy_t pos, double circrad, double radius, double intens
 #endif	// RL_FREESTANDING
 }
 
+static void draw_black_circle_direct(xy_t pos, double circrad, double radius, double intensity)
+{
+	double grad;
+	float intensity_f, inv_radius;
+	int x, y, x0, x1, y0, y1;
+
+	// Reject empty or degenerate masks
+	if (intensity==0. || radius<=0.)
+		return;
+
+	// Limit processing to the Gaussian support used by the OpenCL implementation
+	grad = GAUSSRAD_HQ * radius;
+	x0 = MAXN((int) ceil(pos.x - circrad - grad), 0);
+	y0 = MAXN((int) ceil(pos.y - circrad - grad), 0);
+	x1 = MINN((int) floor(pos.x + circrad + grad), fb->w-1);
+	y1 = MINN((int) floor(pos.y + circrad + grad), fb->h-1);
+	if (x1 < x0 || y1 < y0)
+		return;
+
+	// Match the draw queue's small-circle intensity compensation
+	intensity_f = intensity * erf(circrad / radius);
+	inv_radius = 1.f / radius;
+
+	// Multiply affected FRGB pixels by the antialiased inverse circle mask
+	if (fb->r.use_frgb)
+	{
+		for (y=y0; y<=y1; y++)
+			for (x=x0; x<=x1; x++)
+			{
+				size_t i = (size_t) y * fb->w + x;
+				float dc = hypotf((float) x - pos.x, (float) y - pos.y);
+				float dn = (circrad - dc) * inv_radius;
+				float df = -(circrad + dc) * inv_radius;
+				float mul = 1.f - (erf_fastf(dn) - erf_fastf(df)) * 0.5f * intensity_f;
+				fb->r.f[i].r *= mul;
+				fb->r.f[i].g *= mul;
+				fb->r.f[i].b *= mul;
+				fb->r.f[i].a *= mul;
+			}
+		return;
+	}
+
+	// Multiply affected LRGB pixels by the same mask in fixed point
+	for (y=y0; y<=y1; y++)
+		for (x=x0; x<=x1; x++)
+		{
+			size_t i = (size_t) y * fb->w + x;
+			float dc = hypotf((float) x - pos.x, (float) y - pos.y);
+			float dn = (circrad - dc) * inv_radius;
+			float df = -(circrad + dc) * inv_radius;
+			float mul = rangelimitf(1.f - (erf_fastf(dn) - erf_fastf(df)) * 0.5f * intensity_f, 0.f, 1.f);
+			uint32_t mul_fp = mul * 32768.f + 0.5f;
+			fb->r.l[i].r = (uint32_t) fb->r.l[i].r * mul_fp >> 15;
+			fb->r.l[i].g = (uint32_t) fb->r.l[i].g * mul_fp >> 15;
+			fb->r.l[i].b = (uint32_t) fb->r.l[i].b * mul_fp >> 15;
+			fb->r.l[i].a = (uint32_t) fb->r.l[i].a * mul_fp >> 15;
+		}
+}
+
 void draw_black_circle(xy_t pos, double circrad, double radius, double intensity)
 {
 	if (fb->discard)
 		return;
 
+	// Route the circle to the active rendering backend
 	if (fb->use_drawq)
+	{
 		if (fb->use_dqnq == 0)
 			draw_black_circle_dq(pos, circrad, radius, intensity);
+	}
+	else
+		draw_black_circle_direct(pos, circrad, radius, intensity);
 }
 
 void draw_circle_arc(xy_t pos, xy_t circrad, double th0, double th1, double radius, col_t colour, const blend_func_t bf, double intensity)
