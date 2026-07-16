@@ -624,9 +624,31 @@ static double ff_transfer_bt709_to_linear(double v)
 {
 	// Apply BT.709 EOTF
 	if (v < 0.081)
-		return v / 4.5;
+		return v * (1./4.5);
 
-	return fastpow((v + 0.099) / 1.099, 1. / 0.45);
+	return (((-0.04154*v + 0.21208)*v + 0.72644)*v + 0.097881)*v + 0.005135;
+	//return fastpow((v + 0.099) / 1.099, 1./0.45);
+}
+
+static v128_t ff_transfer_bt709_to_linear_vec4(v128_t x)	// error around 5.2e-5
+{
+	x = f32x4_mul(x, f32x4_splat(1.f/255.f));
+
+	// Selection mask
+	v128_t sel = f32x4_lt(x, f32x4_splat(0.081));
+
+	// Curve
+	v128_t r = f32x4_splat(-0.04154f);
+	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.21208));
+	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.72644));
+	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.097881));
+	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.005135));
+
+	// Line
+	v128_t l = f32x4_mul(x, f32x4_splat(1.f/4.5f));
+
+	// Select either the line or the curve
+	return v128_bitselect(l, r, sel);
 }
 
 static double ff_transfer_smpte240m_to_linear(double v)
@@ -754,25 +776,29 @@ static double ff_transfer_to_linear(double v, const enum AVColorTransferCharacte
 
 static frgb_t ff_yuv_to_frgb_sample(double y, double u, double v, const double kr, const double kb, const double kg, const double chroma_mul, const enum AVColorTransferCharacteristic transfer)
 {
-	frgb_t pv;
-	double r, g, b;
+	v128_t pv;
 
 	// Centre chroma samples
 	u = (u - 128.) * chroma_mul;
 	v = (v - 128.) * chroma_mul;
 
 	// Apply YUV matrix
-	r = y + 2. * (1. - kr) * v;
-	g = y - (2. * kb * (1. - kb) / kg) * u - (2. * kr * (1. - kr) / kg) * v;
-	b = y + 2. * (1. - kb) * u;
+	pv.f32[0] = y + 2. * (1. - kr) * v;							// Red
+	pv.f32[1] = y - (2. * kb * (1. - kb) / kg) * u - (2. * kr * (1. - kr) / kg) * v;	// Green
+	pv.f32[2] = y + 2. * (1. - kb) * u;							// Blue
+	pv.f32[3] = 1.f;
 
 	// Linearise RGB
-	pv.r = ff_transfer_to_linear(r, transfer);
-	pv.g = ff_transfer_to_linear(g, transfer);
-	pv.b = ff_transfer_to_linear(b, transfer);
-	pv.a = 1.;
+	if (transfer == AVCOL_TRC_BT709)
+		pv = ff_transfer_bt709_to_linear_vec4(pv);
+	else
+	{
+		pv.f32[0] = ff_transfer_to_linear(pv.f32[0], transfer);
+		pv.f32[1] = ff_transfer_to_linear(pv.f32[1], transfer);
+		pv.f32[2] = ff_transfer_to_linear(pv.f32[2], transfer);
+	}
 
-	return pv;
+	return *(frgb_t *) &pv.f32;
 }
 
 raster_t ff_frame_to_buffer(ffstream_t *s)
