@@ -61,7 +61,7 @@ typedef struct
 	volatile size_t data_as, drawq_as, sector_list_as, entry_list_as;
 	volatile int sector_size, sector_w, r_pitch, srgb_order;
 	srgb_t *srgb;
-	volatile xyi_t r_dim;
+	xyi_t r_dim;
 	float **block;
 	int thread_id, thread_count;
 	frame_timing_t *timing;

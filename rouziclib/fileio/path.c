@@ -237,7 +237,7 @@ int is_path_audio_file(const char *path)
 
 int is_path_video_file(const char *path)
 {
-	const char *list_ext[] = {"avi", "mp4", "mkv", "mov", "webm", "m2ts", "flv", "part"};
+	const char *list_ext[] = {"avi", "mp4", "mkv", "mov", "webm", "m2ts", "flv", "part", "ts"};
 
 	return check_path_against_extension_list(path, list_ext, sizeof(list_ext)/sizeof(char *));
 }

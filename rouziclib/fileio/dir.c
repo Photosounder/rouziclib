@@ -75,8 +75,15 @@ void load_dir(const char *path, fs_dir_t *dir)
 		}
 	}
 
-	dir->subdir = realloc(dir->subdir, dir->subdir_count * sizeof(fs_dir_t));
-	dir->subfile = realloc(dir->subfile, dir->subfile_count * sizeof(fs_file_t));
+	if (dir->subdir_count)
+		dir->subdir = realloc(dir->subdir, dir->subdir_count * sizeof(fs_dir_t));
+	else
+		free_null(&dir->subdir);
+
+	if (dir->subfile_count)
+		dir->subfile = realloc(dir->subfile, dir->subfile_count * sizeof(fs_file_t));
+	else
+		free_null(&dir->subfile);
 
 	closedir(dirp);
 }

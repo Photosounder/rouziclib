@@ -55,7 +55,6 @@ ff_videnc_t ff_video_enc_init_file(const char *path, xyi_t dim, double fps, int 
 
 	// Set codec parameters
 	d.codec_ctx = avcodec_alloc_context3(codec);
-	d.codec_ctx->sample_fmt = codec->sample_fmts ?  codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
 	d.codec_ctx->width = dim.x;
 	d.codec_ctx->height = dim.y;
 	d.codec_ctx->time_base = d.st->time_base;

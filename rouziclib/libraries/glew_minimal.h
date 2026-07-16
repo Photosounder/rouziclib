@@ -28,6 +28,7 @@ glTexImage2D		// GL_VERSION_1_1
 glTexParameteri		// GL_VERSION_1_1
 glVertex2f		// GL_VERSION_1_1
 glViewport		// GL_VERSION_1_1
+glDeleteTextures 	// GL_VERSION_1_1
 glXGetCurrentContext()	// not in GLEW
 glXGetCurrentDisplay()	// GLX_VERSION_1_2 (set only, not defined)
 glewExperimental
@@ -333,6 +334,7 @@ GLAPI void GLAPIENTRY glTexImage2D (GLenum target, GLint level, GLint internalfo
 GLAPI void GLAPIENTRY glTexParameteri (GLenum target, GLenum pname, GLint param);			// NEEDED_0
 GLAPI void GLAPIENTRY glVertex2f (GLfloat x, GLfloat y);			// NEEDED_0
 GLAPI void GLAPIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei height);			// NEEDED_0
+GLAPI void GLAPIENTRY glDeleteTextures(GLsizei n, const GLuint *textures);	// NEEDED_0
 
 #define GLEW_VERSION_1_1 GLEW_GET_VAR(__GLEW_VERSION_1_1)
 

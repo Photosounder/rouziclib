@@ -4,6 +4,12 @@
    in rouziclib and not use dynamic libraries.
 */
 
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wmissing-braces"
+  #pragma clang diagnostic ignored "-Wswitch"
+#endif
+
 /* ************************************************************************
  * Copyright 2013-2015 Advanced Micro Devices, Inc.
  *
@@ -8562,7 +8568,7 @@ static size_t KernelBlockSizesGetValue(Precision pr, size_t N, KernelBlockSizeVa
 	// Calculate the requested block-size parameter for the Stockham block
 	// kernel.
 	size_t wgs; // preferred work group size
-	size_t bwd; // block width to be used
+	size_t bwd = 1; // block width to be used
 	size_t lds; // LDS size to be used for the block
 
 	size_t t_wgs, t_nt;
@@ -27298,12 +27304,6 @@ static clfftStatus FFTPlanGetMax1DLength(const FFTPlan *fftPlan, size_t *longest
 
 static clfftStatus FFTPlanGetEnvelope(const FFTPlan *fftPlan, const FFTEnvelope **ppEnvelope)
 {
-	if (&fftPlan->envelope == NULL)
-	{
-		assert(false);
-		return CLFFT_NOTIMPLEMENTED;
-	}
-
 	*ppEnvelope = &fftPlan->envelope;
 	return CLFFT_SUCCESS;
 }

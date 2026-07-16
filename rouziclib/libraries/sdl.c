@@ -502,6 +502,8 @@ static void sdl_init()
 	// Initialise every SDL subsystem used by rouziclib once
 	initialised = 1;
 #if RL_SDL == 2
+	// Tell SDL that rouziclib provides the process entry point
+	SDL_SetMainReady();
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 #else
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))

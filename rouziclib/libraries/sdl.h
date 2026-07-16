@@ -21,9 +21,11 @@
 
   #ifdef PRAGMA_COMMENT
     #pragma comment (lib, "SDL2.lib")
-    #pragma comment (lib, "SDL2main.lib")
   #endif
 
+  #ifndef SDL_MAIN_HANDLED
+    #define SDL_MAIN_HANDLED
+  #endif
   #include <SDL2/SDL.h>
   #include <SDL2/SDL_audio.h>
   #include <SDL2/SDL_opengl.h>
