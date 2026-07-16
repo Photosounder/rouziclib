@@ -1,5 +1,9 @@
 #ifdef RL_VULKAN
 
+#if defined(_WIN32) && !defined(VK_USE_PLATFORM_WIN32_KHR)
+#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+
 #ifdef RL_SDL
 #if RL_SDL == 3
 #include <SDL3/SDL_vulkan.h>
@@ -44,6 +48,10 @@ typedef struct
 {
 	VkInstance instance;
 	VkSurfaceKHR surface;
+	#ifdef _WIN32
+	// Keep Vulkan WSI separate from the OpenGL top-level window
+	HWND surface_window;
+	#endif
 	VkPhysicalDevice gpu;
 	VkDevice device;
 	VkQueue queue;

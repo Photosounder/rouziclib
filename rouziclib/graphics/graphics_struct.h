@@ -103,6 +103,15 @@ enum dq_blend
 
 #define DRAWQ_DIRECT_BRACKET_LEVELS 4
 
+enum drawq_mode
+{
+	DRAWQ_MODE_DIRECT,
+	DRAWQ_MODE_OPENCL,
+	DRAWQ_MODE_SOFTWARE,
+	DRAWQ_MODE_VULKAN,
+	DRAWQ_MODE_COUNT
+};
+
 typedef struct
 {
 	raster_t r;
@@ -154,6 +163,9 @@ typedef struct
 	int sector_w;		// number of sectors per row (for instance rows of 30 64x64 sectors for 1920x1080)
 	int entry_count;	// number of entries in the main queue
 	int drawq_run_init;	// whether the OpenCL draw queue program and kernel are initialised
+	#ifdef RL_OPENCL
+	size_t cl_event_timing_index;	// timing slot associated with the retained profiling event
+	#endif
 
 	// Draw queue enqueue
 	volatile uint8_t *dqnq_data;			// circular buffer where drawing instructions are enqueued from the main thread and read by the dqnq thread

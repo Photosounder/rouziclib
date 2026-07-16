@@ -174,12 +174,85 @@ static int vk_find_device_queue(VkPhysicalDevice device, uint32_t *queue_family,
 	return found;
 }
 
+#ifdef _WIN32
+// Use constants omitted by rouziclib's NOWINOFFSETS Windows-header configuration
+enum { RL_WS_CHILD=0x40000000L, RL_WS_DISABLED=0x08000000L, RL_WS_CLIPSIBLINGS=0x04000000L, RL_SW_HIDE=0, RL_SW_SHOWNOACTIVATE=4 };
+
+static void vk_resize_surface_window()
+{
+	RECT client_rect;
+	HWND parent_window;
+
+	// Match the Vulkan child surface to the SDL client area
+	if (!fb->vk.surface_window)
+		return;
+	parent_window=sdl_get_window_hwnd(fb->window);
+	if (!GetClientRect(parent_window, &client_rect))
+		return;
+	SetWindowPos(fb->vk.surface_window, HWND_TOP, 0, 0, client_rect.right-client_rect.left, client_rect.bottom-client_rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+}
+
+static VkResult vk_create_surface_window()
+{
+	static int class_registered=0;
+	static const wchar_t class_name[]=L"rouziclib_vulkan_surface";
+	HWND parent_window;
+	RECT client_rect;
+
+	// Register one black non-input child-window class for Vulkan presentation
+	if (!class_registered)
+	{
+		WNDCLASSEXW window_class = { .cbSize=sizeof(window_class), .lpfnWndProc=DefWindowProcW, .hInstance=GetModuleHandleW(NULL), .hCursor=LoadCursor(NULL, IDC_ARROW), .hbrBackground=(HBRUSH) GetStockObject(BLACK_BRUSH), .lpszClassName=class_name };
+		if (!RegisterClassExW(&window_class) && GetLastError()!=ERROR_CLASS_ALREADY_EXISTS)
+		{
+			fprintf_rl(stderr, "RegisterClassExW for Vulkan surface failed (err %lu)\n", GetLastError());
+			return VK_ERROR_INITIALIZATION_FAILED;
+		}
+		class_registered=1;
+	}
+
+	// Create a disabled child so SDL continues receiving input through its parent
+	parent_window=sdl_get_window_hwnd(fb->window);
+	if (!GetClientRect(parent_window, &client_rect))
+		return VK_ERROR_INITIALIZATION_FAILED;
+	fb->vk.surface_window=CreateWindowExW(0, class_name, L"", RL_WS_CHILD | RL_WS_DISABLED | RL_WS_CLIPSIBLINGS, 0, 0, client_rect.right-client_rect.left, client_rect.bottom-client_rect.top, parent_window, NULL, GetModuleHandleW(NULL), NULL);
+	if (!fb->vk.surface_window)
+	{
+		fprintf_rl(stderr, "CreateWindowExW for Vulkan surface failed (err %lu)\n", GetLastError());
+		return VK_ERROR_INITIALIZATION_FAILED;
+	}
+	return VK_SUCCESS;
+}
+
+static void vk_show_surface_window()
+{
+	// Reveal Vulkan only after its replacement frame has been presented
+	if (fb->vk.surface_window && !IsWindowVisible(fb->vk.surface_window))
+		ShowWindow(fb->vk.surface_window, RL_SW_SHOWNOACTIVATE);
+}
+#endif
+
+void vk_hide_surface_window()
+{
+	#ifdef _WIN32
+	// Reveal the already-presented parent framebuffer without exposing an empty transition
+	if (fb->vk.surface_window && IsWindowVisible(fb->vk.surface_window))
+		ShowWindow(fb->vk.surface_window, RL_SW_HIDE);
+	#endif
+}
+
 static VkResult vk_create_instance_surface()
 {
 	VkResult ret;
 	unsigned extension_count=0;
 	const char **extensions;
+	#ifdef _WIN32
+	const char *win32_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
 
+	// Enable the core and Win32 surface extensions for the persistent native window
+	extension_count = sizeof(win32_extensions) / sizeof(*win32_extensions);
+	extensions = win32_extensions;
+	#else
 	// Ask SDL for the platform surface extensions required by this window
 	if (!SDL_Vulkan_GetInstanceExtensions(fb->window, &extension_count, NULL))
 	{
@@ -193,24 +266,33 @@ static VkResult vk_create_instance_surface()
 		free(extensions);
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
+	#endif
 
 	// Create a Vulkan 1.1 instance without requiring optional validation layers
 	VkApplicationInfo application_info = { .sType=VK_STRUCTURE_TYPE_APPLICATION_INFO, .pApplicationName="rouziclib", .apiVersion=VK_API_VERSION_1_1 };
 	VkInstanceCreateInfo instance_info = { .sType=VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pApplicationInfo=&application_info, .enabledExtensionCount=extension_count, .ppEnabledExtensionNames=extensions };
 	ret = vkCreateInstance(&instance_info, NULL, &fb->vk.instance);
+	#ifndef _WIN32
 	free(extensions);
+	#endif
 	VK_ERR_RET("vkCreateInstance", ret);
 
+	#ifdef _WIN32
+	// Create the Vulkan surface directly from the persistent SDL window handle
+	VkWin32SurfaceCreateInfoKHR surface_info = { .sType=VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR, .hinstance=GetModuleHandle(NULL), .hwnd=fb->vk.surface_window };
+	ret = vkCreateWin32SurfaceKHR(fb->vk.instance, &surface_info, NULL, &fb->vk.surface);
+	VK_ERR_RET("vkCreateWin32SurfaceKHR", ret);
+	#else
 	// Create the SDL surface before choosing a presentation-capable device
 	if (!SDL_Vulkan_CreateSurface(fb->window, fb->vk.instance, &fb->vk.surface))
 	{
 		fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
 		return VK_ERROR_SURFACE_LOST_KHR;
 	}
+	#endif
 
 	return VK_SUCCESS;
 }
-
 static VkResult vk_select_device()
 {
 	VkResult ret;
@@ -283,7 +365,14 @@ static VkResult vk_create_swapchain()
 	VkSurfaceFormatKHR *formats;
 	VkSurfaceFormatKHR selected_format;
 	VkCompositeAlphaFlagBitsKHR composite_alpha=VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	VkSwapchainKHR old_swapchain=fb->vk.swapchain, new_swapchain=VK_NULL_HANDLE;
+	VkImage *old_swapchain_images=fb->vk.swapchain_images;
 	int drawable_width, drawable_height;
+
+	#ifdef _WIN32
+	// Resize the Vulkan child before querying its presentation capabilities
+	vk_resize_surface_window();
+	#endif
 
 	// Query the current surface and reject presentation paths without transfer destinations
 	ret = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(fb->vk.gpu, fb->vk.surface, &capabilities);
@@ -336,11 +425,16 @@ static VkResult vk_create_swapchain()
 	if (capabilities.maxImageCount && image_count > capabilities.maxImageCount)
 		image_count=capabilities.maxImageCount;
 
-	// Replace the old chain only after all previous submissions have completed
-	vk_destroy_swapchain();
-	VkSwapchainCreateInfoKHR swapchain_info = { .sType=VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, .surface=fb->vk.surface, .minImageCount=image_count, .imageFormat=selected_format.format, .imageColorSpace=selected_format.colorSpace, .imageExtent=fb->vk.swapchain_extent, .imageArrayLayers=1, .imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT, .imageSharingMode=VK_SHARING_MODE_EXCLUSIVE, .preTransform=capabilities.currentTransform, .compositeAlpha=composite_alpha, .presentMode=VK_PRESENT_MODE_FIFO_KHR, .clipped=VK_TRUE };
-	ret = vkCreateSwapchainKHR(fb->vk.device, &swapchain_info, NULL, &fb->vk.swapchain);
+	// Retire the previous chain only after its replacement has been created
+	VkSwapchainCreateInfoKHR swapchain_info = { .sType=VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, .surface=fb->vk.surface, .minImageCount=image_count, .imageFormat=selected_format.format, .imageColorSpace=selected_format.colorSpace, .imageExtent=fb->vk.swapchain_extent, .imageArrayLayers=1, .imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT, .imageSharingMode=VK_SHARING_MODE_EXCLUSIVE, .preTransform=capabilities.currentTransform, .compositeAlpha=composite_alpha, .presentMode=VK_PRESENT_MODE_FIFO_KHR, .clipped=VK_TRUE, .oldSwapchain=old_swapchain };
+	ret = vkCreateSwapchainKHR(fb->vk.device, &swapchain_info, NULL, &new_swapchain);
 	VK_ERR_RET("vkCreateSwapchainKHR", ret);
+	fb->vk.swapchain=new_swapchain;
+	fb->vk.swapchain_images=NULL;
+	fb->vk.swapchain_image_count=0;
+	free(old_swapchain_images);
+	if (old_swapchain)
+		vkDestroySwapchainKHR(fb->vk.device, old_swapchain, NULL);
 	fb->vk.swapchain_format=selected_format.format;
 	vkGetSwapchainImagesKHR(fb->vk.device, fb->vk.swapchain, &fb->vk.swapchain_image_count, NULL);
 	fb->vk.swapchain_images=calloc(fb->vk.swapchain_image_count, sizeof(*fb->vk.swapchain_images));
@@ -790,6 +884,11 @@ int vk_drawq_run()
 	else if (ret!=VK_SUCCESS)
 		return 0;
 
+	#ifdef _WIN32
+	// Cover the parent window only after Vulkan has a complete presented frame
+	vk_show_surface_window();
+	#endif
+
 	// Commit frame ownership and clear the uploaded dirty interval
 	frame->output_layout_initialised=1;
 	fb->vk.dirty_start=SIZE_MAX;
@@ -803,9 +902,30 @@ int vk_init()
 	VkResult ret;
 	VkFormatProperties output_properties, swapchain_properties;
 
+	// Reactivate retained Vulkan objects by recreating their presentation chain
+	if (fb->vk.initialised)
+	{
+		ret=vkDeviceWaitIdle(fb->vk.device);
+		VK_ERR_RET("vkDeviceWaitIdle", ret);
+		ret=vk_create_swapchain();
+		VK_ERR_RET("vk_create_swapchain", ret);
+		for (int i=0; i < RL_VK_FRAMES_IN_FLIGHT; i++)
+			fb->vk.frame[i].timestamp_results_pending=0;
+		fb->vk.frame_index=0;
+		fb->vk.dirty_start=SIZE_MAX;
+		fb->vk.dirty_end=0;
+		return VK_SUCCESS;
+	}
+
 	// Start from an empty state so partial initialization can share teardown
 	memset(&fb->vk, 0, sizeof(fb->vk));
 	fb->vk.dirty_start=SIZE_MAX;
+	#ifdef _WIN32
+	// Create a dedicated native presentation target before binding Vulkan WSI
+	ret=vk_create_surface_window();
+	if (ret!=VK_SUCCESS)
+		goto fail;
+	#endif
 	ret=vk_create_instance_surface();
 	if (ret!=VK_SUCCESS)
 		goto fail;
@@ -840,6 +960,13 @@ fail:
 	fprintf_rl(stderr, "vk_init() failed: %s\n", get_vk_error_string(ret));
 	vk_deinit();
 	return ret;
+}
+
+void vk_suspend()
+{
+	// Finish Vulkan work while retaining its independent child presentation chain
+	if (fb->vk.device)
+		vkDeviceWaitIdle(fb->vk.device);
 }
 
 void vk_deinit()
@@ -897,6 +1024,11 @@ void vk_deinit()
 	// Release the window surface and instance last, then permit clean reinitialization
 	if (fb->vk.surface && fb->vk.instance)
 		vkDestroySurfaceKHR(fb->vk.instance, fb->vk.surface, NULL);
+	#ifdef _WIN32
+	// Destroy the child only after its Vulkan surface has been released
+	if (fb->vk.surface_window)
+		DestroyWindow(fb->vk.surface_window);
+	#endif
 	if (fb->vk.instance)
 		vkDestroyInstance(fb->vk.instance, NULL);
 	memset(&fb->vk, 0, sizeof(fb->vk));

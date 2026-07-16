@@ -2,12 +2,15 @@
 
 #undef pi
 #define optimize ttf_optimize
+#pragma push_macro("FAILED")
+#undef FAILED
 #define FAILED TTF_FAILED
 #define TTF_NO_FILESYSTEM
 #define TTF_NO_SIGNAL_H
 #include "../libraries/orig/ttf2mesh.c"
 #undef optimize
 #undef FAILED
+#pragma pop_macro("FAILED")
 #undef pi
 #define pi RL_PI
 

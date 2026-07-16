@@ -3,18 +3,23 @@ void cl_copy_buffer_to_device(void *buffer, size_t offset, size_t size)
 	if (size==0)
 		return ;
 
-	if (fb->use_drawq==1 && fb->discard==0)
+	#ifdef RL_VULKAN
+	// Accumulate Vulkan uploads until the next command buffer is recorded
+	if (fb->use_drawq==DRAWQ_MODE_VULKAN && fb->discard==0)
 	{
-		#ifdef RL_VULKAN
-		// Accumulate Vulkan uploads until the next command buffer is recorded
 		(void) buffer;
 		vk_mark_data_dirty(offset, size);
-		#elif defined(RL_OPENCL)
-		// Enqueue an immediate copy for the OpenCL hardware backend
+	}
+	#endif
+
+	#ifdef RL_OPENCL
+	// Enqueue an immediate copy only when the OpenCL backend is active
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL && fb->discard==0)
+	{
 		cl_int ret = clEnqueueWriteBuffer_wrap(fb->clctx.command_queue, fb->data_cl, CL_FALSE, offset, size, buffer, 0, NULL, NULL);
 		CL_ERR_NORET("clEnqueueWriteBuffer (in cl_copy_buffer_to_device(), for fb->data_cl)", ret);
-		#endif
 	}
+	#endif
 }
 
 void cl_copy_raster_to_device(raster_t r, size_t offset)
@@ -35,12 +40,14 @@ void data_cl_alloc(int mb)
 	fb->data = calloc(fb->data_cl_as, 1);
 
 	#ifdef RL_VULKAN
-	// Allocate the Vulkan device-local resource arena selected by mode 1
-	if (fb->use_drawq==1 && !vk_data_buffer_resize(fb->data_cl_as))
+	// Allocate the Vulkan device-local resource arena only for Vulkan
+	if (fb->use_drawq==DRAWQ_MODE_VULKAN && !vk_data_buffer_resize(fb->data_cl_as))
 		fprintf_rl(stderr, "vk_data_buffer_resize() failed in data_cl_alloc()\n");
-	#elif defined(RL_OPENCL)
-	// Allocate the OpenCL resource arena selected by mode 1
-	if (fb->use_drawq==1)
+	#endif
+
+	#ifdef RL_OPENCL
+	// Allocate the OpenCL resource arena only for OpenCL
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
 	{
 		cl_int ret;
 		fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, fb->data_cl_as, NULL, &ret);
@@ -56,38 +63,38 @@ void data_cl_alloc(int mb)
 void data_cl_realloc(ssize_t buffer_size)
 {
 	size_t orig_as, new_as;
-
-	// Free device buffer
-	#if defined(RL_OPENCL) && !defined(RL_VULKAN)
+	#ifdef RL_OPENCL
 	cl_int ret;
-	if (fb->use_drawq==1)
+	#endif
+
+	#ifdef RL_OPENCL
+	// Finish and release the current OpenCL arena before resizing it
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
 	{
 		ret = clFinish(fb->clctx.command_queue);
 		CL_ERR_NORET("clFinish in data_cl_realloc()", ret);
 
-		// free CL buffer
 		if (fb->data_cl)
 		{
 			ret = clReleaseMemObject(fb->data_cl);
 			CL_ERR_NORET("clReleaseMemObject (in data_cl_realloc(), for fb->data_cl)", ret);
+			fb->data_cl = NULL;
 		}
 	}
 	#endif
 
 	#ifndef RL_FREESTANDING
-	if (fb->use_drawq==2)
+	// Finish software rendering before resizing its host arena
+	if (fb->use_drawq==DRAWQ_MODE_SOFTWARE)
 		drawq_soft_finish();
 	#endif	// RL_FREESTANDING
 
-	// Only free the device buffer if requested size is negative
+	// Release all storage when a negative size requests deallocation
 	if (buffer_size < 0)
 	{
 		#ifdef RL_VULKAN
-		// Release Vulkan device memory while a minimised draw queue is suspended
-		vk_data_buffer_free();
-		#endif
-		#ifdef RL_OPENCL
-		memset(&fb->data_cl, 0, sizeof(cl_mem));
+		if (fb->use_drawq==DRAWQ_MODE_VULKAN)
+			vk_data_buffer_free();
 		#endif
 		fb->data_cl_as = 0;
 		free_null(&fb->data);
@@ -102,11 +109,10 @@ void data_cl_realloc(ssize_t buffer_size)
 	}
 	while (new_as < fb->data_cl_as + buffer_size);
 
-	// Allocate the CL buffer and shrink it if needed
-	if (fb->use_drawq==1)
+	#ifdef RL_VULKAN
+	// Grow the Vulkan arena while retaining its existing allocation on failure
+	if (fb->use_drawq==DRAWQ_MODE_VULKAN)
 	{
-		#ifdef RL_VULKAN
-		// Grow the Vulkan arena, reducing the request if device allocation fails
 		while (!vk_data_buffer_resize(new_as))
 		{
 			if (new_as <= (8 << 20))
@@ -116,33 +122,39 @@ void data_cl_realloc(ssize_t buffer_size)
 			}
 			new_as -= 8 << 20;
 		}
-		#elif defined(RL_OPENCL)
-		// Grow the OpenCL arena with the existing allocation fallback
+	}
+	#endif
+
+	#ifdef RL_OPENCL
+	// Grow the OpenCL arena with the existing allocation fallback
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
+	{
 		do
 		{
 			fb->data_cl = clCreateBuffer(fb->clctx.context, CL_MEM_READ_WRITE, new_as, NULL, &ret);
-			if (ret != CL_SUCCESS)			// if it's too much
-				new_as -= 8 << 20;		// remove 8 MB
+			if (ret != CL_SUCCESS)
+				new_as -= 8 << 20;
 		}
 		while (ret != CL_SUCCESS);
-		#endif
-
-		if (new_as < fb->data_cl_as)
-			fprintf_rl(stderr, "data_cl_realloc() made fb->data_cl smaller, %g MB to %g MB\n", (double) fb->data_cl_as / sq(1024.), (double) new_as / sq(1024.));
 	}
+	#endif
+
+	// Report unexpected shrinkage of either device arena
+	if ((fb->use_drawq==DRAWQ_MODE_OPENCL || fb->use_drawq==DRAWQ_MODE_VULKAN) && new_as < fb->data_cl_as)
+		fprintf_rl(stderr, "data_cl_realloc() made fb->data_cl smaller, %g MB to %g MB\n", (double) fb->data_cl_as / sq(1024.), (double) new_as / sq(1024.));
 
 	// Resize the local buffer and copy it back
 	if (fb->use_drawq)
 		alloc_enough(&fb->data, new_as, &fb->data_cl_as, 1, 1.);
 
-	if (fb->use_drawq==1)
+	// Restore the previous arena contents for either GPU backend
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL || fb->use_drawq==DRAWQ_MODE_VULKAN)
 		cl_copy_buffer_to_device(fb->data, 0, MINN(orig_as, fb->data_cl_as));	// enqueue copy of everything
 
 	fb->must_recalc_free_space = 1;
 
 	//fprintf_rl(stdout, "data_cl resized to %g MB\n", (double) fb->data_cl_as / sq(1024.));
 }
-
 void cl_data_table_remove_entry(int i)
 {
 	fb->data_alloc_table_count--;

@@ -491,10 +491,8 @@ SDL_GLContext init_sdl_gl(SDL_Window *window)
 
 static uint32_t sdl_graphics_texture_format = SDL_PIXELFORMAT_ARGB8888;
 static int sdl_graphics_srgb_order = ORDER_BGRA;
-#ifdef RL_VULKAN
 static int sdl_graphics_window_is_foreign = 0;
 static uint64_t sdl_graphics_window_flags = 0;
-#endif
 
 static void sdl_init()
 {
@@ -520,44 +518,109 @@ static void sdl_init()
 	#endif
 }
 
+enum sdl_graphics_window_api
+{
+	SDL_GRAPHICS_WINDOW_API_SDL,
+	SDL_GRAPHICS_WINDOW_API_OPENGL,
+	SDL_GRAPHICS_WINDOW_API_VULKAN
+};
+
+static int sdl_graphics_window_api_for_mode(int mode)
+{
+	#if defined(_WIN32) && defined(RL_OPENCL_GL) && defined(RL_VULKAN)
+	// Share one OpenGL-capable native window across every Windows backend
+	(void) mode;
+	return SDL_GRAPHICS_WINDOW_API_OPENGL;
+	#else
+	#ifdef RL_OPENCL_GL
+	// OpenCL interop requires a window created for OpenGL
+	if (mode==DRAWQ_MODE_OPENCL)
+		return SDL_GRAPHICS_WINDOW_API_OPENGL;
+	#endif
+
+	#ifdef RL_VULKAN
+	// Vulkan presentation requires a window created for Vulkan
+	if (mode==DRAWQ_MODE_VULKAN)
+		return SDL_GRAPHICS_WINDOW_API_VULKAN;
+	#endif
+
+	return SDL_GRAPHICS_WINDOW_API_SDL;
+	#endif
+}
+
+static uint64_t sdl_graphics_window_flags_for_mode(uint64_t flags, int mode)
+{
+	// Remove presentation flags before selecting the requested API
+	flags &= ~(uint64_t) SDL_WINDOW_OPENGL;
+	#ifdef RL_VULKAN
+	flags &= ~(uint64_t) SDL_WINDOW_VULKAN;
+	#endif
+
+	#if defined(_WIN32) && defined(RL_OPENCL_GL) && defined(RL_VULKAN)
+	// Keep the persistent Windows window compatible with OpenGL interop
+	(void) mode;
+	flags |= SDL_WINDOW_OPENGL;
+	#else
+	#ifdef RL_OPENCL_GL
+	// Select OpenGL only for the OpenCL interop path
+	if (mode==DRAWQ_MODE_OPENCL)
+		flags |= SDL_WINDOW_OPENGL;
+	#endif
+
+	#ifdef RL_VULKAN
+	// Select Vulkan only for the Vulkan backend
+	if (mode==DRAWQ_MODE_VULKAN)
+		flags |= SDL_WINDOW_VULKAN;
+	#endif
+	#endif
+
+	return flags;
+}
 static int sdl_graphics_mode_available(int mode)
 {
-	if (mode==0)
+	// Direct drawing is always available
+	if (mode==DRAWQ_MODE_DIRECT)
 		return 1;
 
-	// Check the compiled hardware backend used by draw queue mode 1
-	if (mode==1)
-	{
-		#ifdef RL_VULKAN
-		// Defer Vulkan device validation until the SDL surface exists
-		return 1;
-		#else
-		// Probe OpenCL before selecting the legacy hardware backend
+	#ifdef RL_OPENCL
+	// Probe the OpenCL platform before offering its backend
+	if (mode==DRAWQ_MODE_OPENCL)
 		return check_opencl();
-		#endif
-	}
+	#endif
 
 	// Check the instruction sets required by the software draw queue
-	if (mode==2)
+	if (mode==DRAWQ_MODE_SOFTWARE)
 		return check_ssse3() && check_sse41();
+
+	#ifdef RL_VULKAN
+	// Defer Vulkan device validation until the SDL surface exists
+	if (mode==DRAWQ_MODE_VULKAN)
+		return 1;
+	#endif
 
 	return 0;
 }
 
 static int sdl_graphics_fallback_mode(int mode)
 {
-	return mode==1 ? 2 : 0;
+	// Prefer OpenCL when Vulkan is unavailable
+	if (mode==DRAWQ_MODE_VULKAN)
+		return DRAWQ_MODE_OPENCL;
+
+	// Fall back from either hardware queue to software
+	if (mode==DRAWQ_MODE_OPENCL)
+		return DRAWQ_MODE_SOFTWARE;
+
+	return DRAWQ_MODE_DIRECT;
 }
 
 static void sdl_graphics_set_maxdim()
 {
 	// Set the largest framebuffer allocation needed across all displays
 	fb->maxdim = sdl_screen_max_window_size();
-	if (fb->use_drawq==1)
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL || fb->use_drawq==DRAWQ_MODE_VULKAN)
 		fb->maxdim = and_xyi(add_xyi(fb->maxdim, set_xyi(31)), 0xFFFFFFE0);
 }
-
-#ifdef RL_VULKAN
 static int sdl_graphics_recreate_window(int mode)
 {
 	SDL_Window *old_window, *new_window;
@@ -574,7 +637,7 @@ static int sdl_graphics_recreate_window(int mode)
 		return 0;
 	}
 
-	// Preserve the visible window identity and state before replacing its backend flags
+	// Preserve the visible window state before replacing its backend flags
 	old_window = fb->window;
 	old_rect = sdl_get_window_rect(old_window);
 	old_flags = SDL_GetWindowFlags(old_window);
@@ -592,19 +655,21 @@ static int sdl_graphics_recreate_window(int mode)
 	}
 	strcpy(title, old_title);
 
-	// Select mutually exclusive window flags for Vulkan and SDL renderer presentation
-	new_flags = sdl_graphics_window_flags;
-	new_flags &= ~((uint64_t) SDL_WINDOW_OPENGL | SDL_WINDOW_VULKAN | SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED | SDL_WINDOW_MAXIMIZED);
+	// Select mutually exclusive window flags for the target presentation API
+	new_flags = sdl_graphics_window_flags_for_mode(sdl_graphics_window_flags, mode);
+	new_flags &= ~((uint64_t) SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED | SDL_WINDOW_MAXIMIZED);
 	#if RL_SDL == 2
 	new_flags &= ~((uint64_t) SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_FULLSCREEN);
 	#else
 	new_flags &= ~(uint64_t) SDL_WINDOW_FULLSCREEN;
 	#endif
 	new_flags |= SDL_WINDOW_HIDDEN;
-	if (mode==1)
-		new_flags |= SDL_WINDOW_VULKAN;
+	if (was_maximised)
+		new_flags |= SDL_WINDOW_MAXIMIZED;
+	else if (was_minimised)
+		new_flags |= SDL_WINDOW_MINIMIZED;
 
-	// Create the replacement before destroying the old window so failure is recoverable
+	// Create the replacement before releasing the current compatible window
 	#if RL_SDL == 2
 	new_window = SDL_CreateWindow(title, old_rect.p0.x, old_rect.p0.y, get_recti_dim(old_rect).x, get_recti_dim(old_rect).y, (Uint32) new_flags);
 	#else
@@ -619,17 +684,15 @@ static int sdl_graphics_recreate_window(int mode)
 		return 0;
 	}
 
-	// Replace the backend-specific window after every old presentation object is gone
-	SDL_DestroyWindow(old_window);
+	// Replace the old window after successful creation
 	fb->window = new_window;
+	SDL_DestroyWindow(old_window);
 	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
 	#if RL_SDL == 3
 	SDL_StartTextInput(fb->window);
 	#endif
 
-	// Restore visibility, fullscreen, and minimised or maximised state
-	if (!was_hidden)
-		SDL_ShowWindow(fb->window);
+	// Restore fullscreen state on the replacement
 	#if RL_SDL == 2
 	if (old_flags & SDL_WINDOW_FULLSCREEN)
 		SDL_SetWindowFullscreen(fb->window, (old_flags & SDL_WINDOW_FULLSCREEN_DESKTOP)==SDL_WINDOW_FULLSCREEN_DESKTOP ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN);
@@ -637,14 +700,13 @@ static int sdl_graphics_recreate_window(int mode)
 	if (old_flags & SDL_WINDOW_FULLSCREEN)
 		SDL_SetWindowFullscreen(fb->window, 1);
 	#endif
-	else if (was_maximised)
-		SDL_MaximizeWindow(fb->window);
-	else if (was_minimised)
-		SDL_MinimizeWindow(fb->window);
+
+	// Restore visibility after all presentation-specific setup is complete
+	if (!was_hidden)
+		SDL_ShowWindow(fb->window);
 
 	return 1;
 }
-#endif
 
 static int sdl_graphics_create_renderer(int opengl)
 {
@@ -683,14 +745,20 @@ static int sdl_graphics_init_mode()
 {
 	int raster_mode = fb->r.use_frgb ? IMAGE_USE_FRGB : IMAGE_USE_LRGB;
 
-	// Initialise the presentation backend required by the selected mode
-	if (fb->use_drawq==1)
+	// Initialise direct drawing with a renderer matching the persistent window API
+	if (fb->use_drawq==DRAWQ_MODE_DIRECT)
 	{
-		#ifdef RL_VULKAN
-		// Create the Vulkan instance, SDL surface, device, swapchain, and compute pipeline
-		if (vk_init() != VK_SUCCESS)
+		int opengl = sdl_graphics_window_api_for_mode(fb->use_drawq)==SDL_GRAPHICS_WINDOW_API_OPENGL;
+		if (!sdl_graphics_create_renderer(opengl) || !sdl_graphics_create_texture())
 			return 0;
-		#elif defined(RL_OPENCL_GL)
+		fb->r = make_raster(NULL, XYI0, fb->maxdim, raster_mode);
+	}
+
+	#ifdef RL_OPENCL
+	// Initialise OpenCL with either GL interop or an SDL streaming texture
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
+	{
+		#ifdef RL_OPENCL_GL
 		fb->gl_ctx = init_sdl_gl(fb->window);
 		if (fb->gl_ctx==NULL || !sdl_graphics_create_renderer(1))
 			return 0;
@@ -699,28 +767,32 @@ static int sdl_graphics_init_mode()
 			return 0;
 		#endif
 
-		#ifndef RL_VULKAN
-		// Initialise OpenCL only when it owns the hardware draw queue
-		#ifdef RL_OPENCL
 		if (init_fb_cl() != CL_SUCCESS)
 			return 0;
-		#else
-		return 0;
-		#endif
-		#endif
 	}
-	else
-	{
-		if (!sdl_graphics_create_renderer(0) || !sdl_graphics_create_texture())
-			return 0;
+	#endif
 
-		// Allocate the direct framebuffer only for the non-drawqueue mode
-		if (fb->use_drawq==0)
-			fb->r = make_raster(NULL, XYI0, fb->maxdim, raster_mode);
+	// Initialise software presentation with a renderer matching the persistent window API
+	if (fb->use_drawq==DRAWQ_MODE_SOFTWARE)
+	{
+		int opengl = sdl_graphics_window_api_for_mode(fb->use_drawq)==SDL_GRAPHICS_WINDOW_API_OPENGL;
+		if (!sdl_graphics_create_renderer(opengl) || !sdl_graphics_create_texture())
+			return 0;
 	}
+
+	#ifdef RL_VULKAN
+	// Initialise Vulkan without creating SDL renderer resources
+	if (fb->use_drawq==DRAWQ_MODE_VULKAN)
+		if (vk_init() != VK_SUCCESS)
+			return 0;
+	#endif
+
+	// Reject a backend that was not compiled into this build
+	if (!sdl_graphics_mode_available(fb->use_drawq))
+		return 0;
 
 	// Allocate shared draw queue state after its backend is ready
-	if (fb->use_drawq)
+	if (fb->use_drawq!=DRAWQ_MODE_DIRECT)
 		drawq_alloc();
 
 	// Reset frame state for the newly initialised graphics mode
@@ -736,18 +808,20 @@ static void sdl_graphics_deinit_mode()
 {
 	int old_mode = fb->use_drawq;
 
-	// Stop mode-specific asynchronous work before releasing its destination
-	if (old_mode==2)
+	// Stop software work before releasing its destination texture
+	if (old_mode==DRAWQ_MODE_SOFTWARE)
 		drawq_soft_quit();
 
-	#if defined(RL_OPENCL) && !defined(RL_VULKAN)
-	if (old_mode==1)
+	#ifdef RL_OPENCL
+	// Release OpenCL resources only when OpenCL owns them
+	if (old_mode==DRAWQ_MODE_OPENCL)
 		deinit_fb_cl();
 	#endif
 
 	#ifdef RL_VULKAN
-	if (old_mode==1)
-		vk_deinit();
+	// Quiesce Vulkan while retaining its native-window presentation association
+	if (old_mode==DRAWQ_MODE_VULKAN)
+		vk_suspend();
 	#endif
 
 	// Unlock a streaming texture after all writers have finished
@@ -759,11 +833,11 @@ static void sdl_graphics_deinit_mode()
 	fb->r.srgb = NULL;
 
 	// Release shared draw queue allocations and threads
-	if (old_mode)
+	if (old_mode!=DRAWQ_MODE_DIRECT)
 		drawq_deinit();
 
 	// Release the framebuffer owned by direct rendering
-	if (old_mode==0)
+	if (old_mode==DRAWQ_MODE_DIRECT)
 		free_raster(&fb->r);
 
 	// Destroy SDL and OpenGL presentation resources while keeping the window
@@ -782,14 +856,13 @@ static void sdl_graphics_deinit_mode()
 	fb->first_frame_done = 0;
 	fb->pixel_scale_oldframe = 0;
 }
-
 static int sdl_graphics_init_with_fallback(const char *caller)
 {
 	int use_frgb = fb->r.use_frgb;
 	int failed_mode;
 
 	// Try successively simpler modes until one initialises
-	while (fb->use_drawq >= 0 && fb->use_drawq <= 2)
+	while (fb->use_drawq >= 0 && fb->use_drawq < DRAWQ_MODE_COUNT)
 	{
 		if (!sdl_graphics_mode_available(fb->use_drawq))
 		{
@@ -807,31 +880,29 @@ static int sdl_graphics_init_with_fallback(const char *caller)
 		fprintf_rl(stderr, "%s: draw queue mode %d failed to initialise, falling back\n", caller, failed_mode);
 		sdl_graphics_deinit_mode();
 		fb->r.use_frgb = use_frgb;
-		if (failed_mode==0)
+		if (failed_mode==DRAWQ_MODE_DIRECT)
 			return 0;
 		fb->use_drawq = sdl_graphics_fallback_mode(failed_mode);
 
-		// Recreate an internally owned window when fallback crosses the Vulkan boundary
-		#ifdef RL_VULKAN
-		if ((failed_mode==1) != (fb->use_drawq==1))
+		// Recreate an internally owned window when fallback changes presentation API
+		if (sdl_graphics_window_api_for_mode(failed_mode) != sdl_graphics_window_api_for_mode(fb->use_drawq))
 			if (!sdl_graphics_recreate_window(fb->use_drawq))
 				return 0;
-		#endif
 	}
 
 	// Recover invalid startup values by trying direct rendering
 	fprintf_rl(stderr, "%s: invalid draw queue mode %d, using mode 0\n", caller, fb->use_drawq);
-	fb->use_drawq = 0;
+	fb->use_drawq = DRAWQ_MODE_DIRECT;
 	sdl_graphics_set_maxdim();
 	return sdl_graphics_init_mode();
 }
 
 int sdl_graphics_set_drawq_mode(int mode)
 {
-	int old_mode, use_frgb;
+	int old_mode, use_frgb, api_changed;
 
 	// Reject invalid and unavailable modes without disturbing the current mode
-	if (mode < 0 || mode > 2)
+	if (mode < 0 || mode >= DRAWQ_MODE_COUNT)
 	{
 		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): invalid draw queue mode %d\n", mode);
 		return 0;
@@ -848,43 +919,39 @@ int sdl_graphics_set_drawq_mode(int mode)
 		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): draw queue mode %d is unavailable\n", mode);
 		return 0;
 	}
+
 	// Save configuration needed to restore or initialise raster mode
 	old_mode = fb->use_drawq;
 	use_frgb = fb->r.use_frgb;
+	api_changed = sdl_graphics_window_api_for_mode(old_mode) != sdl_graphics_window_api_for_mode(mode);
 
 	// Refuse a cross-API switch when the native window belongs to the caller
-	#ifdef RL_VULKAN
-	if ((old_mode==1) != (mode==1) && sdl_graphics_window_is_foreign)
+	if (api_changed && sdl_graphics_window_is_foreign)
 	{
-		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): cannot switch a foreign window between Vulkan and SDL renderer presentation\n");
+		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): cannot change the presentation API of a foreign window\n");
 		return 0;
 	}
-	#endif
 
-	// Replace the current mode while preserving the SDL window
+	// Replace backend resources while retaining a compatible SDL window
 	sdl_graphics_deinit_mode();
 	fb->use_drawq = mode;
 	fb->r.use_frgb = use_frgb;
 	sdl_graphics_set_maxdim();
 
-	// Recreate the window with flags belonging to the target presentation API
-	#ifdef RL_VULKAN
-	if ((old_mode==1) != (mode==1))
+	// Recreate only on platforms whose presentation APIs require distinct windows
+	if (api_changed && !sdl_graphics_recreate_window(mode))
 	{
-		if (!sdl_graphics_recreate_window(mode))
-		{
-			// Restore the old mode on its unchanged compatible window
-			fb->use_drawq = old_mode;
-			fb->r.use_frgb = use_frgb;
-			sdl_graphics_set_maxdim();
-			if (!sdl_graphics_init_mode())
-				fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): failed to restore draw queue mode %d\n", old_mode);
-			SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
-			return 0;
-		}
+		// Restore the old mode on its unchanged compatible window
+		fb->use_drawq = old_mode;
+		fb->r.use_frgb = use_frgb;
+		sdl_graphics_set_maxdim();
+		if (!sdl_graphics_init_mode())
+			fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): failed to restore draw queue mode %d\n", old_mode);
+		SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
+		return 0;
 	}
-	#endif
 
+	// Complete the requested switch when its backend initializes successfully
 	if (sdl_graphics_init_mode())
 	{
 		SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
@@ -898,16 +965,14 @@ int sdl_graphics_set_drawq_mode(int mode)
 	fb->r.use_frgb = use_frgb;
 	sdl_graphics_set_maxdim();
 
-	// Restore the previous presentation API before rebuilding its mode resources
-	#ifdef RL_VULKAN
-	if ((old_mode==1) != (mode==1))
-		if (!sdl_graphics_recreate_window(old_mode))
-		{
-			fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): failed to restore the window for draw queue mode %d\n", old_mode);
-			return 0;
-		}
-	#endif
+	// Restore the previous API window only on platforms that replaced it
+	if (api_changed && !sdl_graphics_recreate_window(old_mode))
+	{
+		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): failed to restore the window for draw queue mode %d\n", old_mode);
+		return 0;
+	}
 
+	// Restore the previous backend after the failed switch
 	if (!sdl_graphics_init_mode())
 		fprintf_rl(stderr, "sdl_graphics_set_drawq_mode(): failed to restore draw queue mode %d\n", old_mode);
 	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
@@ -916,11 +981,9 @@ int sdl_graphics_set_drawq_mode(int mode)
 
 void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 {
-	#ifdef RL_VULKAN
 	// Record that backend-specific window recreation is not permitted
 	sdl_graphics_window_is_foreign = 1;
 	sdl_graphics_window_flags = flags;
-	#endif
 
 	// Initialise SDL and shared graphics defaults
 	sdl_init();
@@ -930,16 +993,8 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 	sdl_graphics_texture_format = SDL_PIXELFORMAT_RGBA32;
 	sdl_graphics_srgb_order = ORDER_RGBA;
 
-	// Replace incompatible caller flags with the compiled presentation API
-	int temp_flags = flags;
-	#ifdef RL_VULKAN
-	temp_flags &= ~SDL_WINDOW_OPENGL;
-	temp_flags &= ~SDL_WINDOW_VULKAN;
-	if (fb->use_drawq==1)
-		temp_flags |= SDL_WINDOW_VULKAN;
-	#endif
-
-	// Create a temporary window whose pixel format can be shared
+	// Create a temporary window with the selected presentation API
+	int temp_flags = (int) sdl_graphics_window_flags_for_mode(flags, fb->use_drawq);
 #if RL_SDL == 2
 	SDL_Window *temp_window = SDL_CreateWindow("", 0, 0, 1, 1, temp_flags | SDL_WINDOW_HIDDEN);
 #else
@@ -952,20 +1007,24 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 #else
 	SDL_SetHint(SDL_PROP_WINDOW_CREATE_WIN32_PIXEL_FORMAT_HWND_POINTER, hint);
 #endif
+
 	#ifdef RL_VULKAN
-	// Mark an adopted SDL 2 window as compatible with Vulkan surfaces
+	// Mark an adopted SDL 2 window as Vulkan-compatible when Vulkan owns its surface
 	#if RL_SDL == 2
-	SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_VULKAN, "1");
+	if (sdl_graphics_window_api_for_mode(fb->use_drawq)==SDL_GRAPHICS_WINDOW_API_VULKAN)
+		SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_VULKAN, "1");
 	#endif
-	#else
-	if (temp_flags & SDL_WINDOW_OPENGL)
-#if RL_SDL == 2
-		SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_OPENGL, "1");
-#else
-		SDL_SetHint(SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, "1");
-#endif
 	#endif
 
+	#ifdef RL_OPENCL_GL
+	// Mark an adopted window as OpenGL-compatible whenever the shared API requires it
+	if (sdl_graphics_window_api_for_mode(fb->use_drawq)==SDL_GRAPHICS_WINDOW_API_OPENGL)
+		#if RL_SDL == 2
+		SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_OPENGL, "1");
+		#else
+		SDL_SetHint(SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, "1");
+		#endif
+	#endif
 #if RL_SDL == 2
 	// Adopt the foreign window and release the temporary format donor
 	fb->window = SDL_CreateWindowFrom(window_handle);
@@ -977,8 +1036,10 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 	}
 	SDL_SetHint(SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, NULL);
 	#ifdef RL_VULKAN
-	// Restore the process-wide foreign-window hint after adoption
 	SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_VULKAN, NULL);
+	#endif
+	#ifdef RL_OPENCL_GL
+	SDL_SetHint(SDL_HINT_VIDEO_FOREIGN_WINDOW_OPENGL, NULL);
 	#endif
 	SDL_DestroyWindow(temp_window);
 
@@ -1000,14 +1061,11 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 	SDL_DestroyWindow(temp_window);
 #endif
 }
-
 void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int flags)
 {
-	#ifdef RL_VULKAN
 	// Record the creation flags used for future backend-specific replacement windows
 	sdl_graphics_window_is_foreign = 0;
 	sdl_graphics_window_flags = flags;
-	#endif
 
 	// Initialise SDL and shared graphics defaults
 	sdl_init();
@@ -1020,10 +1078,10 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	fb->h = dim.y;
 
 	// Select an available startup mode before sizing the initial window
-	if (fb->use_drawq < 0 || fb->use_drawq > 2)
+	if (fb->use_drawq < 0 || fb->use_drawq >= DRAWQ_MODE_COUNT)
 	{
 		fprintf_rl(stderr, "sdl_graphics_init_full(): invalid draw queue mode %d, using mode 0\n", fb->use_drawq);
-		fb->use_drawq = 0;
+		fb->use_drawq = DRAWQ_MODE_DIRECT;
 	}
 	while (!sdl_graphics_mode_available(fb->use_drawq) && fb->use_drawq)
 	{
@@ -1033,30 +1091,13 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	sdl_graphics_set_maxdim();
 
 	// Select mutually exclusive creation flags for the initial presentation API
-	#ifdef RL_VULKAN
-	uint64_t window_flags = flags & ~(uint64_t) SDL_WINDOW_OPENGL;
-	window_flags &= ~(uint64_t) SDL_WINDOW_VULKAN;
-	if (fb->use_drawq==1)
-		window_flags |= SDL_WINDOW_VULKAN;
-	#endif
+	uint64_t window_flags = sdl_graphics_window_flags_for_mode(flags, fb->use_drawq);
 
 	// Create the initial window for the selected presentation backend
 #if RL_SDL == 3
-	fb->window = SDL_CreateWindow(window_name, fb->w, fb->h,
-		#ifdef RL_VULKAN
-		(SDL_WindowFlags) window_flags
-		#else
-		SDL_WINDOW_OPENGL | flags
-		#endif
-		);
+	fb->window = SDL_CreateWindow(window_name, fb->w, fb->h, (SDL_WindowFlags) window_flags);
 #else
-	fb->window = SDL_CreateWindow(window_name, -fb->maxdim.x-100, SDL_WINDOWPOS_UNDEFINED, fb->maxdim.x, fb->maxdim.y,
-		#ifdef RL_VULKAN
-		(Uint32) window_flags
-		#else
-		SDL_WINDOW_OPENGL | flags
-		#endif
-		);
+	fb->window = SDL_CreateWindow(window_name, -fb->maxdim.x-100, SDL_WINDOWPOS_UNDEFINED, fb->maxdim.x, fb->maxdim.y, (Uint32) window_flags);
 #endif
 	if (fb->window==NULL)
 	{
@@ -1110,16 +1151,17 @@ int sdl_handle_window_resize(zoom_t *zc)
 		return 0;
 
 	// Restore the base direct framebuffer before changing dimensions
-	if (fb->use_drawq==0 && (fb->drawq_direct_bracket_depth || fb->drawq_direct_bracket_overflow))
+	if (fb->use_drawq==DRAWQ_MODE_DIRECT && (fb->drawq_direct_bracket_depth || fb->drawq_direct_bracket_overflow))
 		drawq_bracket_deinit_direct();
 
 	// Finish drawqueue processing
 	#ifdef RL_OPENCL_GL
-	if (fb->use_drawq==1)
+	// Finish OpenCL interop before replacing its presentation surface
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
 		clFinish_wrap(fb->clctx.command_queue);	// wait for end of queue
 	#endif
 
-	if (fb->use_drawq==2)
+	if (fb->use_drawq==DRAWQ_MODE_SOFTWARE)
 		drawq_soft_finish();
 
 	// Set new dimensions
@@ -1140,12 +1182,13 @@ int sdl_handle_window_resize(zoom_t *zc)
 	// Remake texture
 	int remake_tex = 1;
 	#ifdef RL_OPENCL_GL
-	if (fb->use_drawq==1)
+	// OpenCL interop renders without an SDL streaming texture
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
 		remake_tex = 0;
 	#endif
 	#ifdef RL_VULKAN
 	// Let Vulkan recreate its swapchain lazily instead of constructing an SDL texture
-	if (fb->use_drawq==1)
+	if (fb->use_drawq==DRAWQ_MODE_VULKAN)
 	{
 		remake_tex = 0;
 		vk_mark_swapchain_dirty();
@@ -1183,18 +1226,25 @@ static void sdl_flip_fb_internal(int start_drawq)
 {
 	if (fb->timing==NULL)
 		fb->timing = calloc(fb->timing_as = fb->timing_count = 120, sizeof(frame_timing_t));
-	// Clear asynchronous timing carried by this reused circular slot
+	// Clear timing carried by this reused circular slot
 	fb->timing[fb->timing_index].thread_start = 0.;
 	fb->timing[fb->timing_index].thread_end = 0.;
 	fb->timing[fb->timing_index].func_end = get_time_hr();
+	fb->timing[fb->timing_index].flip_end = fb->timing[fb->timing_index].func_end;
 
-	if (fb->use_drawq==1)
+	#ifdef RL_VULKAN
+	// Vulkan has no separate work in the serial flip phase
+	if (fb->use_drawq==DRAWQ_MODE_VULKAN)
 	{
-		#ifdef RL_VULKAN
-		// Vulkan has no separate work in the serial flip phase
 		fb->timing[fb->timing_index].flip_end = fb->timing[fb->timing_index].func_end;
 		fb->first_frame_done = 1;
-		#elif defined(RL_OPENCL)
+	}
+	#endif
+
+	#ifdef RL_OPENCL
+	// Present the previous OpenCL frame before enqueuing the next one
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
+	{
 		if (fb->first_frame_done && mouse.window_minimised_flag <= 0)
 		{
 			cl_int ret=0;
@@ -1231,7 +1281,6 @@ static void sdl_flip_fb_internal(int start_drawq)
 			glEnd();
 
 			SDL_GL_SwapWindow(fb->window);
-
 			fb->timing[fb->timing_index].flip_end = get_time_hr();
 
 			#else
@@ -1245,13 +1294,18 @@ static void sdl_flip_fb_internal(int start_drawq)
 			SDL_RenderClear(fb->renderer);
 			SDL_RenderCopy(fb->renderer, fb->texture, NULL, NULL);
 			SDL_RenderPresent(fb->renderer);
+			fb->timing[fb->timing_index].flip_end = get_time_hr();
+			#endif
+			#ifdef RL_VULKAN
+			// Reveal the completed OpenCL frame after switching away from Vulkan
+			vk_hide_surface_window();
 			#endif
 		}
 		fb->first_frame_done = 1;
-		#endif
 	}
+	#endif
 
-	if (fb->use_drawq==2)
+	if (fb->use_drawq==DRAWQ_MODE_SOFTWARE)
 	{
 		if (fb->first_frame_done)
 		{
@@ -1266,6 +1320,10 @@ static void sdl_flip_fb_internal(int start_drawq)
 			SDL_RenderClear(fb->renderer);
 			SDL_RenderCopy(fb->renderer, fb->texture, NULL, NULL);
 			SDL_RenderPresent(fb->renderer);
+			#ifdef RL_VULKAN
+			// Reveal the completed software frame after switching away from Vulkan
+			vk_hide_surface_window();
+			#endif
 			fb->timing[fb->timing_index].flip_end = get_time_hr();
 		}
 		fb->first_frame_done = 1;
@@ -1273,6 +1331,15 @@ static void sdl_flip_fb_internal(int start_drawq)
 
 	if (fb->use_drawq)
 	{
+		// Collapse skipped queue phases at the end of a mode-switch frame
+		if (!start_drawq)
+		{
+			fb->timing[fb->timing_index].interop_sync_end = fb->timing[fb->timing_index].flip_end;
+			fb->timing[fb->timing_index].dq_comp_end = fb->timing[fb->timing_index].flip_end;
+			fb->timing[fb->timing_index].cl_copy_end = fb->timing[fb->timing_index].flip_end;
+			fb->timing[fb->timing_index].cl_enqueue_end = fb->timing[fb->timing_index].flip_end;
+		}
+
 		// Start the next draw queue only when the current backend will remain active
 		if (start_drawq)
 		{
@@ -1307,6 +1374,10 @@ static void sdl_flip_fb_internal(int start_drawq)
 		SDL_RenderClear(fb->renderer);
 		SDL_RenderCopy(fb->renderer, fb->texture, NULL, NULL);
 		SDL_RenderPresent(fb->renderer);
+		#ifdef RL_VULKAN
+		// Reveal the completed direct frame after switching away from Vulkan
+		vk_hide_surface_window();
+		#endif
 		fb->timing[fb->timing_index].interop_sync_end = get_time_hr();
 		fb->timing[fb->timing_index].dq_comp_end = get_time_hr();
 		fb->timing[fb->timing_index].cl_copy_end = get_time_hr();
@@ -1404,7 +1475,12 @@ void sdl_quit_actions()
 	// Release the active graphics mode through the shared teardown path
 	sdl_graphics_deinit_mode();
 
-	// Destroy the retained window and shut down SDL
+	#ifdef RL_VULKAN
+	// Release retained Vulkan objects before destroying their persistent window
+	vk_deinit();
+	#endif
+
+	// Destroy the persistent window before shutting down SDL
 	SDL_DestroyWindow(fb->window);
 	fb->window = NULL;
 	SDL_Quit();

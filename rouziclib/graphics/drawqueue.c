@@ -30,12 +30,13 @@ void drawq_alloc()
 	int32_t *dataint;
 	double ss;
 
-	#if defined(RL_OPENCL) && !defined(RL_VULKAN)
-	if (fb->use_drawq==1)
+	#ifdef RL_OPENCL
+	// Finish OpenCL work before replacing shared queue allocations
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
 		clFinish_wrap(fb->clctx.command_queue);	// wait for end of queue
 	#endif
 
-	if (fb->use_drawq==2)
+	if (fb->use_drawq==DRAWQ_MODE_SOFTWARE)
 		drawq_soft_finish();
 
 	drawq_free();
@@ -120,7 +121,7 @@ void drawq_deinit()
 
 void drawq_run()
 {
-	#if defined(RL_OPENCL) && !defined(RL_VULKAN)
+	#ifdef RL_OPENCL
 	const char clsrc_draw_queue[] =
 	#include "drawqueue/opencl/drawqueue.cl.h"
 
@@ -129,7 +130,8 @@ void drawq_run()
 	cl_event ev;
 	size_t global_work_offset[2], global_work_size[2], local_work_size[2];
 
-	if (fb->use_drawq==1)
+	// Initialise OpenCL execution state only for the OpenCL mode
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
 	{
 		// Init OpenCL program and kernel
 		if (fb->drawq_run_init==0)
@@ -188,12 +190,13 @@ void drawq_run()
 	drawq_compile_lists();
 	fb->timing[fb->timing_index].dq_comp_end = get_time_hr();
 
-	if (fb->use_drawq==2)
+	if (fb->use_drawq==DRAWQ_MODE_SOFTWARE)
 		drawq_soft_run();
 
-	if (fb->use_drawq==1)
+	#ifdef RL_VULKAN
+	// Dispatch the compiled queue to Vulkan only when Vulkan is active
+	if (fb->use_drawq==DRAWQ_MODE_VULKAN)
 	{
-		#ifdef RL_VULKAN
 		// Include newly packed resource data in the Vulkan upload interval
 		if (fb->data_space_start > fb->data_copy_start)
 		{
@@ -204,19 +207,29 @@ void drawq_run()
 		// Submit the compiled queue through the Vulkan compute and presentation path
 		if (!vk_drawq_run())
 			fprintf_rl(stderr, "vk_drawq_run() failed\n");
-		#elif defined(RL_OPENCL)
+	}
+	#endif
 
-		// Get profiling times
-		clWaitForEvents_wrap(1, &fb->clctx.ev);
-		clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &fb->clctx.queue_time, NULL);
-		clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &fb->clctx.start_time, NULL);
-		clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &fb->clctx.end_time, NULL);
-		clReleaseEvent_wrap(fb->clctx.ev);
-		fb->clctx.ev = NULL;
-		frame_timing_t *timing = &fb->timing[circ_index(fb->timing_index-1, fb->timing_count)];
-		timing->thread_start = timing->cl_enqueue_end;// + (double) (fb->clctx.start_time - fb->clctx.queue_time)*1e-9;
-		timing->thread_end = timing->cl_enqueue_end + (double) (fb->clctx.end_time-fb->clctx.queue_time)*1e-9;
-		//fprintf_rl(stdout, "OpenCL kernel: %ld ns - %ld ns\n", fb->clctx.start_time - fb->clctx.queue_time, fb->clctx.end_time-fb->clctx.start_time);
+	#ifdef RL_OPENCL
+	// Dispatch the compiled queue to OpenCL only when OpenCL is active
+	if (fb->use_drawq==DRAWQ_MODE_OPENCL)
+	{
+		// Collect profiling only when an earlier OpenCL submission retained an event
+		if (fb->clctx.ev)
+		{
+			clWaitForEvents_wrap(1, &fb->clctx.ev);
+			clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &fb->clctx.queue_time, NULL);
+			clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &fb->clctx.start_time, NULL);
+			clGetEventProfilingInfo_wrap(fb->clctx.ev, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &fb->clctx.end_time, NULL);
+			clReleaseEvent_wrap(fb->clctx.ev);
+			fb->clctx.ev = NULL;
+
+			// Write asynchronous work into the frame slot that submitted it
+			frame_timing_t *timing = &fb->timing[fb->cl_event_timing_index];
+			timing->thread_start = timing->cl_enqueue_end;// + (double) (fb->clctx.start_time - fb->clctx.queue_time)*1e-9;
+			timing->thread_end = timing->cl_enqueue_end + (double) (fb->clctx.end_time-fb->clctx.queue_time)*1e-9;
+			//fprintf_rl(stdout, "OpenCL kernel: %ld ns - %ld ns\n", fb->clctx.start_time - fb->clctx.queue_time, fb->clctx.end_time-fb->clctx.start_time);
+		}
 
 		// Copy compiled lists to data_cl
 		cl_ulong drawq_data_index = cl_add_buffer_to_data_table(fb->drawq_data, fb->drawq_data[DQ_END]*sizeof(int32_t), sizeof(int32_t), NULL);
@@ -271,6 +284,10 @@ void drawq_run()
 		ret = clEnqueueNDRangeKernel_wrap(fb->clctx.command_queue, fb->clctx.kernel, 2, global_work_offset, global_work_size, local_work_size, 0, NULL, &fb->clctx.ev);
 		CL_ERR_NORET("clEnqueueNDRangeKernel (in drawq_run)", ret);
 
+		// Associate the retained profiling event with this circular timing slot
+		if (ret==CL_SUCCESS)
+			fb->cl_event_timing_index = fb->timing_index;
+
 		ret = clFlush_wrap(fb->clctx.command_queue);
 		CL_ERR_NORET("clFlush (in drawq_run)", ret);
 		fb->timing[fb->timing_index].cl_enqueue_end = get_time_hr();
@@ -282,8 +299,8 @@ void drawq_run()
 		ret = clEnqueueReadBuffer_wrap(fb->clctx.command_queue, fb->cl_srgb, CL_FALSE, 0, mul_x_by_y_xyi(fb->r.dim)*4, fb->r.srgb, 0, NULL, NULL);
 		CL_ERR_NORET("clEnqueueReadBuffer (in drawq_run(), for fb->cl_srgb)", ret);
 		#endif
-		#endif
 	}
+	#endif
 
 	drawq_reinit();	// clear/reinit the buffers
 }
