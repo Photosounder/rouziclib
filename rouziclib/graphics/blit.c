@@ -141,7 +141,12 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 	double interp_weight;
 	flattop_param_t param={0}, *p = &param;
 
-	if (r.l==NULL && r.sq==NULL && r.f==NULL)
+	// Reject generic buffers that this LRGB blitter cannot sample
+	if (r.buf && buf_fmt_is_yuv420p(r.buf_fmt)==0)
+		return;
+
+	// Stop when no supported source representation is present
+	if (r.l==NULL && r.sq==NULL && r.f==NULL && r.buf==NULL)
 		return;
 
 	param = flattop_init_param(fb->r.dim, r.dim, pscale, pos);
@@ -166,7 +171,9 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 					interp_weight = flattop_calc_weight(p);
 
 					// Read and convert input pixel
-					if (r.sq)
+					if (r.buf)
+						pv = get_yuv420p_pixel_in_frgb(&r, p->jp);
+					else if (r.sq)
 						pv = sqrgb_to_frgb(r.sq[i]);
 					else if (r.f)
 						pv = clamp_frgba(r.f[i]);

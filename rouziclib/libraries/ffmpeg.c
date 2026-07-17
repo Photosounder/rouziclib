@@ -630,26 +630,6 @@ static double ff_transfer_bt709_to_linear(double v)
 	//return fastpow((v + 0.099) / 1.099, 1./0.45);
 }
 
-static v128_t ff_transfer_bt709_to_linear_vec4(v128_t x)	// error around 5.2e-5
-{
-	x = f32x4_mul(x, f32x4_splat(1.f/255.f));
-
-	// Selection mask
-	v128_t sel = f32x4_lt(x, f32x4_splat(0.081));
-
-	// Curve
-	v128_t r = f32x4_splat(-0.04154f);
-	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.21208));
-	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.72644));
-	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.097881));
-	r = f32x4_relaxed_madd(r, x, f32x4_splat(0.005135));
-
-	// Line
-	v128_t l = f32x4_mul(x, f32x4_splat(1.f/4.5f));
-
-	// Select either the line or the curve
-	return v128_bitselect(l, r, sel);
-}
 
 static double ff_transfer_smpte240m_to_linear(double v)
 {
