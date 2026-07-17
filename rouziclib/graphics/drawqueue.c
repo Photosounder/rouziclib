@@ -121,6 +121,13 @@ void drawq_deinit()
 
 void drawq_run()
 {
+	// Append the configurable gamma output transform for GPU renderers
+	if (fb->output_transfer==FB_OUTPUT_GAMMA && (fb->use_drawq==DRAWQ_MODE_OPENCL || fb->use_drawq==DRAWQ_MODE_VULKAN))
+	{
+		double output_gamma = fb->output_gamma > 0. ? fb->output_gamma : 2.2;
+		draw_gamma_bandaid(1. / output_gamma);
+	}
+
 	#ifdef RL_OPENCL
 	const char clsrc_draw_queue[] =
 	#include "drawqueue/opencl/drawqueue.cl.h"

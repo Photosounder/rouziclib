@@ -112,6 +112,12 @@ enum drawq_mode
 	DRAWQ_MODE_COUNT
 };
 
+enum framebuffer_output_transfer
+{
+	FB_OUTPUT_SRGB,
+	FB_OUTPUT_GAMMA
+};
+
 typedef struct
 {
 	raster_t r;
@@ -119,6 +125,8 @@ typedef struct
 	rect_t window_dl;	// window draw limit (based on the usual drawing thickness)
 	xyi_t maxdim;		// formerly max[wh]
 	int use_drawq, use_dqnq;
+	int output_transfer;	// enum framebuffer_output_transfer
+	double output_gamma;	// gamma used by GPU output transfer
 	int srgb_order;		// channel order of the sRGB output
 	int64_t frame_count;	// count main loop iterations
 

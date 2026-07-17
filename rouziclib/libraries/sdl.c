@@ -1364,9 +1364,9 @@ static void sdl_flip_fb_internal(int start_drawq)
 		rs = make_sdl_rect(0, 0, fb->w, fb->h);
 		SDL_LockTexture(fb->texture, &rs, &fb->r.srgb, &pitch);
 		#ifdef LRGB_NODITHER
-		convert_linear_rgb_to_srgb(NODITHER);
+		convert_linear_rgb_to_output(NODITHER);
 		#else
-		convert_linear_rgb_to_srgb(DITHER);
+		convert_linear_rgb_to_output(DITHER);
 		#endif
 		SDL_UnlockTexture(fb->texture);
 		//SDL_UpdateTexture(fb->texture, NULL, fb->srgb, fb->w * 4);

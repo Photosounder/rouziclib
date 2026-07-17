@@ -5,10 +5,11 @@
 #ifdef GNU_SSE
 __attribute__((__target__("ssse3")))
 #endif
-void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, xyi_t dim, int ss, int chan_stride) // SSSE3, calls SSE4.1
+void dqs_block_to_output(srgb_t *srgb, float *block, int r_pitch, int srgb_order, int output_transfer, int32_t *lg22_lut, xyi_t dim, int ss, int chan_stride) // SSSE3, calls SSE4.1
 {
 	xyi_t ip;
 	int i, ib;
+	int32_t lut_index[4];
 	__m128 f, sf;
 	__m128i sv, shuf_mask;
 
@@ -40,9 +41,22 @@ void dqs_block_to_srgb(srgb_t *srgb, float *block, int r_pitch, int srgb_order, 
 		{
 			// Load frgb from block channel planes
 			f = _mm_set_ps(block[chan_stride*3 + ib], block[chan_stride*2 + ib], block[chan_stride + ib], block[ib]);
-			sf = _mm_mul_ps(_mm_frgb_to_srgb(f), _mm_set_ps1(255.f));	// convert and multiply by 255
-			sv = _mm_cvtps_epi32(sf);					// cast to 32-bit int (rounded, no dithering)
-			sv = _mm_shuffle_epi8(sv, shuf_mask);				// reorder the channels and pack them into the lower 32-bits
+
+			// Select fixed gamma 2.2 or standard sRGB output conversion
+			if (output_transfer==FB_OUTPUT_GAMMA)
+			{
+				sv = _mm_cvtps_epi32(_mm_mul_ps(_mm_clamp_ps(f), _mm_set_ps1(ONEF)));
+				_mm_storeu_si128((__m128i *) lut_index, sv);
+				sv = _mm_set_epi32(lg22_lut[lut_index[3]] >> 5, lg22_lut[lut_index[2]] >> 5, lg22_lut[lut_index[1]] >> 5, lg22_lut[lut_index[0]] >> 5);
+			}
+			else
+			{
+				sf = _mm_mul_ps(_mm_frgb_to_srgb(f), _mm_set_ps1(255.f));
+				sv = _mm_cvtps_epi32(sf);
+			}
+
+			// Reorder and store the converted byte channels
+			sv = _mm_shuffle_epi8(sv, shuf_mask);
 			_mm_storeu_si32(&srgb[i], sv);					// save final pixel to framebuffer
 		}
 	}
@@ -59,7 +73,8 @@ typedef struct
 	uint8_t *data;
 	int32_t *drawq_data, *sector_pos, *entry_list;
 	volatile size_t data_as, drawq_as, sector_list_as, entry_list_as;
-	volatile int sector_size, sector_w, r_pitch, srgb_order;
+	volatile int sector_size, sector_w, r_pitch, srgb_order, output_transfer;
+	int32_t *lg22_lut;
 	srgb_t *srgb;
 	xyi_t r_dim;
 	float **block;
@@ -157,7 +172,7 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 						}
 					}
 
-					dqs_block_to_srgb(&d->srgb[bpos.y*d->r_pitch + bpos.x], d->block[0], d->r_pitch, d->srgb_order, out_dim, ss, chan_stride);
+					dqs_block_to_output(&d->srgb[bpos.y*d->r_pitch + bpos.x], d->block[0], d->r_pitch, d->srgb_order, d->output_transfer, d->lg22_lut, out_dim, ss, chan_stride);
 				}
 			}
 
@@ -174,6 +189,11 @@ int drawq_soft_thread(drawq_soft_data_t *d)
 void drawq_soft_run()
 {
 	int i, r_pitch=0;
+	int32_t *lg22_lut=NULL;
+
+	// Resolve the fixed gamma lookup table before submitting worker data
+	if (fb->output_transfer==FB_OUTPUT_GAMMA)
+		lg22_lut = get_lut_lg22().lutint;
 
 	// Init once
 	if (dqs_data==NULL)
@@ -232,6 +252,8 @@ void drawq_soft_run()
 		d->srgb = fb->r.srgb;
 		d->r_dim = fb->r.dim;
 		d->srgb_order = fb->srgb_order;
+		d->output_transfer = fb->output_transfer;
+		d->lg22_lut = lg22_lut;
 		d->r_pitch = r_pitch;
 
 		// Submit this worker's frame data and remember that completion is pending

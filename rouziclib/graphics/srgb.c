@@ -384,6 +384,81 @@ void convert_frgb_to_srgb(int mode)
 	}
 }
 
+void convert_frgb_to_g22(int mode)
+{
+	int32_t i, id, stop, dither;
+	uint32_t dith_on;
+	frgb_t p;
+	srgb_t ps;
+	static int init=1;
+	static lut_t lg22_l, dither_l;
+	const float black_threshold = (1.f / (255.f*12.92f));
+	int32_t pixc = fb->w*fb->h;
+
+	// Initialise the fixed gamma 2.2 and dithering lookup tables
+	if (init)
+	{
+		init = 0;
+		lg22_l = get_lut_lg22();
+		dither_l = dither_lut_init();
+	}
+
+	// Choose a pseudorandom segment of the dithering table
+	id = rand() & 0x3FFF;
+	stop = (id + 100 + (rand() & 0x03FF)) & 0x3FFF;
+
+	// Convert floating-point linear pixels with output dithering
+	if (mode==DITHER)
+	{
+		for (i=0; i<pixc; i++)
+		{
+			int32_t ri, gi, bi;
+
+			// Clamp and quantise linear channels for the gamma lookup table
+			p = fb->r.f[i];
+			ri = rangelimit(p.r, 0.f, 1.f) * ONEF + 0.5f;
+			gi = rangelimit(p.g, 0.f, 1.f) * ONEF + 0.5f;
+			bi = rangelimit(p.b, 0.f, 1.f) * ONEF + 0.5f;
+
+			// Apply gamma 2.2 and the shared output dither
+			dith_on = p.r+p.g+p.b >= black_threshold;
+			dither = dither_l.lutint[id] * dith_on;
+			ps.r = sat8_u(lg22_l.lutint[ri] + dither >> 5);
+			ps.g = sat8_u(lg22_l.lutint[gi] + dither >> 5);
+			ps.b = sat8_u(lg22_l.lutint[bi] + dither >> 5);
+			fb->r.srgb[i] = srgb_change_order_pixel(ps, ORDER_ABGR);
+
+			// Advance and periodically relocate the dithering-table range
+			id = (id+1) & 0x3FFF;
+			if (id==stop)
+			{
+				id = rand() & 0x3FFF;
+				stop = (id + 100 + (rand() & 0x03FF)) & 0x3FFF;
+			}
+		}
+	}
+	else
+	{
+		// Convert floating-point linear pixels without dithering
+		for (i=0; i<pixc; i++)
+		{
+			int32_t ri, gi, bi;
+
+			// Clamp and quantise linear channels for the gamma lookup table
+			p = fb->r.f[i];
+			ri = rangelimit(p.r, 0.f, 1.f) * ONEF + 0.5f;
+			gi = rangelimit(p.g, 0.f, 1.f) * ONEF + 0.5f;
+			bi = rangelimit(p.b, 0.f, 1.f) * ONEF + 0.5f;
+
+			// Store fixed gamma 2.2 output in the requested byte order
+			ps.r = lg22_l.lutint[ri] >> 5;
+			ps.g = lg22_l.lutint[gi] >> 5;
+			ps.b = lg22_l.lutint[bi] >> 5;
+			fb->r.srgb[i] = srgb_change_order_pixel(ps, ORDER_ABGR);
+		}
+	}
+}
+
 void blit_lrgb_on_srgb(srgb_t *srgb0, srgb_t *srgb1)
 {
 	int32_t i=0;
@@ -455,6 +530,30 @@ void convert_linear_rgb_to_srgb(int mode)
 		convert_frgb_to_srgb(mode);
 	else
 		convert_lrgb_to_srgb(mode);
+}
+
+void convert_linear_rgb_to_output(int mode)
+{
+	// Select the framebuffer's final output transfer without affecting queued modes
+	if (fb->use_drawq)
+		return;
+
+	if (fb->output_transfer==FB_OUTPUT_GAMMA)
+	{
+		// Use fixed gamma 2.2 for CPU framebuffer conversion
+		if (fb->r.use_frgb)
+			convert_frgb_to_g22(mode);
+		else
+			convert_lrgb_to_g22(mode);
+	}
+	else
+	{
+		// Use the standard sRGB transfer for CPU framebuffer conversion
+		if (fb->r.use_frgb)
+			convert_frgb_to_srgb(mode);
+		else
+			convert_lrgb_to_srgb(mode);
+	}
 }
 
 void convert_srgb_to_lrgb()
