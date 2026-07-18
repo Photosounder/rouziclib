@@ -28704,6 +28704,6 @@ clfftStatus clfftGetVersion(cl_uint *major, cl_uint *minor, cl_uint *patch)
 }
 /* End copied source: src\library\lifetime.cpp */
 
-#if defined(__GNUC__) && !defined(_WIN32)
-  #pragma GCC visibility pop
+#if defined(__clang__)
+  #pragma clang diagnostic pop
 #endif
