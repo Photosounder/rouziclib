@@ -47,7 +47,7 @@ if (program.valid_prog)
 free_rlip(&program);
 ----
 
-`RLIP_FUNC` adds the built-in math function table. Add application functions and variables as more `rlip_inputs_t` entries. The type string `"pd"` means a pointer to a double value; function descriptors begin with `f`, followed by the return and argument types. Spacewar binds values such as `x`, `w`, `angle`, and multiple coefficients, then reuses the compiled program in a worker or drawing loop.
+`RLIP_FUNC` adds the built-in math function table. Add application functions and variables as more `rlip_inputs_t` entries. The type string `"pd"` means a pointer to a double value; function descriptors begin with `f`, followed by the return and argument types. A compiled program can reuse bound variables such as coordinates, angles, and coefficients in a worker or drawing loop.
 
 The input pointers and `program.exec_on` pointer must remain valid for the complete lifetime of the compiled program.
 

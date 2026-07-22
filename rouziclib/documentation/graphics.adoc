@@ -35,7 +35,7 @@ rect_t screen_box = sc_rect(world_box);
 draw_rect(screen_box, drawing_thickness, white, blend_add, 1.0);
 ----
 
-Spacewar consistently keeps game positions in world coordinates and converts them at the draw call. `zc.scrscale` is used when a radius or text scale must stay visually consistent with zoom.
+Keep application geometry in world coordinates and convert it at the draw call. Use `zc.scrscale` when a world-space radius or text scale must follow the active zoom.
 
 == Drawing primitives
 
@@ -52,7 +52,7 @@ The final intensity is separate from colour. Blend functions such as `blend_add`
 
 == Vector objects
 
-`vector/vector.h` represents line-segment artwork as `vobj_t`. Construct or combine objects with `make_vobj()`, `duplicate_vobj()`, and `cat_vobj()`, transform them with `scale_vobj()` or `rot_vobj()`, and draw them with `draw_vobj()` or the explicit backend variants. Release an owned object with `free_vobj()`. The typeface system uses these objects for glyph outlines, while `vector/polyline.h` provides an interactive polyline editor used by Spacewar's typeface tooling.
+`vector/vector.h` represents line-segment artwork as `vobj_t`. Construct or combine objects with `make_vobj()`, `duplicate_vobj()`, and `cat_vobj()`, transform them with `scale_vobj()` or `rot_vobj()`, and draw them with `draw_vobj()` or the explicit backend variants. Release an owned object with `free_vobj()`. The typeface system uses these objects for glyph outlines, while `vector/polyline.h` provides an interactive polyline editor suitable for typeface tooling.
 
 == Draw queues
 
@@ -60,7 +60,7 @@ The draw queue records or dispatches drawing work through direct, software, Open
 
 `drawq_bracket_open()` starts a temporary compositing layer. `drawq_bracket_close()` merges that layer with an operation such as `DQB_ADD`, `DQB_SUB`, `DQB_MUL`, `DQB_DIV`, `DQB_BLEND`, or `DQB_SOLID`. Brackets are for grouped compositing, not merely for batching unrelated draw calls.
 
-Spacewar exposes draw-queue mode through preferences, starts with `fb-\>use_drawq`, and applies a pending mode switch after the completed frame. This is a good model when a backend can be replaced while the application is running.
+When a rendering backend can change at runtime, expose the draw-queue mode through application state and apply a pending switch only after the current frame has completed. Do not replace the backend while queued work is still being processed.
 
 == SDL startup and presentation
 

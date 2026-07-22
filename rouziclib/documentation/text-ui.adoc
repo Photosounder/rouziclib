@@ -13,7 +13,7 @@ Use `utf8_to_unicode32()` when iterating codepoints and the corresponding Unicod
 
 `vector_type` turns typeface data into drawable glyph objects, supports TrueType loading when `RL_TRUETYPE` is enabled, and provides text measurement and drawing. A font is commonly loaded during application initialization and then passed to `draw_string()` or `draw_label()`. Generic vector-object construction and drawing are covered by link:graphics.adoc[Graphics and rendering].
 
-Spacewar either loads a font from `../vector_type/type_index.txt` with `remake_font()` or extracts `Spiral.ttf` from an embedded fileball and calls `load_truetype_font_as_triangles()`.
+A vector font can be rebuilt from a type index with `remake_font()`. When `RL_TRUETYPE` is enabled, an application can instead load TTF data with `load_truetype_font_as_triangles()`; the data may come from a normal file or an embedded fileball.
 
 == Keyboard and mouse input
 
@@ -25,7 +25,7 @@ The general input layer maintains state across frames. A typical SDL loop does t
 . Call `mouse_post_event_proc(&mouse, &zc)` after application-level event handling.
 . Read key state with `get_key_state_by_name()` or the scancode array in `mouse.key_state`.
 
-Key state values are frame-oriented: `2` is newly pressed, `3` is a repeated key-down event, `1` is held, `-2` is newly released, and `-1` is up. Test `== 2` for a non-repeating press or `>= 2` for a press including repeat. Spacewar tests modifier helpers with `!= -1` so a modifier release delivered alongside its associated key event still counts for that event.
+Key state values are frame-oriented: `2` is newly pressed, `3` is a repeated key-down event, `1` is held, `-2` is newly released, and `-1` is up. Test `== 2` for a non-repeating press or `>= 2` for a press including repeat. Test a modifier helper with `!= -1` when a modifier release delivered alongside its associated key event should still count for that event.
 
 == Direct controls
 
@@ -124,7 +124,7 @@ Use `ctrl_button_chamf_state()` or pass a `ctrl_button_state_t` to `ctrl_button_
 
 `gui_layout_t` and `make_gui_layout()` describe element geometry and type-specific defaults with text records. The layout computes rectangles and owns labels plus state for knobs, text editors, and selection menus. It does not automatically execute the controls: application code still calls the matching layout wrapper once per frame.
 
-Spacewar uses layouts for its console, game options, polynomial fitting, video sorter, and position calculator windows.
+Layouts work for small option dialogs as well as larger tool windows containing text editors, knobs, checkboxes, buttons, and selection menus.
 
 === Parse and lifetime model
 
@@ -391,7 +391,7 @@ When `wind_on` is non-NULL, its value has transition semantics:
 |`2` |Newly opened or newly registered as detached. The manager changes `1` to `2` for the first call, then restores `1` afterward
 |===
 
-The transient value `2` lets a window perform reopen initialization. It also causes the floating-window helper to fit a newly detached window from its supplied area before it begins retaining an independent placement. Spacewar's console uses this state to repin itself when reopened.
+The transient value `2` lets a window perform reopen initialization. It also causes the floating-window helper to fit a newly detached window from its supplied area before it begins retaining an independent placement. Application code can inspect this state when it needs to restore a default pinned placement on reopen.
 
 For a child with a valid parent area, dragging its title bar or resize corner changes the state to `1`. Closing a detached child changes it to `0`, clears its pinned state, and returns it to the parent's assigned area on the following pass. Thus the close button on a child behaves more like “dock back into the parent” than “destroy this window.”
 
@@ -481,7 +481,7 @@ An undetached child is suppressed until its parent area has been assigned. If it
 There are two useful policies for detached children:
 
 * Keep the parent relationship at all times when moving the parent to the front should also raise detached descendants.
-* Clear the relationship while detached when the child should have independent z-order: `window_set_parent(child_func, child_data, child_detached ? NULL : parent_func, parent_data)`. Spacewar's video colour windows use this policy.
+* Clear the relationship while detached when the child should have independent z-order: `window_set_parent(child_func, child_data, child_detached ? NULL : parent_func, parent_data)`.
 
 When a detached child is reattached after independent reordering, make sure it is above the parent before relying on ordinary sorted drawing. Docked children normally run recursively after their parent, but a child that already ran earlier in the same manager pass is not run twice. Keeping the relationship continuously, or explicitly moving the child to the top when redocking, avoids a one-frame ordering surprise.
 
@@ -503,4 +503,4 @@ A custom interactive frame should keep this order:
 . Call `mousecursor_logic_and_draw()` so the cursor is above managed content.
 . Present with `sdl_flip_fb()`.
 
-Registration must happen before the manager pass. Calling `window_register()` from a function that is already being run by the manager does not create a normal persistent entry, so build the window tree from the application's pre-manager phase. Spacewar follows this ordering in `main.c`, with mode-specific functions registering their windows before the single `window_manager()` call.
+Registration must happen before the manager pass. Calling `window_register()` from a function that is already being run by the manager does not create a normal persistent entry, so build the complete window tree from the application's pre-manager phase.

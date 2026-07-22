@@ -18,8 +18,6 @@ The usual arrangement is:
 |Application source |Uses the API and is compiled with `rl.c`
 |===
 
-The sibling Spacewar project follows this layout in `C:\msys\home\spacewar\rl.h` and `rl.c`. Its `everything.h` then includes `rl.h` together with the game's own headers.
-
 == Configuration header
 
 Start with the smallest useful configuration and add optional systems as needed:
@@ -106,7 +104,7 @@ int main(void)
 
 On native targets, the standard loop initializes the SDL framebuffer, zoom state, mouse, and fallback or embedded font, and clears/presents the framebuffer after each callback. The callback should draw a frame but must not call `sdl_flip_fb()` itself.
 
-For a custom loop, copy the ordering used by `C:\msys\home\spacewar\main.c`: preprocess input, poll SDL events, process the active text editor, postprocess mouse/zoom state, draw, run `window_manager()`, then flip the framebuffer. Under Emscripten the standard helper executes one frame per call rather than owning a `while` loop, so the application must arrange repeated calls through `emscripten_set_main_loop()` or an equivalent browser loop.
+For a custom loop, preprocess input, poll SDL events, process the active text editor, postprocess mouse/zoom state, draw, run `window_manager()`, then flip the framebuffer. Under Emscripten the standard helper executes one frame per call rather than owning a `while` loop, so the application must arrange repeated calls through `emscripten_set_main_loop()` or an equivalent browser loop.
 
 == Build checklist
 

@@ -43,7 +43,7 @@ static void worker_stop(worker_t *worker)
 }
 ----
 
-`rl_thread_create()` returns `1` on success and `0` on failure. The example is intentionally schematic: `do_one_job()` represents application code, and shared job data still needs a mutex, atomics, or a semaphore as appropriate. Spacewar uses joinable threads for analysis tools and detached threads for command processing.
+`rl_thread_create()` returns `1` on success and `0` on failure. The example is intentionally schematic: `do_one_job()` represents application code, and shared job data still needs a mutex, atomics, or a semaphore as appropriate. Use joinable threads when the owner must wait for completion and detached threads only when lifetime and cleanup are handled independently.
 
 == Mutexes and atomics
 
@@ -99,4 +99,4 @@ The current `sdl_audiosys_init()` device-opening implementation is complete for 
 
 == Background work
 
-Keep expensive file, codec, or numerical work off the UI thread, then transfer results to the main thread under a clear ownership and synchronization rule. Spacewar's video sorter and position calculator demonstrate this pattern. Timing and deliberate-pacing functions are covered by link:core-data.adoc[Core data and memory].
+Keep expensive file, codec, or numerical work off the UI thread, then transfer results to the main thread under a clear ownership and synchronization rule. Timing and deliberate-pacing functions are covered by link:core-data.adoc[Core data and memory].

@@ -34,7 +34,7 @@ The `geometry` directory is organized by problem rather than by a single geometr
 |`misc.h` |Other geometric utilities
 |===
 
-Keep world-space geometry in `xy_t` or `xyz_t` until the final rendering step. The Spacewar game stores positions as `xy_t` and applies its world scale and camera offset before calling `sc_xy()`.
+Keep world-space geometry in `xy_t` or `xyz_t` until the final rendering step. Apply the active world scale and camera offset with helpers such as `sc_xy()` only when preparing geometry for drawing.
 
 == DSP and FFTs
 

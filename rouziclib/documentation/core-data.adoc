@@ -57,7 +57,7 @@ For buffers with an owned byte allocation, use `buffer_t` and `buf_alloc_enough(
 
 Many APIs return allocated memory or structs containing allocated members. The matching release function is normally named `free_*`, such as `free_raster()`, `free_fileball_struct()`, `free_dir()`, `free_gui_layout()`, or `free_buf()`. A returned `const char *` from `pref_get_string()` belongs to the preference structure and must not be freed by the caller.
 
-When an API accepts a destination struct, initialize it to zero when the header or example indicates a stateful object. The Spacewar source uses this pattern for `raster_t`, `gui_layout_t`, `flwindow_t`, `textedit_t`, and thread handles.
+When an API accepts a destination struct, initialize it to zero when the header or example indicates a stateful object. Common examples include `raster_t`, `gui_layout_t`, `flwindow_t`, `textedit_t`, and thread handles.
 
 == General services
 
@@ -68,4 +68,4 @@ The `general` directory also contains:
 * `hashing.h` for hashing utilities
 * `macros.h`, `intrinsics.h`, and `portable_simd.h` for low-level portability helpers
 
-Use `get_time_hr()` and `get_time_diff_hr()` for frame timing and `sleep_ms()` or `sleep_hr()` for deliberate pacing. Spacewar stores the previous timestamp in `td` and updates `frame_s` after `sdl_flip_fb()`. Keyboard and mouse frame handling belongs to link:text-ui.adoc[Text, fonts, input, and GUI].
+Use `get_time_hr()` and `get_time_diff_hr()` for frame timing and `sleep_ms()` or `sleep_hr()` for deliberate pacing. Store the previous timestamp and update the frame duration after presentation when measuring complete frames. Keyboard and mouse frame handling belongs to link:text-ui.adoc[Text, fonts, input, and GUI].

@@ -16,7 +16,7 @@ rouziclib is configured at compile time. Put the defines in the project header b
 |`RL_ONLY_DRAW_LRGB` |Keeps only LRGB drawing functions |Can reduce linked code when draw queues are not used
 |`GAUSSLIMIT` |Controls Gaussian drawing cutoff |Lower values retain more of the Gaussian tail
 |`GAUSSRAD_HQ` |Controls high-quality Gaussian radius |The default is 4.0
-|`DQS_THREADS` |Software draw-queue worker count |Spacewar uses 8
+|`DQS_THREADS` |Software draw-queue worker count |Choose for the target CPU and workload
 |===
 
 The graphics guide explains how `col_t`, `raster_t`, world coordinates, and framebuffer coordinates interact.
@@ -43,9 +43,9 @@ The graphics guide explains how `col_t`, `raster_t`, world coordinates, and fram
 
 `RL_INCL_UNICODE_DATA_MINI` provides the Unicode data needed by the usual GUI/font path. `RL_INCL_UNICODE_DATA` includes the larger Unicode data set. `RL_INCL_VECTOR_TYPE_FILEBALL` enables loading the built-in vector font data from a generated header. If neither built-in data nor a font file is supplied, the SDL standard loop can use a fallback font.
 
-== Spacewar's configuration
+== Feature-rich configuration
 
-The configuration in `C:\msys\home\spacewar\rl.h` is a useful feature-rich example:
+The following example combines the main graphics, codec, compression, font, and interpreter features while excluding native GPU backends from an Emscripten build:
 
 [source,c]
 ----
@@ -70,7 +70,7 @@ The configuration in `C:\msys\home\spacewar\rl.h` is a useful feature-rich examp
 #define RL_FFMPEG
 #endif
 
-#include "../rouziclib/rouziclib.h"
+#include <rouziclib/rouziclib.h>
 ----
 
-Spacewar adds `RL_CLFFT`, `RL_LIBRAW`, and `RL_LIBCURL` for its Visual C++ build. It leaves some optional features disabled when the required dependency is not available.
+Enable additional switches such as `RL_CLFFT`, `RL_LIBRAW`, and `RL_LIBCURL` only in build configurations that provide their dependencies. Features can differ by compiler and target as long as every translation unit in one target sees the same configuration.

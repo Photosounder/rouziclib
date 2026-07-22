@@ -39,16 +39,6 @@ Do not define a backend merely because its header is present. Check the wrapper 
 
 Some switches depend on others: `RL_OPENCL_GL` requires `RL_OPENCL` and an OpenGL presentation path, while `RL_CLFFT` requires `RL_OPENCL`. `RL_ZLIB` selects an external zlib implementation; `RL_MINIZ`, `RL_TINYEXPR`, `RL_IMAGE_FILE`, and `RL_SOUND_FILE` select implementations vendored under `libraries/orig`. If neither `RL_ZLIB` nor `RL_MINIZ` is defined, rouziclib keeps its cut-down inflate-only miniz path.
 
-== Spacewar's backend matrix
-
-Spacewar enables SDL2, OpenCL/OpenGL interop, Vulkan, built-in GLEW, FFmpeg, CFFTPACK, miniz, image/sound file support, TrueType, and tinyexpr in its main configuration. Its native Windows build additionally enables CLFFT, LibRaw, and libcurl when compiling with Visual C++.
-
-The build scripts illustrate the external side of this choice:
-
-* `gcc_msys_build.sh` and `clang_msys_build.sh` link SDL, OpenGL, Vulkan, Windows system libraries, and selected codec/compute libraries.
-* `embuild_msys.sh` uses Emscripten, SDL2, SIMD, pthreads, a post-JavaScript file, and embedded font resources.
-* `build_quick.bat` invokes the Visual Studio solution for the native Windows build.
-
 == Reducing the footprint
 
 Start with the core-only configuration and add one backend at a time. Useful reductions include `RL_EXCL_APPROX`, `RL_EXCL_THREADING`, omitting detailed Unicode data, using the default cut-down miniz path, and avoiding large codec wrappers. `RL_EXCL_THREADING` also removes the built-in audio-bus implementation. `RL_ONLY_DRAW_LRGB` can remove drawing variants when the application never uses floating or queued drawing paths.
@@ -59,4 +49,4 @@ Start with the core-only configuration and add one backend at a time. Useful red
 
 == Platform boundaries
 
-SDL, Windows dialogs, GDI screenshots, crash dumps, OpenCL, Vulkan, codecs, and dynamic loading are not equally available on every target. Keep platform-sensitive calls behind the same `#ifdef` boundaries used by the headers and by Spacewar's native versus Emscripten paths.
+SDL, Windows dialogs, GDI screenshots, crash dumps, OpenCL, Vulkan, codecs, and dynamic loading are not equally available on every target. Keep platform-sensitive calls behind the same `#ifdef` boundaries used by the corresponding rouziclib headers and separate native-only configuration from freestanding or Emscripten builds.

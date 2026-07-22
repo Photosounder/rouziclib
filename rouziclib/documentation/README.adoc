@@ -11,7 +11,6 @@ The public umbrella files are link:../rouziclib.h[rouziclib.h] and link:../rouzi
 
 * link:getting-started.adoc[Getting started] explains the single-translation-unit integration model and the basic application loop.
 * link:configuration.adoc[Configuration] explains feature macros and the order in which they must be defined.
-* link:spacewar-walkthrough.adoc[Spacewar walkthrough] shows the integration used by the sibling `spacewar` project at `C:\msys\home\spacewar`.
 
 == Thematic guides
 
@@ -28,8 +27,6 @@ The public umbrella files are link:../rouziclib.h[rouziclib.h] and link:../rouzi
 == How to use these docs
 
 Examples use C99-style declarations and the names that are present in the current headers. They are deliberately small: include the relevant module through `rouziclib.h`, then consult the linked header for the complete parameter list and ownership rules.
-
-The Spacewar references are examples of usage, not a separate compatibility layer. They are especially useful for seeing how the library's global framebuffer, mouse, keyboard, zoom, font, and window-manager state is assembled into a real application.
 
 == Source of truth
 
