@@ -2,6 +2,7 @@
 :toc:
 :toclevels: 2
 :source-highlighter: highlight.js
+:documentation-last-full-review: 2026-07-23
 
 This directory documents the current rouziclib source tree: a portable C utility and application-support library covering numeric types, geometry, raster graphics, text, GUI controls, file I/O, audio, threading, optional compute backends, and a small expression interpreter.
 
@@ -27,6 +28,21 @@ The public umbrella files are link:../rouziclib.h[rouziclib.h] and link:../rouzi
 == How to use these docs
 
 Examples use C99-style declarations and the names that are present in the current headers. They are deliberately small: include the relevant module through `rouziclib.h`, then consult the linked header for the complete parameter list and ownership rules.
+
+== Updating the documentation
+
+The documentation was last fully reviewed against the rouziclib source tree on *{documentation-last-full-review}*. The `documentation-last-full-review` attribute at the top of this file is the maintenance baseline.
+
+When asked to bring the guides up to date, inspect every non-documentation commit from that entire date onward. Including the baseline day may repeat some already reviewed changes, but avoids missing a commit made later on the same day:
+
+[source,sh,subs=attributes]
+----
+git log --since="{documentation-last-full-review} 00:00" --reverse --stat -p -- . ":(exclude)documentation/**"
+----
+
+Also inspect uncommitted source changes with `git status --short` and `git diff`. For each changed public declaration, implementation, feature guard, ownership rule, initialization sequence, or behavioral detail, update the corresponding thematic guide. Changes to umbrella includes or module organization may also require updates to link:getting-started.adoc[Getting started], link:configuration.adoc[Configuration], link:optional-backends.adoc[Optional backends], and link:reference-map.adoc[Reference map].
+
+Use the commit history to find the changes, then verify the resulting explanation against the current headers and implementation. A removed or renamed API should be removed or renamed in examples throughout the whole documentation directory, not only in the guide associated with the changed source file. After all guides have been reviewed, update `documentation-last-full-review` to the current date; do not advance it after a partial update.
 
 == Source of truth
 
