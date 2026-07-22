@@ -16,6 +16,8 @@ double output = mix(low_value, high_value, level);
 
 `math/cpu_functions.h` contains CPU-oriented helpers; `math/ieee754.h` exposes floating-point bit operations; `math/double_double_arithmetic.h` provides extended-precision arithmetic.
 
+`math/rand.h` provides uniform ranges, Gaussian values, and two-component Gaussian vectors through `randrange()`, `gaussian_rand()`, and the related approximation helpers.
+
 == Geometry
 
 The `geometry` directory is organized by problem rather than by a single geometry type:

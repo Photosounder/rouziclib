@@ -21,8 +21,8 @@ The public umbrella files are link:../rouziclib.h[rouziclib.h] and link:../rouzi
 * link:text-ui.adoc[Text, fonts, input, and GUI]: Unicode, text editing, vector fonts, controls, layouts, and windows
 * link:file-io.adoc[Files and assets]: paths, directories, images, sound samples, preferences, dialogs, and fileballs
 * link:concurrency-audio.adoc[Concurrency and audio]: threads, mutexes, semaphores, atomics, and the audio bus
-* link:interpreter.adoc[Expression interpreter]: editable formulas, compiled RLIP programs, custom inputs, and WAHE hooks
-* link:optional-backends.adoc[Optional backends]: SDL, OpenCL, Vulkan, codecs, image/audio libraries, and compile/link consequences
+* link:interpreter.adoc[Expression interpreter]: editable formulas, compiled RLIP programs, custom inputs, and alternate real types
+* link:optional-backends.adoc[Optional backends and host integration]: SDL, OpenCL, Vulkan, codecs, image/audio libraries, WAHE embedding, and compile/link consequences
 * link:reference-map.adoc[Reference map]: the source-directory map and a compact list of the most useful headers
 
 == How to use these docs

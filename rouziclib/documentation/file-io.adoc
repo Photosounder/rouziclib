@@ -48,7 +48,7 @@ if (samples != NULL)
 }
 ----
 
-Spacewar uses this path in `game/calc.c` and initializes live SDL audio in `sound.c` with `sdl_audiosys_init(1024)`.
+Spacewar uses this loading path in `game/calc.c`. Live playback and `sdl_audiosys_init(1024)` are covered by link:concurrency-audio.adoc[Concurrency and audio].
 
 == Fileballs and embedded resources
 

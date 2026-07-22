@@ -50,6 +50,10 @@ draw_polygon_wc(points, point_count, drawing_thickness, colour, blend_add, inten
 
 The final intensity is separate from colour. Blend functions such as `blend_add` determine how the primitive combines with the framebuffer. When a geometric radius is stored in world units, multiply it by `zc.scrscale` before passing it to a screen-coordinate primitive.
 
+== Vector objects
+
+`vector/vector.h` represents line-segment artwork as `vobj_t`. Construct or combine objects with `make_vobj()`, `duplicate_vobj()`, and `cat_vobj()`, transform them with `scale_vobj()` or `rot_vobj()`, and draw them with `draw_vobj()` or the explicit backend variants. Release an owned object with `free_vobj()`. The typeface system uses these objects for glyph outlines, while `vector/polyline.h` provides an interactive polyline editor used by Spacewar's typeface tooling.
+
 == Draw queues
 
 The draw queue records or dispatches drawing work through direct, software, OpenCL, or Vulkan paths depending on compile-time support and framebuffer configuration. The corresponding modes are `DRAWQ_MODE_DIRECT`, `DRAWQ_MODE_OPENCL`, `DRAWQ_MODE_SOFTWARE`, and `DRAWQ_MODE_VULKAN`. `DQS_THREADS` controls the software queue worker count.

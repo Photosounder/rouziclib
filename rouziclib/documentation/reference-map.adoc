@@ -39,13 +39,14 @@
 |Typeface tools |`vector_type/cjk.h`, `vector_type/stats.h`, `vector_type/fit.h`, and `vector_type/insert_rect.h`
 |===
 
-== Umbrella and cookbook files
+== Umbrella files and deeper guides
 
 * link:../rouziclib.h[rouziclib.h] assembles the public declarations and applies platform/compiler guards.
 * link:../rouziclib.c[rouziclib.c] assembles the implementations.
 * link:../rouziclib.m[rouziclib.m] assembles the Objective-C file/dialog helpers.
 * link:../quick_reference.h[quick_reference.h] contains short examples for macros, drawing, controls, layouts, input, images, parsing, memory, threading, audio, preferences, and FFTs.
-* link:interpreter.adoc[interpreter.adoc] explains expression compilation, execution, decompilation, alternate real types, and WAHE integration.
+* link:interpreter.adoc[interpreter.adoc] explains expression compilation, execution, decompilation, and alternate real types.
+* link:optional-backends.adoc[optional-backends.adoc] explains optional libraries, platform boundaries, and WAHE host integration.
 
 == Naming patterns
 

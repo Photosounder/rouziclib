@@ -66,8 +66,6 @@ The `general` directory also contains:
 * `time.h` for millisecond/high-resolution clocks, elapsed-time measurement, sleeping, and date parsing
 * `estimates.h` for frame-rate and timing estimates
 * `hashing.h` for hashing utilities
-* `math/rand.h` and `general/xyz.h` for random values and vector operations
-* `keyboard.h` and `mouse.h` for input state processing
 * `macros.h`, `intrinsics.h`, and `portable_simd.h` for low-level portability helpers
 
-For a game or interactive tool, use `get_time_diff_hr()` for frame duration and keep input state processing at the beginning and end of each frame. Spacewar stores the previous timestamp in `td` and updates `frame_s` after `sdl_flip_fb()`.
+Use `get_time_hr()` and `get_time_diff_hr()` for frame timing and `sleep_ms()` or `sleep_hr()` for deliberate pacing. Spacewar stores the previous timestamp in `td` and updates `frame_s` after `sdl_flip_fb()`. Keyboard and mouse frame handling belongs to link:text-ui.adoc[Text, fonts, input, and GUI].

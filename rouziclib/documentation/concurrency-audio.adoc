@@ -97,6 +97,6 @@ When `use_mutex` is nonzero, the audio callback is locked automatically. Lock `a
 
 The current `sdl_audiosys_init()` device-opening implementation is complete for SDL2. Its SDL3 branch is still marked TODO, so SDL3 applications need their own device setup for now.
 
-== Timing and background work
+== Background work
 
-Use `get_time_hr()` and `get_time_diff_hr()` for frame timing and `sleep_ms()` or `sleep_hr()` for deliberate pacing. Keep expensive file, codec, or numerical work off the UI thread, then transfer results to the main thread under a clear ownership and synchronization rule. Spacewar's video sorter and position calculator demonstrate this pattern.
+Keep expensive file, codec, or numerical work off the UI thread, then transfer results to the main thread under a clear ownership and synchronization rule. Spacewar's video sorter and position calculator demonstrate this pattern. Timing and deliberate-pacing functions are covered by link:core-data.adoc[Core data and memory].

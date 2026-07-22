@@ -60,7 +60,3 @@ Check `program.valid_prog` after compilation/execution when the input is user-ed
 == Alternate real types
 
 `interpreter/real_functions.h` supplies descriptors for ordinary double, double-double, and MPFR real arithmetic. Use the matching `RLIP_REAL_*` input macro and enable `RL_MPFR` when MPFR support is required. The expression API also exposes `rlip_expression_interp_ddouble()` and `rlip_expression_interp_mpfr()` behind their feature guards.
-
-== WAHE module hooks
-
-`wahe/wahe_module_side.h` is a small integration boundary rather than a general interpreter. `wahe_rl_module_init()` prepares a framebuffer, zoom state, mouse state, and font for a host-provided framebuffer size; `wahe_rl_parse_inputs()` translates host input lines into rouziclib mouse, keyboard, and text-edit state. Use these hooks when embedding rouziclib in a WAHE host and keep the host protocol outside the core library.

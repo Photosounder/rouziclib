@@ -1,9 +1,9 @@
-= Optional backends
+= Optional backends and host integration
 :toc:
 :toclevels: 2
 :source-highlighter: highlight.js
 
-Optional integrations are enabled by macros in the application configuration header. They contribute declarations through `rouziclib.h` and implementation code through `rouziclib.c`; the application must also provide the corresponding headers, runtime libraries, and link flags.
+Optional backends are enabled by macros in the application configuration header. They contribute declarations through `rouziclib.h` and implementation code through `rouziclib.c`; the application must also provide the corresponding headers, runtime libraries, and link flags. Host integrations instead adapt rouziclib state to an embedding environment.
 
 == Backend and codec switches
 
@@ -52,6 +52,10 @@ The build scripts illustrate the external side of this choice:
 == Reducing the footprint
 
 Start with the core-only configuration and add one backend at a time. Useful reductions include `RL_EXCL_APPROX`, `RL_EXCL_THREADING`, omitting detailed Unicode data, using the default cut-down miniz path, and avoiding large codec wrappers. `RL_EXCL_THREADING` also removes the built-in audio-bus implementation. `RL_ONLY_DRAW_LRGB` can remove drawing variants when the application never uses floating or queued drawing paths.
+
+== WAHE host integration
+
+`wahe/wahe_module_side.h` adapts rouziclib to a WAHE host; it is independent of the expression interpreter. `wahe_rl_module_init()` prepares a framebuffer, zoom state, mouse state, and font for a host-provided framebuffer size. `wahe_rl_parse_inputs()` translates host input lines into rouziclib mouse, keyboard, and text-edit state. Keep the host protocol at this boundary and use the ordinary graphics and GUI APIs after initialization.
 
 == Platform boundaries
 
