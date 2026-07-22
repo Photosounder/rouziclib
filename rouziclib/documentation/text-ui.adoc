@@ -305,4 +305,202 @@ When `layout.edit_on` is enabled, each layout wrapper adds selection and resizin
 
 == Windows and frame order
 
-The window manager calls registered window functions in a variable order and keeps track of parent areas for detached child windows. A normal interactive frame ends with `window_manager()` followed by `mousecursor_logic_and_draw()` before the framebuffer flip. Spacewar follows this order in `main.c`.
+The window manager is an immediate-mode registry with retained display order. A window must be registered on every frame in which it should exist, but its registry entry keeps its z-order and parent relationship between those frames. `flwindow_t` separately retains the title-bar, resize, pin, and screen-placement state used when that window function draws itself.
+
+=== Registering a window
+
+The registration call is:
+
+----
+window_register(priority, window_func, window_data, parent_area, wind_on, num_args, ...)
+----
+
+[%header,cols="1,4"]
+|===
+|Argument |Meaning
+|`priority` |For a newly registered window, `1` moves it to the top; other values leave it behind existing windows. Re-registering an existing window preserves its current order
+|`window_func` |Function called by the manager. It may accept zero through eight pointer arguments
+|`window_data` |Opaque identity used together with `window_func`; use distinct values for multiple instances of the same function
+|`parent_area` |Area offered to a detachable window. `RECTNAN` leaves the entry's previously assigned area unchanged
+|`wind_on` |Optional close/detach state. It is not simply a visibility boolean
+|`num_args` and `...` |Pointers copied into the registry and passed to `window_func` when it runs
+|===
+
+The variadic arguments are borrowed pointers, not copied objects, and must remain valid until `window_manager()` has called the function. Keep the argument count and function signature stable when re-registering an existing `(window_func, window_data)` identity.
+
+At the end of `window_manager()`, every normal entry is marked for deregistration. A matching `window_register()` call before the next manager pass keeps it alive; an entry not refreshed is removed at the start of that pass. To close a standalone dialog, stop registering it after its close-state variable becomes zero.
+
+[source,c]
+----
+static void options_window(double *gain)
+{
+    static gui_layout_t layout = {0};
+    static flwindow_t window = {0};
+    static const char *layout_src[] = {
+        "elem 0", "type none", "label Options", "pos 0 0", "dim 4 3", "off 0 1", "",
+        "elem 10", "type knob", "label Gain", "knob 0 1 2 linear", "pos 1 -1", "dim 1", "off 0;6 0;6", "",
+    };
+
+    // Build the persistent layout and floating-window state
+    gui_layout_init_pos_scale(&layout, XY0, 1.0, XY0, 0);
+    make_gui_layout(&layout, layout_src, sizeof(layout_src) / sizeof(*layout_src), "Options");
+    flwindow_init_defaults(&window);
+    draw_dialog_window_fromlayout(&window, cur_wind_on, NULL, &layout, 0);
+
+    // Process controls while the manager's context is active
+    ctrl_knob_fromlayout(gain, &layout, 10);
+}
+
+static void register_options(double *gain)
+{
+    static int options_open = 1;
+
+    // Refresh the registration only while the standalone dialog is open
+    if (options_open)
+        window_register(1, options_window, NULL, RECTNAN, &options_open, 1, gain);
+}
+----
+
+During a managed call, the manager sets three thread-local context variables:
+
+* `cur_parent_area` is the area assigned to the current window.
+* `cur_wind_on` is the same state pointer supplied at registration, or `NULL`.
+* `cur_window_data` is the identity data supplied at registration.
+
+Use these only while the window function is running. The normal floating-window call passes `cur_wind_on` and, for a detachable child, `&cur_parent_area` to `draw_dialog_window_fromlayout()`.
+
+=== Display order
+
+Normal windows are sorted from low to high order and drawn in that order, so windows run later in the sorted pass appear above earlier ones. A newly registered priority-1 window starts at the top. When a click is identified inside a managed window, the manager calls `window_move_to_top()` for that window, making click-to-front behavior automatic.
+
+`window_move_to_top()` also raises every registered descendant recursively. This keeps child windows with their parent group when an unrelated window is brought forward. It preserves the existing relative order inside the group; it does not force every child into a new sibling order.
+
+`window_late_register()` is for temporary overlays such as enlarged knob readouts and pop-up editors. Late windows run after all normal windows, strictly in registration order, and their entries are cleared in the same manager pass. They do not participate in the normal retained z-order.
+
+Control identification follows drawing order. Overlapping windows should therefore be drawn exclusively through the manager: drawing one copy directly and another through `window_manager()` records duplicate controls and can give hit-testing an order different from the visible stacking.
+
+=== Detachment state
+
+When `wind_on` is non-NULL, its value has transition semantics:
+
+[%header,cols="1,4"]
+|===
+|Value |Meaning
+|`0` |Docked or undetached. A child is fitted into its parent area and run immediately after its parent
+|`1` |Detached. The window keeps its own transform and participates in normal z-order
+|`2` |Newly opened or newly registered as detached. The manager changes `1` to `2` for the first call, then restores `1` afterward
+|===
+
+The transient value `2` lets a window perform reopen initialization. It also causes the floating-window helper to fit a newly detached window from its supplied area before it begins retaining an independent placement. Spacewar's console uses this state to repin itself when reopened.
+
+For a child with a valid parent area, dragging its title bar or resize corner changes the state to `1`. Closing a detached child changes it to `0`, clears its pinned state, and returns it to the parent's assigned area on the following pass. Thus the close button on a child behaves more like “dock back into the parent” than “destroy this window.”
+
+If a state pointer is used without a parent area, the helper can still draw a close button, but state `0` has nowhere to dock. The caller should treat zero as closed and stop registering that standalone window, as in the preceding example.
+
+=== Parent and child windows
+
+A parent relationship is identified by the parent's `(window_func, window_data)` pair. The usual sequence is:
+
+. Register the child first.
+. Call `window_set_parent()` for that registered child.
+. Register the parent.
+. Inside the parent function, compute the current child slot and call `window_set_parent_area()`.
+
+Registering children first matters because both `window_set_parent()` and `window_set_parent_area()` operate on an existing child entry. It also lets the parent run an undetached child immediately after drawing itself, which places the child's controls and content above the parent panel even if the child's ordinary sorted turn occurred earlier.
+
+[source,c]
+----
+static void child_window(double *gain);
+static void parent_window(double *gain, int *child_detached);
+
+static void child_window(double *gain)
+{
+    static gui_layout_t layout = {0};
+    static flwindow_t window = {0};
+    static const char *layout_src[] = {
+        "elem 0", "type none", "label Child", "pos 0 0", "dim 3 2", "off 0 1", "",
+        "elem 10", "type knob", "label Gain", "knob 0 1 2 linear", "pos 1 -1", "dim 1", "off 0;6 0;6", "",
+    };
+
+    // Fit the child into its assigned area while docked
+    gui_layout_init_pos_scale(&layout, XY0, 1.0, XY0, 0);
+    make_gui_layout(&layout, layout_src, sizeof(layout_src) / sizeof(*layout_src), "Child");
+    flwindow_init_defaults(&window);
+    draw_dialog_window_fromlayout(&window, cur_wind_on, &cur_parent_area, &layout, 0);
+
+    // Keep child controls active in either docked or detached form
+    ctrl_knob_fromlayout(gain, &layout, 10);
+}
+
+static void parent_window(double *gain, int *child_detached)
+{
+    static gui_layout_t layout = {0};
+    static flwindow_t window = {0};
+    static const char *layout_src[] = {
+        "elem 0", "type none", "label Parent", "pos 0 0", "dim 7 5", "off 0 1", "",
+        "elem 10", "type rect", "pos 1 -1", "dim 4 3", "off 0 1", "",
+        "elem 20", "type checkbox", "label Detached", "pos 5 -1", "dim 1;6 0;8", "off 0 1", "",
+    };
+
+    // Draw the parent before assigning its transformed child slot
+    gui_layout_init_pos_scale(&layout, XY0, 1.0, XY0, 0);
+    make_gui_layout(&layout, layout_src, sizeof(layout_src) / sizeof(*layout_src), "Parent");
+    flwindow_init_defaults(&window);
+    draw_dialog_window_fromlayout(&window, NULL, NULL, &layout, 0);
+    window_set_parent_area(child_window, NULL, gui_layout_elem_comp_area_os(&layout, 10, XY0));
+
+    // Let application state request the same detach transition as title-bar dragging
+    ctrl_checkbox_fromlayout(child_detached, &layout, 20);
+}
+
+static void register_window_tree(double *gain)
+{
+    static int child_detached = 1;
+    static int first_registration = 1;
+
+    // Register and attach descendants before refreshing the parent
+    window_register(1, child_window, NULL, RECTNAN, &child_detached, 1, gain);
+    window_set_parent(child_window, NULL, parent_window, NULL);
+
+    // Start docked after the first registration has established its parent link
+    if (first_registration)
+    {
+        child_detached = 0;
+        first_registration = 0;
+    }
+
+    // Register the parent after every child relationship is ready
+    window_register(1, parent_window, NULL, RECTNAN, NULL, 2, gain, &child_detached);
+}
+----
+
+The initial nonzero child state avoids the special inline behavior of a state-zero registration that does not have a parent link yet. The example changes it to zero immediately after `window_set_parent()`, so its first managed draw is docked in the area supplied by `parent_window()`.
+
+An undetached child is suppressed until its parent area has been assigned. If its parent is no longer registered, an undetached child does not run. A detached child can be allowed to survive independently, but it still needs a valid retained placement.
+
+There are two useful policies for detached children:
+
+* Keep the parent relationship at all times when moving the parent to the front should also raise detached descendants.
+* Clear the relationship while detached when the child should have independent z-order: `window_set_parent(child_func, child_data, child_detached ? NULL : parent_func, parent_data)`. Spacewar's video colour windows use this policy.
+
+When a detached child is reattached after independent reordering, make sure it is above the parent before relying on ordinary sorted drawing. Docked children normally run recursively after their parent, but a child that already ran earlier in the same manager pass is not run twice. Keeping the relationship continuously, or explicitly moving the child to the top when redocking, avoids a one-frame ordering surprise.
+
+=== Pinned versus detached
+
+Pinning belongs to `flwindow_t` and is independent of the registration detach state. A pinned window stores its transform relative to the screen, remains visible while the world zoom or offset changes, and is constrained so its title bar remains usable. Call `flwindow_init_pinned()` before the first draw to make pinning the default.
+
+A docked child can be unpinned and fitted to its parent. Pinning, dragging, or resizing a child with a parent area detaches it because its placement can no longer follow that slot. The pin control toggles only `window.pinned`; double-clicking it applies `pinned_offset_preset` and `pinned_sm_preset`. The registration state still determines whether closing returns the child to its parent.
+
+Other useful `flwindow_t` policy fields include `parent_fit_offset` for alignment inside the parent area, `bg_opacity` and `shadow_strength` for appearance, `draw_bg_always` for showing the dark background while docked, and `hide_pin` or `hide_corner` for removing those controls.
+
+=== Required frame order
+
+A custom interactive frame should keep this order:
+
+. Preprocess mouse and keyboard state, poll events, process the active text editor, then call `mouse_post_event_proc()`.
+. Draw the base application and refresh every normal window registration that should exist this frame.
+. Call `window_manager()` exactly once. It draws normal windows in z-order, recursively draws docked children, and finally runs late overlays.
+. Call `mousecursor_logic_and_draw()` so the cursor is above managed content.
+. Present with `sdl_flip_fb()`.
+
+Registration must happen before the manager pass. Calling `window_register()` from a function that is already being run by the manager does not create a normal persistent entry, so build the window tree from the application's pre-manager phase. Spacewar follows this ordering in `main.c`, with mode-specific functions registering their windows before the single `window_manager()` call.
