@@ -53,7 +53,7 @@ The `RL_EXCL_THREADING` configuration removes the implementation and substitutes
 
 == Audio bus
 
-The audio layer mixes callback buses into an interleaved stereo floating-point stream. A callback receives the output stream, an `audiosys_t` pointer, its bus index, and the application data pointer registered for that bus. Read `sys->buffer_len`, `sys->sec_per_sample`, and `sys->bus[bus_index].stime` to generate the current block.
+The audio layer mixes callback buses into an interleaved stereo floating-point stream. A callback receives the output stream, an `audiosys_t` pointer, its bus index, and the application data pointer registered for that bus. Read `sys-\>buffer_len`, `sys-\>sec_per_sample`, and `sys-\>bus[bus_index].stime` to generate the current block.
 
 [source,c]
 ----

@@ -56,7 +56,7 @@ The draw queue records or dispatches drawing work through direct, software, Open
 
 `drawq_bracket_open()` starts a temporary compositing layer. `drawq_bracket_close()` merges that layer with an operation such as `DQB_ADD`, `DQB_SUB`, `DQB_MUL`, `DQB_DIV`, `DQB_BLEND`, or `DQB_SOLID`. Brackets are for grouped compositing, not merely for batching unrelated draw calls.
 
-Spacewar exposes draw-queue mode through preferences, starts with `fb->use_drawq`, and applies a pending mode switch after the completed frame. This is a good model when a backend can be replaced while the application is running.
+Spacewar exposes draw-queue mode through preferences, starts with `fb-\>use_drawq`, and applies a pending mode switch after the completed frame. This is a good model when a backend can be replaced while the application is running.
 
 == SDL startup and presentation
 
