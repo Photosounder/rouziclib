@@ -1,0 +1,36 @@
+= rouziclib documentation
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+This directory documents the current rouziclib source tree: a portable C utility and application-support library covering numeric types, geometry, raster graphics, text, GUI controls, file I/O, audio, threading, optional compute backends, and a small expression interpreter.
+
+The public umbrella files are link:../rouziclib.h[rouziclib.h] and link:../rouziclib.c[rouziclib.c]. The headers in those files are the authoritative API surface; the thematic guides here explain how the pieces fit together and point to the source headers for exact declarations.
+
+== Read this first
+
+* link:getting-started.adoc[Getting started] explains the single-translation-unit integration model and the basic application loop.
+* link:configuration.adoc[Configuration] explains feature macros and the order in which they must be defined.
+* link:spacewar-walkthrough.adoc[Spacewar walkthrough] shows the integration used by the sibling `spacewar` project at `C:\msys\home\spacewar`.
+
+== Thematic guides
+
+* link:core-data.adoc[Core data and memory] — `xy_t`, `xyz_t`, rectangles, buffers, allocation helpers, timing, and general utilities
+* link:math-geometry.adoc[Math and geometry] — scalar math, DSP, FFTs, physics, matrices, polynomials, and geometric operations
+* link:graphics.adoc[Graphics and rendering] — colours, rasters, primitives, coordinate transforms, framebuffers, and draw queues
+* link:text-ui.adoc[Text, fonts, input, and GUI] — Unicode, text editing, vector fonts, controls, layouts, and windows
+* link:file-io.adoc[Files and assets] — paths, directories, images, sound samples, preferences, dialogs, and fileballs
+* link:concurrency-audio.adoc[Concurrency and audio] — threads, mutexes, semaphores, atomics, and the audio bus
+* link:interpreter.adoc[Expression interpreter] — editable formulas, compiled RLIP programs, custom inputs, and WAHE hooks
+* link:optional-backends.adoc[Optional backends] — SDL, OpenCL, Vulkan, codecs, image/audio libraries, and compile/link consequences
+* link:reference-map.adoc[Reference map] — the source-directory map and a compact list of the most useful headers
+
+== How to use these docs
+
+Examples use C99-style declarations and the names that are present in the current headers. They are deliberately small: include the relevant module through `rouziclib.h`, then consult the linked header for the complete parameter list and ownership rules.
+
+The Spacewar references are examples of usage, not a separate compatibility layer. They are especially useful for seeing how the library's global framebuffer, mouse, keyboard, zoom, font, and window-manager state is assembled into a real application.
+
+== Source of truth
+
+When this documentation and a header disagree, trust the header and update the relevant `.adoc` file. `quick_reference.h` remains a useful cookbook of short API examples, while the module headers contain the complete declarations and compile-time guards.

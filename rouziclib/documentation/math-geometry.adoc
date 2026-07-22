@@ -1,0 +1,58 @@
+= Math and geometry
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+== Scalar math
+
+`math/functions.h` contains the small functions that recur in signal, graphics, and simulation code: clamping, wrapping, interpolation, Gaussian and error functions, decibel/volume conversion, sinc and window functions, sums, RMS values, and number utilities.
+
+[source,c]
+----
+double phase = rangewrap(raw_phase, 0.0, 2.0 * pi);
+double level = rangelimit(input_level, 0.0, 1.0);
+double output = mix(low_value, high_value, level);
+----
+
+`math/cpu_functions.h` contains CPU-oriented helpers; `math/ieee754.h` exposes floating-point bit operations; `math/double_double_arithmetic.h` provides extended-precision arithmetic.
+
+== Geometry
+
+The `geometry` directory is organized by problem rather than by a single geometry type:
+
+[%header,cols="1,2"]
+|===
+|Header |Focus
+|`rect.h` |Rectangle construction, conversion, fitting, margins, unions, intersections, and coordinates
+|`distance.h` |Distances and nearest-point operations
+|`intersection.h` |Intersections between lines, segments, and shapes
+|`rotation.h` |2D/3D rotations and camera-related transforms
+|`bezier.h` |Bezier curves and evaluation helpers
+|`fit.h` |Fitting one shape or coordinate range into another
+|`misc.h` |Other geometric utilities
+|===
+
+Keep world-space geometry in `xy_t` or `xyz_t` until the final rendering step. The Spacewar game stores positions as `xy_t` and applies its world scale and camera offset before calling `sc_xy()`.
+
+== DSP and FFTs
+
+`math/dsp.h` and `math/dct.h` provide signal-processing kernels. `math/matrix.h`, `math/polynomials.h`, `math/polynomial_signal.h`, and `math/gaussian_polygon.h` cover structured numerical work. FFT implementations are selected through optional library wrappers such as `RL_FFTPACK`, `RL_CFFTPACK`, or `RL_CLFFT`.
+
+When working with a real-valued signal, consult the FFT declarations and the examples in `quick_reference.h` for the expected packed complex layout. Choose a fast transform size with `next_fast_fft_size()` when the backend benefits from composite dimensions.
+
+== Physics and simulation
+
+`math/physics.h` includes force accumulation and simple position/velocity integration:
+
+[source,c]
+----
+xy_t acceleration = XY0;
+add_body_force_xy(body_a, body_b, body_mass, &acceleration);
+physical_integration_xy(&position, &velocity, acceleration, frame_seconds);
+----
+
+The physics helpers are intentionally small building blocks. The caller owns the simulation state, chooses units, and decides how to handle collisions, constraints, and time stepping.
+
+== Fast approximations
+
+`approximations` contains lookup-table and SIMD-oriented alternatives for selected transcendental and fixed-point operations. They are included by default unless `RL_EXCL_APPROX` is defined. Treat these as performance tools: compare their error and range against the ordinary math functions before using them in numerically sensitive code.

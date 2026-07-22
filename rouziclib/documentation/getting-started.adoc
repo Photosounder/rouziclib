@@ -1,0 +1,114 @@
+= Getting started
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+== Integration model
+
+rouziclib is normally embedded into an application rather than built as a separately installed binary. The application supplies a small configuration header, includes the public header from that configuration header, and includes the implementation once.
+
+The usual arrangement is:
+
+[%header,cols="1,3"]
+|===
+|File |Role
+|`rl.h` |Application-specific feature defines followed by `#include <rouziclib/rouziclib.h>`
+|`rl.c` |Includes `rl.h`, then includes `<rouziclib/rouziclib.c>` exactly once
+|Application headers |Include `rl.h` or an application umbrella that includes it
+|Application source |Uses the API and is compiled with `rl.c`
+|===
+
+The sibling Spacewar project follows this layout in `C:\msys\home\spacewar\rl.h` and `rl.c`. Its `everything.h` then includes `rl.h` together with the game's own headers.
+
+== Configuration header
+
+Start with the smallest useful configuration and add optional systems as needed:
+
+[source,c]
+----
+#ifndef MY_APP_RL_H
+#define MY_APP_RL_H
+
+#define LBD 15
+#define RL_SDL 2
+
+#include <rouziclib/rouziclib.h>
+
+#endif
+----
+
+All rouziclib feature macros must be defined before the umbrella include. See link:configuration.adoc[Configuration] for the important switches and link:optional-backends.adoc[Optional backends] for external dependencies.
+
+== Implementation translation unit
+
+[source,c]
+----
+#include "rl.h"
+
+#include <rouziclib/rouziclib.c>
+----
+
+This pattern makes the implementation see exactly the same feature configuration as the declarations. Include this file in one build target only.
+
+For Objective-C-specific file and dialog helpers, the parallel link:../rouziclib.m[rouziclib.m] amalgamation includes `fileio/dialog.m` and `fileio/file_management.m`. Compile it as Objective-C only when the application needs those implementations.
+
+== A core-only program
+
+For code that only needs the scalar, vector, geometry, memory, text, or math portions, omit optional backend macros:
+
+[source,c]
+----
+#include "rl.h"
+
+int main(void)
+{
+    // Use rouziclib's vector constructor
+    xy_t p = xy(3.0, 4.0);
+
+    // Use a library helper on the vector
+    return (int) hypot_xy(XY0, p);
+}
+----
+
+Compile the application source and `rl.c` together, adding the directory containing rouziclib to the include search path. The exact compiler and system libraries depend on the optional features selected.
+
+== SDL application loop
+
+When `RL_SDL` is enabled, `rl_sdl_standard_main_loop()` can own the common SDL event, resize, mouse, keyboard, zoom, cursor, window-manager, and framebuffer-flip work:
+
+[source,c]
+----
+static void draw_frame(void)
+{
+    // Clear the previous frame
+    screen_blank();
+
+    // Draw a world-space line through the active zoom transform
+    draw_line_thin(sc_xy(xy(-5.0, 0.0)), sc_xy(xy(5.0, 0.0)), drawing_thickness, white, blend_add, 1.0);
+
+    // Let the standard loop present the completed frame
+}
+
+int main(void)
+{
+    sdl_main_param_t param = {0};
+    param.window_name = "rouziclib demo";
+    param.func = draw_frame;
+    param.wind_dim = xyi(1280, 720);
+    param.show_cursor = 1;
+
+    rl_sdl_standard_main_loop(param);
+    sdl_quit_actions();
+    return 0;
+}
+----
+
+The standard loop initializes the SDL framebuffer, zoom state, mouse, and fallback or embedded font. For a custom loop, copy the ordering used by `C:\msys\home\spacewar\main.c`: preprocess input, poll SDL events, postprocess mouse/zoom state, draw, run `window_manager()`, then flip the framebuffer.
+
+== Build checklist
+
+* Put the rouziclib root on the compiler's include path when using `<rouziclib/...>` includes.
+* Compile the implementation unit once.
+* Add system and third-party libraries required by enabled feature macros.
+* Add the resource folders used by the application, such as vector font files or image/audio assets.
+* For Emscripten, use the `__EMSCRIPTEN__` main-loop path and link the SDL and worker/pthread options appropriate to the target.

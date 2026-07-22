@@ -1,0 +1,62 @@
+= Expression interpreter
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+The `interpreter` directory turns expressions into a compact rouziclib instruction program (RLIP) or evaluates them directly. It is useful for application-defined formulas, editable calculators, procedural graphics, and scripts whose variables and functions are supplied by the host application.
+
+== One-off evaluation
+
+For a simple double-precision expression with only built-in functions, use `rlip_expression_interp_double()` or its `etof()` shorthand. `etoi()` rounds the result to an integer.
+
+[source,c]
+----
+double value = etof("0.5 + 0.5 * erf(2 * 0.25)");
+int index = etoi("floor(7 / 2)");
+----
+
+Pass a `buffer_t` to the longer function form when the caller needs a compilation/error log. Free that buffer with `free_buf()` after displaying or storing the diagnostic.
+
+== Compile once, execute many times
+
+When an expression is evaluated repeatedly, compile it once and update the pointed-to inputs before each execution:
+
+[source,c]
+----
+double x = 0.0;
+rlip_inputs_t inputs[] = {
+    RLIP_FUNC,
+    {"x", &x, "pd"},
+};
+
+// Compile the expression and bind the host variable
+rlip_t program = rlip_expression_compile("0.5 + 0.5 * erf(2 * x)", inputs, sizeof(inputs) / sizeof(*inputs), 0, NULL);
+volatile int exec_on = 1;
+program.exec_on = &exec_on;
+
+// Execute the compiled expression with the current input value
+x = 0.25;
+rlip_execute_opcode(&program);
+double result = NAN;
+if (program.valid_prog)
+    result = program.return_value[0];
+
+// Release opcode, register, and result storage
+free_rlip(&program);
+----
+
+`RLIP_FUNC` adds the built-in math function table. Add application functions and variables as more `rlip_inputs_t` entries. Spacewar binds values such as `x`, `w`, `angle`, and multiple coefficients, then reuses the compiled program in a worker or drawing loop.
+
+== Compilation listings and decompilation
+
+Use `expression_to_rlip_listing()` when the intermediate textual listing is useful for a log or a generated program. Use `rlip_compile()` to compile a listing directly. `rlip_decompile()` converts a compiled program back to a readable instruction listing, which is helpful for debugging generated expressions.
+
+Check `program.valid_prog` after compilation/execution when the input is user-editable. If compilation fails, show the supplied `comp_log` and release the program with `free_rlip()`.
+
+== Alternate real types
+
+`interpreter/real_functions.h` supplies descriptors for ordinary double, double-double, and MPFR real arithmetic. Use the matching `RLIP_REAL_*` input macro and enable `RL_MPFR` when MPFR support is required. The expression API also exposes `rlip_expression_interp_ddouble()` and `rlip_expression_interp_mpfr()` behind their feature guards.
+
+== WAHE module hooks
+
+`wahe/wahe_module_side.h` is a small integration boundary rather than a general interpreter. `wahe_rl_module_init()` prepares a framebuffer, zoom state, mouse state, and font for a host-provided framebuffer size; `wahe_rl_parse_inputs()` translates host input lines into rouziclib mouse, keyboard, and text-edit state. Use these hooks when embedding rouziclib in a WAHE host and keep the host protocol outside the core library.

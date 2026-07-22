@@ -1,0 +1,109 @@
+= Spacewar walkthrough
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+The sibling project at `C:\msys\home\spacewar` is the most complete in-tree example of rouziclib being used as an application framework. It is a large SDL game/tool with 2D and 3D drawing, generated GUI layouts, font resources, image and sound loading, FFT work, background threads, optional GPU backends, and a WebAssembly build.
+
+== Project wiring
+
+The integration is intentionally simple:
+
+[%header,cols="1,2,3"]
+|===
+|File |Role |rouziclib pattern
+|`rl.h` |Feature configuration |Defines `LBD`, SDL, draw-queue, image/sound, font, codec, and compute switches before including `../rouziclib/rouziclib.h`
+|`rl.c` |Implementation unit |Includes `rl.h`, then `../rouziclib/rouziclib.c`
+|`everything.h` |Application umbrella |Includes `rl.h` and all Spacewar module headers
+|`everything.c` |Application translation unit |Includes `rl.c` and the application `.c` files
+|`main.c` |Program entry and frame loop |Initializes services, handles SDL events, dispatches game modes, and presents frames
+|===
+
+This is the recommended mental model: rouziclib supplies the reusable substrate; the application owns its globals, state machines, resources, and policy.
+
+== Initialization sequence
+
+Spacewar's `main_loop()` shows a reliable initialization order:
+
+. Create the application-data preference file and initialize crash reporting when enabled.
+. Seed random state and initialize colours.
+. Select the draw-queue mode from preferences.
+. Initialize SDL graphics with `sdl_graphics_init_autosize()` or the Emscripten-specific full-size call.
+. Initialize SDL audio.
+. Initialize the zoom state and screen limits.
+. Initialize mouse state.
+. Load a vector font from disk or an embedded fileball.
+
+The standard SDL loop helper packages much of this sequence, but an application with custom startup policy can keep the explicit form.
+
+== Frame sequence
+
+The important part of Spacewar's frame loop is the ordering, not the game-specific switch:
+
+[source,c]
+----
+// Process input state before polling the new events
+mouse_pre_event_proc(&mouse);
+keyboard_pre_event_proc(&mouse);
+sdl_handle_window_resize(&zc);
+
+while (SDL_PollEvent(&event))
+{
+    // Route SDL events into rouziclib input state
+    dropfile_event_proc(event);
+    sdl_mouse_event_proc(&mouse, event, &zc);
+    sdl_keyboard_event_proc(&mouse, event);
+}
+
+// Finish mouse and zoom state before application drawing
+mouse_post_event_proc(&mouse, &zc);
+
+// Dispatch the active application mode
+game_spacewar(earth);
+
+// Run registered windows and the cursor before presenting
+window_manager();
+mousecursor_logic_and_draw();
+sdl_flip_fb();
+----
+
+The actual `main.c` also updates frame timing, handles mode changes, draws diagnostics, and applies pending draw-queue mode switches after the flip.
+
+== Rendering examples
+
+`game/spacewar.c` keeps simulation positions in world coordinates and uses the zoom helpers for output:
+
+[source,c]
+----
+xy_t p = sub_xy(ship->pos, w->cam_focus);
+p = mul_xy(p, set_xy(w->spacescale));
+draw_point(sc_xy(p), drawing_thickness, white, blend_add, ship->brightness);
+----
+
+`graphics.c` demonstrates smaller UI primitives with `sc_xy()`, while `game/3d.c` uses `xyz_t`, camera transforms, polygons, stars, and vector objects.
+
+== GUI examples
+
+Spacewar uses both direct controls and the layout system. `game/spacewar.c` creates a two-checkbox options dialog; `gui.c` creates a console with text editors; `game/calc.c` demonstrates a larger linked layout containing text editors, knobs, checkboxes, and buttons; `game/video_sorter.c` adds a selection menu.
+
+The repeated pattern is:
+
+. Keep `gui_layout_t` and `flwindow_t` in persistent or static state.
+. Define `layout_src[]` once with element IDs and positions.
+. Call `make_gui_layout()`.
+. Initialize and draw the window with `flwindow_init_defaults()` and `draw_dialog_window_fromlayout()`.
+. Read controls with `ctrl_*_fromlayout()`.
+
+== Assets and background work
+
+* `main.c` extracts an embedded `Spiral.ttf` fileball and loads a vector font.
+* `game/3d.c` loads map, Wavefront, and star-list resources.
+* `game/calc.c` loads floating-point sound samples.
+* `game/photosounder.c`, `game/position_calc.c`, and `game/video_sorter.c` run expensive work in background threads and join or cancel those workers when the window closes.
+* `sound.c` initializes the audio device through `sdl_audiosys_init()`.
+
+== Native and WebAssembly builds
+
+The native scripts compile the amalgamated implementation with GCC, Clang, or Visual Studio and link the selected system libraries. `embuild_msys.sh` compiles a reduced set of source files with Emscripten, embeds the vector font directory, and uses `emscripten_set_main_loop()` in `main.c`.
+
+Use the native project as the reference for desktop startup and the Emscripten script plus `#ifdef __EMSCRIPTEN__` branches as the reference for browser constraints.

@@ -1,0 +1,48 @@
+= Reference map
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+`rouziclib.h` includes the public headers below, and `rouziclib.c` includes the matching implementations in dependency order. The table is a map for finding the right header; it is not a replacement for the declarations in the source tree.
+
+[%header,cols="1,2,3"]
+|===
+|Directory |Main concerns |Start with
+|`approximations` |Fast transcendental, fixed-point, high-precision, and SIMD approximations |`fast_float.h`, `fast_cos.h`, `fixed_point.h`
+|`fileio` |Files, paths, directories, images, sound, preferences, dialogs, fileballs |`file_management.h`, `image.h`, `sound_format.h`, `fileball.h`
+|`general` |Portable types, time, input, threading, audio, hashes, globals, platform helpers |`xyz.h`, `time.h`, `keyboard.h`, `mouse.h`, `threading.h`
+|`geometry` |Rectangles, curves, intersections, distances, rotations, fitting |`rect.h`, `intersection.h`, `fit.h`
+|`graphics` |Colours, rasters, drawing primitives, processing, blits, queues, GPU memory |`graphics.h`, `drawprimitives.h`, `drawqueue.h`
+|`gui` |Zoom, controls, text layouts, focus, selection, windows, toolbars |`controls.h`, `make_gui.h`, `window_manager.h`
+|`interpreter` |Expression parsing, compilation, bytecode execution, decompilation |`interpreter.h`, `expression.h`
+|`libraries` |Wrappers and embedded third-party implementations |`sdl.h`, `opencl.h`, `vulkan.h`, codec wrapper headers
+|`math` |Functions, DSP, DCT, FFT-related helpers, matrices, physics, polynomials |`functions.h`, `dsp.h`, `matrix.h`, `physics.h`
+|`memory` |Growing arrays, generic buffers, comparison, fill, swap, circular buffers |`alloc.h`, `generic_buffer.h`
+|`text` |UTF-8, Unicode, formatting, parsing, editing, undo, history |`unicode.h`, `format.h`, `edit.h`
+|`vector` |Vector objects and polylines |`vector.h`, `polyline.h`
+|`vector_type` |Vector fonts, glyphs, TrueType, CJK support, text drawing and fitting |`vector_type.h`, `truetype.h`, `draw.h`
+|`wahe` |WAHE module-side integration hooks |`wahe_module_side.h`
+|===
+
+== Umbrella and cookbook files
+
+* link:../rouziclib.h[rouziclib.h] assembles the public declarations and applies platform/compiler guards.
+* link:../rouziclib.c[rouziclib.c] assembles the implementations.
+* link:../rouziclib.m[rouziclib.m] assembles the Objective-C file/dialog helpers.
+* link:../quick_reference.h[quick_reference.h] contains short examples for macros, drawing, controls, layouts, input, images, parsing, memory, threading, audio, preferences, and FFTs.
+* link:interpreter.adoc[interpreter.adoc] explains expression compilation, execution, decompilation, alternate real types, and WAHE integration.
+
+== Naming patterns
+
+Most APIs follow a predictable family pattern:
+
+* `make_*` constructs a value or state object.
+* `load_*` allocates or reads a resource; `free_*` releases it.
+* `*_xy`, `*_xyz`, and `*_xyi` select coordinate component types.
+* `*_fromlayout` operates on an element from `gui_layout_t`.
+* `sc_*` converts world coordinates to screen coordinates; `wc_*` performs the inverse.
+* `rl_*` identifies rouziclib's portable threading, atomics, or library-specific helpers.
+
+== Keeping the docs current
+
+When adding a new public module, add its header to the umbrella include list, its implementation to the amalgamated source, a row to this map, and a short usage section in the most relevant thematic guide. Keep feature-specific APIs behind the same macro guards as their headers.

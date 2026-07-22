@@ -1,0 +1,70 @@
+= Core data and memory
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+== Small numeric types
+
+The `general` and `geometry` modules provide compact value types and operations that are used throughout the library:
+
+[%header,cols="1,2"]
+|===
+|Type |Use
+|`xy_t` |Two-component double-precision coordinate or vector
+|`xyf_t` |Two-component single-precision vector
+|`xyi_t` |Two-component integer coordinate, commonly pixel dimensions
+|`xyz_t` |Three-component double-precision vector
+|`xyq_t` |Two-component extended-precision value
+|`rect_t` |Two opposite corners represented by `xy_t`
+|`recti_t` |Integer rectangle
+|`triangle_t` |Three `xy_t` vertices
+|===
+
+Construct values with `xy()`, `xyz()`, `xyi()`, and `rect()`. Use component-wise helpers such as `add_xy()`, `sub_xy()`, `mul_xy()`, `set_xy()`, `get_rect_dim()`, and `make_rect_centred()` rather than duplicating coordinate arithmetic.
+
+[source,c]
+----
+xy_t centre = xy(10.0, 4.0);
+xy_t size = set_xy(2.0);
+rect_t box = make_rect_centred(centre, size);
+xy_t upper_right = rect_p10(box);
+----
+
+`XY0`, `XY1`, `XYI0`, `XYZ0`, and related macros provide common constants. The full declarations are in `general/xyz.h` and `geometry/rect.h`.
+
+== Allocation helpers
+
+`memory/alloc.h` supplies growing-array helpers for C arrays, two-dimensional allocations, allocation lists, and null-safe release. `alloc_enough()` stores the updated allocation count through the pointer supplied by the caller.
+
+[source,c]
+----
+double *values = NULL;
+size_t values_as = 0;
+
+// Grow the array before writing the requested element count
+alloc_enough(values, value_count, &values_as, sizeof(*values), 1.5);
+
+// Release the array after the last use
+free(values);
+----
+
+For buffers with an owned byte allocation, use `buffer_t` and `buf_alloc_enough()`, `bufwrite()`, `bufprintf()`, `clear_buf()`, and `free_buf()`. `memory/generic_buffer.h` also provides file-loading and file-saving helpers.
+
+== Ownership conventions
+
+Many APIs return allocated memory or structs containing allocated members. The matching release function is normally named `free_*`, such as `free_raster()`, `free_fileball_struct()`, `free_dir()`, `free_gui_layout()`, or `free_buf()`. A returned `const char *` from `pref_get_string()` belongs to the preference structure and must not be freed by the caller.
+
+When an API accepts a destination struct, initialize it to zero when the header or example indicates a stateful object. The Spacewar source uses this pattern for `raster_t`, `gui_layout_t`, `flwindow_t`, `textedit_t`, and thread handles.
+
+== General services
+
+The `general` directory also contains:
+
+* `time.h` for millisecond/high-resolution clocks, elapsed-time measurement, sleeping, and date parsing
+* `estimates.h` for frame-rate and timing estimates
+* `hashing.h` for hashing utilities
+* `rand.h` and `general/xyz.h` helpers for random values and vector operations
+* `keyboard.h` and `mouse.h` for input state processing
+* `macros.h`, `intrinsics.h`, and `portable_simd.h` for low-level portability helpers
+
+For a game or interactive tool, use `get_time_diff_hr()` for frame duration and keep input state processing at the beginning and end of each frame. Spacewar stores the previous timestamp in `td` and updates `frame_s` after `sdl_flip_fb()`.

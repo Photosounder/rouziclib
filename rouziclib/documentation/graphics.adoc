@@ -1,0 +1,62 @@
+= Graphics and rendering
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+== Colour and pixel formats
+
+The graphics system supports linear RGB (`lrgb_t`), floating RGB (`frgb_t`), sRGB (`srgb_t`), squared RGB (`sqrgb_t`), and the application-facing `col_t`. `LBD` controls the integer linear-RGB precision. `COL_FRGB` changes the type used by `col_t`.
+
+Use constructors and conversion functions from `graphics/colour.h`, `pixel_conv.h`, `srgb.h`, and `sqrgb.h` instead of treating the storage formats as interchangeable. The drawing API may accept different colour types depending on whether it is using direct LRGB rendering or a draw queue.
+
+[source,c]
+----
+col_t orange = make_colour(1.0, 0.184, 0.0, 1.0);
+col_t accent = make_colour_hsl(30.0, 1.0, 0.125, HUEDEG, 0);
+----
+
+== Framebuffers and rasters
+
+`raster_t` is the common image container. Use `make_raster()` for caller-owned or newly allocated image storage, `copy_raster()` for a copy, `blank_raster()` to clear it, and `free_raster()` when finished. `framebuffer_t` is the active display surface and is normally initialized by an SDL helper.
+
+The image guide covers loading and conversion; this guide focuses on drawing. A raster can be displayed with the blit functions or processed with mipmap, YUV, blending, and image-processing helpers.
+
+== Coordinate spaces
+
+The zoom module maintains a world-to-screen transform. The `sc_*` and `wc_*` macros are shorthand for `to_screen_coord_*()` and `to_world_coord_*()`:
+
+[source,c]
+----
+xy_t world_point = xy(2.0, -1.0);
+draw_point(sc_xy(world_point), drawing_thickness, white, blend_add, 1.0);
+
+rect_t screen_box = sc_rect(world_box);
+draw_rect(screen_box, drawing_thickness, white, blend_add, 1.0);
+----
+
+Spacewar consistently keeps game positions in world coordinates and converts them at the draw call. `zc.scrscale` is used when a radius or text scale must stay visually consistent with zoom.
+
+== Drawing primitives
+
+The primitive headers provide points, thin or dashed lines, circles, rectangles, rounded rectangles, polygons, text, vector objects, and image blits. The usual call shape is:
+
+[source,c]
+----
+draw_line_thin(sc_xy(p0), sc_xy(p1), drawing_thickness, colour, blend_add, intensity);
+draw_circle(HOLLOWCIRCLE, sc_xy(center), radius, drawing_thickness, colour, blend_add, intensity);
+draw_polygon_wc(points, point_count, drawing_thickness, colour, blend_add, intensity);
+----
+
+The final intensity is separate from colour. Blend functions such as `blend_add` determine how the primitive combines with the framebuffer.
+
+== Draw queues
+
+The draw queue records or dispatches drawing work through direct, software, OpenCL, or Vulkan paths depending on compile-time support and framebuffer configuration. `DQS_THREADS` controls the software queue worker count. Use `drawq_bracket_open()` and `drawq_bracket_close()` only around the operations that require queue batching, and finish or present the queue with the framebuffer/SDL functions.
+
+Spacewar exposes draw-queue mode through preferences, starts with `fb->use_drawq`, and applies a pending mode switch after the completed frame. This is a good model when a backend can be replaced while the application is running.
+
+== SDL startup and presentation
+
+With `RL_SDL` enabled, use `sdl_graphics_init_full()` for an explicit window or `sdl_graphics_init_autosize()` for a display-sized window. Handle resizes with `sdl_handle_window_resize(&zc)`, process events with `sdl_mouse_event_proc()` and `sdl_keyboard_event_proc()`, and present with `sdl_flip_fb()`.
+
+The `rl_sdl_standard_main_loop()` helper performs the common ordering. Use a custom loop when the application needs its own event policy, multiple modes, or special presentation timing.

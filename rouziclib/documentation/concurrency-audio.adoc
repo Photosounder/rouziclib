@@ -1,0 +1,66 @@
+= Concurrency and audio
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+== Threads
+
+`general/threading.h` provides portable thread handles, detached threads, joins, priorities, yielding, mutexes, semaphores, and 32-bit atomics. Thread functions use an `int (*)(void *)` signature.
+
+[source,c]
+----
+typedef struct
+{
+    volatile int quit;
+    rl_thread_t handle;
+} worker_t;
+
+static int worker_main(void *ptr)
+{
+    worker_t *worker = ptr;
+
+    // Keep doing work until the owner requests shutdown
+    while (!worker->quit)
+        do_one_job();
+
+    return 0;
+}
+
+worker_t worker = {0};
+
+// Start the worker and join it before freeing its data
+rl_thread_create(&worker.handle, worker_main, &worker);
+worker.quit = 1;
+rl_thread_join_and_null(&worker.handle);
+----
+
+The example is intentionally schematic: `do_one_job()` and `synth_render()` represent application code, and real code should synchronize shared data with `rl_mutex_t`, atomics, or a semaphore as appropriate. Spacewar uses joinable threads for analysis tools and detached threads for command processing.
+
+== Mutexes and atomics
+
+Initialize a mutex before publishing it to a worker, lock only around the shared state that needs protection, and destroy it after all users have stopped. Use `rl_atomic_load_i32()`, `rl_atomic_store_i32()`, `rl_atomic_add_i32()`, and `rl_atomic_get_and_set()` for small synchronization flags and counters.
+
+The `RL_EXCL_THREADING` configuration removes the implementation and substitutes inert types, so code that requires real parallel work must not enable that switch.
+
+== Audio bus
+
+The audio layer registers callback buses with `audiosys_bus_register()`. A callback receives a floating-point output buffer, the registered data pointer, a frame/sample count, and callback context. When the callback and main thread share mutable state, use the bus mutex option or a separate lock.
+
+[source,c]
+----
+static void audio_bus(float *stream, void *data, int sample_count, void *context)
+{
+    // Fill the callback buffer from application-owned state
+    synth_render(stream, sample_count, data);
+}
+
+// Start the SDL audio device before registering the bus
+sdl_audiosys_init(1024);
+audiosys_bus_register(audio_bus, synth_state, 1, 0.1);
+----
+
+Unregister the bus before freeing its data. `general/audio.h` also exposes the lower-level callback and `audiosys_bus_unregister()` lifecycle.
+
+== Timing and background work
+
+Use `get_time_hr()` and `get_time_diff_hr()` for frame timing and `sleep_ms()` or `sleep_hr()` for deliberate pacing. Keep expensive file, codec, or numerical work off the UI thread, then transfer results to the main thread under a clear ownership and synchronization rule. Spacewar's video sorter and position calculator demonstrate this pattern.

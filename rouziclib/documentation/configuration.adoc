@@ -1,0 +1,76 @@
+= Configuration
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+rouziclib is configured at compile time. Put the defines in the project header before including `rouziclib.h`; do not scatter different definitions across application source files.
+
+== Rendering and numeric format
+
+[%header,cols="1,2,3"]
+|===
+|Define |Purpose |Notes
+|`LBD` |Linear RGB bit depth |Valid range is 12–15; the default is 15
+|`COL_FRGB` |Makes `col_t` use floating RGB |Useful when the application does not use the LRGB path
+|`LRGB_NODITHER` |Disables LRGB dithering |Only relevant to LRGB output
+|`RL_ONLY_DRAW_LRGB` |Keeps only LRGB drawing functions |Can reduce linked code when draw queues are not used
+|`GAUSSLIMIT` |Controls Gaussian drawing cutoff |Lower values retain more of the Gaussian tail
+|`GAUSSRAD_HQ` |Controls high-quality Gaussian radius |The default is 4.0
+|`DQS_THREADS` |Software draw-queue worker count |Spacewar uses 8
+|===
+
+The graphics guide explains how `col_t`, `raster_t`, world coordinates, and framebuffer coordinates interact.
+
+== Platform and portability switches
+
+[%header,cols="1,2"]
+|===
+|Define |Effect
+|`RL_SDL` |Enables SDL integration; use `2` for SDL2 or `3` for SDL3
+|`RL_OPENCL` |Enables OpenCL support and compute-backed drawing paths
+|`RL_OPENCL_GL` |Enables OpenCL/OpenGL interoperation
+|`RL_VULKAN` |Enables Vulkan support
+|`RL_GDI32` |Enables Windows screenshot support
+|`RL_CRASHDUMP` |Enables the Windows crash-dump helper
+|`RL_INCL_NETWORK` |Enables socket/network code
+|`RL_DONT_ASSUME_LITTLE_ENDIAN` |Makes endian-sensitive code work on big-endian targets
+|`RL_EXCL_THREADING` |Removes the threading implementation
+|`RL_EXCL_APPROX` |Removes lookup-table approximation functions
+|`RL_FREESTANDING` |Selects reduced-platform behavior; WebAssembly defines this automatically through the umbrella header
+|===
+
+== Text and font data
+
+`RL_INCL_UNICODE_DATA_MINI` provides the Unicode data needed by the usual GUI/font path. `RL_INCL_UNICODE_DATA` includes the larger Unicode data set. `RL_INCL_VECTOR_TYPE_FILEBALL` enables loading the built-in vector font data from a generated header. If neither built-in data nor a font file is supplied, the SDL standard loop can use a fallback font.
+
+== Spacewar's configuration
+
+The configuration in `C:\msys\home\spacewar\rl.h` is a useful feature-rich example:
+
+[source,c]
+----
+#define LBD 15
+#define GAUSSRAD_HQ 3.
+#define COL_FRGB
+#define DQS_THREADS 8
+#define RL_TINYEXPR
+#define RL_SDL 2
+#define RL_INCL_UNICODE_DATA
+#define RL_MINIZ
+#define RL_CFFTPACK
+#define RL_IMAGE_FILE
+#define RL_SOUND_FILE
+#define RL_TRUETYPE
+
+#ifndef __EMSCRIPTEN__
+#define RL_VULKAN
+#define RL_OPENCL
+#define RL_OPENCL_GL
+#define RL_BUILTIN_GLEW
+#define RL_FFMPEG
+#endif
+
+#include "../rouziclib/rouziclib.h"
+----
+
+Spacewar adds `RL_CLFFT`, `RL_LIBRAW`, and `RL_LIBCURL` for its Visual C++ build. It leaves some optional features disabled when the required dependency is not available.

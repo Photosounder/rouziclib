@@ -1,0 +1,77 @@
+= Text, fonts, input, and GUI
+:toc:
+:toclevels: 2
+:source-highlighter: highlight.js
+
+== Text and Unicode
+
+The `text` directory provides UTF-8 decoding/encoding, Unicode properties, bidirectional text, Arabic shaping, parsing, formatting, string manipulation, text editing, undo, and history. The compact Unicode data set is enough for the normal vector-font GUI path; define `RL_INCL_UNICODE_DATA` when the application needs the larger data tables.
+
+Use `utf8_to_unicode32()` when iterating codepoints and the corresponding Unicode-to-UTF-8 helpers when writing into a caller-owned buffer. For mutable text, use `textedit_t` and its initialization/free functions rather than manually editing the internal string and undo state.
+
+== Vector fonts and vector objects
+
+The `vector` directory supplies vector and polyline data. `vector_type` turns typeface data into vector objects, supports TrueType loading when `RL_TRUETYPE` is enabled, and provides text measurement and drawing. A font is commonly loaded during application initialization and then passed to `draw_string()` or `draw_label()`.
+
+Spacewar either loads a font from `../vector_type/type_index.txt` with `remake_font()` or extracts `Spiral.ttf` from an embedded fileball and calls `load_truetype_font_as_triangles()`.
+
+== Keyboard and mouse input
+
+The general input layer maintains state across frames. A typical SDL loop does the following:
+
+. Call `mouse_pre_event_proc(&mouse)` and `keyboard_pre_event_proc(&mouse)` before polling events.
+. Send each event to `sdl_mouse_event_proc()` and `sdl_keyboard_event_proc()`.
+. Call `mouse_post_event_proc(&mouse, &zc)` after application-level event handling.
+. Read key state with `get_key_state_by_name()` or the scancode array in `mouse.key_state`.
+
+The value `2` conventionally means a key was pressed once without repeat; values at or above `2` include a press/repeat event, and values at or below `0` indicate that the key is not currently down. Modifier helpers return a state suitable for checking whether a modifier is available.
+
+== Direct controls
+
+The controls API manages hit-testing through the current mouse control identification. Buttons return a release event, checkboxes return when their state changes, radios select a choice, knobs report interaction progress, and text editors return distinct values for Enter, focus loss, Tab, and modification.
+
+[source,c]
+----
+static int enabled;
+static double amount = 0.5;
+static knob_t amount_knob = {0};
+
+// Create persistent knob state on first use
+if (amount_knob.main_label == NULL)
+    amount_knob = make_knob("Amount", amount, knobf_linear, 0.0, 1.0, VALFMT_DEFAULT);
+
+// React to a checkbox state transition
+if (ctrl_checkbox(&enabled, "Enabled", checkbox_box, GUI_COL_DEF))
+    amount = enabled ? amount : 0.0;
+
+// Update a numeric value from the knob
+ctrl_knob(&amount, &amount_knob, knob_box, GUI_COL_DEF);
+----
+
+Free persistent knob text-edit state with `textedit_free(&amount_knob.edit)` when the owning UI is destroyed.
+
+== Layout-driven GUI
+
+`gui_layout_t` and `make_gui_layout()` let a UI be described by text lines. A layout declares element IDs, types, labels, positions, dimensions, and optional links to other elements. Spacewar uses this approach for its console, game options, polynomial fitting, video sorter, and position calculator windows.
+
+[source,c]
+----
+static gui_layout_t layout = {0};
+static const char *layout_src[] = {
+    "elem 0", "type none", "label Demo", "pos 0 0", "dim 8 5", "off 0 1", "",
+    "elem 10", "type checkbox", "label Enabled", "pos 0 -1", "dim 2 0;5", "off 0 1", "",
+};
+
+// Build or refresh the layout definition
+make_gui_layout(&layout, layout_src, sizeof(layout_src) / sizeof(*layout_src), "Demo");
+
+// Draw and read the control identified by its element ID
+draw_rect_fromlayout(0, &layout, 0);
+ctrl_checkbox_fromlayout(&enabled, &layout, 10);
+----
+
+The layout language supports `elem`, `type`, `label`, `pos`, `dim`, `off`, `link_pos_id`, `knob`, `knob_arg`, and `v` value declarations. See `gui/make_gui.h` for the complete command list.
+
+== Windows and frame order
+
+The window manager calls registered window functions in a variable order and keeps track of parent areas for detached child windows. A normal interactive frame ends with `window_manager()` followed by `mousecursor_logic_and_draw()` before the framebuffer flip. Spacewar follows this order in `main.c`.
