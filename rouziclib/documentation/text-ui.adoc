@@ -1,6 +1,6 @@
 = Text, fonts, input, and GUI
 :toc:
-:toclevels: 2
+:toclevels: 3
 :source-highlighter: highlight.js
 
 == Text and Unicode
@@ -9,9 +9,9 @@ The `text` directory provides UTF-8 decoding/encoding, Unicode properties, bidir
 
 Use `utf8_to_unicode32()` when iterating codepoints and the corresponding Unicode-to-UTF-8 helpers when writing into a caller-owned buffer. For mutable text, use `textedit_t` and its initialization/free functions rather than manually editing the internal string and undo state.
 
-== Vector fonts and vector objects
+== Vector fonts
 
-The `vector` directory supplies vector and polyline data. `vector_type` turns typeface data into vector objects, supports TrueType loading when `RL_TRUETYPE` is enabled, and provides text measurement and drawing. A font is commonly loaded during application initialization and then passed to `draw_string()` or `draw_label()`.
+`vector_type` turns typeface data into drawable glyph objects, supports TrueType loading when `RL_TRUETYPE` is enabled, and provides text measurement and drawing. A font is commonly loaded during application initialization and then passed to `draw_string()` or `draw_label()`. Generic vector-object construction and drawing are covered by link:graphics.adoc[Graphics and rendering].
 
 Spacewar either loads a font from `../vector_type/type_index.txt` with `remake_font()` or extracts `Spiral.ttf` from an embedded fileball and calls `load_truetype_font_as_triangles()`.
 
@@ -29,7 +29,7 @@ Key state values are frame-oriented: `2` is newly pressed, `3` is a repeated key
 
 == Direct controls
 
-The controls API manages hit-testing through the current mouse control identification. Buttons return a release event, checkboxes return when their state changes, radios select a choice, knobs report interaction progress, and text editors return distinct values for Enter, focus loss, Tab, and modification.
+rouziclib controls are immediate-mode: call each visible control once per frame with its current geometry and persistent application state. The call performs hit-testing, updates state, draws the control, and returns an event for that frame. There is no retained button object and no explicit ID argument in the ordinary button, checkbox, radio, or knob APIs.
 
 [source,c]
 ----
@@ -51,9 +51,86 @@ static void draw_controls(rect_t checkbox_box, rect_t knob_box)
 
 Control state must outlive a frame. The example keeps its state for the application lifetime; for shorter-lived state, free a knob's embedded editor with `textedit_free(&knob.edit)` when the owning UI is destroyed.
 
+=== How control identification works
+
+The mouse layer identifies an interactive control from its shape and geometry. A rectangular control is identified by its rectangle, a circular control by its centre and radius, and controls with identical geometry receive an occurrence number based on call order. This internal control identity is separate from a GUI layout's numeric element ID: `elem 20` tells the layout API which element to retrieve, but it does not become the mouse control ID.
+
+Hit-testing compares the supplied geometry with `mouse.u`, so direct-control rectangles, centres, and radii must be in the same world-coordinate space as the mouse. Do not pass an already screen-converted rectangle to a control function. Controls perform their own `sc_rect()` or `sc_xy()` conversion for drawing, and layout wrappers pass the offset-and-scale transformed world rectangle returned by `gui_layout_elem_comp_area_os()`.
+
+The normal frame pipeline is:
+
+. Control calls made during a draw pass append their geometry to the control stack.
+. On the next frame, input events update the mouse position and button states.
+. `mouse_post_event_proc()` replays the saved control stack at the new mouse position and chooses the hovered control.
+. The current draw pass calls the controls again. Only the control whose geometry and occurrence match the chosen identity receives hover and click state; those calls also build the stack for the following frame.
+
+This replay lets input be processed before controls are drawn. It also makes call order part of the identity contract. Keep the set and order of control calls stable while the UI is visible, especially for controls that have the same geometry. If conditional controls appear or disappear, give each branch a stable ordering so an occurrence number is not reassigned to a different control.
+
+Internally, `mouse.ctrl_id` keeps four important pieces of state:
+
+[%header,cols="1,3"]
+|===
+|State |Role
+|`hover` |The identity selected for control processing in the current pass
+|`hover_new` |The best candidate discovered while traversing or replaying controls
+|`current` |The shape, geometry, and occurrence currently being checked
+|`stack` |The control geometries recorded by the preceding draw pass
+|===
+
+`ctrl_id_cycle()` normally promotes `hover_new` to `hover`, clears the candidates, and starts another traversal. While the left button is held, it deliberately keeps the previous `hover`. `ctrl_id_stack_process()` rechecks the stack without appending it again, clears the consumed stack, and cycles the result into the active identity. Rectangle coordinates and circle positions are compared at near-exact floating-point precision, so controls that are meant to retain identity should not acquire incidental coordinate jitter from frame to frame.
+
+For overlapping rectangles, the last registered rectangle under the pointer wins. For overlapping circles, the circle with the nearest centre wins. Exact duplicates are distinguished by encounter order. When the left mouse button is held, the hovered identity is not replaced, which captures the interaction until release; draggable controls additionally retain their own `down` state so they can continue outside their original rectangle.
+
+A button click must originate inside the control. The ordinary button event is emitted on release only if the pointer is also inside then, so pressing inside, dragging out, and releasing does not activate it. Controls that are too small to use or are completely off-screen normally skip identification. `ctrl_button_invis()` can return the detailed flags when the caller needs to distinguish these cases.
+
+The window manager uses the same identification pass. When a control in a managed window becomes the identified click target, that window can be moved to the top. Call managed windows and their controls through the normal `window_manager()` ordering rather than drawing the same interactive window independently as well.
+
+=== Button state and return values
+
+`ctrl_button_state_t` exposes the detailed state used by higher-level controls:
+
+[%header,cols="1,3"]
+|===
+|Field |Meaning
+|`over` |The pointer is inside the identified control and the click, if any, originated there
+|`down` |A mouse button that originated in the control is currently held
+|`once` |The button was pressed this frame
+|`uponce` |The button was released over the same control this frame
+|`doubleclick` |The release completes a double-click
+|`orig` |The current click originated inside the control
+|`out_of_screen` |The control was culled because its rectangle is off-screen
+|`too_small` |The control was culled because its screen-space size is below the usable threshold
+|===
+
+The left-button state is returned by `proc_mouse_rect_ctrl()` and by the ordinary invisible-button wrappers. `proc_mouse_rect_ctrl_lrmb()` returns a two-element array whose entries describe the left and right buttons respectively.
+
+Higher-level controls reduce those states to these return conventions:
+
+[%header,cols="2,3"]
+|===
+|Control |Return value
+|`ctrl_button_chamf()` / `ctrl_button_invis()` |`1` on an accepted release
+|`ctrl_checkbox()` |Toggles the pointed-to state and returns `1` on an accepted release
+|`ctrl_radio()` |Returns `1` when selected; the direct caller updates its selection variable
+|`ctrl_knob()` |`2` while the value is changing and `1` when a change becomes final
+|`ctrl_textedit()` |`1` for Enter, `2` for focus loss, `3` for Tab, and `4` when probably modified
+|`ctrl_selectmenu()` |`1` when an entry is selected
+|`ctrl_draggable()` |`1` on a frame in which dragging changes its position
+|===
+
+Use `ctrl_button_chamf_state()` or pass a `ctrl_button_state_t` to `ctrl_button_invis()` when press, hold, hover, or double-click behavior matters. Use the simpler integer return when an action should occur only after a complete click.
+
 == Layout-driven GUI
 
-`gui_layout_t` and `make_gui_layout()` let a UI be described by text lines. A layout declares element IDs, types, labels, positions, dimensions, and optional links to other elements. Spacewar uses this approach for its console, game options, polynomial fitting, video sorter, and position calculator windows.
+`gui_layout_t` and `make_gui_layout()` describe element geometry and type-specific defaults with text records. The layout computes rectangles and owns labels plus state for knobs, text editors, and selection menus. It does not automatically execute the controls: application code still calls the matching layout wrapper once per frame.
+
+Spacewar uses layouts for its console, game options, polynomial fitting, video sorter, and position calculator windows.
+
+=== Parse and lifetime model
+
+Declare the source and `gui_layout_t` in storage that persists across frames. `make_gui_layout()` parses only when `layout.init` is zero. Later calls do not reparse the source; they register the existing layout under `layout_name` for the layout editor. Consequently, changing a source string at runtime has no effect unless the layout is deliberately freed or otherwise reset and rebuilt.
+
+Call `gui_layout_init_pos_scale()` before the first `make_gui_layout()` when the layout needs an initial transform. Its `pos` argument places the layout, `scale` multiplies local coordinates, and `offset` supplies an additional local offset. The `force` argument allows an already initialized transform to be replaced. Call `free_gui_layout()` only when the layout is permanently destroyed; it releases labels and the type-specific data owned by its elements.
 
 [source,c]
 ----
@@ -82,7 +159,149 @@ static void demo_window(void)
 }
 ----
 
-`make_gui_layout()` parses only on first use; later calls keep the layout registered without rebuilding its state. The layout language supports `elem`, `type`, `label`, `pos`, `dim`, `off`, `link_pos_id`, `knob`, `knob_arg`, and `v` value declarations. See `gui/make_gui.h` for the complete command list. Call `free_gui_layout()` only when a non-application-lifetime layout is permanently destroyed.
+Use the element type that matches the runtime call. For example, a `type checkbox` record supplies geometry and a label, while `ctrl_checkbox_fromlayout(&enabled, &layout, 10)` owns the boolean state in application code. The layout element ID is sparse and may be chosen for convenient grouping, but IDs must be between 0 and 1,000,000 and a very high ID grows the backing pointer array up to that index.
+
+=== Markup records
+
+Each source-array entry is one record. Leading whitespace is accepted, arguments are separated by whitespace, and blank strings are ignored. `elem` selects the current element; following element records apply to it until another `elem` appears. Put `type` before `label` and before type-specific records so the element's internal data is initialized first. Unknown command names are currently ignored, so treat a misspelling as an error even if parsing continues.
+
+Declare each element ID once and do not issue element records before the first `elem`. Reusing an ID is not an update operation; make runtime changes through the accessors or rebuild the complete layout.
+
+[%header,cols="2,3,4"]
+|===
+|Record |Arguments |Effect
+|`v` |`ID x [y]` |Declares a reusable `xy_t` value. When `y` is omitted it equals `x`
+|`elem` |`ID` |Creates and selects an element; the default type is `none`
+|`type` |Type name |Sets one of the exact lower-case type names listed below
+|`label` |Remaining text |Copies the rest of the record into the element label; for a text editor this is its initial text
+|`label_alloc` |Character count |Reserves at least this much mutable label capacity for later formatted output
+|`pos` |`x y` or `vID` |Sets the element's local reference position or binds it to a reusable value
+|`dim` |`x [y]` or `vID` |Sets width and height; one numeric component makes a square
+|`off` |`x [y]` |Chooses which point inside the rectangle is placed at `pos`; one component applies to both axes
+|`link_pos_id` |`ID` or `ID.xy` |Adds a linked element position or an anchor on its computed rectangle
+|`knob` |`min default max function [format]` |Configures a `type knob` element
+|`knob_unit` |Remaining text |Sets the unit label drawn below a knob value
+|`knob_arg` |Up to four numbers |Supplies parameters used by selected knob mapping functions
+|===
+
+There is no colour record yet. Every element starts with `GUI_COL_DEF`; change it after parsing with `gui_set_control_colour()`. Use `gui_set_control_label()`, `gui_printf_to_label()`, or the text-editor accessors for other runtime changes instead of modifying source records.
+
+=== Element types
+
+[%header,cols="1,3,3"]
+|===
+|Type |Purpose |Usual runtime call
+|`none` |Geometry-only element used for a window frame, parent area, or link anchor |`gui_layout_elem_comp_area_os()` or a window helper
+|`label` |Text label |`draw_label_fromlayout()`
+|`rect` |Outlined, filled, or black rectangle |`draw_rect_fromlayout()`
+|`button` |Chamfered push button |`ctrl_button_fromlayout()`
+|`checkbox` |Boolean toggle |`ctrl_checkbox_fromlayout()`
+|`radio` |One member of an integer selection |`ctrl_radio_fromlayout()`
+|`knob` |Continuous or mapped numeric control |`ctrl_knob_fromlayout()`
+|`textedit` |Editable text with owned `textedit_t` state |`ctrl_textedit_fromlayout()`
+|`selmenu` |Drop-down selection state |`ctrl_selmenu_fromlayout()` plus `draw_selmenu_entry_fromlayout()`
+|===
+
+Each layout wrapper validates that the element exists and marks it implemented. `gui_layout_unimplemented_elems()` can draw placeholders for declared elements that application code has not handled, while `gui_layout_make_code_for_unimp_elem()` generates starter calls for them.
+
+Radio elements use their layout IDs as selection values: `ctrl_radio_fromlayout(&selection, &layout, 20)` selects integer `20`. Use `ctrl_radio_fromlayout_offset()` when the application needs a different numeric range. Selection menus require runtime setup: set the entry count, process the menu, draw each entry label, and query the selected entry ID.
+
+[source,c]
+----
+static void process_menu(gui_layout_t *layout, const char **labels, int count, int *selection)
+{
+    int i;
+
+    // Configure and process the menu before drawing its entry labels
+    gui_layout_selmenu_set_count(count, layout, 30);
+    if (ctrl_selmenu_fromlayout(layout, 30))
+        *selection = get_selmenu_selid_fromlayout(layout, 30);
+
+    // Draw every label while the menu is open and the selected label otherwise
+    for (i = 0; i < count; i++)
+        draw_selmenu_entry_fromlayout(i, labels[i], layout, 30);
+}
+----
+
+=== Numbers, rectangles, and anchors
+
+Layout numbers accept ordinary decimal/scientific notation and a semicolon notation for twelfths. Each field after a semicolon is divided by another power of 12: `0;6` is 0.5, `1;6` is 1.5, and `1;2;6` is `1 + 2/12 + 6/144`. A leading minus sign negates the complete value, so `-0;3` is -0.25. This notation is convenient for dimensions aligned to the vector font's twelve-unit grid.
+
+An element rectangle is built in local coordinates as follows:
+
+----
+reference = pos + linked_position
+rectangle = make_rect_off(reference, dim, off)
+transformed_area = offset_scale_rect(rectangle, layout.offset, layout.sm)
+----
+
+`off` is an anchor ratio within the new rectangle. `off 0 0` places its lower-left corner at the reference position, `off 0;6 0;6` places its centre there, and `off 1 1` places its upper-right corner there. Ratios outside the zero-to-one range are allowed and place the reference outside the rectangle.
+
+`link_pos_id N` adds element N's linked local position and its own `pos`. Add a two-character suffix to take coordinates from N's computed rectangle instead:
+
+[%header,cols="1,2,3"]
+|===
+|Axis |Characters |Selected coordinate
+|Horizontal |`0` or `l`; `m` or `c`; `1` or `r` |Left, centre, or right
+|Vertical |`0` or `b`; `m` or `c`; `1` or `t` |Bottom, centre, or top
+|===
+
+For example, `link_pos_id 10.rt` uses element 10's right/top corner, `link_pos_id 10.cb` uses its centre/bottom point, and `link_pos_id 10._b` keeps the linked base x coordinate while taking the rectangle's bottom y coordinate. The current source uses an unrecognized character such as `_` to leave that component unspecified. Links are recursive, so a chain can build a row or column; do not create cycles.
+
+Reusable values allow several positions or dimensions to change together:
+
+[source,c]
+----
+static const char *layout_src[] = {
+    "v 1 0 -1;2",
+    "v 2 3 0;10",
+    "elem 10", "type checkbox", "label First", "pos 0 0", "dim v2", "off 0 1", "",
+    "elem 20", "type checkbox", "label Second", "link_pos_id 10._b", "pos v1", "dim v2", "off 0 1", "",
+};
+----
+
+Both `pos v1` and `dim v2` refer to live `xy_t` storage owned by the layout. Retrieve it with `gui_layout_get_value_ptr()` when application code needs to move or resize all users of that value without rebuilding the markup.
+
+=== Knob records
+
+The `knob` record requires minimum, default, maximum, and mapping name. The default is used when the value passed to `ctrl_knob_fromlayout()` is `NAN`. Any remaining text is copied as the `printf`-style display format; when omitted, `VALFMT_DEFAULT` is used.
+
+[%header,cols="1,2,4"]
+|===
+|Mapping |`knob_arg` values |Notes
+|`linear` |None |Linear interpolation between minimum and maximum
+|`log` |None |Logarithmic interpolation; minimum and default must be greater than zero
+|`recip` |None |Reciprocal interpolation; use a range that does not cross zero
+|`dboff` |None |Decibel mapping whose low endpoint represents an off value
+|`logoff` |Offset in argument 0 |Offset logarithmic mapping that can include zero
+|`tan` |Inverse scale in argument 0 |Tangent mapping useful for a wide signed range
+|`cubiclog` |x offset, linear coefficient, cubic coefficient |Cubic-logarithmic ramp normalized to the configured range
+|===
+
+[source,c]
+----
+static const char *level_layout_src[] = {
+    "elem 10", "type knob", "label Gain", "knob -60 0 12 linear %.1f", "knob_unit dB",
+    "pos 0 0", "dim 2", "off 0;6 0;6", "",
+    "elem 20", "type knob", "label Delay", "knob 0 20 2000 logoff %.0f", "knob_arg 8", "knob_unit ms",
+    "link_pos_id 10.rc", "pos 1 0", "dim 2", "off 0 0;6", "",
+};
+----
+
+The parser validates `min < max`, keeps the default inside that range, and rejects nonpositive values required by `log`. Up to four `knob_arg` values are stored. `knob_unit` is parsed through a short fixed-size buffer in the current implementation, so keep unit strings below 32 bytes.
+
+=== Runtime access and editing
+
+The layout owns type-specific state but the application owns the values controlled by checkboxes, radios, and knobs. Useful accessors include:
+
+* `gui_layout_elem_comp_area()` for the local rectangle and `gui_layout_elem_comp_area_os()` for the transformed rectangle
+* `get_textedit_fromlayout()` and `get_textedit_string_fromlayout()` for editor state and text
+* `print_to_layout_textedit()` and `print_to_layout_textedit_append()` for replacing or appending text
+* `get_knob_data_fromlayout()` and `set_knob_circularity_fromlayout()` for runtime knob customization
+* `gui_set_control_label()`, `gui_printf_to_label()`, and `gui_set_control_colour()` for presentation changes
+* `sprint_gui_layout()` for serializing the current layout back to markup
+
+When `layout.edit_on` is enabled, each layout wrapper adds selection and resizing behavior around its element. The GUI layout editor toolbar uses the layout registry and `sprint_gui_layout()` to inspect, resize, generate, and apply markup. This editing mode changes the same position, dimension, or shared-value storage used by normal rectangle computation.
 
 == Windows and frame order
 
