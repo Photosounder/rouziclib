@@ -3,7 +3,7 @@
 :toclevels: 2
 :source-highlighter: highlight.js
 
-`rouziclib.h` includes the public headers below, and `rouziclib.c` includes the matching implementations in dependency order. The table is a map for finding the right header; it is not a replacement for the declarations in the source tree.
+`rouziclib.h` includes the public headers below, and `rouziclib.c` includes the applicable implementations in dependency order. Some facilities are header-only or compile to no-ops when their feature macro is absent. The table is a map for finding the right header; it is not a replacement for the declarations in the source tree.
 
 [%header,cols="1,2,3"]
 |===
@@ -22,6 +22,21 @@
 |`vector` |Vector objects and polylines |`vector.h`, `polyline.h`
 |`vector_type` |Vector fonts, glyphs, TrueType, CJK support, text drawing and fitting |`vector_type.h`, `truetype.h`, `draw.h`
 |`wahe` |WAHE module-side integration hooks |`wahe_module_side.h`
+|===
+
+== Less-obvious modules
+
+[%header,cols="1,3"]
+|===
+|Area |Specialized headers
+|Platform services |`general/crash_dump.h`, `general/midi.h`, `fileio/process.h`, and `fileio/dynamic_loading.h`
+|Binary I/O |`fileio/bits.h`, `fileio/endian.h`, and `fileio/io_override.h`
+|Image formats |`fileio/image_bmp.h`, `fileio/image_tiff.h`, `fileio/image_fts.h`, `fileio/write_icc.h`, and `fileio/image_screen.h`
+|Graphics processing |`graphics/flattop_interpolation.h`, `graphics/processing.h`, `graphics/mipmap.h`, `graphics/texture_compression.h`, and `graphics/cl_memory.h`
+|GUI composition |`gui/positioning.h`, `gui/layout.h`, `gui/control_array.h`, `gui/selection.h`, `gui/floating_window.h`, and `gui/editor_toolbar.h`
+|Numerical work |`math/double_double_arithmetic.h`, `math/polynomials.h`, `math/polynomial_signal.h`, `math/gaussian_polygon.h`, and `math/debug.h`
+|Complex text |`text/unicode_bidi.h`, `text/unicode_arabic.h`, `text/undo.h`, and `text/history.h`
+|Typeface tools |`vector_type/cjk.h`, `vector_type/stats.h`, `vector_type/fit.h`, and `vector_type/insert_rect.h`
 |===
 
 == Umbrella and cookbook files

@@ -21,10 +21,11 @@ The general input layer maintains state across frames. A typical SDL loop does t
 
 . Call `mouse_pre_event_proc(&mouse)` and `keyboard_pre_event_proc(&mouse)` before polling events.
 . Send each event to `sdl_mouse_event_proc()` and `sdl_keyboard_event_proc()`.
+. Call `textedit_add(cur_textedit, NULL)` after event polling so the active editor consumes keyboard commands and queued text input.
 . Call `mouse_post_event_proc(&mouse, &zc)` after application-level event handling.
 . Read key state with `get_key_state_by_name()` or the scancode array in `mouse.key_state`.
 
-The value `2` conventionally means a key was pressed once without repeat; values at or above `2` include a press/repeat event, and values at or below `0` indicate that the key is not currently down. Modifier helpers return a state suitable for checking whether a modifier is available.
+Key state values are frame-oriented: `2` is newly pressed, `3` is a repeated key-down event, `1` is held, `-2` is newly released, and `-1` is up. Test `== 2` for a non-repeating press or `>= 2` for a press including repeat. Spacewar tests modifier helpers with `!= -1` so a modifier release delivered alongside its associated key event still counts for that event.
 
 == Direct controls
 
@@ -32,23 +33,23 @@ The controls API manages hit-testing through the current mouse control identific
 
 [source,c]
 ----
-static int enabled;
-static double amount = 0.5;
-static knob_t amount_knob = {0};
+static void draw_controls(rect_t checkbox_box, rect_t knob_box)
+{
+    static int enabled;
+    static double amount = 0.5;
+    static knob_t amount_knob = {0};
 
-// Create persistent knob state on first use
-if (amount_knob.main_label == NULL)
-    amount_knob = make_knob("Amount", amount, knobf_linear, 0.0, 1.0, VALFMT_DEFAULT);
+    // Create persistent knob state on first use
+    if (amount_knob.main_label == NULL)
+        amount_knob = make_knob("Amount", amount, knobf_linear, 0.0, 1.0, VALFMT_DEFAULT);
 
-// React to a checkbox state transition
-if (ctrl_checkbox(&enabled, "Enabled", checkbox_box, GUI_COL_DEF))
-    amount = enabled ? amount : 0.0;
-
-// Update a numeric value from the knob
-ctrl_knob(&amount, &amount_knob, knob_box, GUI_COL_DEF);
+    // Draw and process each control once per frame
+    ctrl_checkbox(&enabled, "Enabled", checkbox_box, GUI_COL_DEF);
+    ctrl_knob(&amount, &amount_knob, knob_box, GUI_COL_DEF);
+}
 ----
 
-Free persistent knob text-edit state with `textedit_free(&amount_knob.edit)` when the owning UI is destroyed.
+Control state must outlive a frame. The example keeps its state for the application lifetime; for shorter-lived state, free a knob's embedded editor with `textedit_free(&knob.edit)` when the owning UI is destroyed.
 
 == Layout-driven GUI
 
@@ -56,21 +57,32 @@ Free persistent knob text-edit state with `textedit_free(&amount_knob.edit)` whe
 
 [source,c]
 ----
-static gui_layout_t layout = {0};
-static const char *layout_src[] = {
-    "elem 0", "type none", "label Demo", "pos 0 0", "dim 8 5", "off 0 1", "",
-    "elem 10", "type checkbox", "label Enabled", "pos 0 -1", "dim 2 0;5", "off 0 1", "",
-};
+static void demo_window(void)
+{
+    static int enabled;
+    static gui_layout_t layout = {0};
+    static flwindow_t window = {0};
+    static const char *layout_src[] = {
+        "elem 0", "type none", "label Demo", "pos 0 0", "dim 4 2", "off 0 1", "",
+        "elem 10", "type checkbox", "label Enabled", "pos 0 -1", "dim 3 1", "off 0 1", "",
+    };
 
-// Build or refresh the layout definition
-make_gui_layout(&layout, layout_src, sizeof(layout_src) / sizeof(*layout_src), "Demo");
+    // Set the initial transform before the layout becomes initialized
+    gui_layout_init_pos_scale(&layout, XY0, 1.0, XY0, 0);
 
-// Draw and read the control identified by its element ID
-draw_rect_fromlayout(0, &layout, 0);
-ctrl_checkbox_fromlayout(&enabled, &layout, 10);
+    // Parse the source once and register the persistent layout
+    make_gui_layout(&layout, layout_src, sizeof(layout_src) / sizeof(*layout_src), "Demo");
+
+    // Draw the window before processing controls inside it
+    flwindow_init_defaults(&window);
+    draw_dialog_window_fromlayout(&window, NULL, NULL, &layout, 0);
+
+    // Process the checkbox identified by element ID 10
+    ctrl_checkbox_fromlayout(&enabled, &layout, 10);
+}
 ----
 
-The layout language supports `elem`, `type`, `label`, `pos`, `dim`, `off`, `link_pos_id`, `knob`, `knob_arg`, and `v` value declarations. See `gui/make_gui.h` for the complete command list.
+`make_gui_layout()` parses only on first use; later calls keep the layout registered without rebuilding its state. The layout language supports `elem`, `type`, `label`, `pos`, `dim`, `off`, `link_pos_id`, `knob`, `knob_arg`, and `v` value declarations. See `gui/make_gui.h` for the complete command list. Call `free_gui_layout()` only when a non-application-lifetime layout is permanently destroyed.
 
 == Windows and frame order
 

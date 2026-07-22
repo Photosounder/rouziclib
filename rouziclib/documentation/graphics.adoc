@@ -17,7 +17,7 @@ col_t accent = make_colour_hsl(30.0, 1.0, 0.125, HUEDEG, 0);
 
 == Framebuffers and rasters
 
-`raster_t` is the common image container. Use `make_raster()` for caller-owned or newly allocated image storage, `copy_raster()` for a copy, `blank_raster()` to clear it, and `free_raster()` when finished. `framebuffer_t` is the active display surface and is normally initialized by an SDL helper.
+`raster_t` is the common image container. `make_raster(data, dim, maxdim, mode)` stores the supplied buffer directly, or allocates a zeroed buffer when `data` is `NULL`. In both cases `free_raster()` frees the raster's active buffers, so passing `data` transfers ownership to the raster. Use `copy_raster()` for a deep copy and `blank_raster()` to clear an existing allocation. `framebuffer_t` is the active display surface and is normally initialized by an SDL helper.
 
 The image guide covers loading and conversion; this guide focuses on drawing. A raster can be displayed with the blit functions or processed with mipmap, YUV, blending, and image-processing helpers.
 
@@ -30,6 +30,7 @@ The zoom module maintains a world-to-screen transform. The `sc_*` and `wc_*` mac
 xy_t world_point = xy(2.0, -1.0);
 draw_point(sc_xy(world_point), drawing_thickness, white, blend_add, 1.0);
 
+rect_t world_box = make_rect_centred(world_point, xy(4.0, 2.0));
 rect_t screen_box = sc_rect(world_box);
 draw_rect(screen_box, drawing_thickness, white, blend_add, 1.0);
 ----
@@ -38,25 +39,27 @@ Spacewar consistently keeps game positions in world coordinates and converts the
 
 == Drawing primitives
 
-The primitive headers provide points, thin or dashed lines, circles, rectangles, rounded rectangles, polygons, text, vector objects, and image blits. The usual call shape is:
+The primitive headers provide points, thin or dashed lines, circles, rectangles, rounded rectangles, polygons, text, vector objects, and image blits. Most low-level primitives take screen coordinates. Functions with a `_wc` suffix, such as `draw_polygon_wc()`, accept world coordinates and perform the conversion internally.
 
 [source,c]
 ----
 draw_line_thin(sc_xy(p0), sc_xy(p1), drawing_thickness, colour, blend_add, intensity);
-draw_circle(HOLLOWCIRCLE, sc_xy(center), radius, drawing_thickness, colour, blend_add, intensity);
+draw_circle(HOLLOWCIRCLE, sc_xy(center), screen_radius, drawing_thickness, colour, blend_add, intensity);
 draw_polygon_wc(points, point_count, drawing_thickness, colour, blend_add, intensity);
 ----
 
-The final intensity is separate from colour. Blend functions such as `blend_add` determine how the primitive combines with the framebuffer.
+The final intensity is separate from colour. Blend functions such as `blend_add` determine how the primitive combines with the framebuffer. When a geometric radius is stored in world units, multiply it by `zc.scrscale` before passing it to a screen-coordinate primitive.
 
 == Draw queues
 
-The draw queue records or dispatches drawing work through direct, software, OpenCL, or Vulkan paths depending on compile-time support and framebuffer configuration. `DQS_THREADS` controls the software queue worker count. Use `drawq_bracket_open()` and `drawq_bracket_close()` only around the operations that require queue batching, and finish or present the queue with the framebuffer/SDL functions.
+The draw queue records or dispatches drawing work through direct, software, OpenCL, or Vulkan paths depending on compile-time support and framebuffer configuration. The corresponding modes are `DRAWQ_MODE_DIRECT`, `DRAWQ_MODE_OPENCL`, `DRAWQ_MODE_SOFTWARE`, and `DRAWQ_MODE_VULKAN`. `DQS_THREADS` controls the software queue worker count.
+
+`drawq_bracket_open()` starts a temporary compositing layer. `drawq_bracket_close()` merges that layer with an operation such as `DQB_ADD`, `DQB_SUB`, `DQB_MUL`, `DQB_DIV`, `DQB_BLEND`, or `DQB_SOLID`. Brackets are for grouped compositing, not merely for batching unrelated draw calls.
 
 Spacewar exposes draw-queue mode through preferences, starts with `fb->use_drawq`, and applies a pending mode switch after the completed frame. This is a good model when a backend can be replaced while the application is running.
 
 == SDL startup and presentation
 
-With `RL_SDL` enabled, use `sdl_graphics_init_full()` for an explicit window or `sdl_graphics_init_autosize()` for a display-sized window. Handle resizes with `sdl_handle_window_resize(&zc)`, process events with `sdl_mouse_event_proc()` and `sdl_keyboard_event_proc()`, and present with `sdl_flip_fb()`.
+With `RL_SDL` enabled, use `sdl_graphics_init_full()` for an explicit window or `sdl_graphics_init_autosize()` for a display-sized window. Handle resizes with `sdl_handle_window_resize(&zc)`, process events with `sdl_mouse_event_proc()` and `sdl_keyboard_event_proc()`, and present with `sdl_flip_fb()`. Presentation clears the direct framebuffer and starts the next queued frame, so application drawing normally does not call `screen_blank()` separately.
 
 The `rl_sdl_standard_main_loop()` helper performs the common ordering. Use a custom loop when the application needs its own event policy, multiple modes, or special presentation timing.

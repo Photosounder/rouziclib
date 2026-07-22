@@ -15,11 +15,13 @@ The integration is intentionally simple:
 |`rl.h` |Feature configuration |Defines `LBD`, SDL, draw-queue, image/sound, font, codec, and compute switches before including `../rouziclib/rouziclib.h`
 |`rl.c` |Implementation unit |Includes `rl.h`, then `../rouziclib/rouziclib.c`
 |`everything.h` |Application umbrella |Includes `rl.h` and all Spacewar module headers
-|`everything.c` |Application translation unit |Includes `rl.c` and the application `.c` files
+|`misc.c` |Main application aggregation |Includes the non-game application `.c` files, including `main.c`
+|`game.c` |Game/tool aggregation |Includes the individual files under `game/`
+|`everything.c` |Alternative single translation unit |Includes `rl.c` and all application aggregations for `Spacewar_everything.vcxproj`
 |`main.c` |Program entry and frame loop |Initializes services, handles SDL events, dispatches game modes, and presents frames
 |===
 
-This is the recommended mental model: rouziclib supplies the reusable substrate; the application owns its globals, state machines, resources, and policy.
+The normal Visual Studio project compiles `rl.c`, `misc.c`, and `game.c`; the alternative project compiles only `everything.c`. Both arrangements keep the rouziclib implementation in exactly one translation unit. rouziclib supplies the reusable substrate, while the application owns its globals, state machines, resources, and policy.
 
 == Initialization sequence
 
@@ -53,7 +55,13 @@ while (SDL_PollEvent(&event))
     dropfile_event_proc(event);
     sdl_mouse_event_proc(&mouse, event, &zc);
     sdl_keyboard_event_proc(&mouse, event);
+
+    if (event.type == SDL_QUIT)
+        flag[exit_key] = 1;
 }
+
+// Apply queued keyboard and text input to the active editor
+textedit_add(cur_textedit, NULL);
 
 // Finish mouse and zoom state before application drawing
 mouse_post_event_proc(&mouse, &zc);
@@ -75,9 +83,9 @@ The actual `main.c` also updates frame timing, handles mode changes, draws diagn
 
 [source,c]
 ----
-xy_t p = sub_xy(ship->pos, w->cam_focus);
+xy_t p = sub_xy(w->debris[i].pos, w->cam_focus);
 p = mul_xy(p, set_xy(w->spacescale));
-draw_point(sc_xy(p), drawing_thickness, white, blend_add, ship->brightness);
+draw_point(sc_xy(p), drawing_thickness, white, blend_add, w->debris[i].brightness);
 ----
 
 `graphics.c` demonstrates smaller UI primitives with `sc_xy()`, while `game/3d.c` uses `xyz_t`, camera transforms, polygons, stars, and vector objects.
@@ -99,7 +107,7 @@ The repeated pattern is:
 * `main.c` extracts an embedded `Spiral.ttf` fileball and loads a vector font.
 * `game/3d.c` loads map, Wavefront, and star-list resources.
 * `game/calc.c` loads floating-point sound samples.
-* `game/photosounder.c`, `game/position_calc.c`, and `game/video_sorter.c` run expensive work in background threads and join or cancel those workers when the window closes.
+* `game/photosounder.c` and `game/position_calc.c` stop old workers with a flag and join them before reusing their data; `game/video_sorter.c` starts preview loading on a worker thread.
 * `sound.c` initializes the audio device through `sdl_audiosys_init()`.
 
 == Native and WebAssembly builds

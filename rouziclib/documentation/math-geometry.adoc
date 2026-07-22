@@ -53,6 +53,8 @@ physical_integration_xy(&position, &velocity, acceleration, frame_seconds);
 
 The physics helpers are intentionally small building blocks. The caller owns the simulation state, chooses units, and decides how to handle collisions, constraints, and time stepping.
 
+`add_body_force_xy()` and `add_body_force_xyz()` divide by the squared distance between bodies. Do not call them with coincident positions unless the application applies its own softening or singularity handling.
+
 == Fast approximations
 
 `approximations` contains lookup-table and SIMD-oriented alternatives for selected transcendental and fixed-point operations. They are included by default unless `RL_EXCL_APPROX` is defined. Treat these as performance tools: compare their error and range against the ordinary math functions before using them in numerically sensitive code.

@@ -10,7 +10,7 @@ rouziclib is configured at compile time. Put the defines in the project header b
 [%header,cols="1,2,3"]
 |===
 |Define |Purpose |Notes
-|`LBD` |Linear RGB bit depth |Valid range is 12–15; the default is 15
+|`LBD` |Linear RGB bit depth |Valid range is 12-15; the default is 15
 |`COL_FRGB` |Makes `col_t` use floating RGB |Useful when the application does not use the LRGB path
 |`LRGB_NODITHER` |Disables LRGB dithering |Only relevant to LRGB output
 |`RL_ONLY_DRAW_LRGB` |Keeps only LRGB drawing functions |Can reduce linked code when draw queues are not used
@@ -32,11 +32,11 @@ The graphics guide explains how `col_t`, `raster_t`, world coordinates, and fram
 |`RL_VULKAN` |Enables Vulkan support
 |`RL_GDI32` |Enables Windows screenshot support
 |`RL_CRASHDUMP` |Enables the Windows crash-dump helper
-|`RL_INCL_NETWORK` |Enables socket/network code
+|`RL_INCL_NETWORK` |Keeps the network-enabled HTTP image-loading path; it does not provide a transport by itself, and the current native fetch implementation requires `RL_LIBCURL`
 |`RL_DONT_ASSUME_LITTLE_ENDIAN` |Makes endian-sensitive code work on big-endian targets
 |`RL_EXCL_THREADING` |Removes the threading implementation
 |`RL_EXCL_APPROX` |Removes lookup-table approximation functions
-|`RL_FREESTANDING` |Selects reduced-platform behavior; WebAssembly defines this automatically through the umbrella header
+|`RL_FREESTANDING` |Selects reduced-platform behavior; the umbrella header defines it automatically when `__wasm__` is present
 |===
 
 == Text and font data

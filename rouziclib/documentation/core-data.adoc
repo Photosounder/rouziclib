@@ -40,15 +40,18 @@ xy_t upper_right = rect_p10(box);
 ----
 double *values = NULL;
 size_t values_as = 0;
+size_t value_count = 64;
 
 // Grow the array before writing the requested element count
-alloc_enough(values, value_count, &values_as, sizeof(*values), 1.5);
+alloc_enough(&values, value_count, &values_as, sizeof(*values), 1.5);
 
-// Release the array after the last use
-free(values);
+// Release the array and clear the pointer after the last use
+free_null(&values);
 ----
 
-For buffers with an owned byte allocation, use `buffer_t` and `buf_alloc_enough()`, `bufwrite()`, `bufprintf()`, `clear_buf()`, and `free_buf()`. `memory/generic_buffer.h` also provides file-loading and file-saving helpers.
+The first argument to `alloc_enough()` is the address of the pointer being grown. The allocation count is an element capacity, not a byte count.
+
+For buffers with an owned byte allocation, use `buffer_t` and `buf_alloc_enough()`, `bufwrite()`, `bufprintf()`, `clear_buf()`, and `free_buf()`. For strings, `buffer_t.len` excludes the terminating null byte. `memory/generic_buffer.h` also provides file-loading and file-saving helpers.
 
 == Ownership conventions
 
@@ -63,7 +66,7 @@ The `general` directory also contains:
 * `time.h` for millisecond/high-resolution clocks, elapsed-time measurement, sleeping, and date parsing
 * `estimates.h` for frame-rate and timing estimates
 * `hashing.h` for hashing utilities
-* `rand.h` and `general/xyz.h` helpers for random values and vector operations
+* `math/rand.h` and `general/xyz.h` for random values and vector operations
 * `keyboard.h` and `mouse.h` for input state processing
 * `macros.h`, `intrinsics.h`, and `portable_simd.h` for low-level portability helpers
 

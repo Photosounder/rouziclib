@@ -11,7 +11,7 @@
 ----
 typedef struct
 {
-    volatile int quit;
+    volatile int32_t quit;
     rl_thread_t handle;
 } worker_t;
 
@@ -20,21 +20,30 @@ static int worker_main(void *ptr)
     worker_t *worker = ptr;
 
     // Keep doing work until the owner requests shutdown
-    while (!worker->quit)
+    while (!rl_atomic_load_i32(&worker->quit))
         do_one_job();
 
     return 0;
 }
 
-worker_t worker = {0};
+static int worker_start(worker_t *worker)
+{
+    // Reset the stop flag before publishing the worker
+    rl_atomic_store_i32(&worker->quit, 0);
+    return rl_thread_create(&worker->handle, worker_main, worker);
+}
 
-// Start the worker and join it before freeing its data
-rl_thread_create(&worker.handle, worker_main, &worker);
-worker.quit = 1;
-rl_thread_join_and_null(&worker.handle);
+static void worker_stop(worker_t *worker)
+{
+    // Signal shutdown before waiting for the thread
+    rl_atomic_store_i32(&worker->quit, 1);
+
+    // Join before freeing data visible to the worker
+    rl_thread_join_and_null(&worker->handle);
+}
 ----
 
-The example is intentionally schematic: `do_one_job()` and `synth_render()` represent application code, and real code should synchronize shared data with `rl_mutex_t`, atomics, or a semaphore as appropriate. Spacewar uses joinable threads for analysis tools and detached threads for command processing.
+`rl_thread_create()` returns `1` on success and `0` on failure. The example is intentionally schematic: `do_one_job()` represents application code, and shared job data still needs a mutex, atomics, or a semaphore as appropriate. Spacewar uses joinable threads for analysis tools and detached threads for command processing.
 
 == Mutexes and atomics
 
@@ -44,22 +53,49 @@ The `RL_EXCL_THREADING` configuration removes the implementation and substitutes
 
 == Audio bus
 
-The audio layer registers callback buses with `audiosys_bus_register()`. A callback receives a floating-point output buffer, the registered data pointer, a frame/sample count, and callback context. When the callback and main thread share mutable state, use the bus mutex option or a separate lock.
+The audio layer mixes callback buses into an interleaved stereo floating-point stream. A callback receives the output stream, an `audiosys_t` pointer, its bus index, and the application data pointer registered for that bus. Read `sys->buffer_len`, `sys->sec_per_sample`, and `sys->bus[bus_index].stime` to generate the current block.
 
 [source,c]
 ----
-static void audio_bus(float *stream, void *data, int sample_count, void *context)
+typedef struct
 {
-    // Fill the callback buffer from application-owned state
-    synth_render(stream, sample_count, data);
+    double frequency;
+    double gain;
+} tone_t;
+
+static void tone_audio(float *stream, void *sys_ptr, int bus_index, void *data_ptr)
+{
+    audiosys_t *sys = sys_ptr;
+    tone_t *tone = data_ptr;
+    int i;
+    double t;
+
+    // Handle bus expiry or explicit unregistration
+    if (stream == NULL)
+        return;
+
+    // Add one mono tone to both output channels
+    t = sys->bus[bus_index].stime;
+    for (i = 0; i < sys->buffer_len; i++, t += sys->sec_per_sample)
+    {
+        float sample = (float) (sin(2.0 * pi * tone->frequency * t) * tone->gain);
+        stream[i * 2] += sample;
+        stream[i * 2 + 1] += sample;
+    }
 }
 
-// Start the SDL audio device before registering the bus
-sdl_audiosys_init(1024);
-audiosys_bus_register(audio_bus, synth_state, 1, 0.1);
+static int tone_keep_alive(tone_t *tone)
+{
+    // Refresh the registration more often than its expiry duration
+    return audiosys_bus_register(tone_audio, tone, 1, 0.0);
+}
 ----
 
-Unregister the bus before freeing its data. `general/audio.h` also exposes the lower-level callback and `audiosys_bus_unregister()` lifecycle.
+Call `sdl_audiosys_init(1024)` once during SDL startup, then call `tone_keep_alive()` every frame while the sound should remain active. An expiry value of `0.0` selects the implementation's two-second default; a bus expires if it is not refreshed within that interval.
+
+When `use_mutex` is nonzero, the audio callback is locked automatically. Lock `audiosys.bus[bus_index].mutex` around main-thread writes to the same application data. Call `audiosys_bus_unregister(tone)` before freeing `tone`; unregistration sends the callback a blocking deinitialization signal with `stream == NULL` and `bus_index == -1`.
+
+The current `sdl_audiosys_init()` device-opening implementation is complete for SDL2. Its SDL3 branch is still marked TODO, so SDL3 applications need their own device setup for now.
 
 == Timing and background work
 

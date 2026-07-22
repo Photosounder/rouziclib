@@ -54,7 +54,7 @@ For Objective-C-specific file and dialog helpers, the parallel link:../rouziclib
 
 == A core-only program
 
-For code that only needs the scalar, vector, geometry, memory, text, or math portions, omit optional backend macros:
+For code that only needs the scalar, vector, geometry, memory, text, or math portions, use an `rl.h` without optional backend macros such as `RL_SDL`:
 
 [source,c]
 ----
@@ -62,15 +62,15 @@ For code that only needs the scalar, vector, geometry, memory, text, or math por
 
 int main(void)
 {
-    // Use rouziclib's vector constructor
+    // Construct a vector and print its distance from the origin
     xy_t p = xy(3.0, 4.0);
+    printf("distance = %.1f\n", hypot_xy(XY0, p));
 
-    // Use a library helper on the vector
-    return (int) hypot_xy(XY0, p);
+    return 0;
 }
 ----
 
-Compile the application source and `rl.c` together, adding the directory containing rouziclib to the include search path. The exact compiler and system libraries depend on the optional features selected.
+Compile the application source and `rl.c` together. For an include such as `<rouziclib/rouziclib.h>`, add the _parent_ of the rouziclib directory to the compiler's include search path. The exact compiler and system libraries depend on the optional features selected.
 
 == SDL application loop
 
@@ -80,13 +80,14 @@ When `RL_SDL` is enabled, `rl_sdl_standard_main_loop()` can own the common SDL e
 ----
 static void draw_frame(void)
 {
-    // Clear the previous frame
-    screen_blank();
-
     // Draw a world-space line through the active zoom transform
-    draw_line_thin(sc_xy(xy(-5.0, 0.0)), sc_xy(xy(5.0, 0.0)), drawing_thickness, white, blend_add, 1.0);
-
-    // Let the standard loop present the completed frame
+    draw_line_thin(
+        sc_xy(xy(-5.0, 0.0)),
+        sc_xy(xy(5.0, 0.0)),
+        drawing_thickness,
+        white,
+        blend_add,
+        1.0);
 }
 
 int main(void)
@@ -103,12 +104,16 @@ int main(void)
 }
 ----
 
-The standard loop initializes the SDL framebuffer, zoom state, mouse, and fallback or embedded font. For a custom loop, copy the ordering used by `C:\msys\home\spacewar\main.c`: preprocess input, poll SDL events, postprocess mouse/zoom state, draw, run `window_manager()`, then flip the framebuffer.
+On native targets, the standard loop initializes the SDL framebuffer, zoom state, mouse, and fallback or embedded font, and clears/presents the framebuffer after each callback. The callback should draw a frame but must not call `sdl_flip_fb()` itself.
+
+For a custom loop, copy the ordering used by `C:\msys\home\spacewar\main.c`: preprocess input, poll SDL events, process the active text editor, postprocess mouse/zoom state, draw, run `window_manager()`, then flip the framebuffer. Under Emscripten the standard helper executes one frame per call rather than owning a `while` loop, so the application must arrange repeated calls through `emscripten_set_main_loop()` or an equivalent browser loop.
 
 == Build checklist
 
-* Put the rouziclib root on the compiler's include path when using `<rouziclib/...>` includes.
+* Put the parent directory of rouziclib on the compiler's include path when using `<rouziclib/...>` includes.
 * Compile the implementation unit once.
 * Add system and third-party libraries required by enabled feature macros.
 * Add the resource folders used by the application, such as vector font files or image/audio assets.
 * For Emscripten, use the `__EMSCRIPTEN__` main-loop path and link the SDL and worker/pthread options appropriate to the target.
+
+The comment at the top of `rouziclib.h` lists the baseline Windows link libraries used by the amalgamation: `winmm`, `comdlg32`, and `ole32` for MinGW/Clang, plus feature-specific libraries selected by the configuration.

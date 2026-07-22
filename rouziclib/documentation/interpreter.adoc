@@ -34,18 +34,22 @@ rlip_t program = rlip_expression_compile("0.5 + 0.5 * erf(2 * x)", inputs, sizeo
 volatile int exec_on = 1;
 program.exec_on = &exec_on;
 
-// Execute the compiled expression with the current input value
-x = 0.25;
-rlip_execute_opcode(&program);
 double result = NAN;
 if (program.valid_prog)
+{
+    // Execute the compiled expression with the current input value
+    x = 0.25;
+    rlip_execute_opcode(&program);
     result = program.return_value[0];
+}
 
 // Release opcode, register, and result storage
 free_rlip(&program);
 ----
 
-`RLIP_FUNC` adds the built-in math function table. Add application functions and variables as more `rlip_inputs_t` entries. Spacewar binds values such as `x`, `w`, `angle`, and multiple coefficients, then reuses the compiled program in a worker or drawing loop.
+`RLIP_FUNC` adds the built-in math function table. Add application functions and variables as more `rlip_inputs_t` entries. The type string `"pd"` means a pointer to a double value; function descriptors begin with `f`, followed by the return and argument types. Spacewar binds values such as `x`, `w`, `angle`, and multiple coefficients, then reuses the compiled program in a worker or drawing loop.
+
+The input pointers and `program.exec_on` pointer must remain valid for the complete lifetime of the compiled program.
 
 == Compilation listings and decompilation
 
