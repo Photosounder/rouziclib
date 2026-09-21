@@ -276,157 +276,35 @@ float4 read_yuv420pN_pixel(global ushort *im, int2 im_dim, int2 i, float depth_m
 	return pv;
 }
 
-// Compressed texture
-uint bits_to_mask(uint bits)	// 7 becomes 0x7F
+float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i)
 {
-	return (1UL << bits) - 1;
+	// Locate the fixed 30-byte block after the eight-byte header and alternating row offset
+	int block_y = i.y >> 3;
+	int shifted_x = i.x + ((block_y & 1)*4);
+	int block_x = shifted_x >> 3;
+	int line_width_zero = (im_dim.x+7) >> 3;
+	int line_width_one = (im_dim.x+11) >> 3;
+	global uchar *block = d8+8+30*(((block_y+1) >> 1)*line_width_zero+(block_y >> 1)*line_width_one+block_x);
+
+	// Read the six byte-aligned endpoint components directly
+	float3 colour_zero = convert_float3(vload3(0, block))*(1.f/255.f);
+	float3 colour_one = convert_float3(vload3(0, block+3))*(1.f/255.f);
+
+	// Extract the MSB-first three-bit index without reading beyond the block
+	uint bit = ((i.y & 7)*8+(shifted_x & 7))*3;
+	global uchar *offset = block+6+(bit >> 3);
+	uint shift = bit & 7;
+	uint packed = ((uint) offset[0]) << 8;
+	if (shift > 5)
+		packed |= offset[1];
+	uint pixel_index = (packed >> (13-shift)) & 7;
+
+	// Interpolate endpoints in the encoded lightness space before converting to linear RGB
+	float3 pixel = mix(colour_zero, colour_one, convert_float(pixel_index)*(1.f/7.f));
+	return (float4) (Lab_L_to_linear(pixel.x), Lab_L_to_linear(pixel.y), Lab_L_to_linear(pixel.z), 1.f);
 }
 
-float bits_to_mul(uint bits)	// 7 becomes 127.
-{
-	//return (float) ((1UL << bits) - 1);
-	return convert_float((int) ((1UL << bits) - 1));
-}
-
-float4 decompr_rgb(int bits_col, uchar3 c)
-{
-	float4 rgb;
-	float ratio = 1.f / bits_to_mul(bits_col);
-
-	rgb.x = (float) c.x * ratio;
-	rgb.y = (float) c.y * ratio;
-	rgb.z = (float) c.z * ratio;
-
-	return rgb;
-}
-
-float4 compr_hsl_to_rgb(float3 hsl)
-{
-	float4 rgb;
-	float3 w = (float3) (0.124f, 0.686f, 0.19f);
-
-	hsl.x *= 3.f;					// H in HUE03
-	hsl.z = Lab_L_to_linear(hsl.z);			// linear L
-	rgb = (float4) (hsl_to_rgb_cw(w, hsl), 1.f);
-
-	rgb.x = linear_to_Lab_L(rgb.x);
-	rgb.y = linear_to_Lab_L(rgb.y);
-	rgb.z = linear_to_Lab_L(rgb.z);
-	return rgb;
-}
-
-typedef struct
-{
-	int init;
-	int block_size, bits_per_block, quincunx, bits_col, bits_per_pixel;
-	int linew0, linew1, pix;
-	int2 block_pos, block_start;
-	ulong di;
-	float4 col0, col1, colm, pv;
-	float pix_mul;
-} comp_decode_t;
-
-float4 read_compressed_texture1_pixel(global uchar *d8, int2 im_dim, int2 i, comp_decode_t *d)
-{
-	global ushort *d16 = (global ushort *) d8;
-	ulong di, block_start_bit = 64;
-	int line_count0, line_count1;
-	int pix, qoff;
-	uchar3 c0, c1, cm;
-	int2 block_pos, ib;
-	float t;
-
-	if (d->init==0)
-	{
-		#if 0
-		// Load decoding parameters
-		d->block_size = d16[0];
-		d->bits_per_block = d16[1];
-		d->quincunx = d8[5];
-		d->bits_col = d8[6];
-		d->bits_per_pixel = d8[7];
-		#else
-
-		// Using hardcoded values goes faster
-		d->block_size = 8;
-		d->bits_per_block = 240;
-		d->quincunx = 1;
-		d->bits_col = 8;
-		d->bits_per_pixel = 3;
-		#endif
-
-		d->linew0 = idiv_ceil(im_dim.x, d->block_size);
-		d->linew1 = idiv_ceil(im_dim.x + d->quincunx*(d->block_size>>1), d->block_size);
-		d->pix_mul = 2.f / bits_to_mul(d->bits_per_pixel);
-
-		d->init = 1;
-		d->block_pos = (int2) (-1, -1);
-		d->pix = -1;
-	}
-
-	// Calculate block pos
-	block_pos.y = (i.y / d->block_size);
-	qoff = (block_pos.y&1) * d->quincunx * (d->block_size>>1);
-	block_pos.x = (i.x + qoff) / d->block_size;
-
-	// If it's a different block
-	if (block_pos.x != d->block_pos.x || block_pos.y != d->block_pos.y)
-	{
-		// Calculate block start in bits
-		line_count0 = (block_pos.y+1) >> 1;
-		line_count1 = block_pos.y >> 1;
-		di = line_count0*d->linew0 + line_count1*d->linew1;	// y block line start id
-		di += block_pos.x;					// x block start id
-		di = di*d->bits_per_block + block_start_bit;		// block id to bit position
-
-		// Position in pixels of the first pixel of the block
-		d->block_start = block_pos * d->block_size;
-		d->block_start.x -= qoff;
-
-		// Read block data
-		c0.x = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		c0.y = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		c0.z = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		c1.x = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		c1.y = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		c1.z = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		/*cm.x = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		cm.y = get_bits_in_stream_inc(d8, &di, d->bits_col);
-		cm.z = get_bits_in_stream_inc(d8, &di, d->bits_col);*/
-		d->di = di;
-
-		// Decode colours
-		d->col0 = decompr_rgb(d->bits_col, c0);
-		d->col1 = decompr_rgb(d->bits_col, c1);
-		//d->colm = decompr_rgb(d->bits_col, cm);
-
-		d->block_pos = block_pos;
-		d->pix = -1;
-	}
-
-	// Read bitmap pixel value
-	ib = i - d->block_start;		// position of the pixel in the block
-	di = d->di + (ib.y*d->block_size + ib.x) * d->bits_per_pixel;
-	pix = get_bits_in_stream(d8, di, d->bits_per_pixel);
-
-	if (pix != d->pix)
-	{
-		// Translate bitmap value to linear RGB value
-		t = convert_float(pix) * d->pix_mul;
-		d->pv = mix(d->col0, d->col1, t*0.5f);
-		/*if (t < 1.f)
-			d->pv = mix(d->col0, d->colm, t);
-		else
-			d->pv = mix(d->colm, d->col1, t-1.f);*/
-		d->pv.x = Lab_L_to_linear(d->pv.x);
-		d->pv.y = Lab_L_to_linear(d->pv.y);
-		d->pv.z = Lab_L_to_linear(d->pv.z);
-		d->pix = pix;
-	}
-	return d->pv;
-}
-
-float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, comp_decode_t *cd1)
+float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i)
 {
 	switch (fmt)
 	{
@@ -459,7 +337,7 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, com
 			return read_yuvj420p8_pixel((global uchar *) im, im_dim, i);
 
 		case 20:	// Compressed texture format
-			return read_compressed_texture1_pixel((global uchar *) im, im_dim, i, cd1);
+			return read_compressed_texture1_pixel((global uchar *) im, im_dim, i);
 
 		case 31:	// 1 channel float
 		case 41:
@@ -481,12 +359,12 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, com
 	return 0.f;
 }
 
-float4 read_fmt_pixel_checked(global float4 *im, int2 im_dim, const int fmt, int2 pi, comp_decode_t *cd1)
+float4 read_fmt_pixel_checked(global float4 *im, int2 im_dim, const int fmt, int2 pi)
 {
 	float4 pv;
 
 	if (check_image_bounds(pi, im_dim))
-		pv = read_fmt_pixel(fmt, im, im_dim, pi, cd1);
+		pv = read_fmt_pixel(fmt, im, im_dim, pi);
 	else
 		pv = 0.f;
 
@@ -508,7 +386,6 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 {
 	float4 pv = 0.f;
 	float2 knee, i, start, end;
-	comp_decode_t cd1={0};
 
 	knee = 0.5f - fabs(fmod(pscale, 1.f) - 0.5f);
 
@@ -517,7 +394,7 @@ float4 image_filter_flattop(global float4 *im, int2 im_dim, const int fmt, float
 
 	for (i.y = start.y; i.y <= end.y; i.y+=1.f)
 		for (i.x = start.x; i.x <= end.x; i.x+=1.f)
-			pv += read_fmt_pixel(fmt, im, im_dim, convert_int2(i), &cd1) * calc_flattop_weight(pif, i, knee, slope, pscale);
+			pv += read_fmt_pixel(fmt, im, im_dim, convert_int2(i)) * calc_flattop_weight(pif, i, knee, slope, pscale);
 
 	return pv;
 }
@@ -535,7 +412,6 @@ float2 calc_aa_nearest_weights(float2 pif, float2 i, float2 pscale)
 float4 image_filter_aa_nearest(global float4 *im, int2 im_dim, const int fmt, float2 pif, float2 pscale)
 {
 	float4 pv = 0.f;
-	comp_decode_t cd1={0};
 	float2 pif00, w00;
 	int2 pi00;
 	float w;
@@ -545,13 +421,13 @@ float4 image_filter_aa_nearest(global float4 *im, int2 im_dim, const int fmt, fl
 	w00 = calc_aa_nearest_weights(pif, pif00, pscale);
 
 	w = w00.x * w00.y;
-	pv  = read_fmt_pixel_checked(im, im_dim, fmt, pi00, &cd1) * w;
+	pv  = read_fmt_pixel_checked(im, im_dim, fmt, pi00) * w;
 
 	if (w < 1.f)
 	{
-		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(0, 1), &cd1) * w00.x * (1.f - w00.y);
-		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(1, 0), &cd1) * (1.f - w00.x) * w00.y;
-		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(1, 1), &cd1) * (1.f - w00.x) * (1.f - w00.y);
+		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(0, 1)) * w00.x * (1.f - w00.y);
+		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(1, 0)) * (1.f - w00.x) * w00.y;
+		pv += read_fmt_pixel_checked(im, im_dim, fmt, pi00 + (int2)(1, 1)) * (1.f - w00.x) * (1.f - w00.y);
 	}
 
 	return pv;

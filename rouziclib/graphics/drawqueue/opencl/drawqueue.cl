@@ -10,7 +10,6 @@
 #include "drawtriangle.cl"
 #include "srgb.cl"
 #include "colour.cl"
-#include "bits.cl"
 #include "blit.cl"
 
 float4 drawgradienttest(float4 pv)
