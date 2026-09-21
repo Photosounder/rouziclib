@@ -50,6 +50,12 @@ mipmap_t alloc_mipmap(raster_t r, xyi_t tilesize, xyi_t mindim, const int mode)
 		m.total_bytes += m.lvl[i].total_bytes;
 	}
 
+	// Preserve byte RGB encoding in every allocated tile and mip level
+	if (mode == IMAGE_USE_SRGB)
+		for (i=0; i < m.lvl_count; i++)
+			for (size_t j=0; j < mul_x_by_y_xyi(m.lvl[i].tilecount); j++)
+				m.lvl[i].r[j].rgb8_transfer = r.rgb8_transfer;
+
 	return m;
 }
 
@@ -115,6 +121,11 @@ void copy_from_raster_to_tiles(raster_t r, mipmap_level_t ml, const int mode)
 	size_t pix_size = get_raster_mode_elem_size(mode);
 	uint8_t *buf = get_raster_buffer_for_mode(r, mode);
 
+	// Keep raw byte copies tagged with their source encoding
+	if (mode == IMAGE_USE_SRGB)
+		for (size_t j=0; j < mul_x_by_y_xyi(ml.tilecount); j++)
+			ml.r[j].rgb8_transfer = r.rgb8_transfer;
+
 	for (it.y=0; it.y < ml.tilecount.y; it.y++)
 		for (it.x=0; it.x < ml.tilecount.x; it.x++)
 		{
@@ -141,6 +152,11 @@ raster_t mipmap_level_to_raster(mipmap_level_t ml, const int mode)
 	size_t pix_size = get_raster_mode_elem_size(mode);
 
 	r = make_raster(NULL, ml.fulldim, XYI0, mode);
+
+	// Restore the encoding shared by the level's tiles
+	if (mode == IMAGE_USE_SRGB && mul_x_by_y_xyi(ml.tilecount))
+		r.rgb8_transfer = ml.r[0].rgb8_transfer;
+
 	uint8_t *buf = get_raster_buffer_for_mode(r, mode);
 
 	for (it.y=0; it.y < ml.tilecount.y; it.y++)
@@ -236,6 +252,37 @@ void tile_downscale_box_2x2(mipmap_level_t ml0, mipmap_level_t ml1, const int mo
 	raster_t *tile0, *tile1;
 	int y0w, y1w;
 	void (*tile_pixel_sum_func)(raster_t *, const int, raster_t *, const int, const int, const int);
+
+	// Average byte rasters in linear light on the non-SIMD fallback path
+	if (mode == IMAGE_USE_SRGB)
+	{
+		for (ip1.y=0; ip1.y < ml1.fulldim.y; ip1.y++)
+			for (ip1.x=0; ip1.x < ml1.fulldim.x; ip1.x++)
+			{
+				frgb_t sum = {0};
+				int count = 0;
+
+				// Include only valid samples along partial image edges
+				for (int y=0; y<2; y++)
+					for (int x=0; x<2; x++)
+					{
+						ip0 = add_xyi(mul_xyi(ip1, set_xyi(2)), xyi(x, y));
+						srgb_t *pixel = get_tile_pixel_ptr(ml0, ip0, mode);
+						if (pixel == NULL)
+							continue;
+						it0 = div_xyi(ip0, ml0.tiledim);
+						tile0 = &ml0.r[it0.y*ml0.tilecount.x + it0.x];
+						sum = add_frgba(sum, rgb8_to_frgb(*pixel, tile0->rgb8_transfer));
+						count++;
+					}
+
+				// Encode the average using the destination tile's transfer function
+				it1 = div_xyi(ip1, ml1.tiledim);
+				tile1 = &ml1.r[it1.y*ml1.tilecount.x + it1.x];
+				*(srgb_t *) get_tile_pixel_ptr(ml1, ip1, mode) = frgb_to_rgb8(mul_scalar_frgba(sum, 1.f/count), tile1->rgb8_transfer);
+			}
+		return;
+	}
 
 	if (mode & IMAGE_USE_SQRGB)
 		tile_pixel_sum_func = &tile_pixel_sum_sq;
@@ -984,6 +1031,18 @@ void fwrite_mipmap(FILE *file, mipmap_t m)
 
 			// Write pixel data buffer
 			void *p = get_raster_buffer_for_mode(r, mode);
+
+			// Keep the existing file format by exporting gamma tiles as sRGB
+			if (mode == IMAGE_USE_SRGB && r.rgb8_transfer == RGB8_TRANSFER_GAMMA22)
+			{
+				for (size_t i=0; i < mul_x_by_y_xyi(r.dim); i++)
+				{
+					srgb_t pixel = get_raster_pixel_in_srgb(r, i);
+					fwrite_override(&pixel, sizeof(pixel), 1, file);
+				}
+				continue;
+			}
+
 			fwrite_override(p, get_raster_mode_elem_size(mode), mode == IMAGE_USE_BUF ? r.buf_size : mul_x_by_y_xyi(r.dim), file);
 		}
 	}

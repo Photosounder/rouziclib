@@ -137,8 +137,10 @@ static frgb_t dqs_read_fmt_pixel(const uint8_t *im, xyi_t dim, int fmt, xyi_t p,
 			return sqrgb_to_frgb(((const sqrgb_t *) im)[index]);
 
 		case 2:
+		case 4:
 		{
-			frgb_t p = srgb_to_frgb(((const srgb_t *) im)[index]);
+			// Decode byte RGB according to the queued transfer function
+			frgb_t p = rgb8_to_frgb(((const srgb_t *) im)[index], fmt == 4 ? RGB8_TRANSFER_GAMMA22 : RGB8_TRANSFER_SRGB);
 
 			// Match the GPU raster path which treats packed sRGB as opaque
 			p.a = 1.f;

@@ -133,7 +133,7 @@ void blit_scale_nearest(raster_t r, xy_t pos, xy_t ipscale, xyi_t start, xyi_t s
 	}
 }
 
-void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
+static void blit_scale_linear(raster_t r, xy_t pscale, xy_t pos, int interp, int float_output)
 {
 	int i, ic;
 	float *dst_p, *src_p, sumf[4];
@@ -146,7 +146,7 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 		return;
 
 	// Stop when no supported source representation is present
-	if (r.l==NULL && r.sq==NULL && r.f==NULL && r.buf==NULL)
+	if (r.l==NULL && r.sq==NULL && r.f==NULL && r.srgb==NULL && r.buf==NULL)
 		return;
 
 	param = flattop_init_param(fb->r.dim, r.dim, pscale, pos);
@@ -158,7 +158,7 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 			flattop_calc_j_bounds(p, pos);
 
 			// Start from the framebuffer's pixel value
-			*((frgb_t *)(&sumf)) = lrgb_to_frgb(fb->r.l[p->ip.y*fb->r.dim.x + p->ip.x]);
+			*((frgb_t *)(&sumf)) = float_output ? fb->r.f[p->ip.y*fb->r.dim.x + p->ip.x] : lrgb_to_frgb(fb->r.l[p->ip.y*fb->r.dim.x + p->ip.x]);
 
 			// Calculate pixel value to add
 			for (p->jp.y = p->jstart.y; p->jp.y < p->jstop.y; p->jp.y++)
@@ -177,6 +177,8 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 						pv = sqrgb_to_frgb(r.sq[i]);
 					else if (r.f)
 						pv = clamp_frgba(r.f[i]);
+					else if (r.srgb)
+						pv = rgb8_to_frgb(r.srgb[i], r.rgb8_transfer);
 					else
 						pv = lrgb_to_frgb(r.l[i]);
 
@@ -186,13 +188,29 @@ void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 			}
 
 			// Write pixel to destination
-			fb->r.l[p->ip.y*fb->r.dim.x + p->ip.x] = frgb_to_lrgb(*((frgb_t *)(&sumf)));
+			if (float_output)
+				fb->r.f[p->ip.y*fb->r.dim.x + p->ip.x] = *((frgb_t *)(&sumf));
+			else
+				fb->r.l[p->ip.y*fb->r.dim.x + p->ip.x] = frgb_to_lrgb(*((frgb_t *)(&sumf)));
 		}
 	}
 }
 
+void blit_scale_lrgb(raster_t r, xy_t pscale, xy_t pos, int interp)
+{
+	// Accumulate decoded samples into the fixed-point framebuffer
+	blit_scale_linear(r, pscale, pos, interp, 0);
+}
+
 void blit_scale_frgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 {
+	// Decode byte RGB at sampling time without allocating an intermediate image
+	if (r.srgb && r.f==NULL && fb->r.f)
+	{
+		blit_scale_linear(r, pscale, pos, interp, 1);
+		return;
+	}
+
 	if (r.f==NULL || fb->r.f==NULL)
 		return ;
 
@@ -246,7 +264,11 @@ void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 	if (r->buf)
 		di[8] = r->buf_fmt;
 	else
-		di[8] = r->sq ? 1 : (r->srgb ? 2 : (r->l ? 3 : 0));
+		di[8] = r->sq ? 1 : (r->srgb ? (r->rgb8_transfer == RGB8_TRANSFER_GAMMA22 ? 4 : 2) : (r->l ? 3 : 0));
+
+	// Initialize byte conversion tables before software workers consume the queue
+	if (r->srgb)
+		rgb8_to_frgb((srgb_t){0}, r->rgb8_transfer);
 
 	if (flattop)
 	{
@@ -337,7 +359,11 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 	if (r->buf)
 		di[7] = r->buf_fmt;
 	else
-		di[7] = r->sq ? 1 : (r->srgb ? 2 : (r->l ? 3 : 0));
+		di[7] = r->sq ? 1 : (r->srgb ? (r->rgb8_transfer == RGB8_TRANSFER_GAMMA22 ? 4 : 2) : (r->l ? 3 : 0));
+
+	// Initialize byte conversion tables before software workers consume the queue
+	if (r->srgb)
+		rgb8_to_frgb((srgb_t){0}, r->rgb8_transfer);
 
 	if (aa_nearest)
 	{

@@ -1,5 +1,6 @@
 extern frgb_t lrgb_to_frgb(lrgb_t l);
 extern frgb_t srgb_to_frgb(srgb_t s);
+extern frgb_t rgb8_to_frgb(srgb_t s, int transfer);
 extern frgb_t sqrgb_to_frgb(sqrgb_t s);
 
 #ifdef RL_INTEL_INTR
@@ -15,6 +16,7 @@ extern __m128 _mm_get_raster_pixel_sqrgb_to_ps(raster_t *r, const size_t index);
 
 extern lrgb_t frgb_to_lrgb(frgb_t cf);
 extern srgb_t frgb_to_srgb(frgb_t cf);
+extern srgb_t frgb_to_rgb8(frgb_t cf, int transfer);
 extern sqrgb_t frgb_to_sqrgb(frgb_t f);
 extern sqrgb_t lrgb_to_sqrgb(lrgb_t l);
 

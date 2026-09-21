@@ -2,6 +2,7 @@
 
 #include "../graphics/drawqueue/vulkan/drawqueue.comp.spv.h"
 
+
 typedef struct
 {
 	int32_t width;
@@ -9,6 +10,7 @@ typedef struct
 	int32_t sector_width;
 	int32_t sector_size;
 	uint32_t random_seed;
+	uint32_t output_bgra;
 } vk_drawq_constants_t;
 
 const char *get_vk_error_string(VkResult err)
@@ -199,7 +201,7 @@ static VkResult vk_create_surface_window()
 	HWND parent_window;
 	RECT client_rect;
 
-	// Register one black non-input child-window class for Vulkan presentation
+	// Register one black non-input window class for Vulkan presentation
 	if (!class_registered)
 	{
 		WNDCLASSEXW window_class = { .cbSize=sizeof(window_class), .lpfnWndProc=DefWindowProcW, .hInstance=GetModuleHandleW(NULL), .hCursor=LoadCursor(NULL, IDC_ARROW), .hbrBackground=(HBRUSH) GetStockObject(BLACK_BRUSH), .lpszClassName=class_name };
@@ -211,7 +213,7 @@ static VkResult vk_create_surface_window()
 		class_registered=1;
 	}
 
-	// Create a disabled child so SDL continues receiving input through its parent
+	// Use a disabled child so mouse input reaches the SDL parent window
 	parent_window=sdl_get_window_hwnd(fb->window);
 	if (!GetClientRect(parent_window, &client_rect))
 		return VK_ERROR_INITIALIZATION_FAILED;
@@ -250,7 +252,7 @@ static VkResult vk_create_instance_surface()
 	const char *win32_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
 
 	// Enable the core and Win32 surface extensions for the persistent native window
-	extension_count = sizeof(win32_extensions) / sizeof(*win32_extensions);
+	extension_count = 2;
 	extensions = win32_extensions;
 	#else
 	// Ask SDL for the platform surface extensions required by this window
@@ -271,6 +273,7 @@ static VkResult vk_create_instance_surface()
 	// Create a Vulkan 1.0 instance without requiring optional validation layers
 	VkApplicationInfo application_info = { .sType=VK_STRUCTURE_TYPE_APPLICATION_INFO, .pApplicationName="rouziclib", .apiVersion=VK_API_VERSION_1_0 };
 	VkInstanceCreateInfo instance_info = { .sType=VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pApplicationInfo=&application_info, .enabledExtensionCount=extension_count, .ppEnabledExtensionNames=extensions };
+
 	ret = vkCreateInstance(&instance_info, NULL, &fb->vk.instance);
 	#ifndef _WIN32
 	free(extensions);
@@ -400,11 +403,18 @@ static VkResult vk_create_swapchain()
 		selected_format.colorSpace=VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	}
 	for (uint32_t i=0; i < format_count; i++)
-		if ((formats[i].format==VK_FORMAT_B8G8R8A8_UNORM || formats[i].format==VK_FORMAT_R8G8B8A8_UNORM) && formats[i].colorSpace==VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+		if (formats[i].format==VK_FORMAT_R8G8B8A8_UNORM && formats[i].colorSpace==VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 		{
 			selected_format=formats[i];
 			break;
 		}
+	if (selected_format.format!=VK_FORMAT_R8G8B8A8_UNORM || selected_format.colorSpace!=VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+		for (uint32_t i=0; i < format_count; i++)
+			if (formats[i].format==VK_FORMAT_B8G8R8A8_UNORM && formats[i].colorSpace==VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			{
+				selected_format=formats[i];
+				break;
+			}
 	free(formats);
 
 	// Select the drawable extent reported by SDL when the surface leaves it variable
@@ -583,10 +593,10 @@ static VkResult vk_create_frames()
 		VkSemaphoreCreateInfo semaphore_info = { .sType=VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		ret = vkCreateFence(fb->vk.device, &fence_info, NULL, &frame->fence);
 		VK_ERR_RET("vkCreateFence", ret);
+
 		ret = vkCreateSemaphore(fb->vk.device, &semaphore_info, NULL, &frame->image_available);
 		VK_ERR_RET("vkCreateSemaphore", ret);
-
-		// Create one timestamp pool for compute and blit boundaries when the queue supports it
+		// Create timestamp queries for GPU work profiling
 		if (fb->vk.timestamp_valid_bits)
 		{
 			VkQueryPoolCreateInfo query_info = { .sType=VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, .queryType=VK_QUERY_TYPE_TIMESTAMP, .queryCount=2 };
@@ -775,6 +785,12 @@ static void vk_collect_frame_timestamps(vk_frame_t *frame)
 	timing->thread_end = timing->cl_enqueue_end + work_ticks*fb->vk.timestamp_period*1e-9;
 }
 
+static VkResult vk_wait_frame_fence(VkFence fence)
+{
+	// Bound frame reuse waits so a stalled submission can report an error
+	return vkWaitForFences(fb->vk.device, 1, &fence, VK_TRUE, UINT64_C(2000000000));
+}
+
 int vk_drawq_run()
 {
 	VkResult ret;
@@ -783,6 +799,7 @@ int vk_drawq_run()
 	size_t dirty_start=0, dirty_end=0, dirty_size=0;
 	VkCommandBuffer command_buffer;
 	VkSemaphore render_finished;
+	int copy_output;
 
 	// Skip zero-sized surfaces while a window is minimised
 	if (!fb->vk.initialised || fb->w<=0 || fb->h<=0)
@@ -801,11 +818,23 @@ int vk_drawq_run()
 	frame=&fb->vk.frame[fb->vk.frame_index];
 
 	// Wait for every resource owned by this frame slot to become reusable
-	ret=vkWaitForFences(fb->vk.device, 1, &frame->fence, VK_TRUE, UINT64_MAX);
+	ret=vk_wait_frame_fence(frame->fence);
+	if (ret==VK_TIMEOUT)
+	{
+		// Report a stalled submission once until the frame completes
+		if (!frame->timeout_reported)
+		{
+			fprintf_rl(stderr, "Vulkan submission fence timed out after 2 seconds\n");
+			frame->timeout_reported=1;
+		}
+		return 0;
+	}
 	if (ret!=VK_SUCCESS)
 		return 0;
+	frame->timeout_reported=0;
 	vk_collect_frame_timestamps(frame);
-	ret=vkAcquireNextImageKHR(fb->vk.device, fb->vk.swapchain, UINT64_MAX, frame->image_available, VK_NULL_HANDLE, &image_index);
+	// Synchronize acquisition through the semaphore consumed by the rendering submission
+	ret=vkAcquireNextImageKHR(fb->vk.device, fb->vk.swapchain, UINT64_C(2000000000), frame->image_available, VK_NULL_HANDLE, &image_index);
 	if (ret==VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		fb->vk.swapchain_dirty=1;
@@ -817,6 +846,7 @@ int vk_drawq_run()
 		fb->vk.swapchain_dirty=1;
 	// Select synchronization whose lifetime follows the acquired presentation image
 	render_finished=fb->vk.swapchain_render_finished[image_index];
+	copy_output=fb->vk.swapchain_extent.width==(uint32_t) fb->w && fb->vk.swapchain_extent.height==(uint32_t) fb->h && (fb->vk.swapchain_format==VK_FORMAT_R8G8B8A8_UNORM || fb->vk.swapchain_format==VK_FORMAT_B8G8R8A8_UNORM);
 
 	// Align and clamp the accumulated packed-resource upload interval
 	if (fb->vk.dirty_start!=SIZE_MAX && fb->vk.dirty_end > fb->vk.dirty_start)
@@ -857,7 +887,7 @@ int vk_drawq_run()
 	vkCmdPipelineBarrier(command_buffer, frame->output_layout_initialised ? VK_PIPELINE_STAGE_TRANSFER_BIT : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &output_to_compute);
 
 	// Dispatch one shader invocation for each eight-by-eight tile covering the framebuffer
-	vk_drawq_constants_t constants = { fb->w, fb->h, fb->sector_w, fb->sector_size, rand32() };
+	vk_drawq_constants_t constants = { fb->w, fb->h, fb->sector_w, fb->sector_size, rand32(), copy_output && fb->vk.swapchain_format==VK_FORMAT_B8G8R8A8_UNORM };
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, fb->vk.compute_pipeline);
 	if (frame->timestamp_pool)
 		vkCmdWriteTimestamp(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, frame->timestamp_pool, 0);
@@ -870,13 +900,22 @@ int vk_drawq_run()
 	VkImageMemoryBarrier output_to_transfer = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT, .dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT, .oldLayout=VK_IMAGE_LAYOUT_GENERAL, .newLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=frame->output_image, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
 	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &output_to_transfer);
 
-	// Discard the acquired swapchain contents and prepare them as a blit destination
+	// Chain the layout transition to the acquisition semaphore wait at the transfer stage
 	VkImageMemoryBarrier swap_to_transfer = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=0, .dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT, .oldLayout=VK_IMAGE_LAYOUT_UNDEFINED, .newLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=fb->vk.swapchain_images[image_index], .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_transfer);
+	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_transfer);
 
-	// Scale the active framebuffer rectangle to the current drawable surface
-	VkImageBlit blit = { .srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .srcOffsets={{0,0,0},{fb->w,fb->h,1}}, .dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .dstOffsets={{0,0,0},{(int32_t) fb->vk.swapchain_extent.width,(int32_t) fb->vk.swapchain_extent.height,1}} };
-	vkCmdBlitImage(command_buffer, frame->output_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, fb->vk.swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
+	// Copy equal-sized frames directly and reserve format-converting blits for scaled output
+	if (copy_output)
+	{
+		VkImageCopy copy = { .srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .srcOffset={0,0,0}, .dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .dstOffset={0,0,0}, .extent={fb->w,fb->h,1} };
+		vkCmdCopyImage(command_buffer, frame->output_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, fb->vk.swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+	}
+	else
+	{
+		VkImageBlit blit = { .srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .srcOffsets={{0,0,0},{fb->w,fb->h,1}}, .dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .dstOffsets={{0,0,0},{(int32_t) fb->vk.swapchain_extent.width,(int32_t) fb->vk.swapchain_extent.height,1}} };
+		vkCmdBlitImage(command_buffer, frame->output_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, fb->vk.swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
+	}
+
 
 
 	// Mark completion of the complete GPU workload
@@ -885,6 +924,7 @@ int vk_drawq_run()
 
 	// Hand the fully written swapchain image back to the presentation engine
 	VkImageMemoryBarrier swap_to_present = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT, .dstAccessMask=0, .oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .newLayout=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=fb->vk.swapchain_images[image_index], .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
+	// Finish transfer writes before handing the image to presentation
 	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_present);
 	ret=vkEndCommandBuffer(command_buffer);
 	if (ret!=VK_SUCCESS)

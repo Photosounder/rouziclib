@@ -23,9 +23,46 @@ frgb_t srgb_to_frgb(srgb_t s)
 	f.r = lut[s.r];
 	f.g = lut[s.g];
 	f.b = lut[s.b];
-	f.a = lut[s.a];
+	// Decode alpha as linear coverage
+	f.a = s.a * (1.f/255.f);
 
 	return f;
+}
+
+frgb_t rgb8_to_frgb(srgb_t s, int transfer)
+{
+	frgb_t f;
+
+	// Use the complete sRGB conversion only for sRGB input
+	if (transfer != RGB8_TRANSFER_GAMMA22)
+		return srgb_to_frgb(s);
+
+	// Decode gamma-encoded RGB independently of alpha
+	float *lut = get_lut_g22lrgb().flut;
+	f.r = lut[s.r];
+	f.g = lut[s.g];
+	f.b = lut[s.b];
+	// Decode alpha as linear coverage
+	f.a = s.a * (1.f/255.f);
+	return f;
+}
+
+srgb_t frgb_to_rgb8(frgb_t cf, int transfer)
+{
+	srgb_t s;
+
+	// Clamp both encodings and use the complete sRGB conversion only for sRGB output
+	frgb_t p = clamp_frgba(cf);
+	if (transfer != RGB8_TRANSFER_GAMMA22)
+		return frgb_to_srgb(p);
+
+	// Encode gamma RGB independently of alpha
+	s.r = nearbyintf(255.f * powf(p.r, 1.f/2.2f));
+	s.g = nearbyintf(255.f * powf(p.g, 1.f/2.2f));
+	s.b = nearbyintf(255.f * powf(p.b, 1.f/2.2f));
+	// Quantize linear alpha without a colour transfer function
+	s.a = p.a * 255.f + 0.5f;
+	return s;
 }
 
 frgb_t sqrgb_to_frgb(sqrgb_t s)
@@ -64,8 +101,8 @@ __m128 _mm_srgb_to_ps(srgb_t s)
 	if (lut==NULL)
 		lut = get_lut_slrgb().flut;
 
-	// Lookups
-	f = _mm_set_ps(lut[s.a], lut[s.b], lut[s.g], lut[s.r]);
+	// Decode RGB through the lookup table and alpha as linear coverage
+	f = _mm_set_ps(s.a * (1.f/255.f), lut[s.b], lut[s.g], lut[s.r]);
 
 	return f;
 }
@@ -103,8 +140,9 @@ __m128 _mm_get_raster_pixel_lrgb_to_ps(raster_t *r, const size_t index)
 
 __m128 _mm_get_raster_pixel_srgb_to_ps(raster_t *r, const size_t index)
 {
-	__m128 v = _mm_srgb_to_ps(r->srgb[index]);
-	return v;
+	// Decode the transfer function attached to the byte raster
+	frgb_t f = rgb8_to_frgb(r->srgb[index], r->rgb8_transfer);
+	return _mm_loadu_ps((float *) &f);
 }
 
 __m128 _mm_get_raster_pixel_sqrgb_to_ps(raster_t *r, const size_t index)
@@ -160,7 +198,8 @@ srgb_t frgb_to_srgb(frgb_t cf)
 	c.r = fast_lsrgbf(MINN(1., cf.r)) * 255.f + 0.5f;
 	c.g = fast_lsrgbf(MINN(1., cf.g)) * 255.f + 0.5f;
 	c.b = fast_lsrgbf(MINN(1., cf.b)) * 255.f + 0.5f;
-	c.a = fast_lsrgbf(MINN(1., cf.a)) * 255.f + 0.5f;
+	// Clamp and quantize linear alpha independently of RGB
+	c.a = rangelimitf(cf.a, 0.f, 1.f) * 255.f + 0.5f;
 
 	return c;
 }
@@ -221,8 +260,19 @@ void _mm_set_raster_pixel_ps_to_srgb(raster_t *r, const size_t index, __m128 f)
 	uint32_t sa[4];
 	srgb_t s;
 
-	f = _mm_clamp_ps(f);			// clamp
-	f = _mm_frgb_to_srgb(f);		// convert to sRGB [0 , 1]
+	// Encode gamma RGB with linear alpha
+	if (r->rgb8_transfer == RGB8_TRANSFER_GAMMA22)
+	{
+		frgb_t p;
+		_mm_storeu_ps((float *) &p, _mm_clamp_ps(f));
+		r->srgb[index] = frgb_to_rgb8(p, r->rgb8_transfer);
+		return;
+	}
+
+	// Convert RGB to sRGB while retaining clamped linear alpha
+	f = _mm_clamp_ps(f);
+	__m128 rgb_mask = _mm_castsi128_ps(_mm_set_epi32(0, -1, -1, -1));
+	f = _mm_or_ps(_mm_and_ps(_mm_frgb_to_srgb(f), rgb_mask), _mm_andnot_ps(rgb_mask, f));
 	f = _mm_mul_ps(f, _mm_set_ps1(255.f));	// => [0 , 255]
 
 	// Convert from float to srgb

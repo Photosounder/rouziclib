@@ -179,8 +179,15 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const size_t index)
 	static int init=1;
 	static lut_t lsrgb_l, lsrgb_fl_l;
 
+	// Convert gamma bytes to sRGB while retaining the stored alpha
 	if (r.srgb)
-		return r.srgb[index];
+	{
+		if (r.rgb8_transfer != RGB8_TRANSFER_GAMMA22)
+			return r.srgb[index];
+		s = frgb_to_srgb(rgb8_to_frgb(r.srgb[index], r.rgb8_transfer));
+		s.a = r.srgb[index].a;
+		return s;
+	}
 
 	if (init)
 	{
@@ -199,7 +206,8 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const size_t index)
 		s.r = lsrgb_fl(f.r, lsrgb_fl_l.lutint) + 16 >> 5;
 		s.g = lsrgb_fl(f.g, lsrgb_fl_l.lutint) + 16 >> 5;
 		s.b = lsrgb_fl(f.b, lsrgb_fl_l.lutint) + 16 >> 5;
-		s.a = lsrgb_fl(f.a, lsrgb_fl_l.lutint) + 16 >> 5;
+		// Quantize alpha as linear coverage
+		s.a = f.a * 255.f + 0.5f;
 
 		return s;
 	}
@@ -210,7 +218,8 @@ srgb_t get_raster_pixel_in_srgb(raster_t r, const size_t index)
 		s.r = lsrgb_l.lutint[l.r] + 16 >> 5;
 		s.g = lsrgb_l.lutint[l.g] + 16 >> 5;
 		s.b = lsrgb_l.lutint[l.b] + 16 >> 5;
-		s.a = lsrgb_l.lutint[l.a] + 16 >> 5;
+		// Convert fixed-point alpha to linear byte coverage
+		s.a = rangelimitf(l.a / ONEF, 0.f, 1.f) * 255.f + 0.5f;
 
 		return s;
 	}
@@ -229,8 +238,9 @@ frgb_t get_raster_pixel_in_frgb(raster_t r, const size_t index)
 	if (r.sq)
 		return sqrgb_to_frgb(r.sq[index]);
 
+	// Decode byte RGB using the raster's transfer function
 	if (r.srgb)
-		return srgb_to_frgb(r.srgb[index]);
+		return rgb8_to_frgb(r.srgb[index], r.rgb8_transfer);
 
 	return make_colour_frgb(NAN, NAN, NAN, NAN);
 }

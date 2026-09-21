@@ -443,12 +443,13 @@ int save_image(char *path, raster_t r, int jpg_quality)
 	}
 
 	// Convert to 8-bit sRGB
-	if (r.srgb==NULL)
+	if (r.srgb==NULL || r.rgb8_transfer == RGB8_TRANSFER_GAMMA22)
 	{
 		free_srgb = 1;
 		srgb_t *data = calloc(mul_x_by_y_xyi(r.dim), sizeof(srgb_t));
 		convert_image_to_srgb(r, data);
 		r.srgb = data;
+		r.rgb8_transfer = RGB8_TRANSFER_SRGB;
 	}
 
 	// libstb

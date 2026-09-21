@@ -149,6 +149,14 @@ float4 read_srgb_pixel(global uint *im, int index)
 	return pv;
 }
 
+float4 read_gamma22_pixel(global uint *im, int index)
+{
+	// Decode gamma RGB bytes and preserve the packed raster's opaque alpha
+	uint value = im[index];
+	float3 rgb = (float3)(value & 255u, (value >> 8u) & 255u, (value >> 16u) & 255u);
+	return (float4)(pow(rgb*(1.f/255.f), (float3)(2.2f)), 1.f);
+}
+
 float4 read_lrgb_pixel(global ushort *im, int index)
 {
 	float4 pv;
@@ -433,6 +441,10 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i, com
 
 		case 3:		// lrgb_t
 			return read_lrgb_pixel((global ushort *) im, 4*(i.y * im_dim.x + i.x));
+
+		// Decode packed gamma 2.2 RGB before interpolation
+		case 4:
+			return read_gamma22_pixel((global uint *) im, i.y * im_dim.x + i.x);
 
 		case 10:	// YCbCr 420 planar 8-bit (AV_PIX_FMT_YUV420P)
 			return read_yuv420p8_pixel((global uchar *) im, im_dim, i);

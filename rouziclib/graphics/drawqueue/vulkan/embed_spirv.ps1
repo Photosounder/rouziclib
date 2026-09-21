@@ -3,6 +3,8 @@ param(
 	[Parameter(Mandatory=$true)][string]$OutputFile
 )
 
+$ErrorActionPreference = 'Stop'
+
 $bytes = [IO.File]::ReadAllBytes($InputFile)
 if (($bytes.Length % 4) -ne 0) {
 	throw "SPIR-V byte count must be divisible by four"

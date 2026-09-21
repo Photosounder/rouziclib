@@ -40,7 +40,14 @@ typedef struct
 	size_t as;		// alloc size in pixels
 
 	int table_index;	// index in the cl_data allocation table
+	int rgb8_transfer;	// enum rgb8_transfer, applies to the srgb storage
 } raster_t;
+
+enum rgb8_transfer
+{
+	RGB8_TRANSFER_SRGB = 0,
+	RGB8_TRANSFER_GAMMA22 = 1
+};
 
 typedef struct
 {

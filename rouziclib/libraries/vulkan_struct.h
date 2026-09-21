@@ -40,6 +40,7 @@ typedef struct
 	vk_buffer_t entry_list;
 	int output_layout_initialised;
 	int timestamp_results_pending;
+	int timeout_reported;
 	size_t timing_index;
 } vk_frame_t;
 
