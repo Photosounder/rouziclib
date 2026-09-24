@@ -300,11 +300,26 @@ void drawq_run()
 		fb->timing[fb->timing_index].cl_enqueue_end = get_time_hr();
 
 		#ifndef RL_OPENCL_GL
+		// Read completed OpenCL rows into the locked SDL texture with both row strides
 		int pitch;
-		SDL_LockTexture(fb->texture, NULL, &fb->r.srgb, &pitch);
-		fb->tex_lock = 1;
-		ret = clEnqueueReadBuffer_wrap(fb->clctx.command_queue, fb->cl_srgb, CL_FALSE, 0, mul_x_by_y_xyi(fb->r.dim)*4, fb->r.srgb, 0, NULL, NULL);
-		CL_ERR_NORET("clEnqueueReadBuffer (in drawq_run(), for fb->cl_srgb)", ret);
+		#if RL_SDL == 3
+		int locked = SDL_LockTexture(fb->texture, NULL, &fb->r.srgb, &pitch);
+		#else
+		int locked = SDL_LockTexture(fb->texture, NULL, &fb->r.srgb, &pitch) == 0;
+		#endif
+		if (locked)
+		{
+			const size_t origin[3] = { 0, 0, 0 };
+			const size_t region[3] = { (size_t) fb->w * 4, (size_t) fb->h, 1 };
+			const size_t source_pitch = global_work_size[0] * 4;
+			ret = clEnqueueReadBufferRect(fb->clctx.command_queue, fb->cl_srgb, CL_TRUE, origin, origin, region,
+				source_pitch, 0, (size_t) pitch, 0, fb->r.srgb, 0, NULL, NULL);
+			CL_ERR_NORET("clEnqueueReadBufferRect (in drawq_run(), for fb->cl_srgb)", ret);
+			SDL_UnlockTexture(fb->texture);
+			fb->r.srgb = NULL;
+		}
+		else
+			fprintf_rl(stderr, "SDL_LockTexture failed in drawq_run(): %s\n", SDL_GetError());
 		#endif
 	}
 	#endif
