@@ -37,7 +37,7 @@ clew:
 
 stb_image:
 	https://github.com/nothings/stb/blob/master/stb_image.h
-	v2.25, Feb 2, 2020
+	v2.30, May 31, 2024
 
 stb_image_write:
 	https://github.com/nothings/stb/blob/master/stb_image_write.h
