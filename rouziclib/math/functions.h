@@ -10,6 +10,7 @@ extern double integral_of_erfr(double x);
 extern double erfinv(double x);
 extern double gamma_dist(double x, double a, double b);
 
+extern double frac(double x);
 extern double roundaway(double x);
 extern double rangewrap(double x, double low, double high);
 extern double rangelimit(double x, double min, double max);

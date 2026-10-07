@@ -82,6 +82,11 @@ double gamma_dist(double x, double a, double b)
 	return pow(b, a) * pow(x, a-1.) * exp(-b*x) / tgamma(a);
 }
 
+double frac(double x)
+{
+	return x - floor(x);
+}
+
 double roundaway(double x)	// round away from 0
 {
 	if (x < 0.)
