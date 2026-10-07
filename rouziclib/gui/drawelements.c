@@ -125,29 +125,34 @@ void draw_unit_grid_decimal(xy_t offset, double sm, col_t colour)
 	draw_unit_grid_level(offset, sm, 1e-6, colour);
 }
 
-void draw_rangebox(rect_t box, const char *label, col_t colour)
+void draw_rangebox_fullarg(rect_t box, const char *label, col_t colour, double intensity, int multiline, int alig)
 {
 	if (check_box_on_screen(box)==0 || rect_max_side(box)*zc.scrscale < 0.1)
 		return ;
 
-	const double bg_intensity = 2./144.;
-	draw_rect_full(sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
-	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, 0.5 - bg_intensity*0.5);
-
-	if (rect_min_side(sc_rect(box)) > 4.)
-		draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, 1. - bg_intensity, drawing_thickness, ALIG_CENTRE, NULL);
-}
-
-void draw_rangebox_fade_to_solid(rect_t box, const char *label, col_t colour)
-{
-	if (check_box_on_screen(box)==0 || rect_max_side(box)*zc.scrscale < 0.1)
-		return ;
-
-	double intensity = sq(intensity_scaling(rect_min_side(sc_rect(box)), 200.));
-	const double bg_intensity = 2./144. / (0.97 * intensity + 0.03);
+	double bg_intensity = 2./144. / (0.97 * intensity + 0.03);
 	draw_rect_full(sc_rect(box), drawing_thickness, colour, cur_blend, bg_intensity);
 	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, (1.-bg_intensity)*intensity*0.5);
 
 	if (rect_min_side(sc_rect(box)) > 4.)
-		draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, ALIG_CENTRE, NULL);
+		if (multiline)
+			draw_string_bestfit_multiline(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, alig, NULL);
+		else
+			draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, alig, NULL);
+}
+
+void draw_rangebox(rect_t box, const char *label, col_t colour)
+{
+	draw_rangebox_fullarg(box, label, colour, 1., 0, ALIG_CENTRE);
+}
+
+void draw_rangebox_multiline(rect_t box, const char *label, col_t colour)
+{
+	draw_rangebox_fullarg(box, label, colour, 1., 1, ALIG_CENTRE);
+}
+
+void draw_rangebox_fade_to_solid(rect_t box, const char *label, col_t colour)
+{
+	double intensity = sq(intensity_scaling(rect_min_side(sc_rect(box)), 200.));
+	draw_rangebox_fullarg(box, label, colour, intensity, 0, ALIG_CENTRE);
 }

@@ -7,7 +7,9 @@ extern void display_dialog_enclosing_frame(rect_t box_os, double scale, char *la
 extern void draw_unit_grid_level(xy_t offset, double sm, double scale, col_t colour);
 extern void draw_unit_grid_col(xy_t offset, double sm, col_t colour);
 extern void draw_unit_grid_decimal(xy_t offset, double sm, col_t colour);
+extern void draw_rangebox_fullarg(rect_t box, const char *label, col_t colour, double intensity, int multiline, int alig);
 extern void draw_rangebox(rect_t box, const char *label, col_t colour);
+extern void draw_rangebox_multiline(rect_t box, const char *label, col_t colour);
 extern void draw_rangebox_fade_to_solid(rect_t box, const char *label, col_t colour);
 
 #define draw_unit_grid(offset, sm)	draw_unit_grid_col(offset, sm, make_grey(0.012))
