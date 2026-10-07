@@ -247,6 +247,146 @@ void draw_string_bestfit(vector_font_t *font, const uint8_t *string, rect_t box,
 	free_word_stats(ws);
 }
 
+static int find_multiline_line_count_for_thresh(vector_font_t *font, const uint8_t *string, word_stats_t *ws, int count, const int mode, double thresh, double *maxwidth)
+{
+	int nlines=0;
+	double width;
+
+	// Count wrapped lines within each explicit line, including empty lines
+	*maxwidth = 0.;
+	for (int i=0; i < count; i++)
+	{
+		nlines += find_line_count_for_thresh(font, string, ws[i], mode, thresh, &width);
+		*maxwidth = MAXN(*maxwidth, width);
+	}
+
+	return nlines;
+}
+
+double draw_string_bestfit_multiline(vector_font_t *font, const uint8_t *string, rect_t box, const double border, const double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
+{
+	word_stats_t *ws=NULL;
+	uint8_t *text=NULL, *start, *end;
+	int count=1, nlines, iw_end;
+	double minscale=0., maxscale, trial_scale, maxwidth, max_word_length=0., thresh;
+	xy_t boxdim, p;
+
+	// Remove the border using the same units as draw_string_bestfit
+	if (font==NULL || string==NULL || string[0]=='\0' || scale<=0. || font->line_vspacing<=0.)
+		return 0.;
+	box = sort_rect(box);
+	box.p0 = add_xy(box.p0, set_xy(border*scale));
+	box.p1 = sub_xy(box.p1, set_xy(border*scale));
+	boxdim = get_rect_dim(box);
+	if (boxdim.x<=0. || boxdim.y<=0.)
+		return 0.;
+
+	// Split a private copy at explicit breaks while retaining empty lines
+	for (const uint8_t *s=string; *s; s++)
+		if (*s=='\n')
+			count++;
+	ws = calloc(count, sizeof(word_stats_t));
+	text = malloc(strlen(string)+1);
+	if (ws==NULL || text==NULL)
+		goto cleanup;
+	memcpy(text, string, strlen(string)+1);
+	start = text;
+	for (int i=0; i < count; i++)
+	{
+		// Strip the carriage return from CRLF breaks before measuring words
+		end = (uint8_t *) strchr(start, '\n');
+		if (end)
+		{
+			*end = '\0';
+			if (end > start && end[-1]=='\r')
+				end[-1] = '\0';
+		}
+
+		// Keep an independent copy because short word stats share thread-local storage
+		if (*start)
+		{
+			ws[i] = make_word_stats(font, start, mode);
+			if (ws[i].use_storage)
+			{
+				one_word_stats_t *shared = ws[i].word;
+				ws[i].word = malloc(ws[i].word_count * sizeof(one_word_stats_t));
+				ws[i].use_storage = 0;
+				if (ws[i].word==NULL)
+					goto cleanup;
+				memcpy(ws[i].word, shared, ws[i].word_count * sizeof(one_word_stats_t));
+			}
+
+			// Refer drawing spans back to the original string
+			for (int iw=0; iw < ws[i].word_count; iw++)
+			{
+				ws[i].word[iw].start += start-text;
+				ws[i].word[iw].end += start-text;
+			}
+			max_word_length = MAXN(max_word_length, ws[i].max_word_length);
+		}
+		if (end)
+			start = end+1;
+	}
+
+	// Bound the scale by the longest word and the mandatory line count
+	maxscale = MINN(scale, boxdim.y / (count*font->line_vspacing));
+	if (max_word_length > 0.)
+		maxscale = MINN(maxscale, boxdim.x / max_word_length);
+	trial_scale = maxscale;
+
+	// Search the largest feasible scale as wrapping and height increase monotonically
+	for (int i=0; i < 65 && trial_scale > 0.; i++)
+	{
+		nlines = find_multiline_line_count_for_thresh(font, string, ws, count, mode, boxdim.x/trial_scale, &maxwidth);
+		if (maxwidth*trial_scale <= boxdim.x && nlines*font->line_vspacing*trial_scale <= boxdim.y)
+			minscale = trial_scale;
+		else
+			maxscale = trial_scale;
+		trial_scale = minscale + 0.5*(maxscale-minscale);
+		if (trial_scale==minscale || trial_scale==maxscale)
+			break;
+	}
+	if (minscale<=0.)
+		goto cleanup;
+
+	// Align the entire block using the final wrapped line count
+	thresh = boxdim.x/minscale;
+	nlines = find_multiline_line_count_for_thresh(font, string, ws, count, mode, thresh, &maxwidth);
+	p = box.p0;
+	if ((mode&3)==ALIG_CENTRE)
+		p.x += boxdim.x*0.5;
+	if ((mode&3)==ALIG_RIGHT)
+		p.x = box.p1.x;
+	if (mode & ALIG_TOP)
+		p.y += 8.*minscale;
+	else if (mode & ALIG_BOTTOM)
+		p.y = box.p1.y - (2. + (nlines-1)*font->line_vspacing)*minscale;
+	else
+		p.y += boxdim.y*0.5 + (3. - (nlines-1)*0.5*font->line_vspacing)*minscale;
+
+	// Draw each wrapped span without crossing an explicit line break
+	for (int i=0; i < count; i++)
+	{
+		if (ws[i].word_count==0)
+			p.y += font->line_vspacing*minscale;
+		for (int iw=0; iw < ws[i].word_count; iw=iw_end+1)
+		{
+			find_line_for_thresh(font, string, ws[i], mode, thresh, iw, &iw_end);
+			draw_string_len(font, &string[ws[i].word[iw].start], p, minscale, colour, intensity, line_thick, mode, 1 + ws[i].word[iw_end].end - ws[i].word[iw].start, tp);
+			p.y += font->line_vspacing*minscale;
+		}
+	}
+
+cleanup:
+	// Release all per-line stats and the temporary string
+	if (ws)
+		for (int i=0; i < count; i++)
+			free_word_stats(ws[i]);
+	free(ws);
+	free(text);
+	return minscale;
+}
+
 double draw_string_bestfit_asis(vector_font_t *font, const uint8_t *string, rect_t box, double border, double scale, col_t colour, double intensity, double line_thick, const int mode, text_param_t *tp)
 {
 	int nlines=0;
