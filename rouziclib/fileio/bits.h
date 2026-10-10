@@ -7,7 +7,10 @@ extern void set_bits_in_stream(uint8_t *stream, size_t start_bit, int bit_count,
 extern void set_bits_in_stream_inc(uint8_t *stream, size_t *start_bit, int bit_count, uint64_t b);
 extern uint32_t reverse_bits32(uint32_t v);
 extern uint64_t reverse_bits64(uint64_t v);
+extern uint16_t reverse_even_bits32(uint32_t v);
+extern uint32_t reverse_even_bits64(uint64_t v);
 extern uint32_t reverse_n_bits32(uint32_t v, int n);
 extern uint64_t reverse_n_bits64(uint64_t v, int n);
 extern uint32_t reverse_iterator_bits32(int *i, uint32_t count);
+extern xyi_t reverse_iterator_bits_2d_32bit(uint32_t *i, xyi_t dim);
 extern xyi_t reverse_iterator_bits_2d(uint64_t *i, xyi_t dim);

@@ -119,6 +119,31 @@ uint64_t reverse_bits64(uint64_t v)
 	return (v >> 32                      ) | ( v                          << 32);
 }
 
+uint16_t reverse_even_bits32(uint32_t v)
+{
+	// Discard odd bits and map input bit 2*k to output bit 15-k
+	v &= 0x55555555U;
+
+	// Merge adjacent groups in reversed order while closing their gaps
+	v = ((v << 1) | (v >> 2)) & 0x33333333U;
+	v = ((v << 2) | (v >> 4)) & 0x0F0F0F0FU;
+	v = ((v << 4) | (v >> 8)) & 0x00FF00FFU;
+	return (uint16_t) ((v << 8) | (v >> 16));
+}
+
+uint32_t reverse_even_bits64(uint64_t v)
+{
+	// Discard odd bits and map input bit 2*k to output bit 31-k
+	v &= 0x5555555555555555ULL;
+
+	// Merge adjacent groups in reversed order while closing their gaps
+	v = ((v << 1) | (v >>  2)) & 0x3333333333333333ULL;
+	v = ((v << 2) | (v >>  4)) & 0x0F0F0F0F0F0F0F0FULL;
+	v = ((v << 4) | (v >>  8)) & 0x00FF00FF00FF00FFULL;
+	v = ((v << 8) | (v >> 16)) & 0x0000FFFF0000FFFFULL;
+	return (uint32_t) ((v << 16) | (v >> 32));
+}
+
 uint32_t reverse_n_bits32(uint32_t v, int n)
 {
 	return reverse_bits32(v) >> (32-n);
@@ -143,28 +168,40 @@ shuffle_start:
 	return ir;
 }
 
+xyi_t reverse_iterator_bits_2d_32bit(uint32_t *i, xyi_t dim)
+{
+	// Calculate the number of bits
+	int bits = log2_ffo32(MAXN(dim.x, dim.y) - 1);
+	xyi_t ir;
+
+	// Decode candidates until both coordinates are within bounds
+	do
+	{
+		// Shuffle bits from i into ir.x and ir.y
+		uint32_t v = (*i)++;
+		ir.x = (uint32_t) reverse_even_bits32(v) >> (16 - bits);
+		ir.y = (uint32_t) reverse_even_bits32(v >> 1) >> (16 - bits);
+	}
+	while (ir.x >= dim.x || ir.y >= dim.y);
+
+	return ir;
+}
+
 xyi_t reverse_iterator_bits_2d(uint64_t *i, xyi_t dim)
 {
-	xyi_t ir, dim_bits;
-	int ib, sh, shift;
-       
-	shift = log2_ffo32(MAXN(dim.x, dim.y) - 1) - 1;	// number of bits needed for each dimension
+	// Calculate the number of bits
+	int bits = log2_ffo32(MAXN(dim.x, dim.y) - 1);
+	xyi_t ir;
 
-shuffle_start:
-	// Shuffle bits from i into ir.x and ir.y
-	ir.x = 0;
-	ir.y = 0;
-	sh = shift;
-	for (ib=0; *i >> ib; ib++, sh--)
+	// Decode candidates until both coordinates are within bounds
+	do
 	{
-		ir.x |= get_bit(*i, ib) << sh;
-		ib++;
-		ir.y |= get_bit(*i, ib) << sh;
+		// Shuffle bits from i into ir.x and ir.y
+		uint64_t v = (*i)++;
+		ir.x = reverse_even_bits64(v) >> (32 - bits);
+		ir.y = reverse_even_bits64(v >> 1) >> (32 - bits);
 	}
-
-	(*i)++;						// iterate i for the next call to this function
-	if (ir.x >= dim.x || ir.y >= dim.y)		// if ir is too large
-		goto shuffle_start;			// get the next ir in the sequence
+	while (ir.x >= dim.x || ir.y >= dim.y);
 
 	return ir;
 }
