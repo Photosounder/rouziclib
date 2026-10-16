@@ -18,6 +18,7 @@ extern _Thread_local ftell_func_t  ftell_override;
 
 extern size_t fread_buffer(void *ptr, size_t size, size_t nmemb, void *stream);
 extern size_t fwrite_buffer(const void *ptr, size_t size, size_t nmemb, void *stream);
+extern int fprintf_buffer(void *stream, const char *format, ...);
 extern void *fopen_buffer(const char *path, const char *mode);
 extern int fclose_buffer(void *stream);
 extern void rewind_buffer(void *stream);

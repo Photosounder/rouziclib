@@ -24,6 +24,22 @@ size_t fwrite_buffer(const void *ptr, size_t size, size_t nmemb, void *stream)
 	return nmemb;
 }
 
+int fprintf_buffer(void *stream, const char *format, ...)
+{
+	// Reject a missing buffer before reading its current length
+	buffer_t *s = (buffer_t *) stream;
+	if (s == NULL)
+		return -1;
+
+	// Append formatted text and return the number of characters added
+	size_t old_len = s->len;
+	va_list args;
+	va_start(args, format);
+	char *result = vbufprintf(s, format, args);
+	va_end(args);
+	return result ? (int) (s->len - old_len) : -1;
+}
+
 void *fopen_buffer(const char *path, const char *mode)	// only works for "rb" and "wb" modes
 {
 	buffer_t *s;
@@ -114,7 +130,7 @@ void io_override_set_buffer()
 	// Set the function points to those of the generic buffer type
 	fread_override  = fread_buffer;
 	fwrite_override = fwrite_buffer;
-	fprintf_override = (fprintf_func_t) bufprintf;
+	fprintf_override = fprintf_buffer;
 	fopen_override  = fopen_buffer;
 	fclose_override = fclose_buffer;
 	rewind_override = rewind_buffer;
