@@ -135,10 +135,18 @@ void draw_rangebox_fullarg(rect_t box, const char *label, col_t colour, double i
 	draw_rect(sc_rect(box), drawing_thickness, colour, cur_blend, (1.-bg_intensity)*intensity*0.5);
 
 	if (rect_min_side(sc_rect(box)) > 4.)
-		if (multiline)
-			draw_string_bestfit_multiline(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, alig, NULL);
+	{
+		rect_t text_area = sc_rect(rect_size_mul(box, xy(10./12., 11./12.)));
+		double scale = 1e30*zc.scrscale;
+		double text_intensity = (1.-bg_intensity) * intensity;
+
+		if (multiline == 1)
+			draw_string_bestfit_multiline(font, label, text_area, 0., scale, colour, text_intensity, drawing_thickness, alig, NULL);
+		else if (multiline == 2)
+			draw_string_bestfit_asis(font, label, text_area, 0., scale, colour, text_intensity, drawing_thickness, alig, NULL);
 		else
-			draw_string_bestfit(font, label, sc_rect(rect_size_mul(box, xy(10./12., 11./12.))), 0., 1e30*zc.scrscale, colour, (1.-bg_intensity)*intensity, drawing_thickness, alig, NULL);
+			draw_string_bestfit(font, label, text_area, 0., scale, colour, text_intensity, drawing_thickness, alig, NULL);
+	}
 }
 
 void draw_rangebox(rect_t box, const char *label, col_t colour)

@@ -417,13 +417,18 @@ double draw_string_bestfit_asis(vector_font_t *font, const uint8_t *string, rect
 	if (mode & ALIG_RIGHT)
 		p.x = box.p1.x - maxwidth * scale;
 	p.x += 2. * scale;
-	if (mode & ALIG_BOTTOM)
-	{
-		p.y = box.p1.y - 2. * scale;
-		p.y -= (double) (nlines-1) * font->line_vspacing * scale;
-	}
+
+	// Vertical alignment
+	double top_y = p.y + 8. * scale;
+	double bottom_y = box.p1.y - 2. * scale - (double) (nlines-1) * font->line_vspacing * scale;
+	if (mode & ALIG_TOP)
+		p.y = top_y;
+	else if (mode & ALIG_BOTTOM)
+		p.y = bottom_y;
 	else
-		p.y += 8. * scale;
+		p.y = mix(bottom_y, top_y, 0.5);
+
+	// Draw
 	draw_string(font, string, p, scale, colour, intensity, line_thick, ALIG_LEFT, tp);
 
 	return scale;
