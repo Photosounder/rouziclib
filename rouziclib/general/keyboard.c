@@ -8,22 +8,18 @@ int get_scancode_by_key_name(const char *name)
 	#endif
 	#endif
 
-	return -1;
+	// Resolve message-driven keyboard names without a native keyboard backend
+	return wahe_rl_get_scancode_by_key_name(name);
 }
 
 int get_key_state_by_name(const char *name)
 {
-	#ifdef RL_SDL
-	int scancode;
-
-	scancode = get_scancode_by_key_name(name);
-
-	if (scancode > SDL_SCANCODE_UNKNOWN && scancode < SDL_NUM_SCANCODES)
+	// Read the shared state for both native and message-driven keyboards
+	int scancode = get_scancode_by_key_name(name);
+	if (scancode > RL_SCANCODE_UNKNOWN && scancode < RL_NUM_SCANCODES)
 		return mouse.key_state[scancode];
 	else
 		fprintf_rl(stderr, "Key by the name \"%s\" not found.\n", name);
-	#endif
-
 	return -1;
 }
 
@@ -80,7 +76,8 @@ void keyboard_pre_event_proc(mouse_t *mouse)
 
 void keyboard_button_event(int8_t *b, int8_t *quick_b, int way, int repeat)
 {
-	if (*b * way == -2)		// if quick press situation
+	// Retain a press or repeat until its frame has consumed the event
+	if ((*b >= 2 && way < 0) || (*b == -2 && way > 0))
 		*quick_b = way;
 	else
 		*b = (2 + repeat) * way;

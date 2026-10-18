@@ -33,6 +33,8 @@ enum
 typedef struct
 {
 	xy_t a, u, d, u_stored, prev_u;
+	xy_t d_absolute, d_relative;
+	int8_t d_relative_received, warp_persistent, position_received;
 	int8_t window_focus_flag, mouse_focus_flag, window_minimised_flag, zoom_flag, zoom_scroll_freeze, showcursor, warp, warp_prev, warp_if_move, zoom_allowed, discard_warp_first_move;
 	int8_t mod_key[mouse_mod_count];
 	mousebut_t b;

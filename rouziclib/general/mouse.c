@@ -22,6 +22,10 @@ void flag_update_mouse_button(int *mb, mousebut_flags_t *flags)
 void mouse_pre_event_proc(mouse_t *mouse)
 {
 	mouse->d = XY0;
+
+	// Reset the per-frame motion streams used by message-driven input
+	mouse->d_absolute = mouse->d_relative = XY0;
+	mouse->d_relative_received = 0;
 	mouse->prev_u = mouse->u_stored;
 	mouse->b.wheel = 0;
 	ctrl_id_cycle();
@@ -131,14 +135,14 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 	if (mouse->warp != mouse->warp_prev)	// prevent recording jumps when switching warp modes
 		mouse->discard_warp_first_move = 1;
 
-	if (mouse->warp_if_move == 0)
+	if (mouse->warp_if_move == 0 && !mouse->warp_persistent)
 	{
 		mouse->showcursor = 0;
 		mouse->warp = 0;
 	}
 
 	if (mouse->window_focus_flag < 0)
-		mouse->warp = 0;
+		mouse->warp = mouse->warp_persistent = 0;
 
 	if (mouse->b.mmb > 0 && mouse->zoom_allowed)		// when to reset the zoom (when MMB is held down)
 		zoom_key_released(zc, &mouse->zoom_flag, 2);
