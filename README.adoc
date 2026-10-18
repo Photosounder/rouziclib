@@ -621,6 +621,9 @@ Load images with DevIL. I don't use this anymore.
 ** link:rouziclib/libraries/libsndfile.c[libsndfile.c] / link:rouziclib/libraries/libsndfile.h[libsndfile.h] +
 Open files for libsndfile. I also don't use this anymore.
 
+** link:rouziclib/libraries/libsimplewebp.c[libsimplewebp.c] / link:rouziclib/libraries/libsimplewebp.h[libsimplewebp.h] +
+WebP image loading.
+
 ** link:rouziclib/libraries/libraw.c[libraw.c] / link:rouziclib/libraries/libraw.h[libraw.h] +
 Load RAW photographs with LibRAW in different ways.
 
