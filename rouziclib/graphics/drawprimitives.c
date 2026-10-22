@@ -439,7 +439,8 @@ int32_t get_dist_to_roundrect(int32_t lx1, int32_t ly1, int32_t lx2, int32_t ly2
 		case 11: d = iyf - ly2;	break;
 		case 14: d = ixf - lx2;	break;
 
-		case 10: d = 0;		break;
+		// Inside the lesser rectangle the distance to its nearest side is negative, otherwise the inside would only get erfr(corner/radius) of coverage
+		case 10: d = -MINN(MINN(ixf - lx1, lx2 - ixf), MINN(iyf - ly1, ly2 - iyf));	break;
 	}
 
 	d -= corner;	// subtract the corner radius to the distance to the lesser rectangle to get the distance to the rounded rectangle
@@ -456,6 +457,14 @@ void draw_roundrect(rect_t box, double corner, double radius, lrgb_t colour, con
 	const double fpratio = (double) (1<<fp);
 
 	ratio = 32768. * intensity + 0.5;
+
+	// The corners can't be larger than half the box, otherwise the lesser rectangle would be inverted
+	corner = rangelimit(corner, 0., 0.5*MINN(fabs(box.p1.x-box.p0.x), fabs(box.p1.y-box.p0.y)));
+
+	// Edges far off screen are brought closer so the fixed point coordinates can't overflow, far enough that no pixel on screen changes
+	double m = corner + grad + 8.*radius + 2.;
+	box.p0 = xy(rangelimit(box.p0.x, -m, fb->w + m), rangelimit(box.p0.y, -m, fb->h + m));
+	box.p1 = xy(rangelimit(box.p1.x, -m, fb->w + m), rangelimit(box.p1.y, -m, fb->h + m));
 
 	iradf = roundaway(1./radius * fpratio);
 	x1f = roundaway((box.p0.x+corner) * fpratio);
@@ -478,7 +487,8 @@ void draw_roundrect(rect_t box, double corner, double radius, lrgb_t colour, con
 			fbi = iy*fb->w+ix;
 
 			ixf = ix << fp;
-			d = (int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, cornerf, ixf, iyf) * iradf >> fp;
+			// Distances in antialiasing radii, clamped since erfr saturates long before and the inside can be far from the edge
+			d = rangelimit_i64((int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, cornerf, ixf, iyf) * iradf >> fp, -(8<<fp), 8<<fp);
 			p = fperfr_d0(-d) >> 15;
 			p = p * ratio >> 15;
 
@@ -496,6 +506,17 @@ void draw_roundrect_frame(rect_t box1, rect_t box2, double corner1, double corne
 	const double fpratio = (double) (1<<fp);
 
 	ratio = 32768. * intensity + 0.5;
+
+	// The corners can't be larger than half their box, otherwise the lesser rectangles would be inverted
+	corner1 = rangelimit(corner1, 0., 0.5*MINN(fabs(box1.p1.x-box1.p0.x), fabs(box1.p1.y-box1.p0.y)));
+	corner2 = rangelimit(corner2, 0., 0.5*MINN(fabs(box2.p1.x-box2.p0.x), fabs(box2.p1.y-box2.p0.y)));
+
+	// Edges far off screen are brought closer so the fixed point coordinates can't overflow, far enough that no pixel on screen changes
+	double m1 = corner1 + grad + 8.*radius + 2., m2 = corner2 + grad + 8.*radius + 2.;
+	box1.p0 = xy(rangelimit(box1.p0.x, -m1, fb->w + m1), rangelimit(box1.p0.y, -m1, fb->h + m1));
+	box1.p1 = xy(rangelimit(box1.p1.x, -m1, fb->w + m1), rangelimit(box1.p1.y, -m1, fb->h + m1));
+	box2.p0 = xy(rangelimit(box2.p0.x, -m2, fb->w + m2), rangelimit(box2.p0.y, -m2, fb->h + m2));
+	box2.p1 = xy(rangelimit(box2.p1.x, -m2, fb->w + m2), rangelimit(box2.p1.y, -m2, fb->h + m2));
 
 	iradf = roundaway(1./radius * fpratio);
 	x1f = roundaway((box1.p0.x+corner1) * fpratio);
@@ -523,8 +544,9 @@ void draw_roundrect_frame(rect_t box1, rect_t box2, double corner1, double corne
 			fbi = iy*fb->w+ix;
 
 			ixf = ix << fp;
-			dout = (int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, corner1f, ixf, iyf) * iradf >> fp;
-			din = (int64_t) get_dist_to_roundrect(x3f, y3f, x4f, y4f, corner2f, ixf, iyf) * iradf >> fp;
+			// Distances in antialiasing radii, clamped since erfr saturates long before and the inside can be far from the edge
+			dout = rangelimit_i64((int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, corner1f, ixf, iyf) * iradf >> fp, -(8<<fp), 8<<fp);
+			din = rangelimit_i64((int64_t) get_dist_to_roundrect(x3f, y3f, x4f, y4f, corner2f, ixf, iyf) * iradf >> fp, -(8<<fp), 8<<fp);
 			p = fperfr_d0(-dout) - fperfr_d0(-din) >> 15;
 			p = p * ratio >> 15;
 

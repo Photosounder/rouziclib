@@ -258,13 +258,28 @@ void mousecursor_logic_and_draw()
 	#endif
 
 	#ifdef WAHE_MODULE
-	if (mouse.warp != mouse.warp_prev)
+	// The mouse is captured while warping (like a knob being dragged) and while in zoom mode, as SDL builds do above
+	static int wahe_grabbed = 0;
+	static xy_t wahe_grab_pos;
+	int wahe_want_grab = mouse.warp || mouse.zoom_flag;
+	if (wahe_want_grab != wahe_grabbed)
 	{
 		// SDLwindow's commands, it hides the cursor while grabbed and puts it back where it was on release
-		if (mouse.warp)
+		if (wahe_want_grab)
+		{
+			wahe_grab_pos = mouse.a;
 			free(wahe_run_command("Mouse grab"));
+		}
 		else
+		{
 			free(wahe_run_command("Mouse release"));
+
+			// The cursor is back where it was grabbed, so the position is too (leaving the zoom mode would otherwise leave it at the centre where zoom_toggle() put it)
+			mouse.a = wahe_grab_pos;
+			mouse.u = to_world_coord_xy(mouse.a);
+			mouse.b.orig = mouse.u;
+		}
+		wahe_grabbed = wahe_want_grab;
 	}
 	#endif
 
