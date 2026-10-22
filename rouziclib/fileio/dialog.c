@@ -90,13 +90,23 @@ char *save_file_dialog(const char *filter)		// the filter must use \1 instead of
 #if !defined(__APPLE__) && !(defined(_WIN32) && !defined(RL_FREESTANDING))
 char *open_file_dialog(const char *filter)
 {
+	#ifdef WAHE_MODULE
+	// Request a host-owned dialog instead of opening a private application window
+	return wahe_rl_file_dialog(filter, 0);
+	#else
 	fprintf_rl(stderr, "open_file_dialog() not implemented on this platform\n");
 	return NULL;
+	#endif
 }
 
 char *save_file_dialog(const char *filter)
 {
+	#ifdef WAHE_MODULE
+	// Keep file destination selection under the native provider's ownership
+	return wahe_rl_file_dialog(filter, 1);
+	#else
 	fprintf_rl(stderr, "save_file_dialog() not implemented on this platform\n");
 	return NULL;
+	#endif
 }
 #endif

@@ -1,5 +1,9 @@
 #ifndef RL_EXCL_THREADING
 
+#ifdef RL_WAHE_THREADS
+#include "../wahe/threading.c"
+#else
+
 #if defined(__EMSCRIPTEN__)
 #define RL_THREADING_PLATFORM_FAKING
 #define __APPLE__
@@ -359,6 +363,8 @@ int32_t rl_atomic_get_and_set(volatile int32_t *ptr, int32_t new_value)
 #ifdef RL_THREADING_PLATFORM_FAKING
 #undef __APPLE__
 #endif
+
+#endif // RL_WAHE_THREADS
 
 #else	// RL_EXCL_THREADING
 

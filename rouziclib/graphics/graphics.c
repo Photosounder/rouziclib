@@ -81,7 +81,7 @@ void blank_raster(raster_t *r, const int set_alpha_to_1)
 	if (r->f)	memset(r->f, 0, pix_count*sizeof(frgb_t));
 	if (r->srgb)	memset(r->srgb, 0, pix_count*sizeof(srgb_t));
 	if (r->sq)	memset(r->sq, 0, pix_count*sizeof(sqrgb_t));
-	if (r->buf)	memset(r->sq, 0, r->buf_size);
+	if (r->buf)	memset(r->buf, 0, r->buf_size);
 
 	if (set_alpha_to_1)
 	{

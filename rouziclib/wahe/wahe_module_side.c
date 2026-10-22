@@ -8,6 +8,33 @@ void wahe_rl_input_init(void)
 	zc = init_zoom(&mouse, drawing_thickness);
 }
 
+#ifdef WAHE_MODULE
+char *wahe_rl_file_dialog(const char *filter, int save)
+{
+	// Convert paired native filter fields into the host's line-based dialog protocol
+	buffer_t command = {0};
+	bufprintf(&command, "%s file dialog\n", save ? "Save" : "Open");
+	for (const char *description = filter; description && *description;)
+	{
+		// Keep each description paired with its following extension list
+		const char *separator = strchr(description, '\1');
+		if (!separator) break;
+		const char *extensions = separator + 1;
+		const char *end = strchr(extensions, '\1');
+		if (!end) break;
+		bufprintf(&command, "%.*s: ", (int) (separator - description), description);
+		for (const char *p = extensions; p < end; p++)
+			if (*p != '*' || p + 1 == end || p[1] != '.')
+				bufwrite(&command, (const uint8_t[]) { *p == ';' ? ' ' : *p }, 1);
+		bufprintf(&command, "\n");
+		description = end + 1;
+	}
+	char *path = wahe_run_command(command.buf);
+	free_buf(&command);
+	return path;
+}
+#endif
+
 void wahe_rl_input_deinit(void)
 {
 	// Release input bookkeeping without owning active editors or framebuffers
@@ -28,6 +55,14 @@ void wahe_rl_frame_begin(framebuffer_t *target)
 	fb = target;
 	calc_screen_limits(&zc);
 	textedit_add(cur_textedit, NULL);
+
+	// Enter warp mode once a control that asked for it (like a knob being dragged) sees movement, as sdl_update_mouse() does, mousecursor_logic_and_draw() then asks the window module to grab the mouse
+	if (mouse.warp_if_move && is0_xy(mouse.d)==0)
+	{
+		mouse.showcursor = -1;
+		mouse.warp = 1;
+	}
+
 	mouse_post_event_proc(&mouse, &zc);
 }
 
@@ -81,6 +116,8 @@ int wahe_rl_get_scancode_by_key_name(const char *name)
 			return keys[i].scancode;
 	return -1;
 }
+
+static int wahe_rl_relative_stream = 0;	// set once the window module has sent a Mouse delta
 
 const char *wahe_rl_parse_inputs(const char *line, int *received_input)
 {
@@ -161,14 +198,23 @@ const char *wahe_rl_parse_inputs(const char *line, int *received_input)
 		}
 		else
 		{
+			// Motion is measured from the last received position, which differs from mouse.a while warping
+			static xy_t last_pos;
 			if (mouse.position_received && mouse.mouse_focus_flag >= 0)
-				mouse.d_absolute = add_xy(mouse.d_absolute, sub_xy(pos, mouse.a));
-			mouse.a = pos;
+				mouse.d_absolute = add_xy(mouse.d_absolute, sub_xy(pos, last_pos));
+			last_pos = pos;
 			mouse.position_received = 1;
 			mouse.mouse_focus_flag = mouse.window_focus_flag = 1;
-			if (zc.scrscale > 0.) mouse.u = wc_xy(pos);
+
+			// While warping the position stays where it was and only the motion counts, as in sdl_update_mouse()
+			if (mouse.warp == 0)
+			{
+				mouse.a = pos;
+				if (zc.scrscale > 0.) mouse.u = wc_xy(pos);
+			}
 		}
-		mouse.d = mouse.d_relative_received ? mouse.d_relative : mouse.d_absolute;
+		// Once the window module has shown it sends raw deltas, motion only ever comes from them, never from position changes (which can be jumps, like the cursor being recentred when the mouse is grabbed)
+		mouse.d = (mouse.d_relative_received || wahe_rl_relative_stream) ? mouse.d_relative : mouse.d_absolute;
 		if (received_input) *received_input = 1;
 		return next;
 	}
@@ -176,6 +222,7 @@ const char *wahe_rl_parse_inputs(const char *line, int *received_input)
 	{
 		mouse.d_relative = add_xy(mouse.d_relative, pos);
 		mouse.d_relative_received = 1;
+		wahe_rl_relative_stream = 1;
 		mouse.d = mouse.d_relative;
 		if (received_input) *received_input = 1;
 		return next;
@@ -212,6 +259,15 @@ const char *wahe_rl_parse_inputs(const char *line, int *received_input)
 			if (!strcmp(button, "middle")) mouse_button_event(&mouse.b.mmb, &mouse.b.mmf, way);
 			if (!strcmp(button, "right")) mouse_button_event(&mouse.b.rmb, &mouse.b.rmf, way);
 		}
+		if (received_input) *received_input = 1;
+		return next;
+	}
+
+	// The window module's click count for the last press (2 for a double click), as SDL builds get from SDL's button events
+	int clicks;
+	if (sscanf(line, "Mouse click count %d", &clicks) == 1)
+	{
+		mouse.b.clicks = clicks;
 		if (received_input) *received_input = 1;
 		return next;
 	}

@@ -260,10 +260,11 @@ void mousecursor_logic_and_draw()
 	#ifdef WAHE_MODULE
 	if (mouse.warp != mouse.warp_prev)
 	{
+		// SDLwindow's commands, it hides the cursor while grabbed and puts it back where it was on release
 		if (mouse.warp)
-			wahe_run_command("Mouse capture");
+			free(wahe_run_command("Mouse grab"));
 		else
-			wahe_run_command("Mouse release");
+			free(wahe_run_command("Mouse release"));
 	}
 	#endif
 

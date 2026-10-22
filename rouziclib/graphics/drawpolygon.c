@@ -133,6 +133,101 @@ float eval_polygon_at_pos(xy_t *p, int p_count, double radius, xy_t pos)
 	return weight;
 }
 
+#define POLYGON_FAR 3.25	// in blur radii, an edge further than this changes a pixel's weight by less than 0.5*erfc(3.25) = 2e-6
+
+typedef struct
+{
+	xy_t p0;		// a point on the edge's line
+	double nx, ny;		// unit normal pointing inside, so the signed distance is positive inside
+} polygon_line_t;
+
+static int polygon_prepare_lines(const xy_t *pl, int p_count, polygon_line_t *line)
+{
+	int i, pos=0, neg=0;
+	double area = 0.;
+
+	// Only convex polygons can use the shortcuts, find if all turns go the same way
+	for (i=0; i < p_count; i++)
+	{
+		xy_t p0 = pl[(i+p_count-1) % p_count], p1 = pl[i], p2 = pl[(i+1) % p_count];
+		double turn = (p1.x-p0.x)*(p2.y-p1.y) - (p1.y-p0.y)*(p2.x-p1.x);
+		pos += turn > 0.;
+		neg += turn < 0.;
+		area += p0.x*p1.y - p1.x*p0.y;
+	}
+	if ((pos && neg) || area == 0.)
+		return 0;
+
+	// Each edge's line with its normal pointing inside, in the same order as the edges of the exact calculation
+	for (i=0; i < p_count; i++)
+	{
+		xy_t p0 = pl[(i+p_count-1) % p_count], p1 = pl[i];
+		double ex = p1.x - p0.x, ey = p1.y - p0.y, len = sqrt(ex*ex + ey*ey);
+		if (len < 1e-9)
+			return 0;
+		double s = (area > 0. ? 1. : -1.) / len;
+		line[i].p0 = p0;
+		line[i].nx = -ey * s;
+		line[i].ny = ex * s;
+	}
+
+	return 1;
+}
+
+static float polygon_pixel_weight(const xy_t *pl, int p_count, const polygon_line_t *line, float wsign, xy_t pf)
+{
+	int i;
+	xyf_t p0, p1;
+
+	// Shortcuts for convex polygons: outside an edge by more than POLYGON_FAR gives 0, inside every edge by more than that gives 1, and with only one edge in reach the weight is erfr of the distance to it (the blurred half-plane)
+	if (line)
+	{
+		int n_near = 0;
+		double s_near = 0.;
+		for (i=0; i < p_count; i++)
+		{
+			double s = (pf.x - line[i].p0.x) * line[i].nx + (pf.y - line[i].p0.y) * line[i].ny;
+			if (s < -POLYGON_FAR)
+				return 0.f;
+			if (s < POLYGON_FAR)
+			{
+				n_near++;
+				s_near = s;
+			}
+		}
+
+		if (n_near == 0)
+			return wsign;
+		if (n_near == 1)
+			return wsign * erfr(s_near);
+	}
+
+	// Exact calculation, the weight for each subtriangle
+	float weight = 0.f;
+	p0 = xy_to_xyf(sub_xy(pl[p_count-1], pf));
+	for (i=0; i < p_count; i++)
+	{
+		p1 = xy_to_xyf(sub_xy(pl[i], pf));
+		weight += calc_subtriangle_pixel_weight(p0, p1);
+		p0 = p1;
+	}
+	return weight;
+}
+
+float eval_polygon_at_pos_fast(xy_t *p, int p_count, double radius, xy_t pos)
+{
+	// Same as eval_polygon_at_pos() but through the shortcuts used by draw_polygon_lrgb(), for testing
+	xy_t pl[16];
+	polygon_line_t line[16];
+	if (p_count > 16)
+		return eval_polygon_at_pos(p, p_count, radius, pos);
+	for (int i=0; i < p_count; i++)
+		pl[i] = mul_xy(p[i], set_xy(1./radius));
+	int convex = polygon_prepare_lines(pl, p_count, line);
+	float wsign = polygon_signed_area(pl, p_count) > 0. ? 1.f : -1.f;
+	return polygon_pixel_weight(pl, p_count, convex ? line : NULL, wsign, mul_xy(pos, set_xy(1./radius)));
+}
+
 void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {
 	int i;
@@ -140,7 +235,6 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, const
 	float rad, weight;
 	xyi_t ip;
 	xy_t pf;
-	xyf_t p0, p1;
 	static _Thread_local xy_t *pl=NULL;
 	static _Thread_local size_t pl_as=0;
 
@@ -164,6 +258,15 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, const
 	for (i=0; i < p_count; i++)
 		pl[i] = mul_xy(p[i], set_xy(rad));
 
+	// Edge lines for the shortcuts, and the sign the exact calculation gives inside (polygons wound the other way come out negative and draw nothing)
+	static _Thread_local polygon_line_t *line=NULL;
+	static _Thread_local size_t line_as=0;
+	alloc_enough(&line, p_count, &line_as, sizeof(polygon_line_t), 1.0);
+	int convex = polygon_prepare_lines(pl, p_count, line);
+	float wsign = polygon_signed_area(pl, p_count) > 0. ? 1.f : -1.f;
+	if (wsign < 0.f && convex)
+		return;
+
 	// Go through all pixels
 	for (ip.y=bbi.p0.y; ip.y < bbi.p1.y; ip.y++)
 	{
@@ -173,15 +276,9 @@ void draw_polygon_lrgb(xy_t *p, int p_count, double radius, lrgb_t colour, const
 		{
 			pf.x = ip.x * rad;
 
-			// Calculate weight for each subtriangle
-			weight = 0.f;
-			p0 = xy_to_xyf(sub_xy(pl[p_count-1], pf));
-			for (i=0; i < p_count; i++)
-			{
-				p1 = xy_to_xyf(sub_xy(pl[i], pf));
-				weight += calc_subtriangle_pixel_weight(p0, p1);
-				p0 = p1;
-			}
+			weight = polygon_pixel_weight(pl, p_count, convex ? line : NULL, wsign, pf);
+			if (weight <= 0.f)
+				continue;
 
 			weight = MAXN(0.f, weight);
 			weight *= (float) intensity;

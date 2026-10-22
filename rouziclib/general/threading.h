@@ -37,7 +37,11 @@ extern int rl_thread_detach(rl_thread_t thread);
 extern void rl_thread_set_priority_low();
 
 // Semaphores
-#ifdef _WIN32
+#ifdef RL_WAHE_THREADS
+#include <wahe_imports.h>
+#include <wahe_utils.h>
+typedef wahe_semaphore_t rl_sem_t;
+#elif defined(_WIN32)
 typedef void *rl_sem_t; // HANDLE
 #elif defined(NOT_WINDOWS)
 typedef sem_t rl_sem_t;

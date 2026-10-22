@@ -1,4 +1,4 @@
-#ifndef WAHE_MODULE
+#if !defined(WAHE_MODULE) || defined(RL_WAHE_FILE_PREFS)
 
 pref_file_t pref_def={0};
 rl_mutex_t pref_save_mutex={0};
