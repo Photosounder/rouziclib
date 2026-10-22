@@ -941,6 +941,8 @@ void free_font(vector_font_t *font)
 	{
 		free_vobj(font->l[i].obj);
 		free(font->l[i].tri_mesh.tri);
+		free(font->l[i].outline.p);
+		free(font->l[i].outline.cont_start);
 		free(font->l[i].glyphdata);
 	}
 

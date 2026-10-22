@@ -1,5 +1,18 @@
 const _Thread_local blend_func_t vector_font_blending_mode = blend_add;
 
+static void draw_glyph_outline(contours_t *c, xy_t pos, double scale, double line_thick, col_t colour)
+{
+	static _Thread_local xy_t *p=NULL;
+	static _Thread_local size_t p_as=0;
+	int p_count = c->cont_start[c->cont_count];
+
+	// Place the outline the way draw_vobj_tri() places the mesh, then draw it in one pass
+	alloc_enough(&p, p_count, &p_as, sizeof(xy_t), 1.5);
+	for (int i=0; i < p_count; i++)
+		p[i] = add_xy(neg_y(mul_xy(c->p[i], set_xy(scale))), pos);
+	draw_contours(p, c->cont_start, c->cont_count, line_thick, colour, blend_add, 1.);
+}
+
 int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t col_thin, col_t col_poly, double line_thick, const int mode, const int bidi)
 {
 	letter_t *l;
@@ -38,7 +51,9 @@ int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double s
 			else
 				draw_vobj(l->obj, pos, scale, 0., line_thick, col_thin);
 		else
-			if (l->polynomial_grid.cell && font->use_mesh == 0)
+			if (l->outline.cont_count && font->use_outline && fb->use_drawq == 0 && fb->r.use_frgb == 0)
+				draw_glyph_outline(&l->outline, pos, scale, line_thick, col_poly);
+			else if (l->polynomial_grid.cell && font->use_mesh == 0)
 				draw_polynomial_grid(&l->polynomial_grid, pos, scale, 0., col_poly, vector_font_blending_mode);
 			else
 				draw_vobj_tri(l->tri_mesh, pos, scale, 0., line_thick, col_poly);

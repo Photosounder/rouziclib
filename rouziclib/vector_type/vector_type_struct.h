@@ -19,9 +19,17 @@ typedef struct
 
 typedef struct
 {
+	xy_t *p;		// points of all the contours one after another, each contour closed implicitly
+	int *cont_start;	// index of each contour's first point, plus a last entry for the total point count
+	int cont_count;
+} contours_t;
+
+typedef struct
+{
 	uint32_t codepoint, alias;
 	vobj_t *obj;
 	vobj_tri_t tri_mesh;
+	contours_t outline;	// the flattened outline the mesh was made from, drawn directly when use_outline is set
 	polynomial_grid_t polynomial_grid;
 	float bl, br, bb, bt;	// bounds to the left and right, bottom and top
 	float width;
@@ -37,6 +45,7 @@ typedef struct
 
 	double letter_spacing, line_vspacing;
 	int8_t use_mesh;		// toggled to use the triangle mesh instead of the polynomial grid when both are present
+	int8_t use_outline;		// draws glyphs from their outlines when present, same result as the mesh but faster
 
 	int32_t *cjkdec_pos, *cjkdec_data;
 	int cjkdec_data_count, cjkdec_alloc_count;

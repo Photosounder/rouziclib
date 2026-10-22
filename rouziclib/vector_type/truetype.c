@@ -81,6 +81,25 @@ vector_font_t *load_truetype_font_as_triangles(const uint8_t *data, size_t size,
 
 					ttf_free_mesh(m);
 
+					// Keep the flattened outline the mesh was made from (ttf_glyph2mesh() clamps the quality the same way), for drawing it directly
+					ttf_outline_t *o = ttf_linear_outline(g, MINN(MAXN(quality, 8), 128));
+					if (o)
+					{
+						contours_t *c = &l->outline;
+						c->cont_count = o->ncontours;
+						c->cont_start = calloc(o->ncontours+1, sizeof(int));
+						c->p = calloc(o->total_points, sizeof(xy_t));
+						int ip = 0;
+						for (int ic=0; ic < o->ncontours; ic++)
+						{
+							c->cont_start[ic] = ip;
+							for (int k=0; k < o->cont[ic].length; k++)
+								c->p[ip++] = mul_xy(xy(o->cont[ic].pt[k].x, o->cont[ic].pt[k].y), set_xy(scale));
+						}
+						c->cont_start[o->ncontours] = ip;
+						ttf_free_outline(o);
+					}
+
 					// Calculate mesh bounds
 					l->tri_mesh.bound.p0 = l->tri_mesh.tri_bound[0].p0;
 					l->tri_mesh.bound.p1 = l->tri_mesh.tri_bound[0].p1;
