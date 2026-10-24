@@ -937,6 +937,9 @@ void free_font(vector_font_t *font)
 	if (font==NULL)
 		return ;
 
+	// Cached glyphs refer to the outlines freed here
+	glyph_cache_clear();
+
 	for (i=0; i<font->letter_count; i++)
 	{
 		free_vobj(font->l[i].obj);

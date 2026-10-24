@@ -1029,6 +1029,17 @@ int sdl_graphics_set_drawq_mode(int mode)
 	return 0;
 }
 
+static void sdl_graphics_set_default_output_transfer()
+{
+	// SDL apps use the zero-initialised global framebuffer, which would otherwise mean sRGB output, so apply the same platform default as init_framebuffer()
+	// An app that wants sRGB output on these platforms sets fb->output_transfer after initialisation
+#ifdef __APPLE__
+	fb->output_transfer = FB_OUTPUT_SRGB;
+#else
+	fb->output_transfer = FB_OUTPUT_GAMMA;
+#endif
+}
+
 void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 {
 	SDL_Window *temp_window;
@@ -1044,6 +1055,7 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 		fb->pixel_scale = 1;
 	sdl_graphics_texture_format = SDL_PIXELFORMAT_RGBA32;
 	sdl_graphics_srgb_order = ORDER_RGBA;
+	sdl_graphics_set_default_output_transfer();
 
 	// Create a temporary window with the selected presentation API
 	int temp_flags = (int) sdl_graphics_window_flags_for_mode(flags, fb->use_drawq);
@@ -1159,6 +1171,7 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 		fb->pixel_scale = 1;
 	sdl_graphics_texture_format = SDL_PIXELFORMAT_ARGB8888;
 	sdl_graphics_srgb_order = ORDER_BGRA;
+	sdl_graphics_set_default_output_transfer();
 	fb->w = dim.x;
 	fb->h = dim.y;
 

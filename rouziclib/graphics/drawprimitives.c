@@ -448,6 +448,36 @@ int32_t get_dist_to_roundrect(int32_t lx1, int32_t ly1, int32_t lx2, int32_t ly2
 	return d;
 }
 
+static int roundrect_row_span(double lx1, double ly1, double lx2, double ly2, double corner, double e, double y, int32_t xmin, int32_t xmax, int32_t *s0, int32_t *s1)
+{
+	double lo, hi, r = corner + e;
+
+	// Span of the pixels on row y whose signed distance to the rounded rectangle (the lesser rectangle lx1-lx2 x ly1-ly2 with a corner radius) is at most e, negative e being inside
+	if (r >= 0.)
+	{
+		// Within r of the lesser rectangle, a rounded rectangle again
+		double dy = MAXN(0., MAXN(ly1 - y, y - ly2));
+		if (dy > r)
+			return 0;
+		double half = sqrt(r*r - dy*dy);
+		lo = lx1 - half;
+		hi = lx2 + half;
+	}
+	else
+	{
+		// More than -r inside the lesser rectangle, a plain rectangle
+		if (y < ly1 - r || y > ly2 + r)
+			return 0;
+		lo = lx1 - r;
+		hi = lx2 + r;
+	}
+
+	// Pixels in that span, clipped to xmin-xmax
+	*s0 = MAXN(xmin, (int32_t) ceil(lo));
+	*s1 = MINN(xmax, (int32_t) floor(hi));
+	return *s0 <= *s1;
+}
+
 void draw_roundrect(rect_t box, double corner, double radius, lrgb_t colour, const blend_func_t bf, double intensity)
 {	// The corner radius size must be greater than the full radius of the antialiasing (grad) which would be 0.8*2.9 = 2.32 px
 	double grad = GAUSSRAD(intensity, radius);
@@ -478,13 +508,34 @@ void draw_roundrect(rect_t box, double corner, double radius, lrgb_t colour, con
 	rboundx = (int32_t) rangelimit(floor (box.p1.x + grad), 0., (double) (fb->w-1));
 	rboundy = (int32_t) rangelimit(floor (box.p1.y + grad), 0., (double) (fb->h-1));
 
+	// erfr saturates 4 antialiasing radii from the edge, a pixel more covers the rounding of the fixed point distances
+	const double reach = 4.*radius + 1.;
+	const double lx1 = box.p0.x+corner, ly1 = box.p0.y+corner, lx2 = box.p1.x-corner, ly2 = box.p1.y-corner;
+
 	for (iy=lboundy; iy<=rboundy; iy++)
 	{
+		int32_t c0, c1, i0, i1;
+
+		// Pixels further out than that are left alone, pixels further in get the full intensity without computing their distance
+		if (roundrect_row_span(lx1, ly1, lx2, ly2, corner, reach, iy, lboundx, rboundx, &c0, &c1) == 0)
+			continue;
+		if (roundrect_row_span(lx1, ly1, lx2, ly2, corner, -reach, iy, c0, c1, &i0, &i1) == 0)
+		{
+			i0 = 1;
+			i1 = 0;
+		}
+
 		iyf = iy << fp;
 
-		for (ix=lboundx; ix<=rboundx; ix++)
+		for (ix=c0; ix<=c1; ix++)
 		{
 			fbi = iy*fb->w+ix;
+
+			if (ix >= i0 && ix <= i1)
+			{
+				bf(&fb->r.l[fbi], colour, ratio);
+				continue;
+			}
 
 			ixf = ix << fp;
 			// Distances in antialiasing radii, clamped since erfr saturates long before and the inside can be far from the edge
@@ -535,19 +586,61 @@ void draw_roundrect_frame(rect_t box1, rect_t box2, double corner1, double corne
 	rboundx = (int32_t) rangelimit(floor (box1.p1.x + grad), 0., (double) (fb->w-1));
 	rboundy = (int32_t) rangelimit(floor (box1.p1.y + grad), 0., (double) (fb->h-1));
 
+	// erfr saturates 4 antialiasing radii from an edge, a pixel more covers the rounding of the fixed point distances
+	const double reach = 4.*radius + 1.;
+	const double lx1 = box1.p0.x+corner1, ly1 = box1.p0.y+corner1, lx2 = box1.p1.x-corner1, ly2 = box1.p1.y-corner1;
+	const double lx3 = box2.p0.x+corner2, ly3 = box2.p0.y+corner2, lx4 = box2.p1.x-corner2, ly4 = box2.p1.y-corner2;
+
 	for (iy=lboundy; iy<=rboundy; iy++)
 	{
+		int32_t c0, c1, o0, o1, e0, e1, f0, f1, s0, s1, pout, pin;
+
+		// Pixels further out than the outer edge's reach are left alone
+		if (roundrect_row_span(lx1, ly1, lx2, ly2, corner1, reach, iy, lboundx, rboundx, &c0, &c1) == 0)
+			continue;
+
+		// Spans where the outer coverage is full, where the inner coverage isn't zero and where it's full (empty spans have their start after their end)
+		if (roundrect_row_span(lx1, ly1, lx2, ly2, corner1, -reach, iy, c0, c1, &o0, &o1) == 0)	{ o0 = 1; o1 = 0; }
+		if (roundrect_row_span(lx3, ly3, lx4, ly4, corner2, reach, iy, c0, c1, &e0, &e1) == 0)	{ e0 = 1; e1 = 0; }
+		if (roundrect_row_span(lx3, ly3, lx4, ly4, corner2, -reach, iy, c0, c1, &f0, &f1) == 0)	{ f0 = 1; f1 = 0; }
+
+		// Where both are full the frame is empty, that part of the row is skipped
+		s0 = MAXN(o0, f0);
+		s1 = MINN(o1, f1);
+
 		iyf = iy << fp;
 
-		for (ix=lboundx; ix<=rboundx; ix++)
+		for (ix=c0; ix<=c1; ix++)
 		{
-			fbi = iy*fb->w+ix;
+			if (ix == s0 && s0 <= s1)
+			{
+				ix = s1;
+				continue;
+			}
 
+			fbi = iy*fb->w+ix;
 			ixf = ix << fp;
-			// Distances in antialiasing radii, clamped since erfr saturates long before and the inside can be far from the edge
-			dout = rangelimit_i64((int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, corner1f, ixf, iyf) * iradf >> fp, -(8<<fp), 8<<fp);
-			din = rangelimit_i64((int64_t) get_dist_to_roundrect(x3f, y3f, x4f, y4f, corner2f, ixf, iyf) * iradf >> fp, -(8<<fp), 8<<fp);
-			p = fperfr_d0(-dout) - fperfr_d0(-din) >> 15;
+
+			// Coverages from the distances in antialiasing radii, clamped since erfr saturates long before and the inside can be far from the edge, only computed where they don't saturate
+			if (ix >= o0 && ix <= o1)
+				pout = 1<<30;
+			else
+			{
+				dout = rangelimit_i64((int64_t) get_dist_to_roundrect(x1f, y1f, x2f, y2f, corner1f, ixf, iyf) * iradf >> fp, -(8<<fp), 8<<fp);
+				pout = fperfr_d0(-dout);
+			}
+
+			if (ix < e0 || ix > e1)
+				pin = 0;
+			else if (ix >= f0 && ix <= f1)
+				pin = 1<<30;
+			else
+			{
+				din = rangelimit_i64((int64_t) get_dist_to_roundrect(x3f, y3f, x4f, y4f, corner2f, ixf, iyf) * iradf >> fp, -(8<<fp), 8<<fp);
+				pin = fperfr_d0(-din);
+			}
+
+			p = pout - pin >> 15;
 			p = p * ratio >> 15;
 
 			bf(&fb->r.l[fbi], colour, p);

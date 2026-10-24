@@ -1,16 +1,162 @@
 const _Thread_local blend_func_t vector_font_blending_mode = blend_add;
 
+// Glyph coverage cache: an outline glyph at a given size, antialiasing radius and position within the pixel (rounded to 1/64 px) is drawn once into a coverage map,
+// which keeps the coverage draw_contours_lrgb() hands to the blending function for each pixel, and is then blended from that map, giving the same pixels as drawing it each time
+#define GLYPH_CACHE_SLOTS	4096		// power of 2, the cache starts over when 3/4 full
+#define GLYPH_CACHE_MAX_AREA	65536		// larger glyphs (when zoomed in) are drawn directly
+#define GLYPH_CACHE_MAX_BYTES	(32<<20)	// the cache starts over beyond this
+#ifndef CONTOURS_FAR
+#define CONTOURS_FAR 3.25
+#endif
+
+typedef struct
+{
+	contours_t *c;		// key: the glyph's outline, its scale, the antialiasing radius and the position within the pixel in 64ths
+	double scale, radius;
+	int fx, fy;
+	int x0, y0, w, h;	// the coverage map's offset from the glyph's whole pixel position, and its size
+	uint16_t *cov;		// coverage (1.15 format) for each pixel, 0 where nothing is drawn
+} glyph_cache_entry_t;
+
+static _Thread_local glyph_cache_entry_t *glyph_cache = NULL;
+static _Thread_local size_t glyph_cache_count = 0, glyph_cache_bytes = 0;
+
+void glyph_cache_clear(void)
+{
+	// Forget every cached glyph, needed when a font is freed as its outlines' addresses could be reused
+	if (glyph_cache)
+		for (size_t i=0; i < GLYPH_CACHE_SLOTS; i++)
+			free(glyph_cache[i].cov);
+	free(glyph_cache);
+	glyph_cache = NULL;
+	glyph_cache_count = glyph_cache_bytes = 0;
+}
+
+static void blend_capture_coverage(lrgb_t *bg, lrgb_t fg, int32_t p)
+{
+	// Keeps the coverage handed to the blending function instead of blending
+	bg->r = p;
+}
+
+static size_t glyph_cache_slot(contours_t *c, double scale, double radius, int fx, int fy)
+{
+	// Hash of the key
+	uint64_t h = (uint64_t) (size_t) c * 0x9E3779B97F4A7C15ULL;
+	h ^= double_as_u64(scale) + 0x632BE59BD9B4E019ULL + (h << 6) + (h >> 2);
+	h ^= double_as_u64(radius) + 0x85EBCA77C2B2AE63ULL + (h << 6) + (h >> 2);
+	h ^= (uint64_t) (fx * 64 + fy) * 0xC2B2AE3D27D4EB4FULL;
+	return (h ^ (h >> 29)) & (GLYPH_CACHE_SLOTS-1);
+}
+
 static void draw_glyph_outline(contours_t *c, xy_t pos, double scale, double line_thick, col_t colour)
 {
 	static _Thread_local xy_t *p=NULL;
-	static _Thread_local size_t p_as=0;
-	int p_count = c->cont_start[c->cont_count];
+	static _Thread_local lrgb_t *scratch_l=NULL;
+	static _Thread_local size_t p_as=0, scratch_as=0;
+	int i, p_count = c->cont_start[c->cont_count];
+	double radius, margin;
+	rect_t ext;
 
-	// Place the outline the way draw_vobj_tri() places the mesh, then draw it in one pass
-	alloc_enough(&p, p_count, &p_as, sizeof(xy_t), 1.5);
-	for (int i=0; i < p_count; i++)
-		p[i] = add_xy(neg_y(mul_xy(c->p[i], set_xy(scale))), pos);
-	draw_contours(p, c->cont_start, c->cont_count, line_thick, colour, blend_add, 1.);
+	if (fb->discard || p_count < 3)
+		return;
+
+	// The glyph's extent around its position, its outline placed the way draw_vobj_tri() places the mesh (y going down), plus the antialiasing's reach, as draw_contours() would use them
+	radius = drawing_focus_adjust(focus_rlg, line_thick, NULL, 0);
+	margin = CONTOURS_FAR * radius;
+	ext.p0 = ext.p1 = neg_y(mul_xy(c->p[0], set_xy(scale)));
+	for (i=1; i < p_count; i++)
+	{
+		xy_t q = neg_y(mul_xy(c->p[i], set_xy(scale)));
+		ext.p0 = min_xy(ext.p0, q);
+		ext.p1 = max_xy(ext.p1, q);
+	}
+	ext = rect_add_margin(ext, set_xy(margin));
+
+	// Nothing to do off screen
+	if (pos.x + ext.p1.x < 0. || pos.y + ext.p1.y < 0. || pos.x + ext.p0.x > fb->w || pos.y + ext.p0.y > fb->h)
+		return;
+
+	// Large glyphs are drawn directly at their exact position
+	if ((ext.p1.x - ext.p0.x + 4.) * (ext.p1.y - ext.p0.y + 4.) > GLYPH_CACHE_MAX_AREA)
+	{
+		alloc_enough(&p, p_count, &p_as, sizeof(xy_t), 1.5);
+		for (i=0; i < p_count; i++)
+			p[i] = add_xy(neg_y(mul_xy(c->p[i], set_xy(scale))), pos);
+		draw_contours_lrgb(p, c->cont_start, c->cont_count, radius, col_to_lrgb(colour), blend_add, 1.);
+		return;
+	}
+
+	// Position split into whole pixels and 64ths of a pixel
+	double ox = floor(pos.x), oy = floor(pos.y);
+	int fx = nearbyint((pos.x - ox) * 64.), fy = nearbyint((pos.y - oy) * 64.);
+	if (fx == 64) { ox += 1.; fx = 0; }
+	if (fy == 64) { oy += 1.; fy = 0; }
+	xy_t sub = xy(fx / 64., fy / 64.);
+
+	// Look the glyph up, starting over when the cache is too full
+	if (glyph_cache == NULL || glyph_cache_count >= GLYPH_CACHE_SLOTS*3/4 || glyph_cache_bytes >= GLYPH_CACHE_MAX_BYTES)
+	{
+		glyph_cache_clear();
+		glyph_cache = calloc(GLYPH_CACHE_SLOTS, sizeof(glyph_cache_entry_t));
+	}
+	size_t slot = glyph_cache_slot(c, scale, radius, fx, fy);
+	glyph_cache_entry_t *e;
+	while (1)
+	{
+		e = &glyph_cache[slot];
+		if (e->c == NULL || (e->c == c && e->scale == scale && e->radius == radius && e->fx == fx && e->fy == fy))
+			break;
+		slot = (slot + 1) & (GLYPH_CACHE_SLOTS-1);
+	}
+
+	// A new glyph is drawn into a scratch framebuffer large enough to hold every pixel draw_contours_lrgb() visits, keeping the coverage of each
+	if (e->c == NULL)
+	{
+		e->c = c;
+		e->scale = scale;
+		e->radius = radius;
+		e->fx = fx;
+		e->fy = fy;
+		e->x0 = floor(sub.x + ext.p0.x) - 1;
+		e->y0 = floor(sub.y + ext.p0.y) - 1;
+		e->w = (int) ceil(sub.x + ext.p1.x) - e->x0 + 2;
+		e->h = (int) ceil(sub.y + ext.p1.y) - e->y0 + 2;
+		size_t n = (size_t) e->w * e->h;
+
+		alloc_enough(&scratch_l, n, &scratch_as, sizeof(lrgb_t), 1.5);
+		memset(scratch_l, 0, n * sizeof(lrgb_t));
+		alloc_enough(&p, p_count, &p_as, sizeof(xy_t), 1.5);
+		for (i=0; i < p_count; i++)
+			p[i] = add_xy(neg_y(mul_xy(c->p[i], set_xy(scale))), xy(sub.x - e->x0, sub.y - e->y0));
+
+		framebuffer_t scratch = *fb, *fb_saved = fb;
+		scratch.r.l = scratch_l;
+		scratch.r.dim = xyi(e->w, e->h);
+		scratch.w = e->w;
+		scratch.h = e->h;
+		fb = &scratch;
+		draw_contours_lrgb(p, c->cont_start, c->cont_count, radius, col_to_lrgb(colour), blend_capture_coverage, 1.);
+		fb = fb_saved;
+
+		e->cov = malloc(n * sizeof(uint16_t));
+		for (size_t k=0; k < n; k++)
+			e->cov[k] = scratch_l[k].r;
+		glyph_cache_count++;
+		glyph_cache_bytes += n * sizeof(uint16_t);
+	}
+
+	// Blend the coverage map on screen as draw_contours() would have
+	lrgb_t lc = col_to_lrgb(colour);
+	int bx = (int) ox + e->x0, by = (int) oy + e->y0;
+	int ix0 = MAXN(0, -bx), ix1 = MINN(e->w, fb->w - bx), iy0 = MAXN(0, -by), iy1 = MINN(e->h, fb->h - by);
+	for (int iy=iy0; iy < iy1; iy++)
+	{
+		uint16_t *cov = &e->cov[iy * e->w];
+		lrgb_t *row = &fb->r.l[(size_t) (by + iy) * fb->w + bx];
+		for (int ix=ix0; ix < ix1; ix++)
+			if (cov[ix])
+				blend_add(&row[ix], lc, cov[ix]);
+	}
 }
 
 int draw_vector_char(vector_font_t *font, uint32_t c, xy_t p, xy_t off, double scale, col_t col_thin, col_t col_poly, double line_thick, const int mode, const int bidi)
