@@ -132,19 +132,28 @@ static VkResult vk_ensure_host_buffer(vk_buffer_t *buffer, VkDeviceSize required
 	return vk_create_buffer(buffer, capacity, usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 1);
 }
 
-static int vk_device_has_swapchain(VkPhysicalDevice device)
+static int vk_has_extension(VkPhysicalDevice device, const char *name)
 {
 	uint32_t extension_count=0;
 	VkExtensionProperties *extensions;
 	int found=0;
 
-	// Enumerate device extensions and require the swapchain implementation
-	vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL);
+	// Inspect instance extensions when no physical device is supplied
+	VkResult ret = device ? vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL) :
+		vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
+	if (ret!=VK_SUCCESS || extension_count==0)
+		return 0;
 	extensions = calloc(extension_count, sizeof(*extensions));
-	vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, extensions);
-	for (uint32_t i=0; i < extension_count; i++)
-		if (strcmp(extensions[i].extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME)==0)
-			found=1;
+	if (!extensions)
+		return 0;
+
+	// Enable optional capabilities only after a complete successful enumeration
+	ret = device ? vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, extensions) :
+		vkEnumerateInstanceExtensionProperties(NULL, &extension_count, extensions);
+	if (ret==VK_SUCCESS)
+		for (uint32_t i=0; i < extension_count; i++)
+			if (strcmp(extensions[i].extensionName, name)==0)
+				found=1;
 	free(extensions);
 	return found;
 }
@@ -249,10 +258,13 @@ static VkResult vk_create_instance_surface()
 	unsigned extension_count=0;
 	const char **extensions;
 	#ifdef _WIN32
-	const char *win32_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+	const char *win32_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+		VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME };
 
-	// Enable the core and Win32 surface extensions for the persistent native window
-	extension_count = 2;
+	// Negotiate the instance dependencies for optional fullscreen-exclusive control
+	int fullscreen_control = vk_has_extension(VK_NULL_HANDLE, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) &&
+		vk_has_extension(VK_NULL_HANDLE, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+	extension_count = fullscreen_control ? 4 : 2;
 	extensions = win32_extensions;
 	#else
 	// Ask SDL for the platform surface extensions required by this window
@@ -315,7 +327,7 @@ static VkResult vk_select_device()
 		uint32_t queue_family;
 		uint32_t timestamp_valid_bits;
 		VkPhysicalDeviceProperties properties;
-		if (!vk_device_has_swapchain(devices[i]) || !vk_find_device_queue(devices[i], &queue_family, &timestamp_valid_bits))
+		if (!vk_has_extension(devices[i], VK_KHR_SWAPCHAIN_EXTENSION_NAME) || !vk_find_device_queue(devices[i], &queue_family, &timestamp_valid_bits))
 			continue;
 		vkGetPhysicalDeviceProperties(devices[i], &properties);
 		int score = properties.deviceType==VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ? 1000 : 0;
@@ -335,12 +347,27 @@ static VkResult vk_select_device()
 
 	// Create one ordered queue shared by compute, transfers, and presentation
 	float priority=1.f;
-	const char *extensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	const char *extensions[2] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	uint32_t extension_count=1;
+	#ifdef _WIN32
+	// Disallow driver-managed exclusive scanout when all extension dependencies are supported
+	int fullscreen_control = vkGetInstanceProcAddr(fb->vk.instance, "vkGetPhysicalDeviceProperties2KHR") &&
+		vkGetInstanceProcAddr(fb->vk.instance, "vkGetPhysicalDeviceSurfaceCapabilities2KHR") &&
+		vk_has_extension(fb->vk.gpu, VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
+	if (fullscreen_control)
+		extensions[extension_count++] = VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME;
+	#endif
 	VkDeviceQueueCreateInfo queue_info = { .sType=VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex=fb->vk.queue_family, .queueCount=1, .pQueuePriorities=&priority };
-	VkDeviceCreateInfo device_info = { .sType=VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, .queueCreateInfoCount=1, .pQueueCreateInfos=&queue_info, .enabledExtensionCount=1, .ppEnabledExtensionNames=extensions };
+	VkDeviceCreateInfo device_info = { .sType=VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, .queueCreateInfoCount=1, .pQueueCreateInfos=&queue_info, .enabledExtensionCount=extension_count, .ppEnabledExtensionNames=extensions };
 	ret = vkCreateDevice(fb->vk.gpu, &device_info, NULL, &fb->vk.device);
 	VK_ERR_RET("vkCreateDevice", ret);
 	vkGetDeviceQueue(fb->vk.device, fb->vk.queue_family, 0, &fb->vk.queue);
+
+	#ifdef _WIN32
+	// Report the negotiated policy once so fullscreen diagnostics do not flood the host
+	fprintf_rl(stdout, "Vulkan automatic fullscreen exclusive: %s\n",
+		fullscreen_control ? "disabled" : "driver default (extension unavailable)");
+	#endif
 
 	// Allocate resettable command buffers from one family-owned pool
 	VkCommandPoolCreateInfo pool_info = { .sType=VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .queueFamilyIndex=fb->vk.queue_family, .flags=VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
@@ -450,6 +477,13 @@ static VkResult vk_create_swapchain()
 
 	// Retire the previous chain only after its replacement has been created
 	VkSwapchainCreateInfoKHR swapchain_info = { .sType=VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, .surface=fb->vk.surface, .minImageCount=image_count, .imageFormat=selected_format.format, .imageColorSpace=selected_format.colorSpace, .imageExtent=fb->vk.swapchain_extent, .imageArrayLayers=1, .imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT, .imageSharingMode=VK_SHARING_MODE_EXCLUSIVE, .preTransform=capabilities.currentTransform, .compositeAlpha=composite_alpha, .presentMode=VK_PRESENT_MODE_FIFO_KHR, .clipped=VK_TRUE, .oldSwapchain=old_swapchain };
+	#ifdef _WIN32
+	// Keep borderless fullscreen from implicitly retaining exclusive ownership after Alt+Tab
+	VkSurfaceFullScreenExclusiveInfoEXT fullscreen_info = { .sType=VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
+		.fullScreenExclusive=VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT };
+	if (vkGetDeviceProcAddr(fb->vk.device, "vkAcquireFullScreenExclusiveModeEXT"))
+		swapchain_info.pNext = &fullscreen_info;
+	#endif
 	ret = vkCreateSwapchainKHR(fb->vk.device, &swapchain_info, NULL, &new_swapchain);
 	VK_ERR_RET("vkCreateSwapchainKHR", ret);
 	fb->vk.swapchain=new_swapchain;
