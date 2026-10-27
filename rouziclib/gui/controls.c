@@ -410,6 +410,9 @@ int ctrl_knob(double *v_orig, knob_t *knob, rect_t box, col_t colour)
 			t_off = t_rate;
 		}
 
+		// Mouse wheel steps (only with RL_KNOB_MOUSE_WHEEL)
+		t_off += knob->knob_state.wheel_delta;
+
 		if (knob->knob_state.rightclick && knob->edit_open==0)
 		{
 			knob->edit_open = 1;
@@ -564,7 +567,7 @@ skip_drawing:
 	if (v_orig)
 		*v_orig = v;
 
-	if ((knob->knob_state.uponce && v_downonce != v) || knob->knob_state.doubleclick || val_set_by_edit)	// the final value change when the mouse button is released
+	if ((knob->knob_state.uponce && v_downonce != v) || knob->knob_state.doubleclick || val_set_by_edit || knob->knob_state.wheel_delta)	// the final value change when the mouse button is released or the wheel turned
 		return 1;
 	if (knob->knob_state.down && t_off != 0.)					// an ongoing value change when the mouse button is held down
 		return 2;

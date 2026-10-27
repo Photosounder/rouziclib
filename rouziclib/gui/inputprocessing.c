@@ -250,6 +250,12 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box)
 	if (check_ctrl_id_rect(box)==0)
 		return state;
 
+	#ifdef RL_KNOB_MOUSE_WHEEL
+	// The mouse wheel moves a hovered knob by 1% of its range per notch (0.1% with Ctrl or Shift), except in zoom mode where the wheel zooms
+	if (mouse.b.wheel && mouse.zoom_flag==0 && check_point_within_box(mouse.u, box))
+		state.wheel_delta = (double) mouse.b.wheel * (mouse.mod_key[mouse_mod_ctrl] || mouse.mod_key[mouse_mod_shift] ? 0.001 : 0.01);
+	#endif
+
 	if (check_point_within_box(mouse.b.orig, box))	// check the click originated in the same box
 	{
 		if (mouse.b.clicks == 2)

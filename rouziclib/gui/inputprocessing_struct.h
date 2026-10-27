@@ -5,7 +5,7 @@ typedef struct
 
 typedef struct
 {
-	double vert_delta;
+	double vert_delta, wheel_delta;	// wheel_delta is in the knob's [0 , 1] range, only set with RL_KNOB_MOUSE_WHEEL
 	int down, downonce, uponce, doubleclick, rightclick;
 } ctrl_knob_state_t;
 

@@ -159,7 +159,8 @@
 
 	// Knob
 		// returns 2 if the value is being changed, 1 when the change is final
-		// knobf functions are knobf_linear, knobf_log, knobf_recip, knobf_dboff, knobf_logoff, knobf_tan
+		// knobf functions are knobf_linear, knobf_log, knobf_recip, knobf_dboff, knobf_logoff, knobf_tan, knobf_cubiclog, knobf_pow (arg[0] is the exponent)
+		// with RL_KNOB_MOUSE_WHEEL defined, the mouse wheel moves a hovered knob by 1% of its range per notch (0.1% with Ctrl or Shift) when zoom mode is off
 		static double value=NAN;
 		static knob_t value_knob={0};
 		if (value_knob.main_label==NULL)

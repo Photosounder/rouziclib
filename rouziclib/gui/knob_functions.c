@@ -110,6 +110,19 @@ double knobf_tan(double v, double min, double max, double *arg, const int mode)
 		return knobf_linear(atan(v*scale), atan(min*scale), atan(max*scale), NULL, mode);
 }
 
+double knobf_pow(double v, double min, double max, double *arg, const int mode)
+{
+	double shape = arg[0];
+
+	if (handle_knobf_edge_cases(knobf_pow, &v, min, max, mode))
+		return v;
+
+	if (mode==0)
+		return min + pow(v, shape) * (max-min);
+	else
+		return pow(rangelimit((v-min) / (max-min), 0., 1.), 1./shape);
+}
+
 double cubic_ramp_inverse(double x, double c3, double c1, double c0)
 {
 	// Inverse of f(x) = c3 x^3 + c1 x + c0 when c1 and c3 are positive
@@ -161,6 +174,7 @@ const char *knob_func_name[] =
 	"logoff",
 	"tan",
 	"cubiclog",
+	"pow",
 };
 
 const knob_func_t knob_func_array[] =
@@ -172,6 +186,7 @@ const knob_func_t knob_func_array[] =
 	knobf_logoff,
 	knobf_tan,
 	knobf_cubiclog,
+	knobf_pow,
 };
 
 const int knob_func_count = sizeof(knob_func_name)/sizeof(*knob_func_name);
