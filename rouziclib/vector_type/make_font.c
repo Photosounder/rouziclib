@@ -429,7 +429,7 @@ void process_glyphdata_core(vector_font_t *font, letter_t *l, char *p, glyphdata
 	group_start = l->pid_offset;
 	last_start = l->max_pid;
 
-	while (sscanf(p, "%[^\n]\n%n", line, &n) && strlen(p)>0)	// go through each line in glyphdata
+	while (sscanf(p, "%[^\n]\n%n", line, &n) && p[0])	// go through each line in glyphdata
 	{
 		a[0] = '\0';
 		sscanf(line, " %s", a);

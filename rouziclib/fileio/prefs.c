@@ -103,8 +103,9 @@ int pref_find_loc_depth(pref_file_t *pf, const char *loc, int depth, int start, 
 		return -1;						// if loc isn't that deep
 
 	// Find where the key is declared (start)
+	size_t key_len = strlen(key);
 	for (i=start; i < end; i++)
-		if (strncmp(pf->lines[i], key, strlen(key))==0)
+		if (strncmp(pf->lines[i], key, key_len)==0)
 		{
 			start_next = i;
 			break;

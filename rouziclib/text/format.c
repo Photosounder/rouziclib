@@ -373,7 +373,9 @@ char *text_to_multiline_c_literal(const char *text, const int linebreak_mode)	//
 			{
 				sprint_unicode(mb_char, cp0);
 
-				for (j=0; j < strlen(mb_char); j++)
+				// Measure the character's bytes once
+				size_t mb_len = strlen(mb_char);
+				for (j=0; j < mb_len; j++)
 					sprintf_realloc(&lit, &lit_as, 1, "\\%03o", mb_char[j]);
 			}
 		}
