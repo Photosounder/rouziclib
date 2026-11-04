@@ -52,6 +52,12 @@ void wahe_rl_frame_begin(framebuffer_t *target)
 {
 	// Refresh the target transform without resetting the view and process pending input
 	wahe_rl_input_init();
+
+	// Modifier flags from the forwarded key states, as sdl.c sets them from SDL_GetModState()
+	mouse.mod_key[mouse_mod_ctrl]  = get_kb_ctrl() > 0;
+	mouse.mod_key[mouse_mod_alt]   = get_kb_alt() > 0;
+	mouse.mod_key[mouse_mod_shift] = get_kb_shift() > 0;
+	mouse.mod_key[mouse_mod_gui]   = get_kb_guikey() > 0;
 	fb = target;
 	calc_screen_limits(&zc);
 	textedit_add(cur_textedit, NULL);

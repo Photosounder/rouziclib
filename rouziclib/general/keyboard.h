@@ -9,6 +9,7 @@ extern int get_kb_guikey();
 extern int get_kb_alt();
 extern int get_kb_enter();
 extern int get_kb_all_mods();
+extern void keyboard_release_all(mouse_t *mouse);
 extern void keyboard_pre_event_proc(mouse_t *mouse);
 extern void keyboard_button_event(int8_t *b, int8_t *quick_b, int way, int repeat);
 

@@ -299,8 +299,12 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	if (event.type==SDL_WINDOWEVENT_FOCUS_GAINED)
 		mouse->window_focus_flag = 2;
 
+	// Losing focus releases the held keys, whose release events go to the window that gains focus
 	if (event.type==SDL_WINDOWEVENT_FOCUS_LOST)
+	{
 		mouse->window_focus_flag = -2;
+		keyboard_release_all(mouse);
+	}
 
 	if (event.type==SDL_WINDOWEVENT_MINIMIZED)
 		mouse->window_minimised_flag = 2;
@@ -320,8 +324,12 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 		if (event.window.event==SDL_WINDOWEVENT_FOCUS_GAINED)
 			mouse->window_focus_flag = 2;
 
+		// Losing focus releases the held keys, whose release events go to the window that gains focus
 		if (event.window.event==SDL_WINDOWEVENT_FOCUS_LOST)
+		{
 			mouse->window_focus_flag = -2;
+			keyboard_release_all(mouse);
+		}
 
 		if (event.window.event==SDL_WINDOWEVENT_MINIMIZED)
 			mouse->window_minimised_flag = 2;

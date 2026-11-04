@@ -66,6 +66,17 @@ void flag_update_keyboard_button(int8_t *b, int8_t *quick_b)
 	}
 }
 
+void keyboard_release_all(mouse_t *mouse)
+{
+	// Release every held key, for when the window loses focus: the release of a key held at that moment goes to the window that gains focus (like Alt after Alt-Tab), so it would otherwise stay held
+	for (int i=0; i < RL_NUM_SCANCODES; i++)
+	{
+		if (mouse->key_state[i] > 0)
+			mouse->key_state[i] = -2;
+		mouse->key_quick[i] = 0;
+	}
+}
+
 void keyboard_pre_event_proc(mouse_t *mouse)
 {
 	int i;
