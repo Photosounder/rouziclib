@@ -90,6 +90,9 @@ uint data_u16(uint offset)
 
 uint data_u32(uint offset)
 {
+	// One load when the value is word-aligned, as most are
+	if ((offset & 3u) == 0u)
+		return resource_data[offset >> 2u];
 	return data_u8(offset) | (data_u8(offset + 1u) << 8u) |
 		(data_u8(offset + 2u) << 16u) | (data_u8(offset + 3u) << 24u);
 }
@@ -334,11 +337,6 @@ vec4 draw_polygon(uint base, vec4 pixel, vec2 position, int point_count)
 	return pixel + weight*colour;
 }
 
-bool image_bounds(ivec2 position, ivec2 dimensions)
-{
-	return all(greaterThanEqual(position, ivec2(0))) && all(lessThan(position, dimensions));
-}
-
 vec4 read_frgb_pixel(uint base, int index)
 {
 	uint offset = base + uint(index)*16u;
@@ -370,6 +368,13 @@ vec4 read_gamma22_pixel(uint base, int index)
 vec4 read_lrgb_pixel(uint base, int index)
 {
 	uint offset = base+uint(index)*8u;
+
+	// The table aligns lrgb rasters to their 8-byte pixels, so a pixel's three channels are in two whole words
+	if ((offset & 3u) == 0u)
+	{
+		uint rg = resource_data[offset >> 2u], b = resource_data[(offset >> 2u) + 1u];
+		return vec4(vec3(rg & 65535u, rg >> 16u, b & 65535u)*(1.0/32768.0), 1.0);
+	}
 	return vec4(vec3(data_u16(offset), data_u16(offset+2u), data_u16(offset+4u))*(1.0/32768.0), 1.0);
 }
 
@@ -479,11 +484,6 @@ vec4 read_format_pixel(uint base, int format, ivec2 dimensions, ivec2 position)
 	return vec4(0.0);
 }
 
-vec4 read_format_pixel_checked(uint base, int format, ivec2 dimensions, ivec2 position)
-{
-	return image_bounds(position, dimensions) ? read_format_pixel(base, format, dimensions, position) : vec4(0.0);
-}
-
 float flattop_weight(vec2 position, vec2 sample_position, vec2 knee, vec2 slope, vec2 pixel_scale)
 {
 	vec2 distance_value = max(abs(position-sample_position), knee);
@@ -491,35 +491,45 @@ float flattop_weight(vec2 position, vec2 sample_position, vec2 knee, vec2 slope,
 	return weight.x*weight.y;
 }
 
-vec4 filter_flattop(uint data_base, int format, ivec2 dimensions, vec2 image_position, vec2 pixel_scale, vec2 slope)
-{
-	vec4 pixel = vec4(0.0);
-	vec2 knee = 0.5-abs(mod(pixel_scale, 1.0)-0.5);
-	ivec2 start = max(ivec2(0), ivec2(ceil(image_position-pixel_scale)));
-	ivec2 end = min(dimensions-1, ivec2(floor(image_position+pixel_scale)));
-	for (int y=start.y; y <= end.y; y++)
-		for (int x=start.x; x <= end.x; x++)
-			pixel += read_format_pixel(data_base, format, dimensions, ivec2(x,y))*flattop_weight(image_position, vec2(x,y), knee, slope, pixel_scale);
-	return pixel;
-}
-
 vec2 aa_nearest_weights(vec2 image_position, vec2 sample_position, vec2 pixel_scale)
 {
 	return clamp((0.5-abs(image_position-sample_position))/pixel_scale+0.5, 0.0, 1.0);
 }
 
-vec4 filter_aa_nearest(uint data_base, int format, ivec2 dimensions, vec2 image_position, vec2 pixel_scale)
+vec4 filter_blit(uint data_base, int format, ivec2 dimensions, vec2 image_position, vec2 pixel_scale, bool flattop, vec2 slope)
 {
-	ivec2 sample_zero = ivec2(floor(image_position));
-	vec2 weight_zero = aa_nearest_weights(image_position, vec2(sample_zero), pixel_scale);
-	float weight = weight_zero.x*weight_zero.y;
-	vec4 pixel = read_format_pixel_checked(data_base, format, dimensions, sample_zero)*weight;
-	if (weight < 1.0)
+	vec4 pixel = vec4(0.0);
+	ivec2 start, end, sample_zero = ivec2(0);
+	vec2 knee = vec2(0.0), weight_zero = vec2(0.0);
+
+	// A flat-top filter covers the footprint of the screen pixel, clamped to the image
+	if (flattop)
 	{
-		pixel += read_format_pixel_checked(data_base, format, dimensions, sample_zero+ivec2(0,1))*weight_zero.x*(1.0-weight_zero.y);
-		pixel += read_format_pixel_checked(data_base, format, dimensions, sample_zero+ivec2(1,0))*(1.0-weight_zero.x)*weight_zero.y;
-		pixel += read_format_pixel_checked(data_base, format, dimensions, sample_zero+ivec2(1,1))*(1.0-weight_zero.x)*(1.0-weight_zero.y);
+		knee = 0.5-abs(mod(pixel_scale, 1.0)-0.5);
+		start = max(ivec2(0), ivec2(ceil(image_position-pixel_scale)));
+		end = min(dimensions-1, ivec2(floor(image_position+pixel_scale)));
 	}
+	// Antialiased nearest covers the nearest pixel, plus its neighbour on each axis where its weight is below 1, inside the image
+	else
+	{
+		sample_zero = ivec2(floor(image_position));
+		weight_zero = aa_nearest_weights(image_position, vec2(sample_zero), pixel_scale);
+		start = max(ivec2(0), sample_zero);
+		end = min(dimensions-1, sample_zero + ivec2(lessThan(weight_zero, vec2(1.0))));
+	}
+
+	// Every kind of blit reads its pixels in this one loop, because each call of read_format_pixel() inlines the reader of every
+	// format, and on Mali GPUs the shader ran several times slower when it had five such calls
+	for (int y=start.y; y <= end.y; y++)
+		for (int x=start.x; x <= end.x; x++)
+		{
+			float weight;
+			if (flattop)
+				weight = flattop_weight(image_position, vec2(x,y), knee, slope, pixel_scale);
+			else
+				weight = (x==sample_zero.x ? weight_zero.x : 1.0-weight_zero.x) * (y==sample_zero.y ? weight_zero.y : 1.0-weight_zero.y);
+			pixel += read_format_pixel(data_base, format, dimensions, ivec2(x,y))*weight;
+		}
 	return pixel;
 }
 
@@ -529,37 +539,39 @@ vec4 draw_blit(uint base, vec4 pixel, vec2 position, int type)
 	if (drawq[base+1u] != 0u)
 		return pixel;
 	ivec2 dimensions = ivec2(qi(base+2u), qi(base+3u));
-	vec2 pixel_scale;
-	vec2 image_offset;
-	vec2 image_position;
+	vec2 pixel_scale, image_offset, image_position, slope = vec2(0.0);
 	int format;
+	bool flattop = type == DQT_BLIT_FLATTOP || type == DQT_BLIT_FLATTOP_ROT;
+
+	// Unrotated blits have a scale per axis
 	if (type == DQT_BLIT_FLATTOP || type == DQT_BLIT_AANEAREST)
 	{
 		pixel_scale = vec2(qf(base+4u), qf(base+5u));
 		image_offset = vec2(qf(base+6u), qf(base+7u));
 		format = qi(base+8u);
 		image_position = pixel_scale*(position+image_offset);
-		if (type == DQT_BLIT_FLATTOP)
-			return pixel+filter_flattop(data_base, format, dimensions, image_position, max(vec2(1.0), pixel_scale), vec2(qf(base+9u), qf(base+10u)));
-		return pixel+filter_aa_nearest(data_base, format, dimensions, image_position, pixel_scale);
+		if (flattop)
+			slope = vec2(qf(base+9u), qf(base+10u));
 	}
-	pixel_scale = vec2(qf(base+4u));
-	image_offset = vec2(qf(base+5u), qf(base+6u));
-	format = qi(base+7u);
-	vec2 unrotated = pixel_scale*(position+image_offset);
-	float cosine;
-	float sine;
-	if (type == DQT_BLIT_FLATTOP_ROT)
+	// Rotated blits have one scale and a rotation
+	else
 	{
-		cosine = qf(base+9u);
-		sine = qf(base+10u);
+		pixel_scale = vec2(qf(base+4u));
+		image_offset = vec2(qf(base+5u), qf(base+6u));
+		format = qi(base+7u);
+		vec2 unrotated = pixel_scale*(position+image_offset);
+		uint rotation = flattop ? base+9u : base+8u;
+		float cosine = qf(rotation);
+		float sine = qf(rotation+1u);
 		image_position = vec2(unrotated.x*cosine-unrotated.y*sine, unrotated.x*sine+unrotated.y*cosine);
-		return pixel+filter_flattop(data_base, format, dimensions, image_position, max(vec2(1.0), pixel_scale), vec2(qf(base+8u)));
+		if (flattop)
+			slope = vec2(qf(base+8u));
 	}
-	cosine = qf(base+8u);
-	sine = qf(base+9u);
-	image_position = vec2(unrotated.x*cosine-unrotated.y*sine, unrotated.x*sine+unrotated.y*cosine);
-	return pixel+filter_aa_nearest(data_base, format, dimensions, image_position, pixel_scale);
+
+	// Flat-top filters use a footprint of at least one image pixel
+	if (flattop)
+		pixel_scale = max(vec2(1.0), pixel_scale);
+	return pixel+filter_blit(data_base, format, dimensions, image_position, pixel_scale, flattop, slope);
 }
 
 void main()

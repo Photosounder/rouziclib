@@ -44,6 +44,14 @@ const char *get_vk_error_string(VkResult err)
 	}
 }
 
+// Set when the chain is deliberately left unrotated for the compositor, which Android then reports as suboptimal on every frame
+static int vk_compositor_rotates;
+
+// Set when the surface's native window was destroyed, as when an Android app goes to the background, until a new surface is made
+static int vk_surface_lost;
+
+static VkResult vk_create_surface();
+
 static uint32_t vk_find_memory_type(uint32_t type_bits, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memory_properties;
@@ -266,6 +274,18 @@ static VkResult vk_create_instance_surface()
 		vk_has_extension(VK_NULL_HANDLE, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
 	extension_count = fullscreen_control ? 4 : 2;
 	extensions = win32_extensions;
+	#elif RL_SDL == 3
+	// Ask SDL 3 for the platform surface extensions, copying its own array so it is released like the SDL 2 one
+	Uint32 sdl_extension_count = 0;
+	const char * const *sdl_extensions = SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count);
+	if (sdl_extensions == NULL)
+	{
+		fprintf_rl(stderr, "SDL_Vulkan_GetInstanceExtensions failed: %s\n", SDL_GetError());
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+	extension_count = sdl_extension_count;
+	extensions = calloc(extension_count + 1, sizeof(*extensions));
+	memcpy(extensions, sdl_extensions, extension_count * sizeof(*extensions));
 	#else
 	// Ask SDL for the platform surface extensions required by this window
 	if (!SDL_Vulkan_GetInstanceExtensions(fb->window, &extension_count, NULL))
@@ -292,14 +312,23 @@ static VkResult vk_create_instance_surface()
 	#endif
 	VK_ERR_RET("vkCreateInstance", ret);
 
+	return vk_create_surface();
+}
+
+static VkResult vk_create_surface()
+{
 	#ifdef _WIN32
 	// Create the Vulkan surface directly from the persistent SDL window handle
 	VkWin32SurfaceCreateInfoKHR surface_info = { .sType=VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR, .hinstance=GetModuleHandle(NULL), .hwnd=fb->vk.surface_window };
-	ret = vkCreateWin32SurfaceKHR(fb->vk.instance, &surface_info, NULL, &fb->vk.surface);
+	VkResult ret = vkCreateWin32SurfaceKHR(fb->vk.instance, &surface_info, NULL, &fb->vk.surface);
 	VK_ERR_RET("vkCreateWin32SurfaceKHR", ret);
 	#else
 	// Create the SDL surface before choosing a presentation-capable device
+	#if RL_SDL == 3
+	if (!SDL_Vulkan_CreateSurface(fb->window, fb->vk.instance, NULL, &fb->vk.surface))
+	#else
 	if (!SDL_Vulkan_CreateSurface(fb->window, fb->vk.instance, &fb->vk.surface))
+	#endif
 	{
 		fprintf_rl(stderr, "SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
 		return VK_ERROR_SURFACE_LOST_KHR;
@@ -339,6 +368,7 @@ static VkResult vk_select_device()
 			fb->vk.queue_family=queue_family;
 			fb->vk.timestamp_valid_bits=timestamp_valid_bits;
 			fb->vk.timestamp_period=properties.limits.timestampPeriod;
+			fb->vk.unified_memory=properties.deviceType==VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU || properties.deviceType==VK_PHYSICAL_DEVICE_TYPE_CPU;
 		}
 	}
 	free(devices);
@@ -377,6 +407,17 @@ static VkResult vk_select_device()
 	return VK_SUCCESS;
 }
 
+static void vk_destroy_image_views(VkImageView *views, uint32_t count)
+{
+	// Destroy and free an array of image views, some of which may not have been created
+	if (views==NULL)
+		return;
+	for (uint32_t i=0; i < count; i++)
+		if (views[i])
+			vkDestroyImageView(fb->vk.device, views[i], NULL);
+	free(views);
+}
+
 static void vk_destroy_swapchain()
 {
 	// Release the presentation semaphores once their swapchain is idle
@@ -385,12 +426,38 @@ static void vk_destroy_swapchain()
 			vkDestroySemaphore(fb->vk.device, fb->vk.swapchain_render_finished[i], NULL);
 	free_null(&fb->vk.swapchain_render_finished);
 
+	// Release the views of directly written swapchain images
+	vk_destroy_image_views(fb->vk.swapchain_views, fb->vk.swapchain_image_count);
+	fb->vk.swapchain_views=NULL;
+	fb->vk.swapchain_storage=0;
+
 	// Release swapchain images before destroying the presentation chain
 	free_null(&fb->vk.swapchain_images);
 	if (fb->vk.swapchain)
 		vkDestroySwapchainKHR(fb->vk.device, fb->vk.swapchain, NULL);
 	fb->vk.swapchain=VK_NULL_HANDLE;
 	fb->vk.swapchain_image_count=0;
+}
+
+static VkResult vk_recreate_surface()
+{
+	// Drop the chain and the surface of the destroyed native window, since a new chain can't retire one from another surface
+	vkDeviceWaitIdle(fb->vk.device);
+	vk_destroy_swapchain();
+	if (fb->vk.surface)
+		vkDestroySurfaceKHR(fb->vk.instance, fb->vk.surface, NULL);
+	fb->vk.surface=VK_NULL_HANDLE;
+
+	// Make a surface on the window's current native window, which fails while the app has none
+	VkResult ret=vk_create_surface();
+	if (ret!=VK_SUCCESS)
+	{
+		fb->vk.surface=VK_NULL_HANDLE;
+		return ret;
+	}
+	vk_surface_lost=0;
+	fb->vk.swapchain_dirty=1;
+	return VK_SUCCESS;
 }
 
 static VkResult vk_create_swapchain()
@@ -403,6 +470,7 @@ static VkResult vk_create_swapchain()
 	VkCompositeAlphaFlagBitsKHR composite_alpha=VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	VkSwapchainKHR old_swapchain=fb->vk.swapchain, new_swapchain=VK_NULL_HANDLE;
 	VkImage *old_swapchain_images=fb->vk.swapchain_images;
+	VkImageView *old_swapchain_views=fb->vk.swapchain_views;
 	VkSemaphore *old_render_finished=fb->vk.swapchain_render_finished;
 	uint32_t old_image_count=fb->vk.swapchain_image_count;
 	int drawable_width, drawable_height;
@@ -463,6 +531,15 @@ static VkResult vk_create_swapchain()
 	if (fb->vk.swapchain_extent.width==0 || fb->vk.swapchain_extent.height==0)
 		return VK_NOT_READY;
 
+	// Present unrotated images in the window's orientation and let the compositor rotate them, since the drawing isn't pre-rotated
+	VkSurfaceTransformFlagBitsKHR pre_transform=capabilities.currentTransform;
+	vk_compositor_rotates=0;
+	if ((capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) && pre_transform != VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+	{
+		vk_compositor_rotates=1;
+		pre_transform=VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	}
+
 	// Choose a supported opaque composite mode and FIFO presentation for guaranteed vsync
 	if (!(capabilities.supportedCompositeAlpha & composite_alpha))
 		for (uint32_t bit=0; bit < 4; bit++)
@@ -475,8 +552,14 @@ static VkResult vk_create_swapchain()
 	if (capabilities.maxImageCount && image_count > capabilities.maxImageCount)
 		image_count=capabilities.maxImageCount;
 
+	// On GPUs that share the CPU's memory, where a full-screen copy costs a lot of the memory bandwidth, let the compute shader
+	// write RGBA swapchain images directly when they can be storage images
+	VkFormatProperties format_properties;
+	vkGetPhysicalDeviceFormatProperties(fb->vk.gpu, selected_format.format, &format_properties);
+	int storage = fb->vk.unified_memory && selected_format.format==VK_FORMAT_R8G8B8A8_UNORM && (capabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT) && (format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT);
+
 	// Retire the previous chain only after its replacement has been created
-	VkSwapchainCreateInfoKHR swapchain_info = { .sType=VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, .surface=fb->vk.surface, .minImageCount=image_count, .imageFormat=selected_format.format, .imageColorSpace=selected_format.colorSpace, .imageExtent=fb->vk.swapchain_extent, .imageArrayLayers=1, .imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT, .imageSharingMode=VK_SHARING_MODE_EXCLUSIVE, .preTransform=capabilities.currentTransform, .compositeAlpha=composite_alpha, .presentMode=VK_PRESENT_MODE_FIFO_KHR, .clipped=VK_TRUE, .oldSwapchain=old_swapchain };
+	VkSwapchainCreateInfoKHR swapchain_info = { .sType=VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, .surface=fb->vk.surface, .minImageCount=image_count, .imageFormat=selected_format.format, .imageColorSpace=selected_format.colorSpace, .imageExtent=fb->vk.swapchain_extent, .imageArrayLayers=1, .imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT | (storage ? VK_IMAGE_USAGE_STORAGE_BIT : 0), .imageSharingMode=VK_SHARING_MODE_EXCLUSIVE, .preTransform=pre_transform, .compositeAlpha=composite_alpha, .presentMode=VK_PRESENT_MODE_FIFO_KHR, .clipped=VK_TRUE, .oldSwapchain=old_swapchain };
 	#ifdef _WIN32
 	// Keep borderless fullscreen from implicitly retaining exclusive ownership after Alt+Tab
 	VkSurfaceFullScreenExclusiveInfoEXT fullscreen_info = { .sType=VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
@@ -488,13 +571,16 @@ static VkResult vk_create_swapchain()
 	VK_ERR_RET("vkCreateSwapchainKHR", ret);
 	fb->vk.swapchain=new_swapchain;
 	fb->vk.swapchain_images=NULL;
+	fb->vk.swapchain_views=NULL;
+	fb->vk.swapchain_storage=0;
 	fb->vk.swapchain_render_finished=NULL;
 	fb->vk.swapchain_image_count=0;
-	// Release synchronization belonging to the retired presentation images
+	// Release synchronization and views belonging to the retired presentation images
 	for (uint32_t i=0; i < old_image_count; i++)
 		if (old_render_finished[i])
 			vkDestroySemaphore(fb->vk.device, old_render_finished[i], NULL);
 	free(old_render_finished);
+	vk_destroy_image_views(old_swapchain_views, old_image_count);
 	free(old_swapchain_images);
 	if (old_swapchain)
 		vkDestroySwapchainKHR(fb->vk.device, old_swapchain, NULL);
@@ -502,6 +588,22 @@ static VkResult vk_create_swapchain()
 	vkGetSwapchainImagesKHR(fb->vk.device, fb->vk.swapchain, &fb->vk.swapchain_image_count, NULL);
 	fb->vk.swapchain_images=calloc(fb->vk.swapchain_image_count, sizeof(*fb->vk.swapchain_images));
 	vkGetSwapchainImagesKHR(fb->vk.device, fb->vk.swapchain, &fb->vk.swapchain_image_count, fb->vk.swapchain_images);
+
+	// Give each image a view for the compute shader when it writes them directly, falling back to copies if one can't be made
+	if (storage)
+	{
+		fb->vk.swapchain_views=calloc(fb->vk.swapchain_image_count, sizeof(*fb->vk.swapchain_views));
+		fb->vk.swapchain_storage=1;
+		for (uint32_t i=0; i < fb->vk.swapchain_image_count; i++)
+		{
+			VkImageViewCreateInfo view_info = { .sType=VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, .image=fb->vk.swapchain_images[i], .viewType=VK_IMAGE_VIEW_TYPE_2D, .format=selected_format.format, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} };
+			if (vkCreateImageView(fb->vk.device, &view_info, NULL, &fb->vk.swapchain_views[i]) != VK_SUCCESS)
+			{
+				fb->vk.swapchain_views[i]=VK_NULL_HANDLE;
+				fb->vk.swapchain_storage=0;
+			}
+		}
+	}
 
 	// Give each swapchain image a semaphore reusable only after that image is acquired again
 	fb->vk.swapchain_render_finished=calloc(fb->vk.swapchain_image_count, sizeof(*fb->vk.swapchain_render_finished));
@@ -662,7 +764,16 @@ int vk_data_buffer_resize(size_t size)
 	if (!fb->vk.device)
 		return 0;
 	vkDeviceWaitIdle(fb->vk.device);
-	ret = vk_create_buffer(&replacement, MAXN(size, 4), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0);
+
+	// With one frame in flight on a GPU that shares the CPU's memory, map the arena so that dirty data is written into it
+	// directly once the frame's fence has passed, instead of through a staging buffer and a GPU copy
+	ret = VK_ERROR_FEATURE_NOT_PRESENT;
+	if (RL_VK_FRAMES_IN_FLIGHT==1 && fb->vk.unified_memory)
+		ret = vk_create_buffer(&replacement, MAXN(size, 4), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 1);
+
+	// Otherwise use device-local memory filled from staging buffers
+	if (ret != VK_SUCCESS)
+		ret = vk_create_buffer(&replacement, MAXN(size, 4), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0);
 	if (ret != VK_SUCCESS)
 	{
 		fprintf_rl(stderr, "vk_data_buffer_resize() failed: %s\n", get_vk_error_string(ret));
@@ -702,7 +813,7 @@ void vk_mark_swapchain_dirty()
 	fb->vk.swapchain_dirty=1;
 }
 
-static void vk_update_descriptors(vk_frame_t *frame)
+static void vk_update_descriptors(vk_frame_t *frame, VkImageView output_view)
 {
 	VkDescriptorBufferInfo buffer_info[4] = {
 		{ frame->drawq.buffer, 0, VK_WHOLE_SIZE },
@@ -710,7 +821,7 @@ static void vk_update_descriptors(vk_frame_t *frame)
 		{ frame->entry_list.buffer, 0, VK_WHOLE_SIZE },
 		{ fb->vk.resource_data.buffer, 0, VK_WHOLE_SIZE }
 	};
-	VkDescriptorImageInfo image_info = { .imageView=frame->output_view, .imageLayout=VK_IMAGE_LAYOUT_GENERAL };
+	VkDescriptorImageInfo image_info = { .imageView=output_view, .imageLayout=VK_IMAGE_LAYOUT_GENERAL };
 	VkWriteDescriptorSet writes[5];
 
 	// Point this frame's descriptor set at its current resized buffers and image
@@ -733,7 +844,7 @@ static void vk_update_descriptors(vk_frame_t *frame)
 	vkUpdateDescriptorSets(fb->vk.device, 5, writes, 0, NULL);
 }
 
-static VkResult vk_prepare_frame_buffers(vk_frame_t *frame, VkDeviceSize dirty_size)
+static VkResult vk_prepare_frame_buffers(vk_frame_t *frame, VkDeviceSize dirty_size, VkImageView output_view)
 {
 	VkResult ret;
 	VkDeviceSize drawq_size=fb->drawq_data[DQ_END]*sizeof(int32_t);
@@ -757,7 +868,7 @@ static VkResult vk_prepare_frame_buffers(vk_frame_t *frame, VkDeviceSize dirty_s
 	memcpy(frame->drawq.mapped, fb->drawq_data, drawq_size);
 	memcpy(frame->sector_pos.mapped, fb->sector_pos, sector_size);
 	memcpy(frame->entry_list.mapped, fb->entry_list, entry_size);
-	vk_update_descriptors(frame);
+	vk_update_descriptors(frame, output_view);
 	return VK_SUCCESS;
 }
 
@@ -781,11 +892,11 @@ static void vk_record_input_barriers(VkCommandBuffer command_buffer, vk_frame_t 
 		barriers[i].size=VK_WHOLE_SIZE;
 	}
 
-	// Make an optional staging copy visible to shader resource reads
-	if (copied_resource_data)
+	// Make an optional staging copy, or host writes into a mapped arena, visible to shader resource reads
+	if (copied_resource_data || fb->vk.resource_data.mapped)
 	{
 		barriers[3].sType=VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-		barriers[3].srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+		barriers[3].srcAccessMask=copied_resource_data ? VK_ACCESS_TRANSFER_WRITE_BIT : VK_ACCESS_HOST_WRITE_BIT;
 		barriers[3].dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
 		barriers[3].srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
 		barriers[3].dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
@@ -833,10 +944,15 @@ int vk_drawq_run()
 	size_t dirty_start=0, dirty_end=0, dirty_size=0;
 	VkCommandBuffer command_buffer;
 	VkSemaphore render_finished;
-	int copy_output;
+	int copy_output, direct_upload, direct_output;
+	VkImage output_image;
 
 	// Skip zero-sized surfaces while a window is minimised
 	if (!fb->vk.initialised || fb->w<=0 || fb->h<=0)
+		return 1;
+
+	// Replace a lost surface first, skipping presentation while the window has no native window to make one on
+	if (vk_surface_lost && vk_recreate_surface()!=VK_SUCCESS)
 		return 1;
 
 	// Recreate presentation resources after resize or surface invalidation
@@ -846,6 +962,11 @@ int vk_drawq_run()
 		ret=vk_create_swapchain();
 		if (ret==VK_NOT_READY)
 			return 1;
+		if (ret==VK_ERROR_SURFACE_LOST_KHR)
+		{
+			vk_surface_lost=1;
+			return 1;
+		}
 		if (ret!=VK_SUCCESS)
 			return 0;
 	}
@@ -874,13 +995,22 @@ int vk_drawq_run()
 		fb->vk.swapchain_dirty=1;
 		return vk_drawq_run();
 	}
+	if (ret==VK_ERROR_SURFACE_LOST_KHR)
+	{
+		// Skip this frame and make a new surface on the next one
+		vk_surface_lost=1;
+		return 1;
+	}
 	if (ret!=VK_SUCCESS && ret!=VK_SUBOPTIMAL_KHR)
 		return 0;
-	if (ret==VK_SUBOPTIMAL_KHR)
+	if (ret==VK_SUBOPTIMAL_KHR && !vk_compositor_rotates)
 		fb->vk.swapchain_dirty=1;
 	// Select synchronization whose lifetime follows the acquired presentation image
 	render_finished=fb->vk.swapchain_render_finished[image_index];
 	copy_output=fb->vk.swapchain_extent.width==(uint32_t) fb->w && fb->vk.swapchain_extent.height==(uint32_t) fb->h && (fb->vk.swapchain_format==VK_FORMAT_R8G8B8A8_UNORM || fb->vk.swapchain_format==VK_FORMAT_B8G8R8A8_UNORM);
+	// Write an equal-sized frame straight into the swapchain image when it can be a storage image, instead of copying it there
+	direct_output=copy_output && fb->vk.swapchain_storage;
+	output_image=direct_output ? fb->vk.swapchain_images[image_index] : frame->output_image;
 
 	// Align and clamp the accumulated packed-resource upload interval
 	if (fb->vk.dirty_start!=SIZE_MAX && fb->vk.dirty_end > fb->vk.dirty_start)
@@ -889,11 +1019,13 @@ int vk_drawq_run()
 		dirty_end=MINN((fb->vk.dirty_end+3) & ~(size_t) 3, fb->data_cl_as);
 		dirty_size=dirty_end-dirty_start;
 	}
-	ret=vk_prepare_frame_buffers(frame, dirty_size);
+	// Write dirty data straight into a mapped arena, which the GPU stopped reading when the fence passed, or into staging
+	direct_upload=fb->vk.resource_data.mapped!=NULL;
+	ret=vk_prepare_frame_buffers(frame, direct_upload ? 0 : dirty_size, direct_output ? fb->vk.swapchain_views[image_index] : frame->output_view);
 	if (ret!=VK_SUCCESS)
 		return 0;
 	if (dirty_size)
-		memcpy(frame->staging.mapped, &fb->data[dirty_start], dirty_size);
+		memcpy(direct_upload ? (uint8_t *) fb->vk.resource_data.mapped + dirty_start : frame->staging.mapped, &fb->data[dirty_start], dirty_size);
 	// End the copy interval immediately after the actual host memory copies
 	fb->timing[fb->timing_index].cl_copy_end=get_time_hr();
 
@@ -908,17 +1040,26 @@ int vk_drawq_run()
 	if (frame->timestamp_pool)
 		vkCmdResetQueryPool(command_buffer, frame->timestamp_pool, 0, 2);
 
-	// Upload the dirty asset interval before interpreting this frame's queue
-	if (dirty_size)
+	// Upload the dirty asset interval from staging before interpreting this frame's queue
+	if (dirty_size && !direct_upload)
 	{
 		VkBufferCopy copy = { .srcOffset=0, .dstOffset=dirty_start, .size=dirty_size };
 		vkCmdCopyBuffer(command_buffer, frame->staging.buffer, fb->vk.resource_data.buffer, 1, &copy);
 	}
-	vk_record_input_barriers(command_buffer, frame, dirty_size!=0);
+	vk_record_input_barriers(command_buffer, frame, dirty_size!=0 && !direct_upload);
 
-	// Transition this slot's output from its previous transfer use into compute storage
-	VkImageMemoryBarrier output_to_compute = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=frame->output_layout_initialised ? VK_ACCESS_TRANSFER_READ_BIT : 0, .dstAccessMask=VK_ACCESS_SHADER_WRITE_BIT, .oldLayout=frame->output_layout_initialised ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED, .newLayout=VK_IMAGE_LAYOUT_GENERAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=frame->output_image, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
-	vkCmdPipelineBarrier(command_buffer, frame->output_layout_initialised ? VK_PIPELINE_STAGE_TRANSFER_BIT : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &output_to_compute);
+	// Transition the acquired swapchain image into compute storage after the acquisition semaphore wait at the compute stage
+	if (direct_output)
+	{
+		VkImageMemoryBarrier swap_to_compute = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=0, .dstAccessMask=VK_ACCESS_SHADER_WRITE_BIT, .oldLayout=VK_IMAGE_LAYOUT_UNDEFINED, .newLayout=VK_IMAGE_LAYOUT_GENERAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=output_image, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
+		vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_compute);
+	}
+	// Or transition this slot's output from its previous transfer use into compute storage
+	else
+	{
+		VkImageMemoryBarrier output_to_compute = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=frame->output_layout_initialised ? VK_ACCESS_TRANSFER_READ_BIT : 0, .dstAccessMask=VK_ACCESS_SHADER_WRITE_BIT, .oldLayout=frame->output_layout_initialised ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED, .newLayout=VK_IMAGE_LAYOUT_GENERAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=output_image, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
+		vkCmdPipelineBarrier(command_buffer, frame->output_layout_initialised ? VK_PIPELINE_STAGE_TRANSFER_BIT : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &output_to_compute);
+	}
 
 	// Dispatch one shader invocation for each eight-by-eight tile covering the framebuffer
 	vk_drawq_constants_t constants = { fb->w, fb->h, fb->sector_w, fb->sector_size, rand32(), copy_output && fb->vk.swapchain_format==VK_FORMAT_B8G8R8A8_UNORM };
@@ -929,43 +1070,53 @@ int vk_drawq_run()
 	vkCmdPushConstants(command_buffer, fb->vk.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(constants), &constants);
 	vkCmdDispatch(command_buffer, ceil_rshift(fb->w, 3), ceil_rshift(fb->h, 3), 1);
 
-	// Make the completed compute image readable by the transfer engine
-
-	VkImageMemoryBarrier output_to_transfer = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT, .dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT, .oldLayout=VK_IMAGE_LAYOUT_GENERAL, .newLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=frame->output_image, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &output_to_transfer);
-
-	// Chain the layout transition to the acquisition semaphore wait at the transfer stage
-	VkImageMemoryBarrier swap_to_transfer = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=0, .dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT, .oldLayout=VK_IMAGE_LAYOUT_UNDEFINED, .newLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=fb->vk.swapchain_images[image_index], .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_transfer);
-
-	// Copy equal-sized frames directly and reserve format-converting blits for scaled output
-	if (copy_output)
+	// Hand a directly written swapchain image to presentation once the compute writes are done
+	if (direct_output)
 	{
-		VkImageCopy copy = { .srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .srcOffset={0,0,0}, .dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .dstOffset={0,0,0}, .extent={fb->w,fb->h,1} };
-		vkCmdCopyImage(command_buffer, frame->output_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, fb->vk.swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+		if (frame->timestamp_pool)
+			vkCmdWriteTimestamp(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, frame->timestamp_pool, 1);
+		VkImageMemoryBarrier compute_to_present = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT, .dstAccessMask=0, .oldLayout=VK_IMAGE_LAYOUT_GENERAL, .newLayout=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=output_image, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
+		vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &compute_to_present);
 	}
 	else
 	{
-		VkImageBlit blit = { .srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .srcOffsets={{0,0,0},{fb->w,fb->h,1}}, .dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .dstOffsets={{0,0,0},{(int32_t) fb->vk.swapchain_extent.width,(int32_t) fb->vk.swapchain_extent.height,1}} };
-		vkCmdBlitImage(command_buffer, frame->output_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, fb->vk.swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
+		// Make the completed compute image readable by the transfer engine
+		VkImageMemoryBarrier output_to_transfer = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT, .dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT, .oldLayout=VK_IMAGE_LAYOUT_GENERAL, .newLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=frame->output_image, .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
+		vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &output_to_transfer);
+
+		// Chain the layout transition to the acquisition semaphore wait at the transfer stage
+		VkImageMemoryBarrier swap_to_transfer = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=0, .dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT, .oldLayout=VK_IMAGE_LAYOUT_UNDEFINED, .newLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=fb->vk.swapchain_images[image_index], .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
+		vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_transfer);
+
+		// Copy equal-sized frames directly and reserve format-converting blits for scaled output
+		if (copy_output)
+		{
+			VkImageCopy copy = { .srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .srcOffset={0,0,0}, .dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .dstOffset={0,0,0}, .extent={fb->w,fb->h,1} };
+			vkCmdCopyImage(command_buffer, frame->output_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, fb->vk.swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+		}
+		else
+		{
+			VkImageBlit blit = { .srcSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .srcOffsets={{0,0,0},{fb->w,fb->h,1}}, .dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1}, .dstOffsets={{0,0,0},{(int32_t) fb->vk.swapchain_extent.width,(int32_t) fb->vk.swapchain_extent.height,1}} };
+			vkCmdBlitImage(command_buffer, frame->output_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, fb->vk.swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
+		}
+
+
+
+		// Mark completion of the complete GPU workload
+		if (frame->timestamp_pool)
+			vkCmdWriteTimestamp(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, frame->timestamp_pool, 1);
+
+		// Hand the fully written swapchain image back to the presentation engine
+		VkImageMemoryBarrier swap_to_present = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT, .dstAccessMask=0, .oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .newLayout=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=fb->vk.swapchain_images[image_index], .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
+		// Finish transfer writes before handing the image to presentation
+		vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_present);
 	}
-
-
-
-	// Mark completion of the complete GPU workload
-	if (frame->timestamp_pool)
-		vkCmdWriteTimestamp(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, frame->timestamp_pool, 1);
-
-	// Hand the fully written swapchain image back to the presentation engine
-	VkImageMemoryBarrier swap_to_present = { .sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, .srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT, .dstAccessMask=0, .oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .newLayout=VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, .srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED, .image=fb->vk.swapchain_images[image_index], .subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1} };
-	// Finish transfer writes before handing the image to presentation
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &swap_to_present);
 	ret=vkEndCommandBuffer(command_buffer);
 	if (ret!=VK_SUCCESS)
 		return 0;
 
-	// Let compute execute early while acquisition gates only the transfer stage
-	VkPipelineStageFlags wait_stage=VK_PIPELINE_STAGE_TRANSFER_BIT;
+	// Let compute execute early while acquisition gates only the transfer stage, unless compute writes the acquired image
+	VkPipelineStageFlags wait_stage=direct_output ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_TRANSFER_BIT;
 	VkSubmitInfo submit_info = { .sType=VK_STRUCTURE_TYPE_SUBMIT_INFO, .waitSemaphoreCount=1, .pWaitSemaphores=&frame->image_available, .pWaitDstStageMask=&wait_stage, .commandBufferCount=1, .pCommandBuffers=&command_buffer, .signalSemaphoreCount=1, .pSignalSemaphores=&render_finished };
 	ret=vkQueueSubmit(fb->vk.queue, 1, &submit_info, frame->fence);
 	if (ret!=VK_SUCCESS)
@@ -982,9 +1133,11 @@ int vk_drawq_run()
 	// Queue FIFO presentation and defer resize recovery until the next frame
 	VkPresentInfoKHR present_info = { .sType=VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, .waitSemaphoreCount=1, .pWaitSemaphores=&render_finished, .swapchainCount=1, .pSwapchains=&fb->vk.swapchain, .pImageIndices=&image_index };
 	ret=vkQueuePresentKHR(fb->vk.queue, &present_info);
-	if (ret==VK_ERROR_OUT_OF_DATE_KHR || ret==VK_SUBOPTIMAL_KHR)
+	if (ret==VK_ERROR_OUT_OF_DATE_KHR || (ret==VK_SUBOPTIMAL_KHR && !vk_compositor_rotates))
 		fb->vk.swapchain_dirty=1;
-	else if (ret!=VK_SUCCESS)
+	else if (ret==VK_ERROR_SURFACE_LOST_KHR)
+		vk_surface_lost=1;
+	else if (ret!=VK_SUCCESS && ret!=VK_SUBOPTIMAL_KHR)
 		return 0;
 
 	#ifdef _WIN32
@@ -993,7 +1146,8 @@ int vk_drawq_run()
 	#endif
 
 	// Commit frame ownership and clear the uploaded dirty interval
-	frame->output_layout_initialised=1;
+	if (!direct_output)
+		frame->output_layout_initialised=1;
 	fb->vk.dirty_start=SIZE_MAX;
 	fb->vk.dirty_end=0;
 	fb->vk.frame_index=(fb->vk.frame_index+1)%RL_VK_FRAMES_IN_FLIGHT;

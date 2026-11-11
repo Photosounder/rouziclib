@@ -187,10 +187,34 @@ void textedit_clear_then_set_new_text(textedit_t *te, const char *str)	// sets a
 	}
 }
 
+void textedit_sync_text_input()	// tells the window when a text editor that can be typed into opens or closes, so it can show its on-screen keyboard
+{
+	static _Thread_local int reported = 0;
+
+	// Report only changes
+	int active = cur_textedit && cur_textedit->read_only==0;
+	if (active == reported)
+		return ;
+	reported = active;
+
+	#ifdef WAHE_MODULE
+	// Ask the window module, which registers these commands
+	free(wahe_run_command(active ? "Text editing start" : "Text editing stop"));
+	#elif RL_SDL == 3
+	// Switch SDL's text input unless the program does it itself
+	if (sdl_text_input_manual==0)
+		sdl_set_text_input(active);
+	#endif
+}
+
 void textedit_add(textedit_t *te, const char *str)
 {
 	int orig_len=0, ins_len, new_pos, char_len;
 	char *clipboard=NULL, *p;
+
+	// The call without text that follows event processing also reports editors opening or closing
+	if (str==NULL)
+		textedit_sync_text_input();
 
 	if (te==NULL)
 		return ;

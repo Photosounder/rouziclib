@@ -62,8 +62,8 @@ void wahe_rl_frame_begin(framebuffer_t *target)
 	calc_screen_limits(&zc);
 	textedit_add(cur_textedit, NULL);
 
-	// Enter warp mode once a control that asked for it (like a knob being dragged) sees movement, as sdl_update_mouse() does, mousecursor_logic_and_draw() then asks the window module to grab the mouse
-	if (mouse.warp_if_move && is0_xy(mouse.d)==0)
+	// Enter warp mode once a control that asked for it (like a knob being dragged) sees movement, as sdl_update_mouse() does, mousecursor_logic_and_draw() then asks the window module to grab the mouse, except for a finger which moves with what it drags
+	if (mouse.warp_if_move && is0_xy(mouse.d)==0 && mouse.touch_mode==0)
 	{
 		mouse.showcursor = -1;
 		mouse.warp = 1;
@@ -137,6 +137,8 @@ const char *wahe_rl_parse_inputs(const char *line, int *received_input)
 	if (!prefix) sscanf(line, "Key%n", &prefix);
 	if (!prefix) sscanf(line, "Text input%n", &prefix);
 	if (!prefix) sscanf(line, "Clipboard contents%n", &prefix);
+	if (!prefix) sscanf(line, "Pointer type%n", &prefix);
+	if (!prefix) sscanf(line, "Screen keyboard hidden%n", &prefix);
 	if (!prefix) return next;
 	wahe_rl_input_init();
 
@@ -187,6 +189,25 @@ const char *wahe_rl_parse_inputs(const char *line, int *received_input)
 		memset(mouse.key_quick, 0, sizeof(mouse.key_quick));
 		mouse.window_focus_flag = -2;
 		mouse.warp = mouse.warp_persistent = 0;
+		cur_textedit = NULL;
+		if (received_input) *received_input = 1;
+		return next;
+	}
+
+	// Touch gestures are only enabled while the window module says the pointer is a finger
+	char pointer[6];
+	if (sscanf(line, "Pointer type %5s", pointer) == 1)
+	{
+		mouse.touch_mode = !strcmp(pointer, "touch");
+		if (received_input) *received_input = 1;
+		return next;
+	}
+
+	// Closing the on-screen keyboard leaves the editor like clicking out of it
+	n = 0;
+	sscanf(line, "Screen keyboard hidden%n", &n);
+	if (n)
+	{
 		cur_textedit = NULL;
 		if (received_input) *received_input = 1;
 		return next;
@@ -259,6 +280,12 @@ const char *wahe_rl_parse_inputs(const char *line, int *received_input)
 	if (sscanf(line, "Mouse %6s button %6s", button, state) == 2)
 	{
 		int way = !strcmp(state, "down") ? 1 : (!strcmp(state, "up") ? -1 : 0);
+		// The position received before a press line is where the press happened
+		if (way == 1 && strcmp(button, "middle") && mouse.position_received)
+		{
+			mouse.press_a = mouse.a;
+			mouse.press_a_set = 1;
+		}
 		if (way)
 		{
 			if (!strcmp(button, "left")) mouse_button_event(&mouse.b.lmb, &mouse.b.lmf, way);

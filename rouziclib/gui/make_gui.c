@@ -1347,6 +1347,11 @@ void gui_layout_registry_add(gui_layout_t *layout, const char *layout_name)
 	if (fb->frame_count > layout_reg.last_reset_frame+1)
 		return;
 
+	// Don't add a layout that's already registered since the last reset, as getting a layout can happen many times per frame
+	for (i=0; i < layout_reg.reg_count; i++)
+		if (layout && layout_reg.reg[i].lp == layout)
+			return;
+
 	// Add layout to registry
 	if (layout_name)
 	{

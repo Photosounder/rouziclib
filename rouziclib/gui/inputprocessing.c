@@ -241,6 +241,48 @@ ctrl_button_state_t *proc_mouse_circ_ctrl_lrmb(xy_t pos, double radius, const in
 	return state;
 }
 
+static void knob_touch_gesture(ctrl_knob_state_t *state)	// on a touchscreen a clear horizontal swipe opens the value editor like a right-click, so vertical movement only turns the knob once the touch can't be a swipe
+{
+	static int touch_gesture = 0;		// 0 undecided, 1 turning the knob, 2 swiped
+	static double withheld_delta = 0.;
+
+	// A new press starts a new gesture
+	if (mouse.b.lmb == 2)
+	{
+		touch_gesture = 0;
+		withheld_delta = 0.;
+	}
+
+	// Also on release so that the end of a quick swipe counts
+	if (mouse.touch_mode==0 || (mouse.b.lmb != 1 && mouse.b.lmb != -2))
+		return ;
+
+	// Travel in framebuffer pixels compared to the framebuffer's shorter side, which is the screen's width in portrait when the framebuffer fills the screen
+	xy_t travel = sub_xy(sc_xy(mouse.u), sc_xy(mouse.b.orig));
+	double screen_side = MINN(fb->w, fb->h);
+
+	if (touch_gesture == 0)
+	{
+		// Hold the movement back until the gesture is known
+		withheld_delta += state->vert_delta;
+		state->vert_delta = 0.;
+
+		// A third of the screen sideways with little vertical movement is a swipe, clear vertical movement turns the knob by all the movement so far
+		if (fabs(travel.x) >= screen_side/3. && fabs(travel.y) < 0.5*fabs(travel.x))
+		{
+			touch_gesture = 2;
+			state->rightclick = 1;
+		}
+		else if (fabs(travel.y) > screen_side/40. && fabs(travel.y) >= 0.5*fabs(travel.x))
+		{
+			touch_gesture = 1;
+			state->vert_delta = withheld_delta;
+		}
+	}
+	else if (touch_gesture == 2)
+		state->vert_delta = 0.;
+}
+
 ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box)
 {
 	ctrl_knob_state_t state;
@@ -248,7 +290,12 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box)
 	memset(&state, 0, sizeof(state));
 
 	if (check_ctrl_id_rect(box)==0)
+	{
+		// A swipe released away from the knob no longer hovers it, but its last stretch still counts if the press started on it
+		if (mouse.b.lmb == -2 && mouse.b.clicks != 2 && check_point_within_box(mouse.b.orig, box))
+			knob_touch_gesture(&state);
 		return state;
+	}
 
 	#ifdef RL_KNOB_MOUSE_WHEEL
 	// The mouse wheel moves a hovered knob by 1% of its range per notch (0.1% with Ctrl or Shift), except in zoom mode where the wheel zooms
@@ -280,6 +327,9 @@ ctrl_knob_state_t proc_mouse_knob_ctrl(rect_t box)
 				else if (mouse.mod_key[mouse_mod_ctrl])
 					state.vert_delta *= 1./(32.*64.*128.);
 			}
+
+			// Touch gestures, like a sideways swipe to open the value editor
+			knob_touch_gesture(&state);
 
 			if (mouse.b.lmb > 0)
 				state.down = 1;

@@ -6,6 +6,11 @@ void init_mouse()
 
 	mouse.b.lmb = mouse.b.mmb = mouse.b.rmb = -1;
 	mouse.zoom_allowed = 1;
+
+	#ifdef __ANDROID__
+	// Android devices are touchscreens until a mouse event says otherwise
+	mouse.touch_mode = 1;
+	#endif
 }
 
 void flag_update_mouse_button(int *mb, mousebut_flags_t *flags)
@@ -159,7 +164,8 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 
 	if (mouse->b.lmb==2 || mouse->b.rmb==2)		// store the origin of a click
 	{
-		mouse->b.orig = mouse->u;
+		// The click starts where the press happened, not where the pointer ended up by the end of the frame (a finger moves a lot during a quick swipe)
+		mouse->b.orig = mouse->press_a_set ? to_world_coord_xy(mouse->press_a) : mouse->u;
 
 		if (mouse->mouse_focus_flag != 1)	// if the mouse focus is regained at the same time as the click this means drag and drop
 			mouse->b.orig = set_xy(FLT_MAX); // set the click location far out so it doesn't click on any control
@@ -167,6 +173,8 @@ void mouse_post_event_proc(mouse_t *mouse, zoom_t *zc)
 
 	if (mouse->window_focus_flag == 2)		// if focus was regained through a click
 		mouse->b.orig = set_xy(FLT_MAX);	// set the click location far out so it doesn't click on any control
+
+	mouse->press_a_set = 0;
 
 	if (mouse->b.lmb==2)				// on click unselect any text editor
 		cur_textedit = NULL;
@@ -296,7 +304,10 @@ void mousecursor_logic_and_draw()
 	SDL_ShowCursor(mouse.showcursor==1);
 	#endif
 	#endif
-	draw_mousecursor(mouse.u);
+
+	// A finger has no cursor
+	if (mouse.touch_mode==0)
+		draw_mousecursor(mouse.u);
 
 	// Zoom overlay control
 	zoom_overlay_control(&zc, &mouse.zoom_flag);

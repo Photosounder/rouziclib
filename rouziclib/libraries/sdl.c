@@ -271,7 +271,7 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	if (inside_window==0 && mouse->mouse_focus_flag >= 0)	// if the mouse just left the window
 		mouse->mouse_focus_flag = -2;
 
-	if (mouse->warp_if_move && is0_xy(mouse->d)==0)
+	if (mouse->warp_if_move && is0_xy(mouse->d)==0 && mouse->touch_mode==0)
 	{
 		mouse->showcursor = -1;
 		mouse->warp = 1;
@@ -287,6 +287,45 @@ void sdl_update_mouse(SDL_Window *window, mouse_t *mouse)	// gives the mouse pos
 	}
 	mouse_button_update(&mouse->b.mmb, &mouse->b.mmf, get_bit(but_state, 1), 1, mouse);
 }
+
+#if RL_SDL == 3
+int sdl_text_input_manual = 0;		// set by a program that calls sdl_set_text_input() itself rather than following its own text editors, like SDLwindow does for its downstream modules
+static int sdl_text_input_on = 0;
+static double sdl_text_input_change_time = 0.;
+
+static void sdl_start_text_input_on_window(SDL_Window *window)
+{
+	// Plain text input, as editors hold values, names and expressions that capitalisation and autocorrect would alter
+	SDL_PropertiesID props = SDL_CreateProperties();
+	SDL_SetNumberProperty(props, SDL_PROP_TEXTINPUT_CAPITALIZATION_NUMBER, SDL_CAPITALIZE_NONE);
+	SDL_SetBooleanProperty(props, SDL_PROP_TEXTINPUT_AUTOCORRECT_BOOLEAN, false);
+	SDL_StartTextInputWithProperties(window, props);
+	SDL_DestroyProperties(props);
+}
+
+void sdl_set_text_input(int on)		// text input (and the on-screen keyboard where there's no physical one) is only on while a text editor is open
+{
+	if (fb->window==NULL || on==sdl_text_input_on)
+		return ;
+
+	if (on)
+		sdl_start_text_input_on_window(fb->window);
+	else
+		SDL_StopTextInput(fb->window);
+	sdl_text_input_on = on;
+	sdl_text_input_change_time = get_time_hr();
+}
+
+int sdl_screen_keyboard_dismissed(SDL_Event event)	// the user closed the on-screen keyboard (with Back on Android) while text input was on
+{
+	#if SDL_VERSION_ATLEAST(3, 3, 2)
+	// Hiding that follows sdl_set_text_input() turning text input off, or quickly on again, isn't the user's
+	if (event.type == SDL_EVENT_SCREEN_KEYBOARD_HIDDEN && sdl_text_input_on && get_time_hr() - sdl_text_input_change_time > 0.5)
+		return 1;
+	#endif
+	return 0;
+}
+#endif
 
 void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 {
@@ -339,6 +378,23 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	}
 #endif
 
+	// The pointer is a finger (or a pen) when SDL made the mouse event from one
+	if (event.type==SDL_MOUSEMOTION || event.type==SDL_MOUSEBUTTONDOWN)
+	{
+		#if RL_SDL == 3
+		SDL_MouseID which = event.type==SDL_MOUSEMOTION ? event.motion.which : event.button.which;
+		if (which)	// 0 is SDL's own global mouse, like for warps
+			#ifdef SDL_PEN_MOUSEID
+			mouse->touch_mode = which==SDL_TOUCH_MOUSEID || which==SDL_PEN_MOUSEID;
+			#else
+			mouse->touch_mode = which==SDL_TOUCH_MOUSEID;
+			#endif
+		#else
+		Uint32 which = event.type==SDL_MOUSEMOTION ? event.motion.which : event.button.which;
+		mouse->touch_mode = which==SDL_TOUCH_MOUSEID;
+		#endif
+	}
+
 	if (event.type==SDL_MOUSEMOTION)
 	{
 		// Measure relative motion with the coordinate type used by each SDL version
@@ -355,6 +411,13 @@ void sdl_mouse_event_proc(mouse_t *mouse, SDL_Event event, zoom_t *zc)
 	// Mouse button events
 	if (event.type==SDL_MOUSEBUTTONDOWN)
 	{
+		// Keep where the press happened, in the same window coordinates as sdl_update_mouse()
+		if (event.button.button==SDL_BUTTON_LEFT || event.button.button==SDL_BUTTON_RIGHT)
+		{
+			mouse->press_a = div_xy(xy(event.button.x, event.button.y), set_xy(fb->pixel_scale));
+			mouse->press_a_set = 1;
+		}
+
 		if (event.button.button==SDL_BUTTON_LEFT)
 			mouse_button_event(&mouse->b.lmb, &mouse->b.lmf, 1);
 
@@ -415,6 +478,12 @@ void sdl_keyboard_event_proc(mouse_t *mouse, SDL_Event event)
 
 	if (event.type == SDL_TEXTINPUT)
 		textedit_add(cur_textedit, event.text.text);
+
+	#if RL_SDL == 3
+	// Closing the on-screen keyboard leaves the editor like clicking out of it
+	if (sdl_screen_keyboard_dismissed(event))
+		cur_textedit = NULL;
+	#endif
 }
 
 void sdl_set_mouse_pos_screen(xy_t pos)
@@ -654,6 +723,12 @@ static void sdl_graphics_set_maxdim()
 {
 	// Set the largest framebuffer allocation needed across all displays
 	fb->maxdim = sdl_screen_max_window_size();
+
+	#ifdef __ANDROID__
+	// The screen can rotate after this, so cover both orientations
+	fb->maxdim = set_xyi(MAXN(fb->maxdim.x, fb->maxdim.y));
+	#endif
+
 	if (fb->use_drawq==DRAWQ_MODE_OPENCL || fb->use_drawq==DRAWQ_MODE_VULKAN)
 		fb->maxdim = and_xyi(add_xyi(fb->maxdim, set_xyi(31)), 0xFFFFFFE0);
 }
@@ -725,7 +800,9 @@ static int sdl_graphics_recreate_window(int mode)
 	SDL_DestroyWindow(old_window);
 	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
 	#if RL_SDL == 3
-	SDL_StartTextInput(fb->window);
+	// Keep text input on for an open editor
+	if (sdl_text_input_on)
+		sdl_start_text_input_on_window(fb->window);
 	#endif
 
 	// Restore fullscreen state on the replacement
@@ -1152,7 +1229,7 @@ void sdl_graphics_init_from_handle(const void *window_handle, int flags)
 #if RL_SDL == 3
 	// Preserve the native window's logical size while retaining pixel framebuffer dimensions
 	SDL_GetWindowSizeInPixels(fb->window, &fb->w, &fb->h);
-	SDL_StartTextInput(fb->window);
+	sdl_text_input_on = 0;		// text input stays off until a text editor is open
 #else
 	SDL_SetWindowSize(fb->window, fb->w, fb->h);
 	SDL_GetWindowSize(fb->window, &fb->w, &fb->h);
@@ -1230,8 +1307,8 @@ void sdl_graphics_init_full(const char *window_name, xyi_t dim, xyi_t pos, int f
 	SDL_SetWindowMaximumSize(fb->window, fb->maxdim.x, fb->maxdim.y);
 
 #if RL_SDL == 3
-	// Enable text input for the newly created SDL 3 window
-	SDL_StartTextInput(fb->window);
+	// Text input stays off until a text editor is open
+	sdl_text_input_on = 0;
 #endif
 
 	#ifdef __EMSCRIPTEN__

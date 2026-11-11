@@ -80,6 +80,11 @@ extern void sdl_quit_actions();
 
 extern void sdl_init_audio_not_wasapi();
 extern char *sdl_get_clipboard_dos_conv();
+#if RL_SDL == 3
+extern int sdl_text_input_manual;
+extern void sdl_set_text_input(int on);
+extern int sdl_screen_keyboard_dismissed(SDL_Event event);
+#endif
 extern void sdl_print_sdl_version();
 extern void sdl_box_printf(const char *title, const char *format, ...);
 extern void dropfile_event_proc(SDL_Event event);

@@ -13,6 +13,7 @@ extern int textedit_find_next_wordstart(textedit_t *te);
 extern int textedit_find_next_wordend(textedit_t *te);
 extern void textedit_set_new_text(textedit_t *te, const char *str);
 extern void textedit_clear_then_set_new_text(textedit_t *te, const char *str);
+extern void textedit_sync_text_input();
 extern void textedit_add(textedit_t *te, const char *str);
 extern void textedit_prev_next_logic(textedit_t *te);
 extern int ctrl_textedit_invis(textedit_t *te, rect_t box);

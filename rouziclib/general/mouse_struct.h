@@ -37,6 +37,9 @@ typedef struct
 	int8_t d_relative_received, warp_persistent, position_received;
 	int8_t window_focus_flag, mouse_focus_flag, window_minimised_flag, zoom_flag, zoom_scroll_freeze, showcursor, warp, warp_prev, warp_if_move, zoom_allowed, discard_warp_first_move;
 	int8_t mod_key[mouse_mod_count];
+	xy_t press_a;		// where the last button press happened, which can differ from a when more movement came in the same frame
+	int8_t press_a_set;
+	int8_t touch_mode;	// set while the pointer is a finger (or pen) rather than a mouse, enables touch gestures like swiping a knob to edit its value
 	mousebut_t b;
 	mouse_ctrl_id_t *ctrl_id;
 	int8_t key_state[RL_NUM_SCANCODES], key_quick[RL_NUM_SCANCODES];	// keyboard state array, -2 newly up, -1 up, 0 = initial, 1 = down, 2 = newly down, 3 = repeated down event

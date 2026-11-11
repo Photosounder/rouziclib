@@ -62,6 +62,7 @@ typedef struct
 	VkFormat swapchain_format;
 	VkExtent2D swapchain_extent;
 	VkImage *swapchain_images;
+	VkImageView *swapchain_views;	// only when the compute shader writes the swapchain images directly
 	VkSemaphore *swapchain_render_finished;
 	uint32_t swapchain_image_count;
 	uint32_t timestamp_valid_bits;
@@ -77,6 +78,8 @@ typedef struct
 	uint32_t frame_index;
 	size_t dirty_start;
 	size_t dirty_end;
+	int unified_memory;		// integrated GPU, whose memory the CPU can write directly
+	int swapchain_storage;		// the compute shader writes the swapchain images through swapchain_views
 	int swapchain_dirty;
 	int initialised;
 } vk_info_t;
