@@ -357,8 +357,8 @@ void draw_contours_lrgb(xy_t *p, int *cont_start, int cont_count, double radius,
 		return;
 	float wsign = area > 0. ? 1.f : -1.f;
 
-	alloc_enough(&cand, edge_count, &cand_as, sizeof(contour_edge_t *), 1.5);
-	alloc_enough(&active, edge_count, &active_as, sizeof(contour_edge_t *), 1.5);
+	alloc_enough((void **) &cand, edge_count, &cand_as, sizeof(contour_edge_t *), 1.5);
+	alloc_enough((void **) &active, edge_count, &active_as, sizeof(contour_edge_t *), 1.5);
 	alloc_enough(&cross, edge_count, &cross_as, sizeof(contour_crossing_t), 1.5);
 
 	// Each pixel is evaluated a tiny distance away from its centre, so that no edge passes exactly through it (common with integer coordinates), where the angle would be ambiguous and could disagree with the crossing count

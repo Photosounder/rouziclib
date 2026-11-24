@@ -214,6 +214,7 @@ extern "C" {
 #include "gui/editor_toolbar.h"
 #include "gui/floating_window.h"
 #include "gui/window_manager.h"
+#include "gui/message_box.h"
 
 #include "fileio/bits.h"
 #include "fileio/open.h"

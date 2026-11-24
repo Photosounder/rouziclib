@@ -492,6 +492,9 @@ Create and handle floating windows with a draggable title bar, a resizing contro
 ** link:rouziclib/gui/window_manager.c[window_manager.c] / link:rouziclib/gui/window_manager.h[window_manager.h] +
 Window functions can be added to a registry and the window manager runs the window functions in an order that it manages mainly based on which window was last clicked and relations between subwindows and their parent window.
 
+** link:rouziclib/gui/message_box.c[message_box.c] / link:rouziclib/gui/message_box.h[message_box.h] +
+Message boxes and yes/no questions shown as modal floating windows inside the program instead of native OS dialogs, so they work the same way in every build, including WAHE modules. `message_box()` queues a message that stays up until dismissed, with a red error icon for type 0 or a yellow warning icon otherwise. `message_box_yesno()` must be called every frame while waiting for the answer, it returns -1 until the user answers and then 1 for Yes or 0 for No, and the question closes on its own if it stops being asked. `message_box_dialogs()` must be called every frame before `window_manager()` to show the oldest waiting message box, with an optional function to give its window the program's own dialog style.
+
 * link:rouziclib/fileio[fileio/]
 
 ** link:rouziclib/fileio/bits.c[bits.c] / link:rouziclib/fileio/bits.h[bits.h] +
