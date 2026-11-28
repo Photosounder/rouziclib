@@ -49,5 +49,6 @@ enum dq_blend	// blending modes
 	DQB_DIV,
 	DQB_BLEND,
 	DQB_SOLID,
+	DQB_BLEND_PREMUL,	// fg + bg*(1 - fg alpha), for colours premultiplied by their alpha
 };
 #endif

@@ -62,6 +62,7 @@ raster_t copy_raster(raster_t r0)
 	raster_t r1;
 
 	r1 = r0;
+	r1.copy_at_upload = 0;	// the copy is a buffer of its own, nothing promises it won't change before the frame is presented
 
 	r1.l = copy_alloc(r0.l, r0.dim.x*r0.dim.y*sizeof(lrgb_t));
 	r1.f = copy_alloc(r0.f, r0.dim.x*r0.dim.y *sizeof(frgb_t));
@@ -319,6 +320,12 @@ static lrgb_t drawq_bracket_blend_lrgb(lrgb_t bg, lrgb_t fg, enum dq_blend blend
 			case DQB_SOLID:
 				b[i] = f[i];
 				break;
+
+			case DQB_BLEND_PREMUL:
+				v = (uint32_t) f[i] * ONE + (uint32_t) b[i] * (ONE - fg.a);
+				v = (v + (ONE >> 1)) >> LBD;
+				b[i] = MINN(v, ONE);
+				break;
 		}
 	}
 
@@ -342,6 +349,7 @@ static frgb_t drawq_bracket_blend_frgb(frgb_t bg, frgb_t fg, enum dq_blend blend
 			case DQB_DIV:		b[i] /= f[i];					break;
 			case DQB_BLEND:	b[i] = f[i] * fg.a + b[i] * (1.f - fg.a);	break;
 			case DQB_SOLID:	b[i] = f[i];					break;
+			case DQB_BLEND_PREMUL:	b[i] = f[i] + b[i] * (1.f - fg.a);	break;
 		}
 	}
 
@@ -429,7 +437,7 @@ static void drawq_bracket_close_direct(enum dq_blend blending_mode)
 	}
 
 	// Recover invalid blend values as additive brackets
-	if (blending_mode < DQB_ADD || blending_mode > DQB_SOLID)
+	if (blending_mode < DQB_ADD || blending_mode > DQB_BLEND_PREMUL)
 	{
 		fprintf_rl(stderr, "Invalid direct bracket blend mode %d, using DQB_ADD\n", blending_mode);
 		blending_mode = DQB_ADD;

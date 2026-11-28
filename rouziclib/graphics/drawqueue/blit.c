@@ -151,6 +151,21 @@ static frgb_t dqs_read_fmt_pixel(const uint8_t *im, xyi_t dim, int fmt, xyi_t p,
 			l = ((const lrgb_t *) im)[index];
 			return dqs_frgb(l.r*(1.f/32768.f), l.g*(1.f/32768.f), l.b*(1.f/32768.f), 1.f);
 
+		case 5:
+			// Linear 1.15 colours premultiplied by their alpha, which is kept
+			l = ((const lrgb_t *) im)[index];
+			return dqs_frgb(l.r*(1.f/32768.f), l.g*(1.f/32768.f), l.b*(1.f/32768.f), l.a*(1.f/32768.f));
+
+		case 6:
+		case 7:
+		{
+			// Decode byte RGB and keep the alpha byte
+			srgb_t s = ((const srgb_t *) im)[index];
+			frgb_t p = rgb8_to_frgb(s, fmt == 7 ? RGB8_TRANSFER_GAMMA22 : RGB8_TRANSFER_SRGB);
+			p.a = s.a * (1.f/255.f);
+			return p;
+		}
+
 		case 10:
 		case 11:
 		case 12:

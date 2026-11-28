@@ -44,6 +44,18 @@ const char *get_vk_error_string(VkResult err)
 	}
 }
 
+// Presentation timing is enabled where its times are CLOCK_MONOTONIC, which is read to say how long ago a frame was shown
+#if defined(__ANDROID__) || defined(__linux__)
+#define RL_VK_DISPLAY_TIMING
+#include <time.h>
+static uint64_t vk_monotonic_ns()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (uint64_t) ts.tv_sec * 1000000000ull + (uint64_t) ts.tv_nsec;
+}
+#endif
+
 // Set when the chain is deliberately left unrotated for the compositor, which Android then reports as suboptimal on every frame
 static int vk_compositor_rotates;
 
@@ -377,8 +389,14 @@ static VkResult vk_select_device()
 
 	// Create one ordered queue shared by compute, transfers, and presentation
 	float priority=1.f;
-	const char *extensions[2] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	const char *extensions[3] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	uint32_t extension_count=1;
+	#ifdef RL_VK_DISPLAY_TIMING
+	// The presentation timing extension when the device has it
+	fb->vk.display_timing = vk_has_extension(fb->vk.gpu, VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
+	if (fb->vk.display_timing)
+		extensions[extension_count++] = VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME;
+	#endif
 	#ifdef _WIN32
 	// Disallow driver-managed exclusive scanout when all extension dependencies are supported
 	int fullscreen_control = vkGetInstanceProcAddr(fb->vk.instance, "vkGetPhysicalDeviceProperties2KHR") &&
@@ -392,6 +410,14 @@ static VkResult vk_select_device()
 	ret = vkCreateDevice(fb->vk.gpu, &device_info, NULL, &fb->vk.device);
 	VK_ERR_RET("vkCreateDevice", ret);
 	vkGetDeviceQueue(fb->vk.device, fb->vk.queue_family, 0, &fb->vk.queue);
+
+	// The presentation timing functions, without which it isn't used
+	if (fb->vk.display_timing)
+	{
+		fb->vk.get_past_presentation_timing = (PFN_vkGetPastPresentationTimingGOOGLE) vkGetDeviceProcAddr(fb->vk.device, "vkGetPastPresentationTimingGOOGLE");
+		fb->vk.get_refresh_cycle_duration = (PFN_vkGetRefreshCycleDurationGOOGLE) vkGetDeviceProcAddr(fb->vk.device, "vkGetRefreshCycleDurationGOOGLE");
+		fb->vk.display_timing = fb->vk.get_past_presentation_timing && fb->vk.get_refresh_cycle_duration;
+	}
 
 	#ifdef _WIN32
 	// Report the negotiated policy once so fullscreen diagnostics do not flood the host
@@ -473,7 +499,7 @@ static VkResult vk_create_swapchain()
 	VkImageView *old_swapchain_views=fb->vk.swapchain_views;
 	VkSemaphore *old_render_finished=fb->vk.swapchain_render_finished;
 	uint32_t old_image_count=fb->vk.swapchain_image_count;
-	int drawable_width, drawable_height;
+	int drawable_width=0, drawable_height=0;
 
 	#ifdef _WIN32
 	// Resize the Vulkan child before querying its presentation capabilities
@@ -512,17 +538,27 @@ static VkResult vk_create_swapchain()
 			}
 	free(formats);
 
-	// Select the drawable extent reported by SDL when the surface leaves it variable
-	if (capabilities.currentExtent.width != UINT32_MAX)
+	// Read the drawable size with the API provided by each SDL version
+	#if RL_SDL == 3
+	SDL_GetWindowSizeInPixels(fb->window, &drawable_width, &drawable_height);
+	#else
+	SDL_Vulkan_GetDrawableSize(fb->window, &drawable_width, &drawable_height);
+	#endif
+
+	// The drawable size when the surface allows it: right after a rotation Android still gives the surface's old size as its current
+	// extent while allowing any size, and a swapchain of the old size would stay, the compositor stretching its images into the window,
+	// which drops rows and columns. Otherwise the current extent, or the drawable size when the surface leaves it variable
+	if (drawable_width > 0 && drawable_height > 0 &&
+		(uint32_t) drawable_width >= capabilities.minImageExtent.width && (uint32_t) drawable_width <= capabilities.maxImageExtent.width &&
+		(uint32_t) drawable_height >= capabilities.minImageExtent.height && (uint32_t) drawable_height <= capabilities.maxImageExtent.height)
+	{
+		fb->vk.swapchain_extent.width=drawable_width;
+		fb->vk.swapchain_extent.height=drawable_height;
+	}
+	else if (capabilities.currentExtent.width != UINT32_MAX)
 		fb->vk.swapchain_extent=capabilities.currentExtent;
 	else
 	{
-		// Read the drawable size with the API provided by each SDL version
-		#if RL_SDL == 3
-		SDL_GetWindowSizeInPixels(fb->window, &drawable_width, &drawable_height);
-		#else
-		SDL_Vulkan_GetDrawableSize(fb->window, &drawable_width, &drawable_height);
-		#endif
 		if (drawable_width<=0 || drawable_height<=0)
 			return VK_NOT_READY;
 		fb->vk.swapchain_extent.width=rangelimit(drawable_width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
@@ -548,7 +584,9 @@ static VkResult vk_create_swapchain()
 				composite_alpha=(VkCompositeAlphaFlagBitsKHR) (1u << bit);
 				break;
 			}
-	uint32_t image_count=capabilities.minImageCount+1;
+	// As few images as the surface allows, so that as few frames as possible can wait for the display (each adding a refresh period
+	// of delay), at least two for FIFO presentation
+	uint32_t image_count=MAXN(2, capabilities.minImageCount);
 	if (capabilities.maxImageCount && image_count > capabilities.maxImageCount)
 		image_count=capabilities.maxImageCount;
 
@@ -614,6 +652,14 @@ static VkResult vk_create_swapchain()
 		VK_ERR_RET("vkCreateSemaphore", ret);
 	}
 	fb->vk.swapchain_dirty=0;
+
+	// A new chain's frames are counted from the start again, the refresh period asked for at the next present
+	fb->vk.present_id = fb->vk.shown_id = 0;
+	memset(fb->vk.queued_ns, 0, sizeof(fb->vk.queued_ns));
+	fb->vk.refresh_ns = 0;
+	fb->vk.refresh_check = 0;
+	fprintf_rl(stdout, "Vulkan swapchain: %ux%u, %u images (surface minimum %u), presentation timing %s\n", fb->vk.swapchain_extent.width,
+		fb->vk.swapchain_extent.height, fb->vk.swapchain_image_count, capabilities.minImageCount, fb->vk.display_timing ? "on" : "unavailable");
 
 	return VK_SUCCESS;
 }
@@ -781,8 +827,9 @@ int vk_data_buffer_resize(size_t size)
 	}
 	vk_destroy_buffer(&fb->vk.resource_data);
 	fb->vk.resource_data=replacement;
-	fb->vk.dirty_start=0;
-	fb->vk.dirty_end=size;
+	fb->vk.dirty_start[0]=0;
+	fb->vk.dirty_end[0]=size;
+	fb->vk.dirty_count=1;
 	return 1;
 }
 
@@ -792,19 +839,44 @@ void vk_data_buffer_free()
 	if (fb->vk.device)
 		vkDeviceWaitIdle(fb->vk.device);
 	vk_destroy_buffer(&fb->vk.resource_data);
-	fb->vk.dirty_start=SIZE_MAX;
-	fb->vk.dirty_end=0;
+	fb->vk.dirty_count=0;
 }
 
 void vk_mark_data_dirty(size_t offset, size_t size)
 {
-	// Merge resource changes into one upload interval for the next dispatch
+	size_t start=offset, end=offset+size, gap_prev, gap_next;
+	const size_t gap=4096;
+	int i, j, n=fb->vk.dirty_count;
+
+	// Resource changes are uploaded with the next dispatch as a few ranges, so that what stays unchanged between them isn't
 	if (size==0)
 		return;
-	if (fb->vk.dirty_start==SIZE_MAX || offset < fb->vk.dirty_start)
-		fb->vk.dirty_start=offset;
-	if (offset+size > fb->vk.dirty_end)
-		fb->vk.dirty_end=offset+size;
+
+	// The ranges the new one overlaps or nearly touches, merged with it as copying a small gap costs less than another copy
+	for (i=0; i < n && fb->vk.dirty_end[i] + gap < start; i++);
+	for (j=i; j < n && fb->vk.dirty_start[j] <= end + gap; j++)
+	{
+		start = MINN(start, fb->vk.dirty_start[j]);
+		end = MAXN(end, fb->vk.dirty_end[j]);
+	}
+
+	// Without room for another range, merge it with its nearest neighbour
+	if (j == i && n >= RL_VK_DIRTY_RANGES)
+	{
+		gap_prev = i > 0 ? start - fb->vk.dirty_end[i-1] : SIZE_MAX;
+		gap_next = i < n ? fb->vk.dirty_start[i] - end : SIZE_MAX;
+		if (gap_prev <= gap_next)
+			start = fb->vk.dirty_start[--i];
+		else
+			end = fb->vk.dirty_end[j++];
+	}
+
+	// Replace the merged ranges with the new one
+	memmove(&fb->vk.dirty_start[i+1], &fb->vk.dirty_start[j], (n-j) * sizeof(size_t));
+	memmove(&fb->vk.dirty_end[i+1], &fb->vk.dirty_end[j], (n-j) * sizeof(size_t));
+	fb->vk.dirty_start[i] = start;
+	fb->vk.dirty_end[i] = end;
+	fb->vk.dirty_count = n - (j-i) + 1;
 }
 
 void vk_mark_swapchain_dirty()
@@ -930,6 +1002,29 @@ static void vk_collect_frame_timestamps(vk_frame_t *frame)
 	timing->thread_end = timing->cl_enqueue_end + work_ticks*fb->vk.timestamp_period*1e-9;
 }
 
+static void vk_copy_dirty_interval(uint8_t *dst, size_t start, size_t end)
+{
+	size_t pos = start, s0, s1;
+
+	// Copy the interval from fb->data, except the data table entries whose bytes stayed in their own buffer, copied from there,
+	// the entries being in order of position
+	for (int i=0; i < fb->data_alloc_table_count; i++)
+	{
+		cl_data_alloc_t *e = &fb->data_alloc_table[i];
+		if (e->copy_at_upload == 0 || e->end <= pos || e->start >= end)
+			continue;
+
+		s0 = MAXN(e->start, pos);
+		s1 = MINN(e->end, end);
+		if (s0 > pos)
+			memcpy(&dst[pos-start], &fb->data[pos], s0-pos);
+		memcpy(&dst[s0-start], (uint8_t *) e->host_ptr + (s0 - e->start), s1-s0);
+		pos = s1;
+	}
+	if (end > pos)
+		memcpy(&dst[pos-start], &fb->data[pos], end-pos);
+}
+
 static VkResult vk_wait_frame_fence(VkFence fence)
 {
 	// Bound frame reuse waits so a stalled submission can report an error
@@ -941,7 +1036,9 @@ int vk_drawq_run()
 	VkResult ret;
 	vk_frame_t *frame;
 	uint32_t image_index;
-	size_t dirty_start=0, dirty_end=0, dirty_size=0;
+	size_t dirty_size=0;
+	VkBufferCopy upload[RL_VK_DIRTY_RANGES];
+	uint32_t upload_count=0;
 	VkCommandBuffer command_buffer;
 	VkSemaphore render_finished;
 	int copy_output, direct_upload, direct_output;
@@ -1012,20 +1109,33 @@ int vk_drawq_run()
 	direct_output=copy_output && fb->vk.swapchain_storage;
 	output_image=direct_output ? fb->vk.swapchain_images[image_index] : frame->output_image;
 
-	// Align and clamp the accumulated packed-resource upload interval
-	if (fb->vk.dirty_start!=SIZE_MAX && fb->vk.dirty_end > fb->vk.dirty_start)
+	// Align and clamp the accumulated packed-resource upload ranges, merging those that alignment makes touch
+	for (int i=0; i < fb->vk.dirty_count; i++)
 	{
-		dirty_start=fb->vk.dirty_start & ~(size_t) 3;
-		dirty_end=MINN((fb->vk.dirty_end+3) & ~(size_t) 3, fb->data_cl_as);
-		dirty_size=dirty_end-dirty_start;
+		size_t s=fb->vk.dirty_start[i] & ~(size_t) 3, e=MINN((fb->vk.dirty_end[i]+3) & ~(size_t) 3, fb->data_cl_as);
+		if (e <= s)
+			continue;
+		if (upload_count && s <= upload[upload_count-1].dstOffset + upload[upload_count-1].size)
+			upload[upload_count-1].size = MAXN(e, upload[upload_count-1].dstOffset + upload[upload_count-1].size) - upload[upload_count-1].dstOffset;
+		else
+			upload[upload_count++] = (VkBufferCopy) { .srcOffset=0, .dstOffset=s, .size=e-s };
 	}
+
+	// Each range's place in the staging buffer, one after the other
+	for (uint32_t i=0; i < upload_count; i++)
+	{
+		upload[i].srcOffset = dirty_size;
+		dirty_size += upload[i].size;
+	}
+
 	// Write dirty data straight into a mapped arena, which the GPU stopped reading when the fence passed, or into staging
 	direct_upload=fb->vk.resource_data.mapped!=NULL;
 	ret=vk_prepare_frame_buffers(frame, direct_upload ? 0 : dirty_size, direct_output ? fb->vk.swapchain_views[image_index] : frame->output_view);
 	if (ret!=VK_SUCCESS)
 		return 0;
-	if (dirty_size)
-		memcpy(direct_upload ? (uint8_t *) fb->vk.resource_data.mapped + dirty_start : frame->staging.mapped, &fb->data[dirty_start], dirty_size);
+	for (uint32_t i=0; i < upload_count; i++)
+		vk_copy_dirty_interval(direct_upload ? (uint8_t *) fb->vk.resource_data.mapped + upload[i].dstOffset : (uint8_t *) frame->staging.mapped + upload[i].srcOffset,
+			upload[i].dstOffset, upload[i].dstOffset + upload[i].size);
 	// End the copy interval immediately after the actual host memory copies
 	fb->timing[fb->timing_index].cl_copy_end=get_time_hr();
 
@@ -1040,12 +1150,9 @@ int vk_drawq_run()
 	if (frame->timestamp_pool)
 		vkCmdResetQueryPool(command_buffer, frame->timestamp_pool, 0, 2);
 
-	// Upload the dirty asset interval from staging before interpreting this frame's queue
+	// Upload the dirty asset ranges from staging before interpreting this frame's queue
 	if (dirty_size && !direct_upload)
-	{
-		VkBufferCopy copy = { .srcOffset=0, .dstOffset=dirty_start, .size=dirty_size };
-		vkCmdCopyBuffer(command_buffer, frame->staging.buffer, fb->vk.resource_data.buffer, 1, &copy);
-	}
+		vkCmdCopyBuffer(command_buffer, frame->staging.buffer, fb->vk.resource_data.buffer, upload_count, upload);
 	vk_record_input_barriers(command_buffer, frame, dirty_size!=0 && !direct_upload);
 
 	// Transition the acquired swapchain image into compute storage after the acquisition semaphore wait at the compute stage
@@ -1132,7 +1239,23 @@ int vk_drawq_run()
 
 	// Queue FIFO presentation and defer resize recovery until the next frame
 	VkPresentInfoKHR present_info = { .sType=VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, .waitSemaphoreCount=1, .pWaitSemaphores=&render_finished, .swapchainCount=1, .pSwapchains=&fb->vk.swapchain, .pImageIndices=&image_index };
+
+	// Each frame gets an id with the presentation timing, by which the presentation engine reports when it was shown
+	// and the earliest time it may be shown (see vk_set_desired_present_time())
+	VkPresentTimeGOOGLE present_time = { .presentID = fb->vk.present_id + 1, .desiredPresentTime = fb->vk.desired_present_ns };
+	fb->vk.desired_present_ns = 0;
+	VkPresentTimesInfoGOOGLE present_times = { .sType=VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE, .swapchainCount=1, .pTimes=&present_time };
+	if (fb->vk.display_timing)
+		present_info.pNext = &present_times;
 	ret=vkQueuePresentKHR(fb->vk.queue, &present_info);
+	if (fb->vk.display_timing && (ret==VK_SUCCESS || ret==VK_SUBOPTIMAL_KHR))
+	{
+		// When the frame was queued, to find how long before being shown frames must be queued
+		fb->vk.present_id++;
+		#ifdef RL_VK_DISPLAY_TIMING
+		fb->vk.queued_ns[fb->vk.present_id % 64] = vk_monotonic_ns();
+		#endif
+	}
 	if (ret==VK_ERROR_OUT_OF_DATE_KHR || (ret==VK_SUBOPTIMAL_KHR && !vk_compositor_rotates))
 		fb->vk.swapchain_dirty=1;
 	else if (ret==VK_ERROR_SURFACE_LOST_KHR)
@@ -1148,10 +1271,101 @@ int vk_drawq_run()
 	// Commit frame ownership and clear the uploaded dirty interval
 	if (!direct_output)
 		frame->output_layout_initialised=1;
-	fb->vk.dirty_start=SIZE_MAX;
-	fb->vk.dirty_end=0;
+	fb->vk.dirty_count=0;
 	fb->vk.frame_index=(fb->vk.frame_index+1)%RL_VK_FRAMES_IN_FLIGHT;
 	return 1;
+}
+
+void vk_set_desired_present_time(double seconds_from_now)
+{
+	// The next frame presented won't be shown before this time from now, so that one ready early is held for its turn instead of
+	// being shown at an earlier refresh, with presentation timing (VK_GOOGLE_display_timing), as soon as possible otherwise
+	#ifdef RL_VK_DISPLAY_TIMING
+	fb->vk.desired_present_ns = seconds_from_now > 0. && seconds_from_now < 1. ? vk_monotonic_ns() + (uint64_t) (seconds_from_now * 1e9) : 0;
+	#else
+	(void) seconds_from_now;
+	#endif
+}
+
+#ifdef RL_VK_DISPLAY_TIMING
+static uint64_t vk_second_longest(const uint64_t *v, uint32_t n)
+{
+	uint64_t a = 0, b = 0;
+
+	// The second longest of n times, the longest when there's only one
+	for (uint32_t i=0; i < n; i++)
+	{
+		if (v[i] > a)
+		{
+			b = a;
+			a = v[i];
+		}
+		else if (v[i] > b)
+			b = v[i];
+	}
+	return n > 1 ? b : a;
+}
+#endif
+
+int vk_present_timing(uint32_t *presented_id, uint32_t *shown_id, double *shown_ago, double *refresh_period, double *present_lead)
+{
+	// The id of the latest frame presented, the latest frame known to have been shown and how many seconds ago, and the display's
+	// refresh period in seconds, returning 0 when there's no presentation timing or nothing was shown yet
+	#ifdef RL_VK_DISPLAY_TIMING
+	if (!fb->vk.display_timing || fb->vk.swapchain == VK_NULL_HANDLE)
+		return 0;
+
+	// The refresh period, asked for again about every half second since the display's rate can change
+	if (fb->vk.refresh_ns == 0 || ++fb->vk.refresh_check >= 30)
+	{
+		VkRefreshCycleDurationGOOGLE refresh = {0};
+		if (fb->vk.get_refresh_cycle_duration(fb->vk.device, fb->vk.swapchain, &refresh) == VK_SUCCESS)
+			fb->vk.refresh_ns = refresh.refreshDuration;
+		fb->vk.refresh_check = 0;
+	}
+
+	// The frames shown since the last call, keeping the latest
+	VkPastPresentationTimingGOOGLE past[8];
+	for (int pass=0; pass < 8; pass++)
+	{
+		uint32_t count = sizeof(past)/sizeof(*past);
+		VkResult ret = fb->vk.get_past_presentation_timing(fb->vk.device, fb->vk.swapchain, &count, past);
+		if (ret != VK_SUCCESS && ret != VK_INCOMPLETE)
+			break;
+		for (uint32_t i=0; i < count; i++)
+			if (past[i].presentID > fb->vk.shown_id && past[i].actualPresentTime)
+			{
+				fb->vk.shown_id = past[i].presentID;
+				fb->vk.shown_ns = past[i].actualPresentTime;
+
+				// How long before being shown this frame had to be queued: from its queueing to its showing, less how much later it could
+				// have been queued, the second longest of the latest 32 being the lead frames need, which a single late frame doesn't change
+				uint64_t q = fb->vk.queued_ns[past[i].presentID % 64];
+				if (q && past[i].presentID + 64 > fb->vk.present_id && past[i].actualPresentTime > q)
+				{
+					int64_t lead = (int64_t) (past[i].actualPresentTime - q) - (int64_t) past[i].presentMargin;
+					lead = MINN(MAXN(lead, 0), 4 * (int64_t) fb->vk.refresh_ns);
+					fb->vk.lead_recent[fb->vk.lead_count++ % 32] = (uint64_t) lead;
+					fb->vk.lead_ns = vk_second_longest(fb->vk.lead_recent, MINN(fb->vk.lead_count, 32));
+				}
+			}
+		if (ret != VK_INCOMPLETE)
+			break;
+	}
+	if (fb->vk.shown_id == 0 || fb->vk.refresh_ns == 0)
+		return 0;
+
+	*presented_id = fb->vk.present_id;
+	*shown_id = fb->vk.shown_id;
+	uint64_t now = vk_monotonic_ns();
+	*shown_ago = now > fb->vk.shown_ns ? (double) (now - fb->vk.shown_ns) * 1e-9 : 0.;
+	*refresh_period = (double) fb->vk.refresh_ns * 1e-9;
+	*present_lead = (double) fb->vk.lead_ns * 1e-9;
+	return 1;
+	#else
+	(void) presented_id; (void) shown_id; (void) shown_ago; (void) refresh_period; (void) present_lead;
+	return 0;
+	#endif
 }
 
 int vk_init()
@@ -1169,14 +1383,12 @@ int vk_init()
 		for (int i=0; i < RL_VK_FRAMES_IN_FLIGHT; i++)
 			fb->vk.frame[i].timestamp_results_pending=0;
 		fb->vk.frame_index=0;
-		fb->vk.dirty_start=SIZE_MAX;
-		fb->vk.dirty_end=0;
+		fb->vk.dirty_count=0;
 		return VK_SUCCESS;
 	}
 
 	// Start from an empty state so partial initialization can share teardown
 	memset(&fb->vk, 0, sizeof(fb->vk));
-	fb->vk.dirty_start=SIZE_MAX;
 	#ifdef _WIN32
 	// Create a dedicated native presentation target before binding Vulkan WSI
 	ret=vk_create_surface_window();

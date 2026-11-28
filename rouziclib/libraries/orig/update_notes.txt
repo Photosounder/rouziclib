@@ -1,3 +1,10 @@
+pffft:
+	https://bitbucket.org/jpommier/pffft (Julien Pommier's original pffft.c and pffft.h)
+	November 27, 2026
+	included by libraries/cfftpack.c when RL_PFFFT is defined
+	the original treats __wasm_simd128__ as NEON, which needs Emscripten's arm_neon.h: that's now only with __EMSCRIPTEN__,
+	otherwise PFFFT_SIMD_WASM selects added macros equivalent to the SSE ones, written with clang's vector extensions
+
 cfftpack:
 	https://github.com/zywina/cfftpack
 	May 5, 2018

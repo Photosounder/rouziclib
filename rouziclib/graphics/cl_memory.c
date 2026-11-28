@@ -194,7 +194,7 @@ void cl_data_table_remove_entry_by_host_ptr(void *host_ptr)
 	}
 }
 
-uint64_t cl_add_data_table_entry(size_t *table_index, size_t prev_end, void *buffer, size_t size, int *table_index_p)
+uint64_t cl_add_data_table_entry(size_t *table_index, size_t prev_end, void *buffer, size_t size, int *table_index_p, int copy_at_upload)
 {
 	alloc_enough(&fb->data_alloc_table, fb->data_alloc_table_count+=1, &fb->data_alloc_table_as, sizeof(cl_data_alloc_t), 1.5);
 
@@ -211,7 +211,14 @@ uint64_t cl_add_data_table_entry(size_t *table_index, size_t prev_end, void *buf
 	if (table_index_p)
 		*table_index_p = *table_index;
 
-	memcpy(&fb->data[entry->start], buffer, size);		// copy to the host buffer
+	// Copy to the host buffer, unless the Vulkan upload will copy the bytes straight from the buffer
+	entry->copy_at_upload = 0;
+	#ifdef RL_VULKAN
+	if (copy_at_upload && fb->use_drawq==DRAWQ_MODE_VULKAN)
+		entry->copy_at_upload = 1;
+	#endif
+	if (entry->copy_at_upload == 0)
+		memcpy(&fb->data[entry->start], buffer, size);
 
 	return entry->start;
 }
@@ -299,7 +306,7 @@ int cl_data_check_enough_room(size_t align_size, size_t buffer_size)
 	return (ssize_t) fb->data_space_end - (ssize_t) next_aligned_offset(fb->data_space_start, align_size) >= (ssize_t) buffer_size;
 }
 
-uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t align_size, int *table_index)
+uint64_t cl_add_buffer_to_data_table_mode(void *buffer, size_t buffer_size, size_t align_size, int *table_index, int copy_at_upload)
 {
 #ifdef RL_OPENCL
 	uint64_t ret=0;
@@ -353,7 +360,7 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 	{
 		if (cl_data_check_enough_room(align_size, buffer_size))		// if there's enough room in the current space
 		{
-			ret = cl_add_data_table_entry(&fb->data_space_index, next_aligned_offset(fb->data_space_start, align_size), buffer, buffer_size, table_index);
+			ret = cl_add_data_table_entry(&fb->data_space_index, next_aligned_offset(fb->data_space_start, align_size), buffer, buffer_size, table_index, copy_at_upload);
 			fb->data_space_start = fb->data_alloc_table[fb->data_space_index].end;
 			fb->data_alloc_table[fb->data_space_index].unused = 0;
 			fb->data_space_index++;
@@ -378,26 +385,71 @@ uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t al
 
 	return 0;
 #else
+	(void) copy_at_upload;
 	return (uint64_t) buffer;
 #endif
 }
 
+uint64_t cl_add_buffer_to_data_table(void *buffer, size_t buffer_size, size_t align_size, int *table_index)
+{
+	// Buffers are copied into fb->data unless asked otherwise
+	return cl_add_buffer_to_data_table_mode(buffer, buffer_size, align_size, table_index, 0);
+}
+
 uint64_t cl_add_raster_to_data_table(raster_t *r)
 {
+	// The raster's flag says whether its buffer is copied into fb->data or uploaded straight from its memory
 	if (r->buf)
-		return cl_add_buffer_to_data_table(r->buf, r->buf_size, 4, &r->table_index);
+		return cl_add_buffer_to_data_table_mode(r->buf, r->buf_size, 4, &r->table_index, r->copy_at_upload);
 
 	if (r->sq)
-		return cl_add_buffer_to_data_table(r->sq, mul_x_by_y_xyi(r->dim) * sizeof(sqrgb_t), sizeof(sqrgb_t), &r->table_index);
+		return cl_add_buffer_to_data_table_mode(r->sq, mul_x_by_y_xyi(r->dim) * sizeof(sqrgb_t), sizeof(sqrgb_t), &r->table_index, r->copy_at_upload);
 
 	if (r->srgb)
-		return cl_add_buffer_to_data_table(r->srgb, mul_x_by_y_xyi(r->dim) * sizeof(srgb_t), sizeof(srgb_t), &r->table_index);
+		return cl_add_buffer_to_data_table_mode(r->srgb, mul_x_by_y_xyi(r->dim) * sizeof(srgb_t), sizeof(srgb_t), &r->table_index, r->copy_at_upload);
 
 	if (r->f)
-		return cl_add_buffer_to_data_table(r->f, mul_x_by_y_xyi(r->dim) * sizeof(frgb_t), sizeof(frgb_t), &r->table_index);
+		return cl_add_buffer_to_data_table_mode(r->f, mul_x_by_y_xyi(r->dim) * sizeof(frgb_t), sizeof(frgb_t), &r->table_index, r->copy_at_upload);
 
 	if (r->l)
-		return cl_add_buffer_to_data_table(r->l, mul_x_by_y_xyi(r->dim) * sizeof(lrgb_t), sizeof(lrgb_t), &r->table_index);
+		return cl_add_buffer_to_data_table_mode(r->l, mul_x_by_y_xyi(r->dim) * sizeof(lrgb_t), sizeof(lrgb_t), &r->table_index, r->copy_at_upload);
 
 	return 0;
+}
+
+void cl_raster_changed_rows(raster_t *r, int y0, int y1)
+{
+	#ifdef RL_OPENCL
+	void *buffer;
+	size_t row_size, offset, size;
+	int i;
+
+	// The buffer that cl_add_raster_to_data_table() adds
+	buffer = r->buf ? r->buf : (r->sq ? (void *) r->sq : (r->srgb ? (void *) r->srgb : (r->f ? (void *) r->f : (void *) r->l)));
+	y0 = MAXN(y0, 0);
+	y1 = MINN(y1, r->dim.y);
+	if (buffer==NULL || y1 <= y0)
+		return;
+
+	// Find its entry, a raster not in the table being uploaded whole when it's added
+	i = r->table_index;
+	if (i < 0 || i >= fb->data_alloc_table_count || fb->data_alloc_table[i].host_ptr != buffer)
+		for (i=0; i < fb->data_alloc_table_count; i++)
+			if (fb->data_alloc_table[i].host_ptr == buffer)
+				break;
+	if (i >= fb->data_alloc_table_count)
+		return;
+	r->table_index = i;
+
+	// Copy the rows into fb->data unless the Vulkan upload copies them from the buffer itself, and have them uploaded again
+	cl_data_alloc_t *e = &fb->data_alloc_table[i];
+	row_size = (e->end - e->start) / r->dim.y;
+	offset = (size_t) y0 * row_size;
+	size = (size_t) (y1 - y0) * row_size;
+	if (e->copy_at_upload == 0)
+		memcpy(&fb->data[e->start + offset], (uint8_t *) buffer + offset, size);
+	cl_copy_buffer_to_device(&fb->data[e->start + offset], e->start + offset, size);
+	#else
+	(void) r; (void) y0; (void) y1;
+	#endif
 }

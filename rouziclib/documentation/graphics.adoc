@@ -58,7 +58,7 @@ The final intensity is separate from colour. Blend functions such as `blend_add`
 
 The draw queue records or dispatches drawing work through direct, software, OpenCL, or Vulkan paths depending on compile-time support and framebuffer configuration. The corresponding modes are `DRAWQ_MODE_DIRECT`, `DRAWQ_MODE_OPENCL`, `DRAWQ_MODE_SOFTWARE`, and `DRAWQ_MODE_VULKAN`. `DQS_THREADS` controls the software queue worker count.
 
-`drawq_bracket_open()` starts a temporary compositing layer. `drawq_bracket_close()` merges that layer with an operation such as `DQB_ADD`, `DQB_SUB`, `DQB_MUL`, `DQB_DIV`, `DQB_BLEND`, or `DQB_SOLID`. Brackets are for grouped compositing, not merely for batching unrelated draw calls.
+`drawq_bracket_open()` starts a temporary compositing layer. `drawq_bracket_close()` merges that layer with an operation such as `DQB_ADD`, `DQB_SUB`, `DQB_MUL`, `DQB_DIV`, `DQB_BLEND`, `DQB_SOLID`, or `DQB_BLEND_PREMUL` (the layer's colours being premultiplied by its alpha: layer + below × (1 − layer alpha)). Brackets are for grouped compositing, not merely for batching unrelated draw calls.
 
 When a rendering backend can change at runtime, expose the draw-queue mode through application state and apply a pending switch only after the current frame has completed. Do not replace the backend while queued work is still being processed.
 

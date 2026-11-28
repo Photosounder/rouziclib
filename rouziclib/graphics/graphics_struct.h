@@ -41,6 +41,9 @@ typedef struct
 
 	int table_index;	// index in the cl_data allocation table
 	int rgb8_transfer;	// enum rgb8_transfer, applies to the srgb storage
+	int copy_at_upload;	// 1 for the Vulkan upload to copy the buffer straight from its memory instead of through fb->data, which saves a copy
+	int alpha_premul;	// 1 for the drawing queue's blits to use the alpha channel (lrgb and srgb), the colours being premultiplied by it, instead of treating the raster as opaque
+				// but means the buffer mustn't change between its blit and the frame being presented, nor be freed while its raster is in use
 } raster_t;
 
 enum rgb8_transfer
@@ -74,6 +77,7 @@ typedef struct
 	size_t start, end;	// position on fb's data_cl device buffer
 	int unused;		// 0 means in use, 1 means was used last frame, 2 means unused and should be removed
 	void *host_ptr;
+	int copy_at_upload;	// 1 when the bytes stay in host_ptr instead of being copied into fb->data, the Vulkan upload copying them from there
 } cl_data_alloc_t;
 
 typedef struct
@@ -105,6 +109,7 @@ enum dq_blend
 	DQB_DIV,
 	DQB_BLEND,
 	DQB_SOLID,
+	DQB_BLEND_PREMUL,	// fg + bg*(1 - fg alpha), for colours premultiplied by their alpha
 };
 #endif
 

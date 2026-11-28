@@ -66,6 +66,7 @@ layout(push_constant) uniform DrawQueueConstants
 #define DQB_DIV 3
 #define DQB_BLEND 4
 #define DQB_SOLID 5
+#define DQB_BLEND_PREMUL 6
 
 float qf(uint index)
 {
@@ -230,6 +231,7 @@ vec4 blend_pixel(vec4 background, vec4 foreground, int blend_mode)
 		case DQB_DIV: return background / foreground;
 		case DQB_BLEND: return foreground * foreground.a + background * (1.0 - foreground.a);
 		case DQB_SOLID: return foreground;
+		case DQB_BLEND_PREMUL: return foreground + background * (1.0 - foreground.a);
 	}
 	return foreground;
 }
@@ -378,6 +380,34 @@ vec4 read_lrgb_pixel(uint base, int index)
 	return vec4(vec3(data_u16(offset), data_u16(offset+2u), data_u16(offset+4u))*(1.0/32768.0), 1.0);
 }
 
+vec4 read_lrgba_pixel(uint base, int index)
+{
+	uint offset = base+uint(index)*8u;
+
+	// Linear 1.15 colours premultiplied by their alpha, which is kept, in two whole words when aligned
+	if ((offset & 3u) == 0u)
+	{
+		uint rg = resource_data[offset >> 2u], ba = resource_data[(offset >> 2u) + 1u];
+		return vec4(rg & 65535u, rg >> 16u, ba & 65535u, ba >> 16u)*(1.0/32768.0);
+	}
+	return vec4(data_u16(offset), data_u16(offset+2u), data_u16(offset+4u), data_u16(offset+6u))*(1.0/32768.0);
+}
+
+vec4 read_srgba_pixel(uint base, int index)
+{
+	// Decode sRGB bytes and keep the alpha byte
+	uint value = data_u32(base+uint(index)*4u);
+	return vec4(s8lrgb(vec3(value & 255u, (value >> 8u) & 255u, (value >> 16u) & 255u)), float(value >> 24u)*(1.0/255.0));
+}
+
+vec4 read_gamma22a_pixel(uint base, int index)
+{
+	// Decode gamma RGB bytes and keep the alpha byte
+	uint value = data_u32(base+uint(index)*4u);
+	vec3 rgb = vec3(value & 255u, (value >> 8u) & 255u, (value >> 16u) & 255u);
+	return vec4(pow(rgb*(1.0/255.0), vec3(2.2)), float(value >> 24u)*(1.0/255.0));
+}
+
 vec4 rec709_to_linear(vec4 pixel)
 {
 	vec4 line = pixel*(1.0/4.5);
@@ -461,6 +491,9 @@ vec4 read_format_pixel(uint base, int format, ivec2 dimensions, ivec2 position)
 		case 2: return read_srgb_pixel(base, index);
 		case 3: return read_lrgb_pixel(base, index);
 		case 4: return read_gamma22_pixel(base, index);
+		case 5: return read_lrgba_pixel(base, index);
+		case 6: return read_srgba_pixel(base, index);
+		case 7: return read_gamma22a_pixel(base, index);
 		case 10: return read_yuv420p8_pixel(base, dimensions, position, false);
 		case 11: return read_yuv420pn_pixel(base, dimensions, position, 0.25/255.0);
 		case 12: return read_yuv420pn_pixel(base, dimensions, position, 0.0625/255.0);

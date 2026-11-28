@@ -169,6 +169,35 @@ float4 read_lrgb_pixel(global ushort *im, int index)
 	return pv;
 }
 
+float4 read_lrgba_pixel(global ushort *im, int index)
+{
+	float4 pv;
+
+	// Linear 1.15 colours premultiplied by their alpha, which is kept
+	pv.x = im[index]   * 0.000030517578125f;
+	pv.y = im[index+1] * 0.000030517578125f;
+	pv.z = im[index+2] * 0.000030517578125f;
+	pv.w = im[index+3] * 0.000030517578125f;
+
+	return pv;
+}
+
+float4 read_srgba_pixel(global uint *im, int index)
+{
+	// Decode sRGB bytes and keep the alpha byte
+	float4 pv = read_srgb_pixel(im, index);
+	pv.w = (im[index] >> 24) * (1.f/255.f);
+	return pv;
+}
+
+float4 read_gamma22a_pixel(global uint *im, int index)
+{
+	// Decode gamma RGB bytes and keep the alpha byte
+	float4 pv = read_gamma22_pixel(im, index);
+	pv.w = (im[index] >> 24) * (1.f/255.f);
+	return pv;
+}
+
 float4 rec709_to_linear(float4 pv)
 {
 	float4 l = pv * (1.f/4.5f);
@@ -323,6 +352,16 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i)
 		// Decode packed gamma 2.2 RGB before interpolation
 		case 4:
 			return read_gamma22_pixel((global uint *) im, i.y * im_dim.x + i.x);
+
+		// The same formats keeping their alpha channel, for blending colours premultiplied by it
+		case 5:		// lrgb_t with alpha
+			return read_lrgba_pixel((global ushort *) im, 4*(i.y * im_dim.x + i.x));
+
+		case 6:		// srgb_t with alpha
+			return read_srgba_pixel((global uint *) im, i.y * im_dim.x + i.x);
+
+		case 7:		// gamma 2.2 with alpha
+			return read_gamma22a_pixel((global uint *) im, i.y * im_dim.x + i.x);
 
 		case 10:	// YCbCr 420 planar 8-bit (AV_PIX_FMT_YUV420P)
 			return read_yuv420p8_pixel((global uchar *) im, im_dim, i);

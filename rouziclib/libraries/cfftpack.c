@@ -3,6 +3,35 @@
 #include "orig/fftpack_float.c"
 #include "orig/fftpack_double.c"
 
+#ifdef RL_PFFFT
+// SIMD FFT (SSE, NEON, Wasm SIMD, scalar otherwise) for float 1D transforms whose size is a multiple of 16 made of 2, 3 and 5.
+// Its SIMD self-test, which nothing calls, prints, and freestanding builds have no printf
+#ifdef RL_FREESTANDING
+#define printf(...) 0
+#endif
+#ifndef M_SQRT2			// constants it uses that a freestanding math.h may lack
+#define M_SQRT2 1.41421356237309504880
+#endif
+#ifndef M_SQRT1_2
+#define M_SQRT1_2 0.70710678118654752440
+#endif
+#include "orig/pffft.c"
+#ifdef RL_FREESTANDING
+#undef printf
+#endif
+#endif
+
+int next_fast_cfft_size(int x)
+{
+	// The next fast size for cfft_1D(), a multiple of 16 with pffft so that it handles it
+	int n = next_fast_fft_size(x);
+	#ifdef RL_PFFFT
+	while (n % 16)
+		n = next_fast_fft_size(n+1);
+	#endif
+	return n;
+}
+
 void cfft_plan_free(cfft_plan_t *plan)
 {
 	if (plan==NULL)
@@ -12,6 +41,13 @@ void cfft_plan_free(cfft_plan_t *plan)
 	free(plan->workd);
 	free(plan->savef);
 	free(plan->saved);
+	#ifdef RL_PFFFT
+	// pffft's setup and its aligned buffers
+	if (plan->pffft_setup)
+		pffft_destroy_setup(plan->pffft_setup);
+	pffft_aligned_free(plan->pffft_work);
+	pffft_aligned_free(plan->pffft_buf);
+	#endif
 	memset(plan, 0, sizeof(cfft_plan_t));
 }
 
@@ -27,6 +63,22 @@ cfft_plan_t cfft_1D_create_plan(int n, const size_t elemsize)
 	plan.lenwork = 2 * n;
 	plan.dim = xyi(n, 1);
 	plan.elemsize = elemsize;
+
+	#ifdef RL_PFFFT
+	// Float transforms of a size pffft supports use it, with its own aligned work buffer
+	if (elemsize == sizeof(float) && n % 16 == 0)
+	{
+		plan.pffft_setup = pffft_new_setup(n, PFFFT_COMPLEX);
+		if (plan.pffft_setup)
+		{
+			plan.pffft_work = pffft_aligned_malloc(2 * (size_t) n * sizeof(float));
+			if (plan.pffft_work)
+				return plan;
+			pffft_destroy_setup(plan.pffft_setup);
+			plan.pffft_setup = NULL;
+		}
+	}
+	#endif
 
 	if (elemsize == sizeof(float))
 	{
@@ -95,6 +147,34 @@ int cfft_1D(cfft_plan_t *plan, void *data, const int way)
 
 	if (plan==NULL || data==NULL)
 		return -1;
+
+	#ifdef RL_PFFFT
+	// With pffft, scaled by 1/N in the forward direction like FFTPACK's, data that isn't 16-byte aligned going through an aligned copy
+	if (plan->pffft_setup)
+	{
+		int n = plan->dim.x;
+		float *d = data;
+		if (((size_t) d & 15) != 0)
+		{
+			if (plan->pffft_buf == NULL)
+				plan->pffft_buf = pffft_aligned_malloc(2 * (size_t) n * sizeof(float));
+			if (plan->pffft_buf == NULL)
+				return -1;
+			memcpy(plan->pffft_buf, data, 2 * (size_t) n * sizeof(float));
+			d = plan->pffft_buf;
+		}
+		pffft_transform_ordered(plan->pffft_setup, d, d, plan->pffft_work, way==0 ? PFFFT_FORWARD : PFFFT_BACKWARD);
+		if (way==0)
+		{
+			float scale = 1.f / (float) n;
+			for (int i=0; i < 2*n; i++)
+				d[i] *= scale;
+		}
+		if (d != data)
+			memcpy(data, d, 2 * (size_t) n * sizeof(float));
+		return 0;
+	}
+	#endif
 
 	if (plan->elemsize == sizeof(float))
 	{

@@ -15,6 +15,7 @@
 #include <vulkan/vulkan.h>
 
 #define RL_VK_FRAMES_IN_FLIGHT 1
+#define RL_VK_DIRTY_RANGES 32
 
 typedef struct
 {
@@ -76,11 +77,28 @@ typedef struct
 	vk_buffer_t resource_data;
 	vk_frame_t frame[RL_VK_FRAMES_IN_FLIGHT];
 	uint32_t frame_index;
-	size_t dirty_start;
-	size_t dirty_end;
+	size_t dirty_start[RL_VK_DIRTY_RANGES];	// the parts of the resource arena to upload with the next frame, in order and apart
+	size_t dirty_end[RL_VK_DIRTY_RANGES];
+	int dirty_count;
 	int unified_memory;		// integrated GPU, whose memory the CPU can write directly
 	int swapchain_storage;		// the compute shader writes the swapchain images through swapchain_views
 	int swapchain_dirty;
 	int initialised;
+
+	// Presentation timing (VK_GOOGLE_display_timing, Android), so that the caller can start each frame as late as possible and keep
+	// as few frames waiting for the display as possible, see vk_present_timing()
+	int display_timing;
+	PFN_vkGetPastPresentationTimingGOOGLE get_past_presentation_timing;
+	PFN_vkGetRefreshCycleDurationGOOGLE get_refresh_cycle_duration;
+	uint32_t present_id;		// the id of the latest frame presented, counting from 1
+	uint32_t shown_id;		// the latest frame known to have been shown, 0 before the first, and when (CLOCK_MONOTONIC)
+	uint64_t shown_ns;
+	uint64_t refresh_ns;		// the display's refresh period, 0 when unknown
+	int refresh_check;		// presents since the refresh period was last asked for
+	uint64_t queued_ns[64];		// when each of the latest frames was queued, by id modulo 64
+	uint64_t lead_ns;		// how long before being shown a frame must be queued at least (the second longest of the latest 32)
+	uint64_t lead_recent[32];	// the latest frames' leads, by count modulo 32
+	uint32_t lead_count;
+	uint64_t desired_present_ns;	// when the next frame presented should be shown at the earliest, 0 for as soon as possible
 } vk_info_t;
 #endif

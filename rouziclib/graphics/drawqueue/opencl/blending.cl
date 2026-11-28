@@ -27,6 +27,10 @@ float4 blend_pixel(float4 bg, float4 fg, int blendmode)
 		case DQB_SOLID:
 			pv = fg;
 			break;
+
+		case DQB_BLEND_PREMUL:
+			pv = fg + bg * (1.f - fg.w);
+			break;
 	}
 
 	return pv;

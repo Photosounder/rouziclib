@@ -61,6 +61,7 @@ int dqsb_bracket_close(float **block, int brlvl, enum dq_blend blendmode, int ch
 				case DQB_DIV:	bg /= fg;					break;
 				case DQB_BLEND:	bg = fg*alpha + bg*(1.f-alpha);		break;
 				case DQB_SOLID:	bg = fg;					break;
+				case DQB_BLEND_PREMUL:	bg = fg + bg*(1.f-alpha);		break;
 				default:		bg += fg;					break;
 			}
 			block[brlvl-1][ic*chan_stride + i] = bg;

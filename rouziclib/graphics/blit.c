@@ -217,6 +217,26 @@ void blit_scale_frgb(raster_t r, xy_t pscale, xy_t pos, int interp)
 	blit_scale_float(fb->r.f, fb->r.dim, r.f, r.dim, 4, pscale, pos, get_pixel_address_contig);
 }
 
+static int blit_dq_fmt(raster_t *r)
+{
+	// The format number the drawing queue reads the raster's pixels with
+	if (r->buf)
+		return r->buf_fmt;
+	if (r->sq)
+		return 1;
+
+	// With alpha_premul lrgb and srgb rasters are read with their alpha channel, the colours being premultiplied by it
+	if (r->srgb)
+	{
+		if (r->rgb8_transfer == RGB8_TRANSFER_GAMMA22)
+			return r->alpha_premul ? 7 : 4;
+		return r->alpha_premul ? 6 : 2;
+	}
+	if (r->l)
+		return r->alpha_premul ? 5 : 3;
+	return 0;
+}
+
 void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 {
 #ifndef RL_FREESTANDING
@@ -261,10 +281,7 @@ void blit_scale_dq(raster_t *r, xy_t pscale, xy_t pos, int interp)
 	df[5] = 1./pscale.y;
 	df[6] = -pos.x;
 	df[7] = -pos.y;
-	if (r->buf)
-		di[8] = r->buf_fmt;
-	else
-		di[8] = r->sq ? 1 : (r->srgb ? (r->rgb8_transfer == RGB8_TRANSFER_GAMMA22 ? 4 : 2) : (r->l ? 3 : 0));
+	di[8] = blit_dq_fmt(r);
 
 	// Initialize byte conversion tables before software workers consume the queue
 	if (r->srgb)
@@ -356,10 +373,7 @@ void blit_scale_rotated_dq(raster_t *r, xy_t pscale, xy_t pos, double angle, xy_
 	df[4] = 1./pscale.x;
 	df[5] = -pos.x;
 	df[6] = -pos.y;
-	if (r->buf)
-		di[7] = r->buf_fmt;
-	else
-		di[7] = r->sq ? 1 : (r->srgb ? (r->rgb8_transfer == RGB8_TRANSFER_GAMMA22 ? 4 : 2) : (r->l ? 3 : 0));
+	di[7] = blit_dq_fmt(r);
 
 	// Initialize byte conversion tables before software workers consume the queue
 	if (r->srgb)

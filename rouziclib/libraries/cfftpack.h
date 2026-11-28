@@ -7,8 +7,11 @@ typedef struct
 	int lensav, lenwork, scale;
 	size_t elemsize;
 	xyi_t dim;
+	void *pffft_setup;		// with RL_PFFFT, float 1D plans of a size pffft supports use it instead of FFTPACK
+	float *pffft_work, *pffft_buf;	// its work buffer, and a buffer for data that isn't 16-byte aligned
 } cfft_plan_t;
 
+extern int next_fast_cfft_size(int x);
 extern void cfft_plan_free(cfft_plan_t *plan);
 extern cfft_plan_t cfft_1D_create_plan(int n, const size_t elemsize);
 extern cfft_plan_t cfft_2D_create_plan(xyi_t dim, const size_t elemsize);
