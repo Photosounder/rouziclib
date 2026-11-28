@@ -43,6 +43,7 @@ typedef struct
 	int rgb8_transfer;	// enum rgb8_transfer, applies to the srgb storage
 	int copy_at_upload;	// 1 for the Vulkan upload to copy the buffer straight from its memory instead of through fb->data, which saves a copy
 	int alpha_premul;	// 1 for the drawing queue's blits to use the alpha channel (lrgb and srgb), the colours being premultiplied by it, instead of treating the raster as opaque
+	int transmittance;	// 1 when the 4th channel holds transmittance (1 - alpha) instead of alpha: how the blend functions treat it while drawing into the raster as fb->r (see blending.c), and how blits with alpha_premul read it
 				// but means the buffer mustn't change between its blit and the frame being presented, nor be freed while its raster is in use
 } raster_t;
 

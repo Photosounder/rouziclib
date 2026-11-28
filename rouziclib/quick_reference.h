@@ -45,6 +45,10 @@
 #define RL_EXCL_THREADING
 	// Exclude threading code
 
+#define RL_FB_NO_TLS
+	// fb is a plain global instead of a thread-local one (one framebuffer for all threads), which in a shared library saves a call
+	// to the dynamic TLS resolver in every function that uses it
+
 #define RL_GDI32
 	// Includes Windows code for taking screenshots. Needs linking to gdi32.lib
 

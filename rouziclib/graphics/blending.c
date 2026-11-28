@@ -1,10 +1,17 @@
 blend_func_t cur_blend=blend_add;
 
 // The following functions blend a whole foreground pixel with a background pixel by a ratio of p (1.15 fixed-point format)
+// When the framebuffer's 4th channel is transmittance (fb->r.transmittance, for a layer with colours premultiplied by their
+// coverage that goes over others) covering multiplies it by what's let through, added light leaves it alone, and colours keep
+// their alpha as usual
 
 void blend_solid(lrgb_t *bg, lrgb_t fg, int32_t p)
 {
 	*bg = fg;
+
+	// A transmittance channel gets the opposite of the colour's alpha
+	if (fb->r.transmittance)
+		bg->a = ONE - fg.a;
 }
 
 void blend_add(lrgb_t *bg, lrgb_t fg, int32_t p)
@@ -13,7 +20,9 @@ void blend_add(lrgb_t *bg, lrgb_t fg, int32_t p)
 	uint16_t *vbg16 = (uint16_t *) bg;
 	int32_t i, vfg[4], vbg[4];
 
-	for (i=0; i < 4; i++)
+	// Added light leaves a transmittance channel alone
+	int nc = fb->r.transmittance ? 3 : 4;
+	for (i=0; i < nc; i++)
 	{
 		vfg[i] = vfg16[i];
 		vbg[i] = vbg16[i];
@@ -76,6 +85,10 @@ void blend_blend(lrgb_t *bg, lrgb_t fg, int32_t p)
 	bg->r = fg.r * p + bg->r * pinv >> 15;
 	bg->g = fg.g * p + bg->g * pinv >> 15;
 	bg->b = fg.b * p + bg->b * pinv >> 15;
+
+	// Covering by p lets 1-p of what's behind through
+	if (fb->r.transmittance)
+		bg->a = bg->a * pinv >> 15;
 }
 
 int alphablend_one_channel(int Cb, int Ca, int Ab_ai, int Aa, int Aoi)
@@ -120,14 +133,27 @@ lrgb_t blend_alphablend_sep_alpha(lrgb_t Cb, lrgb_t Ca, int Ab, int Aa)	// pixel
 
 void blend_alphablend(lrgb_t *bg, lrgb_t fg, int32_t p)
 {
+	// A transmittance channel is turned into alpha for the blending and back
+	int t = fb->r.transmittance;
+	if (t)
+		bg->a = ONE - bg->a;
 	*bg = blend_alphablend_sep_alpha(*bg, fg, LBD_TO_Q15(bg->a), LBD_TO_Q15(fg.a) * p >> 15);
+	if (t)
+		bg->a = ONE - bg->a;
 }
 
 void blend_alphablend_behind(lrgb_t *bg, lrgb_t fg, int32_t p)
 {
 	int Ab = LBD_TO_Q15(fg.a) * p >> 15;
+
+	// A transmittance channel is turned into alpha for the blending and back
+	int t = fb->r.transmittance;
+	if (t)
+		bg->a = ONE - bg->a;
 	fg = mul_scalar_lrgba(fg, Ab);
 	*bg = blend_alphablend_sep_alpha(fg, *bg, Ab, LBD_TO_Q15(bg->a));
+	if (t)
+		bg->a = ONE - bg->a;
 }
 
 void blend_alphablendfg(lrgb_t *bg, lrgb_t fg, int32_t p)	// alpha blending (doesn't take framebuffer's alpha into account though, assumed to be 1.0)
@@ -140,7 +166,12 @@ void blend_alphablendfg(lrgb_t *bg, lrgb_t fg, int32_t p)	// alpha blending (doe
 	bg->r = fg.r * p + bg->r * pinv >> 15;
 	bg->g = fg.g * p + bg->g * pinv >> 15;
 	bg->b = fg.b * p + bg->b * pinv >> 15;
-	bg->a = fg.a * p + bg->a * pinv >> 15;
+
+	// Covering by p lets 1-p of what's behind through a transmittance channel
+	if (fb->r.transmittance)
+		bg->a = bg->a * pinv >> 15;
+	else
+		bg->a = fg.a * p + bg->a * pinv >> 15;
 }
 
 void blend_blendalphaonly(lrgb_t *bg, lrgb_t fg, int32_t p)
@@ -148,7 +179,12 @@ void blend_blendalphaonly(lrgb_t *bg, lrgb_t fg, int32_t p)
 	int32_t pinv;
 
 	pinv = 32768 - p;
-	bg->a = fg.a * p + bg->a * pinv >> 15;
+
+	// A transmittance channel goes towards the opposite of the colour's alpha
+	if (fb->r.transmittance)
+		bg->a = (ONE - fg.a) * p + bg->a * pinv >> 15;
+	else
+		bg->a = fg.a * p + bg->a * pinv >> 15;
 }
 
 blend_func_fl_t get_blend_fl_equivalent(const blend_func_t bf)

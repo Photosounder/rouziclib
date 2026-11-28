@@ -56,7 +56,7 @@ void blit_sprite(raster_t r, xyi_t pos, const blend_func_t bf, int hmode, int vm
 	if (sprite_offsets(r, &pos, &offset, &start, &stop, hmode, vmode))
 		return ;
 
-	if (bf==blend_solid)	// if the sprite is opaque then it can be blitted whole lines at a time
+	if (bf==blend_solid && fb->r.transmittance==0)	// if the sprite is opaque then it can be blitted whole lines at a time (its alpha is turned into transmittance otherwise)
 	{
 		for (iy=start.y; iy<stop.y; iy++)
 		{
@@ -225,15 +225,17 @@ static int blit_dq_fmt(raster_t *r)
 	if (r->sq)
 		return 1;
 
-	// With alpha_premul lrgb and srgb rasters are read with their alpha channel, the colours being premultiplied by it
+	// With alpha_premul lrgb and srgb rasters are read with their alpha channel, the colours being premultiplied by it, or their
+	// transmittance channel (transmittance), turned into alpha
+	int t = r->transmittance ? 16 : 0;
 	if (r->srgb)
 	{
 		if (r->rgb8_transfer == RGB8_TRANSFER_GAMMA22)
-			return r->alpha_premul ? 7 : 4;
-		return r->alpha_premul ? 6 : 2;
+			return r->alpha_premul ? 7 + t : 4;
+		return r->alpha_premul ? 6 + t : 2;
 	}
 	if (r->l)
-		return r->alpha_premul ? 5 : 3;
+		return r->alpha_premul ? 5 + t : 3;
 	return 0;
 }
 

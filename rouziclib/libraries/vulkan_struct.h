@@ -83,6 +83,8 @@ typedef struct
 	int unified_memory;		// integrated GPU, whose memory the CPU can write directly
 	int swapchain_storage;		// the compute shader writes the swapchain images through swapchain_views
 	int swapchain_dirty;
+	int upscale_nearest;		// with a pixel scale, keep the swapchain at the window's size and blit the framebuffer up into it with
+					// nearest-neighbour, instead of a swapchain of the framebuffer's size that the compositor scales up smoothly
 	int initialised;
 
 	// Presentation timing (VK_GOOGLE_display_timing, Android), so that the caller can start each frame as late as possible and keep

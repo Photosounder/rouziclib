@@ -408,6 +408,12 @@ vec4 read_gamma22a_pixel(uint base, int index)
 	return vec4(pow(rgb*(1.0/255.0), vec3(2.2)), float(value >> 24u)*(1.0/255.0));
 }
 
+vec4 transmittance_to_alpha(vec4 pixel)
+{
+	// A transmittance channel (1 - alpha) read as alpha
+	return vec4(pixel.rgb, 1.0 - pixel.a);
+}
+
 vec4 rec709_to_linear(vec4 pixel)
 {
 	vec4 line = pixel*(1.0/4.5);
@@ -494,6 +500,9 @@ vec4 read_format_pixel(uint base, int format, ivec2 dimensions, ivec2 position)
 		case 5: return read_lrgba_pixel(base, index);
 		case 6: return read_srgba_pixel(base, index);
 		case 7: return read_gamma22a_pixel(base, index);
+		case 21: return transmittance_to_alpha(read_lrgba_pixel(base, index));
+		case 22: return transmittance_to_alpha(read_srgba_pixel(base, index));
+		case 23: return transmittance_to_alpha(read_gamma22a_pixel(base, index));
 		case 10: return read_yuv420p8_pixel(base, dimensions, position, false);
 		case 11: return read_yuv420pn_pixel(base, dimensions, position, 0.25/255.0);
 		case 12: return read_yuv420pn_pixel(base, dimensions, position, 0.0625/255.0);

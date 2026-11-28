@@ -35,6 +35,7 @@ The graphics guide explains how `col_t`, `raster_t`, world coordinates, and fram
 |`RL_INCL_NETWORK` |Keeps the network-enabled HTTP image-loading path; it does not provide a transport by itself, and the current native fetch implementation requires `RL_LIBCURL`
 |`RL_DONT_ASSUME_LITTLE_ENDIAN` |Makes endian-sensitive code work on big-endian targets
 |`RL_EXCL_THREADING` |Removes the threading implementation
+|`RL_FB_NO_TLS` |Makes `fb` a plain global instead of a thread-local one, for programs with a single framebuffer; in a shared library this saves a call to the dynamic TLS resolver in every function that uses `fb`. Threads can then no longer each have their own framebuffer (`init_tls_fb()`)
 |`RL_EXCL_APPROX` |Removes lookup-table approximation functions
 |`RL_FREESTANDING` |Selects reduced-platform behavior; the umbrella header defines it automatically when `__wasm__` is present
 |===

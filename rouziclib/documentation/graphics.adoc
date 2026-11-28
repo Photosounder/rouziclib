@@ -58,7 +58,9 @@ The final intensity is separate from colour. Blend functions such as `blend_add`
 
 The draw queue records or dispatches drawing work through direct, software, OpenCL, or Vulkan paths depending on compile-time support and framebuffer configuration. The corresponding modes are `DRAWQ_MODE_DIRECT`, `DRAWQ_MODE_OPENCL`, `DRAWQ_MODE_SOFTWARE`, and `DRAWQ_MODE_VULKAN`. `DQS_THREADS` controls the software queue worker count.
 
-`drawq_bracket_open()` starts a temporary compositing layer. `drawq_bracket_close()` merges that layer with an operation such as `DQB_ADD`, `DQB_SUB`, `DQB_MUL`, `DQB_DIV`, `DQB_BLEND`, `DQB_SOLID`, or `DQB_BLEND_PREMUL` (the layer's colours being premultiplied by its alpha: layer + below × (1 − layer alpha)). Brackets are for grouped compositing, not merely for batching unrelated draw calls.
+`drawq_bracket_open()` starts a temporary compositing layer. `drawq_bracket_close()` merges that layer with an operation such as `DQB_ADD`, `DQB_SUB`, `DQB_MUL`, `DQB_DIV`, `DQB_BLEND`, `DQB_SOLID`, or `DQB_BLEND_PREMUL` (the layer's colours being premultiplied by its alpha: layer + below × (1 − layer alpha)).
+
+With `fb->r.transmittance` set the framebuffer's 4th channel holds transmittance (1 − alpha) instead of alpha, for a layer to go over others with its colours premultiplied: covering (`blend_blend`, `blend_alphablendfg`, black shapes) multiplies it by what's let through, added light (`blend_add`) leaves it alone, and direct brackets start at 1 and combine it. A blit with `alpha_premul` and `transmittance` reads it as alpha (lrgb and srgb rasters). Brackets are for grouped compositing, not merely for batching unrelated draw calls.
 
 When a rendering backend can change at runtime, expose the draw-queue mode through application state and apply a pending switch only after the current frame has completed. Do not replace the backend while queued work is still being processed.
 

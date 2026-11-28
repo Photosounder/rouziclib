@@ -184,6 +184,16 @@ static frgb_t dqs_read_fmt_pixel(const uint8_t *im, xyi_t dim, int fmt, xyi_t p,
 		case 20:
 			return dqs_read_compressed_texture1_pixel(im, dim, p, cd);
 
+		case 21:
+		case 22:
+		case 23:
+		{
+			// The formats with alpha (5 to 7) holding transmittance (1 - alpha) instead, turned into alpha
+			frgb_t q = dqs_read_fmt_pixel(im, dim, fmt - 16, p, cd);
+			q.a = 1.f - q.a;
+			return q;
+		}
+
 		case 31:
 		case 41:
 			return dqs_frgb(f[index], 0.f, 0.f, 1.f);

@@ -1,4 +1,13 @@
-extern _Thread_local framebuffer_t *fb;
+// fb is thread-local unless RL_FB_NO_TLS is defined, so that threads can each draw into their own framebuffer (see init_tls_fb()).
+// A program that only has the one fb can define it: in a shared library each function using a thread-local variable first calls the
+// dynamic TLS resolver (on Android tlsdesc_resolver_dynamic, about 1% of a frame's cycles in SDLwindow's drawing queue)
+#ifdef RL_FB_NO_TLS
+#define RL_FB_TLS
+#else
+#define RL_FB_TLS _Thread_local
+#endif
+
+extern RL_FB_TLS framebuffer_t *fb;
 extern _Thread_local zoom_t zc;
 extern _Thread_local mouse_t mouse;
 extern vector_font_t *font;

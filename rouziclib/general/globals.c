@@ -1,5 +1,5 @@
 framebuffer_t fbs={0};
-_Thread_local framebuffer_t *fb=&fbs;
+RL_FB_TLS framebuffer_t *fb=&fbs;	// see globals.h
 _Thread_local zoom_t zc={0};
 _Thread_local mouse_t mouse={0};
 vector_font_t *font=NULL;

@@ -332,6 +332,24 @@ static lrgb_t drawq_bracket_blend_lrgb(lrgb_t bg, lrgb_t fg, enum dq_blend blend
 	return bg;
 }
 
+static lrgb_t drawq_bracket_blend_lrgb_transmittance(lrgb_t bg, lrgb_t fg, enum dq_blend blending_mode)
+{
+	lrgb_t fg_alpha = fg, out;
+
+	// With transmittance channels the colours blend as with the child's alpha, the opposite of its transmittance
+	fg_alpha.a = ONE - fg.a;
+	out = drawq_bracket_blend_lrgb(bg, fg_alpha, blending_mode);
+
+	// What's behind shows through both, except where the child replaces the parent or only changes its colours
+	if (blending_mode == DQB_SOLID)
+		out.a = fg.a;
+	else if (blending_mode == DQB_SUB || blending_mode == DQB_MUL || blending_mode == DQB_DIV)
+		out.a = bg.a;
+	else
+		out.a = ((uint32_t) bg.a * fg.a + (ONE >> 1)) >> LBD;
+	return out;
+}
+
 static frgb_t drawq_bracket_blend_frgb(frgb_t bg, frgb_t fg, enum dq_blend blending_mode)
 {
 	float *b = (float *) &bg;
@@ -354,6 +372,24 @@ static frgb_t drawq_bracket_blend_frgb(frgb_t bg, frgb_t fg, enum dq_blend blend
 	}
 
 	return bg;
+}
+
+static frgb_t drawq_bracket_blend_frgb_transmittance(frgb_t bg, frgb_t fg, enum dq_blend blending_mode)
+{
+	frgb_t fg_alpha = fg, out;
+
+	// With transmittance channels the colours blend as with the child's alpha, the opposite of its transmittance
+	fg_alpha.a = 1.f - fg.a;
+	out = drawq_bracket_blend_frgb(bg, fg_alpha, blending_mode);
+
+	// What's behind shows through both, except where the child replaces the parent or only changes its colours
+	if (blending_mode == DQB_SOLID)
+		out.a = fg.a;
+	else if (blending_mode == DQB_SUB || blending_mode == DQB_MUL || blending_mode == DQB_DIV)
+		out.a = bg.a;
+	else
+		out.a = bg.a * fg.a;
+	return out;
 }
 
 static void drawq_bracket_open_direct()
@@ -404,6 +440,17 @@ static void drawq_bracket_open_direct()
 		fprintf_rl(stderr, "Direct bracket layer allocation failed for %zu pixels\n", pixel_count);
 		fb->drawq_direct_bracket_overflow++;
 		return;
+	}
+
+	// With a transmittance channel the child starts transparent, which is a transmittance of 1
+	if (fb->r.transmittance)
+	{
+		if (mode==IMAGE_USE_FRGB)
+			for (size_t i=0; i < pixel_count; i++)
+				((frgb_t *) layer_buffer)[i] = (frgb_t) {0.f, 0.f, 0.f, 1.f};
+		else
+			for (size_t i=0; i < pixel_count; i++)
+				((lrgb_t *) layer_buffer)[i] = (lrgb_t) {0, 0, 0, ONE};
 	}
 
 	// Save the parent and redirect every immediate drawing primitive to the child layer
@@ -461,7 +508,7 @@ static void drawq_bracket_close_direct(enum dq_blend blending_mode)
 
 		for (i=0; i < pixel_count; i++)
 		{
-			parent_f[i] = drawq_bracket_blend_frgb(parent_f[i], child_f[i], blending_mode);
+			parent_f[i] = fb->r.transmittance ? drawq_bracket_blend_frgb_transmittance(parent_f[i], child_f[i], blending_mode) : drawq_bracket_blend_frgb(parent_f[i], child_f[i], blending_mode);
 			child_f[i] = (frgb_t) {0};
 		}
 	}
@@ -472,7 +519,7 @@ static void drawq_bracket_close_direct(enum dq_blend blending_mode)
 
 		for (i=0; i < pixel_count; i++)
 		{
-			parent_l[i] = drawq_bracket_blend_lrgb(parent_l[i], child_l[i], blending_mode);
+			parent_l[i] = fb->r.transmittance ? drawq_bracket_blend_lrgb_transmittance(parent_l[i], child_l[i], blending_mode) : drawq_bracket_blend_lrgb(parent_l[i], child_l[i], blending_mode);
 			child_l[i] = (lrgb_t) {0};
 		}
 	}

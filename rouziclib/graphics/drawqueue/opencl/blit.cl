@@ -198,6 +198,13 @@ float4 read_gamma22a_pixel(global uint *im, int index)
 	return pv;
 }
 
+float4 transmittance_to_alpha(float4 pv)
+{
+	// A transmittance channel (1 - alpha) read as alpha
+	pv.w = 1.f - pv.w;
+	return pv;
+}
+
 float4 rec709_to_linear(float4 pv)
 {
 	float4 l = pv * (1.f/4.5f);
@@ -377,6 +384,16 @@ float4 read_fmt_pixel(const int fmt, global float4 *im, int2 im_dim, int2 i)
 
 		case 20:	// Compressed texture format
 			return read_compressed_texture1_pixel((global uchar *) im, im_dim, i);
+
+		// The formats with alpha holding transmittance (1 - alpha) instead
+		case 21:	// lrgb_t with transmittance
+			return transmittance_to_alpha(read_lrgba_pixel((global ushort *) im, 4*(i.y * im_dim.x + i.x)));
+
+		case 22:	// srgb_t with transmittance
+			return transmittance_to_alpha(read_srgba_pixel((global uint *) im, i.y * im_dim.x + i.x));
+
+		case 23:	// gamma 2.2 with transmittance
+			return transmittance_to_alpha(read_gamma22a_pixel((global uint *) im, i.y * im_dim.x + i.x));
 
 		case 31:	// 1 channel float
 		case 41:

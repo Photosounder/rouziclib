@@ -545,7 +545,16 @@ static VkResult vk_create_swapchain()
 	SDL_Vulkan_GetDrawableSize(fb->window, &drawable_width, &drawable_height);
 	#endif
 
-	// The drawable size when the surface allows it: right after a rotation Android still gives the surface's old size as its current
+	// With a pixel scale the framebuffer is the window's size divided by it, rounded up as in sdl_handle_window_resize(), and so is
+	// the swapchain when the surface allows it, the compositor scaling its images up to the window smoothly. Otherwise, or for
+	// pixelated upscaling (upscale_nearest), vk_drawq_run() blits the framebuffer up into images of the window's size, nearest-neighbour
+	if (fb->pixel_scale > 1 && !fb->vk.upscale_nearest && drawable_width > 0 && drawable_height > 0)
+	{
+		drawable_width = idiv_ceil(drawable_width, fb->pixel_scale);
+		drawable_height = idiv_ceil(drawable_height, fb->pixel_scale);
+	}
+
+	// The drawable size (divided by the pixel scale) when the surface allows it: right after a rotation Android still gives the surface's old size as its current
 	// extent while allowing any size, and a swapchain of the old size would stay, the compositor stretching its images into the window,
 	// which drops rows and columns. Otherwise the current extent, or the drawable size when the surface leaves it variable
 	if (drawable_width > 0 && drawable_height > 0 &&
